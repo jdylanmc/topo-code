@@ -1,0 +1,15 @@
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+
+# Only caches are safely ignorable. Config, normalized report inputs, and
+# generated architectural metadata are independently source-controllable
+# (see issue #1), so the .topo/ workspace is NOT ignored wholesale.
+.topo/cache/
+
+.DS_Store
+*.log
+.env
+.env.*
+!.env.example
