@@ -1,5 +1,7 @@
 # topo-code
 
+> An architect's dashboard for a codebase being changed faster than you can read it.
+
 A local-first, deterministic code-architecture visualizer.
 
 ```
