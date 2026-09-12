@@ -117,16 +117,6 @@ function isWithin(root: string, target: string): boolean {
   );
 }
 
-function isGeneratedOrVendorPath(target: string): boolean {
-  return target
-    .split(path.sep)
-    .some((part) =>
-      [".git", ".topo", ".yarn", "build", "coverage", "dist", "node_modules", "out"].includes(
-        part,
-      ),
-    );
-}
-
 function importSpecifiers(sourceFile: ts.SourceFile): ImportRecord["specifier"][] {
   const specifiers: string[] = [];
   const add = (value: ts.Expression | undefined): void => {
@@ -235,8 +225,10 @@ async function loadConfiguredSources(
   configPaths: readonly string[],
   diagnostics: ScanDiagnostic[],
   outputMappings: OutputMapping[],
+  inventoryPaths: ReadonlySet<string>,
 ): Promise<Map<string, SourceRecord>> {
   const records = new Map<string, SourceRecord>();
+  const ignoredConfigSources = new Set<string>();
 
   for (const configPath of configPaths) {
     const config = ts.readConfigFile(configPath, ts.sys.readFile);
@@ -283,7 +275,18 @@ async function loadConfiguredSources(
       parsed.options,
       moduleResolutionCache,
       records,
+      inventoryPaths,
+      ignoredConfigSources,
     );
+  }
+
+  if (ignoredConfigSources.size > 0) {
+    const paths = [...ignoredConfigSources].sort(compareText);
+    diagnostics.push({
+      code: "ignored-config-source",
+      severity: "warning",
+      message: `${paths.length} TypeScript-configured files were excluded by Git or ignore rules: ${paths.join(", ")}.`,
+    });
   }
 
   return records;
@@ -295,12 +298,17 @@ async function collectConfiguredFiles(
   compilerOptions: ts.CompilerOptions,
   moduleResolutionCache: ts.ModuleResolutionCache,
   records: Map<string, SourceRecord>,
+  inventoryPaths?: ReadonlySet<string>,
+  ignoredConfigSources?: Set<string>,
 ): Promise<void> {
   for (const fileName of fileNames) {
     const absolutePath = path.resolve(fileName);
+    if (inventoryPaths !== undefined && !inventoryPaths.has(absolutePath)) {
+      ignoredConfigSources?.add(toRepositoryPath(root, absolutePath));
+      continue;
+    }
     if (
       !isWithin(root, absolutePath) ||
-      isGeneratedOrVendorPath(absolutePath) ||
       !isSourceFile(absolutePath)
     ) {
       continue;
@@ -656,6 +664,7 @@ export async function scanRepository(
   await assertDirectory(options.root);
 
   const files = await walkFiles(options.root);
+  const inventoryPaths = new Set(files.map((filePath) => path.resolve(filePath)));
   const configPaths = files.filter(isConfigFile).sort(compareText);
   const sourcePaths = files.filter(isSourceFile).sort(compareText);
   const workspaces = await discoverWorkspacePackages(options.root, files);
@@ -670,6 +679,7 @@ export async function scanRepository(
     configPaths,
     diagnostics,
     outputMappings,
+    inventoryPaths,
   );
   const unconfiguredPaths = sourcePaths.filter(
     (sourcePath) =>
@@ -693,7 +703,7 @@ export async function scanRepository(
   const sourceByAbsolutePath = new Map(
     sortedSources.map((source) => [path.resolve(source.absolutePath), source]),
   );
-  const filePaths = new Set(files.map((filePath) => path.resolve(filePath)));
+  const filePaths = inventoryPaths;
 
   const nodes = new Map<string, GraphNode>();
   const evidence = new Map<string, Evidence>();

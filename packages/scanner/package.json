@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@topo/schema": "workspace:*",
+    "ignore": "^7.0.0",
     "typescript-compiler-api": "npm:typescript@^6.0.0"
   },
   "devDependencies": {

@@ -1,6 +1,8 @@
+import { execFile } from "node:child_process";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   ScanError,
@@ -12,6 +14,7 @@ import {
 } from "./index.js";
 
 const temporaryRoots: string[] = [];
+const execFileAsync = promisify(execFile);
 
 async function temporaryRepository(): Promise<string> {
   const root = await mkdtemp(path.join(os.tmpdir(), "topo-scanner-test-"));
@@ -201,6 +204,7 @@ describe("@topo/scanner", () => {
 
   it("maps generated output imports back to project source", async () => {
     const root = await temporaryRepository();
+    await write(root, ".gitignore", "dist/\npackages/*/dist/\n");
     await write(
       root,
       "packages/library/tsconfig.json",
@@ -292,6 +296,7 @@ describe("@topo/scanner", () => {
 
   it("rejects ambiguous and absent generated output mappings", async () => {
     const ambiguous = await temporaryRepository();
+    await write(ambiguous, ".gitignore", "dist/\n");
     for (const directory of ["a", "b"]) {
       await write(
         ambiguous,
@@ -329,6 +334,7 @@ describe("@topo/scanner", () => {
     });
 
     const absent = await temporaryRepository();
+    await write(absent, ".gitignore", "dist/\n");
     await write(
       absent,
       "tsconfig.json",
@@ -400,6 +406,91 @@ describe("@topo/scanner", () => {
     expect(changed.graph.nodes[0]?.id).toBe(first.graph.nodes[0]?.id);
     expect(changed.graph.nodes[0]?.fingerprint).not.toBe(
       first.graph.nodes[0]?.fingerprint,
+    );
+  });
+
+  it("uses Git inventory and ignores generated untracked files", async () => {
+    const root = await temporaryRepository();
+    await execFileAsync("git", ["init", "--quiet", root]);
+    await write(root, "src/index.ts", "export const value = 1;\n");
+    await write(root, "benchmarks/.gitignore", ".generated/\n");
+    await execFileAsync(
+      "git",
+      ["-C", root, "add", "src/index.ts", "benchmarks/.gitignore"],
+    );
+
+    const before = await scanRepository({ root });
+    await write(
+      root,
+      "benchmarks/.generated/nested/bundle.js",
+      "export const generated = true;\n",
+    );
+    const afterIgnored = await scanRepository({ root });
+    expect(afterIgnored.graph).toEqual(before.graph);
+
+    await write(root, "src/new.ts", "export const added = true;\n");
+    const afterSource = await scanRepository({ root });
+    expect(afterSource.metrics.sourceFileCount).toBe(
+      before.metrics.sourceFileCount + 1,
+    );
+    expect(afterSource.graph).not.toEqual(before.graph);
+
+    await write(
+      root,
+      "benchmarks/.generated/tracked.ts",
+      "export const tracked = true;\n",
+    );
+    await execFileAsync("git", [
+      "-C",
+      root,
+      "add",
+      "-f",
+      "benchmarks/.generated/tracked.ts",
+    ]);
+    const withTrackedIgnored = await scanRepository({ root });
+    expect(withTrackedIgnored.graph.nodes).toContainEqual(
+      expect.objectContaining({
+        id: "path:benchmarks/.generated/tracked.ts",
+      }),
+    );
+  });
+
+  it("reports config-included files excluded by ignore rules", async () => {
+    const root = await temporaryRepository();
+    await execFileAsync("git", ["init", "--quiet", root]);
+    await write(root, ".gitignore", "generated/\n");
+    await write(
+      root,
+      "tsconfig.json",
+      JSON.stringify({
+        compilerOptions: {
+          module: "NodeNext",
+          moduleResolution: "NodeNext",
+        },
+        include: ["src", "generated"],
+      }),
+    );
+    await write(root, "src/index.ts", "export const value = 1;\n");
+    await write(root, "generated/output.ts", "export const ignored = true;\n");
+    await execFileAsync("git", [
+      "-C",
+      root,
+      "add",
+      ".gitignore",
+      "tsconfig.json",
+      "src/index.ts",
+    ]);
+
+    const result = await scanRepository({ root });
+
+    expect(result.authoritative).toBe(true);
+    expect(result.metrics.sourceFileCount).toBe(1);
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: "ignored-config-source",
+        severity: "warning",
+        message: expect.stringContaining("generated/output.ts"),
+      }),
     );
   });
 

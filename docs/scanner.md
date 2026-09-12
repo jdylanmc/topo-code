@@ -69,6 +69,13 @@ workspaces, opaque CSS assets, and partial-result support.
   the caller's current working directory.
 - The scanner never installs dependencies in or writes to the scanned
   repository.
+- Git repositories use the tracked plus nonignored-untracked inventory from
+  `git ls-files --cached --others --exclude-standard`. Tracked files remain
+  authoritative even when an ignore pattern matches. Non-Git roots use the
+  established `ignore` parser with nested `.gitignore` files.
+- A TypeScript config that explicitly includes an ignored, untracked file does
+  not override repository inventory. The file is excluded and an
+  `ignored-config-source` warning identifies it.
 
 ## Configuration and workspace coverage
 
