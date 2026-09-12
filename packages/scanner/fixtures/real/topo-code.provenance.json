@@ -2,7 +2,7 @@
   "schemaVersion": "1.0",
   "repositoryId": "jdylanmc/topo-code",
   "upstream": "https://github.com/jdylanmc/topo-code.git",
-  "revision": "bf99b785d417797962c14c4b84364e611f213495",
+  "revision": "18a6588d5946c1026a1a2c335ba51b92f231eb8f",
   "selectedPath": ".",
   "configDiscovery": "all repository tsconfig*.json files",
   "graphFile": "topo-code.graph.json",
@@ -16,7 +16,7 @@
   },
   "limitations": [],
   "scan": {
-    "durationMilliseconds": 517,
+    "durationMilliseconds": 420,
     "nodeVersion": "v24.20.0",
     "platform": "darwin",
     "architecture": "arm64",

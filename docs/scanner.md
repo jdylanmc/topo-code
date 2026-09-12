@@ -96,7 +96,7 @@ Committed real fixtures:
 
 | Fixture | Revision | Selected path | Files | Edges | LOC |
 | --- | --- | --- | ---: | ---: | ---: |
-| `topo-code` | `bf99b785d417797962c14c4b84364e611f213495` | repository root | 19 | 64 | 3,981 |
+| `topo-code` | `18a6588d5946c1026a1a2c335ba51b92f231eb8f` | repository root | 19 | 64 | 3,981 |
 | `mermaid-layout-tidy-tree` | `3f5f7a6781cc8c788b8b5fa3d4e62edce9288f60` | `packages/mermaid-layout-tidy-tree/src` | 7 | 16 | 1,438 |
 | `vscode-base-common` | `3879d0e80faeaeb351bbb44dd0f74f1bac12fc0a` | `src/vs/base/common` | 158 | 439 | 51,186 |
 
