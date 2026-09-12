@@ -20,6 +20,7 @@ import {
 import ts from "typescript-compiler-api";
 import {
   assertDirectory,
+  discoverDeclaredPackageNames,
   discoverWorkspacePackages,
   isConfigFile,
   isSourceFile,
@@ -43,8 +44,9 @@ import {
 interface SourceRecord {
   absolutePath: string;
   repositoryPath: string;
-  sourceFile: ts.SourceFile;
   compilerOptions: ts.CompilerOptions;
+  moduleResolutionCache: ts.ModuleResolutionCache;
+  imports: string[];
   fingerprint: string;
   lines: number;
 }
@@ -137,6 +139,74 @@ function importSpecifiers(sourceFile: ts.SourceFile): ImportRecord["specifier"][
   return specifiers;
 }
 
+function scriptKind(filePath: string): ts.ScriptKind {
+  switch (path.extname(filePath).toLowerCase()) {
+    case ".js":
+    case ".cjs":
+    case ".mjs":
+      return ts.ScriptKind.JS;
+    case ".jsx":
+      return ts.ScriptKind.JSX;
+    case ".tsx":
+      return ts.ScriptKind.TSX;
+    case ".json":
+      return ts.ScriptKind.JSON;
+    default:
+      return ts.ScriptKind.TS;
+  }
+}
+
+async function createSourceRecord(
+  root: string,
+  absolutePath: string,
+  compilerOptions: ts.CompilerOptions,
+  moduleResolutionCache: ts.ModuleResolutionCache,
+): Promise<SourceRecord> {
+  const repositoryPath = toRepositoryPath(root, absolutePath);
+  const content = await readFile(absolutePath, "utf8");
+  const sourceFile = ts.createSourceFile(
+    absolutePath,
+    content,
+    ts.ScriptTarget.Latest,
+    false,
+    scriptKind(absolutePath),
+  );
+  return {
+    absolutePath,
+    repositoryPath,
+    compilerOptions,
+    moduleResolutionCache,
+    imports: importSpecifiers(sourceFile),
+    fingerprint: sha256(content),
+    lines: content.length === 0 ? 0 : content.split(/\r\n?|\n/u).length,
+  };
+}
+
+function validateConfiguredTypeLibraries(
+  root: string,
+  configPath: string,
+  compilerOptions: ts.CompilerOptions,
+  diagnostics: ScanDiagnostic[],
+): void {
+  for (const typeLibrary of compilerOptions.types ?? []) {
+    const resolution = ts.resolveTypeReferenceDirective(
+      typeLibrary,
+      configPath,
+      compilerOptions,
+      ts.sys,
+    );
+    if (resolution.resolvedTypeReferenceDirective === undefined) {
+      diagnostics.push({
+        code: "missing-type-library",
+        severity: "error",
+        message: `Cannot resolve configured type library "${typeLibrary}".`,
+        path: toRepositoryPath(root, configPath),
+        specifier: typeLibrary,
+      });
+    }
+  }
+}
+
 async function loadConfiguredSources(
   root: string,
   configPaths: readonly string[],
@@ -162,32 +232,38 @@ async function loadConfiguredSources(
         formatTypeScriptDiagnostic(root, diagnostic),
       ),
     );
-    const program = ts.createProgram({
-      rootNames: parsed.fileNames,
-      options: parsed.options,
-      ...(parsed.projectReferences === undefined
-        ? {}
-        : { projectReferences: parsed.projectReferences }),
-    });
-    diagnostics.push(
-      ...program
-        .getOptionsDiagnostics()
-        .map((diagnostic) => formatTypeScriptDiagnostic(root, diagnostic)),
+    validateConfiguredTypeLibraries(
+      root,
+      configPath,
+      parsed.options,
+      diagnostics,
     );
-    await collectProgramSources(root, program, parsed.options, records);
+    const moduleResolutionCache = ts.createModuleResolutionCache(
+      path.dirname(configPath),
+      (fileName) => fileName,
+      parsed.options,
+    );
+    await collectConfiguredFiles(
+      root,
+      parsed.fileNames,
+      parsed.options,
+      moduleResolutionCache,
+      records,
+    );
   }
 
   return records;
 }
 
-async function collectProgramSources(
+async function collectConfiguredFiles(
   root: string,
-  program: ts.Program,
+  fileNames: readonly string[],
   compilerOptions: ts.CompilerOptions,
+  moduleResolutionCache: ts.ModuleResolutionCache,
   records: Map<string, SourceRecord>,
 ): Promise<void> {
-  for (const sourceFile of program.getSourceFiles()) {
-    const absolutePath = path.resolve(sourceFile.fileName);
+  for (const fileName of fileNames) {
+    const absolutePath = path.resolve(fileName);
     if (
       !isWithin(root, absolutePath) ||
       isGeneratedOrVendorPath(absolutePath) ||
@@ -199,15 +275,15 @@ async function collectProgramSources(
     if (records.has(repositoryPath)) {
       continue;
     }
-    const content = await readFile(absolutePath, "utf8");
-    records.set(repositoryPath, {
-      absolutePath,
+    records.set(
       repositoryPath,
-      sourceFile,
-      compilerOptions,
-      fingerprint: sha256(content),
-      lines: content.length === 0 ? 0 : content.split(/\r\n?|\n/u).length,
-    });
+      await createSourceRecord(
+        root,
+        absolutePath,
+        compilerOptions,
+        moduleResolutionCache,
+      ),
+    );
   }
 }
 
@@ -222,12 +298,19 @@ async function loadInferredSources(
     moduleResolution: ts.ModuleResolutionKind.NodeNext,
     target: ts.ScriptTarget.ES2022,
   };
-  const program = ts.createProgram({
-    rootNames: [...sourcePaths],
-    options,
-  });
   const records = new Map<string, SourceRecord>();
-  await collectProgramSources(root, program, options, records);
+  const moduleResolutionCache = ts.createModuleResolutionCache(
+    root,
+    (fileName) => fileName,
+    options,
+  );
+  await collectConfiguredFiles(
+    root,
+    sourcePaths,
+    options,
+    moduleResolutionCache,
+    records,
+  );
   return records;
 }
 
@@ -488,17 +571,32 @@ export async function scanRepository(
   const configPaths = files.filter(isConfigFile).sort(compareText);
   const sourcePaths = files.filter(isSourceFile).sort(compareText);
   const workspaces = await discoverWorkspacePackages(options.root, files);
+  const declaredPackageNames = await discoverDeclaredPackageNames(
+    options.root,
+    files,
+  );
   const diagnostics: ScanDiagnostic[] = [];
   const configuredSources = await loadConfiguredSources(
     options.root,
     configPaths,
     diagnostics,
   );
-  const inferredSources =
-    configuredSources.size === 0 && sourcePaths.length > 0
-      ? await loadInferredSources(options.root, sourcePaths)
-      : new Map<string, SourceRecord>();
-  const sources = configuredSources.size > 0 ? configuredSources : inferredSources;
+  const unconfiguredPaths = sourcePaths.filter(
+    (sourcePath) =>
+      !configuredSources.has(toRepositoryPath(options.root, sourcePath)),
+  );
+  const inferredSources = await loadInferredSources(
+    options.root,
+    unconfiguredPaths,
+  );
+  const sources = new Map([...configuredSources, ...inferredSources]);
+  if (configuredSources.size > 0 && inferredSources.size > 0) {
+    diagnostics.push({
+      code: "inferred-source-configuration",
+      severity: "warning",
+      message: `${inferredSources.size} source files were not covered by a discovered TypeScript config and used default compiler options.`,
+    });
+  }
   const sortedSources = [...sources.values()].sort((left, right) =>
     compareText(left.repositoryPath, right.repositoryPath),
   );
@@ -530,7 +628,7 @@ export async function scanRepository(
   let unresolvedImportCount = 0;
 
   for (const source of sortedSources) {
-    const imports = importSpecifiers(source.sourceFile).sort(compareText);
+    const imports = [...source.imports].sort(compareText);
     for (const specifier of imports) {
       const importItem = importEvidence(source, specifier);
       const resolved = ts.resolveModuleName(
@@ -538,6 +636,7 @@ export async function scanRepository(
         source.absolutePath,
         source.compilerOptions,
         ts.sys,
+        source.moduleResolutionCache,
       ).resolvedModule;
       let targetId: string | undefined;
       const workspace = workspaceForSpecifier(specifier, workspaces);
@@ -601,7 +700,8 @@ export async function scanRepository(
         const local =
           specifier.startsWith(".") ||
           specifier.startsWith("/") ||
-          isPathAlias(specifier, source.compilerOptions);
+          (isPathAlias(specifier, source.compilerOptions) &&
+            !declaredPackageNames.has(packageName(specifier)));
         if (local) {
           unresolvedImportCount += 1;
           diagnostics.push({

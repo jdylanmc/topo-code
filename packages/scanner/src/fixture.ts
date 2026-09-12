@@ -75,8 +75,18 @@ const result = await scanRepository({
 const durationMilliseconds = Math.round(performance.now() - started);
 const graphPath = `${arguments_.output}.graph.json`;
 const provenancePath = `${arguments_.output}.provenance.json`;
+const serializedGraph = serializeGraphDocument(result.graph);
+const diagnosticCounts = Object.fromEntries(
+  [...new Set(result.diagnostics.map((diagnostic) => diagnostic.code))]
+    .sort()
+    .map((code) => [
+      code,
+      result.diagnostics.filter((diagnostic) => diagnostic.code === code)
+        .length,
+    ]),
+);
 await mkdir(path.dirname(graphPath), { recursive: true });
-await writeFile(graphPath, serializeGraphDocument(result.graph));
+await writeFile(graphPath, serializedGraph);
 await writeFile(
   provenancePath,
   `${JSON.stringify(
@@ -88,6 +98,7 @@ await writeFile(
       selectedPath,
       configDiscovery: "all repository tsconfig*.json files",
       graphFile: path.basename(graphPath),
+      graphBytes: Buffer.byteLength(serializedGraph),
       authoritative: result.authoritative,
       counts: {
         nodes: result.graph.nodes.length,
@@ -97,8 +108,10 @@ await writeFile(
         linesOfCode: result.metrics.linesOfCode,
       },
       limitations: result.diagnostics.map((diagnostic) => diagnostic.message),
+      diagnosticCounts,
       scan: {
         durationMilliseconds,
+        maximumResidentSetBytes: process.resourceUsage().maxRSS * 1024,
         nodeVersion: process.version,
         platform: process.platform,
         architecture: process.arch,

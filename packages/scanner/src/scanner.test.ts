@@ -251,4 +251,40 @@ describe("@topo/scanner", () => {
       assertScannerConformance(createTypeScriptScannerAdapter()),
     ).resolves.toBeUndefined();
   });
+
+  it(
+    "scans a 100k-line graph without retaining compiler programs",
+    async () => {
+      const root = await temporaryRepository();
+      const fileCount = 600;
+      const linesPerFile = 200;
+      await Promise.all(
+        Array.from({ length: fileCount }, async (_, index) => {
+          const nextImport =
+            index + 1 < fileCount
+              ? `import { value as next } from "./file-${index + 1}.js";\n`
+              : "";
+          const declarations = Array.from(
+            { length: linesPerFile - 1 },
+            (__, line) => `export const value${line} = ${index + line};`,
+          ).join("\n");
+          await write(
+            root,
+            `src/file-${index}.ts`,
+            `${nextImport}${declarations}\n`,
+          );
+        }),
+      );
+
+      const result = await scanRepository({ root });
+
+      expect(result.authoritative).toBe(true);
+      expect(result.metrics.sourceFileCount).toBe(fileCount);
+      expect(result.metrics.linesOfCode).toBeGreaterThan(100_000);
+      expect(result.metrics.localImportCount).toBe(fileCount - 1);
+      expect(result.graph.nodes.length).toBe(fileCount);
+      expect(result.graph.edges.length).toBe(fileCount - 1);
+    },
+    30_000,
+  );
 });

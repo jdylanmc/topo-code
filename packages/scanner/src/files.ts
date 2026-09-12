@@ -74,11 +74,46 @@ export function isConfigFile(filePath: string): boolean {
 interface PackageManifest {
   name?: unknown;
   workspaces?: unknown;
+  dependencies?: unknown;
+  devDependencies?: unknown;
+  optionalDependencies?: unknown;
+  peerDependencies?: unknown;
   source?: unknown;
   module?: unknown;
   main?: unknown;
   types?: unknown;
   exports?: unknown;
+}
+
+function dependencyNames(manifest: PackageManifest): string[] {
+  return [
+    manifest.dependencies,
+    manifest.devDependencies,
+    manifest.optionalDependencies,
+    manifest.peerDependencies,
+  ].flatMap((value) =>
+    value !== null && typeof value === "object" && !Array.isArray(value)
+      ? Object.keys(value)
+      : [],
+  );
+}
+
+export async function discoverDeclaredPackageNames(
+  root: string,
+  files: readonly string[],
+): Promise<Set<string>> {
+  const names = new Set<string>();
+  for (const manifestPath of files.filter(
+    (filePath) => path.basename(filePath) === "package.json",
+  )) {
+    const manifest = JSON.parse(
+      await readFile(manifestPath, "utf8"),
+    ) as PackageManifest;
+    for (const name of dependencyNames(manifest)) {
+      names.add(name);
+    }
+  }
+  return names;
 }
 
 export interface WorkspacePackage {

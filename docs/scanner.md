@@ -97,13 +97,20 @@ Committed real fixtures:
 | Fixture | Revision | Selected path | Files | Edges | LOC |
 | --- | --- | --- | ---: | ---: | ---: |
 | `topo-code` | `18a6588d5946c1026a1a2c335ba51b92f231eb8f` | repository root | 19 | 64 | 3,981 |
-| `mermaid-layout-tidy-tree` | `3f5f7a6781cc8c788b8b5fa3d4e62edce9288f60` | `packages/mermaid-layout-tidy-tree/src` | 7 | 16 | 1,438 |
-| `vscode-base-common` | `3879d0e80faeaeb351bbb44dd0f74f1bac12fc0a` | `src/vs/base/common` | 158 | 439 | 51,186 |
+| `mermaid-full` | `3f5f7a6781cc8c788b8b5fa3d4e62edce9288f60` | repository root | 1,111 | 4,136 | 202,090 |
+| `vscode-src` | `3879d0e80faeaeb351bbb44dd0f74f1bac12fc0a` | `src` | 9,252 | 105,549 | 2,993,413 |
 
-The strict full Mermaid package attempt failed with 91 diagnostics because its
-clean checkout does not contain required generated parser modules or installed
-type libraries. The scanner did not install dependencies or publish a partial
-graph. The strict full Visual Studio Code `src` attempt exceeded an 8 GB Node.js
-heap; the bounded `src/vs/base/common` fixture is authoritative, but does not
-claim full-repository coverage. These are known scale/configuration gaps rather
-than silently relaxed thresholds.
+The full Mermaid and Visual Studio Code graphs are explicitly partial and
+non-authoritative. Their clean checkouts omit generated files and installed type
+libraries, and both contain non-TypeScript asset imports. Strict scans fail with
+the same diagnostics; fixture generation uses `allowPartial: true` so renderers
+can benchmark every discovered source node without mistaking incomplete
+relationships for authoritative topology.
+
+The full Visual Studio Code `src` scan completes in under 10 seconds on the
+hardware recorded in provenance after replacing retained compiler programs with
+one-file-at-a-time TypeScript parsing and bounded module-resolution caches. Its
+raw graph is about 164 MB, so only provenance is committed; regenerate the graph
+with the recorded command. The full Mermaid graph is about 7.4 MB and follows
+the same provenance-first policy. Smaller authoritative fixtures remain useful
+for correctness tests, but are not presented as scale evidence.
