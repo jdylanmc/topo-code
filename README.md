@@ -15,8 +15,49 @@ The goal is to put a software engineer in the human-in-the-loop position: every
 claim the tool makes about a codebase is backed by evidence you can follow, and
 everything a human adds is recorded as such.
 
-> **Status: pre-implementation.** No code has been written yet. The design is
-> being driven from evidence rather than opinion — see below.
+> **Status: Phase 1 preview.** The scan-to-site workflow, deterministic reports,
+> stable layouts and two comparative renderers are implemented. Renderer selection
+> and real-workload performance gates remain evidence-driven; see the
+> [renderer measurements](./docs/renderer.md). This is not yet a published npm CLI.
+
+## Run locally
+
+From this checkout, with Node.js 22+ and Corepack:
+
+```sh
+corepack yarn install --immutable
+corepack yarn build
+corepack yarn topo scan /absolute/path/to/a/typescript-repository
+corepack yarn topo serve /absolute/path/to/a/typescript-repository
+```
+
+Open the printed `http://127.0.0.1:4173` address. Expand directories, inspect file
+dependencies, toggle externals and compare SVG/WebGL using the renderer control.
+The site is compiled once; rescanning replaces its data without rebuilding it.
+Nothing is uploaded or installed in the scanned repository.
+
+After building, one command also works **from the target repository**:
+
+```sh
+node /absolute/path/to/topo-code/packages/cli/dist/main.js scan "$PWD"
+```
+
+Documentation uses `topo` as shorthand for that built entry point. The supported
+input is a local Git repository containing TypeScript/JavaScript. Unknown
+configuration, unresolved local/workspace imports and incomplete scans fail
+explicitly. An intentional `--allow-partial` preview is visibly non-authoritative
+and exits **2**, not success. See the [scanner contract](./docs/scanner.md).
+
+Initialize without scanning with `topo init`. To ingest report evidence:
+
+```sh
+corepack yarn topo ingest /absolute/path/to/repository /absolute/path/to/report.json
+```
+
+Reports must match a clean scanned revision. The [report contract and example
+fixture](./docs/reports.md) describe the native normalized input format. The
+[workspace lifecycle](./docs/workspace.md) explains what is authored, generated,
+reviewable and safe to ignore. The tool never stages files or overwrites notes.
 
 ## Design
 
@@ -50,16 +91,16 @@ Requirements:
 - Node.js 22 or newer
 - Yarn 4.18.0, activated through Corepack
 
-Run `yarn install`, then `yarn check`. The root command requires every landed
+Run `corepack yarn install --immutable`, then `corepack yarn check`. The root command requires every landed
 package to define `build`, `typecheck`, and `test` scripts. An empty workspace is
 allowed only while the initial package branches have not landed; once a package
 manifest exists, a missing script or failed package command fails the root
 check.
 
-Every shipped third-party dependency must also have an exact range, SPDX licence
-identifier, and evidence URL in `dependency-licenses.json`. The initial check
-covers direct production dependencies; transitive obligation reporting remains
-required before distribution.
+Every shipped third-party dependency must have an exact range, SPDX licence
+identifier, and evidence URL in `dependency-licenses.json`. Production dependency
+attribution must include the actual installed transitive closure, not only the
+root package's empty production dependency list.
 
 Package TypeScript configurations extend `../../tsconfig.base.json`. Packages
 use ECMAScript modules, expose their public API from `src/index.ts`, and keep
