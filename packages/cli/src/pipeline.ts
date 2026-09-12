@@ -8,9 +8,10 @@ import {
 } from "@topo/schema";
 import {
   deriveArchitecture,
-  layoutGraph,
+  layoutGraphWithArchitecture,
   serializeArchitecture,
   serializeLayoutDeterministic,
+  type ArchitectureDocument,
   type LayoutResult,
 } from "@topo/graph";
 import {
@@ -74,8 +75,8 @@ async function copySite(root: string, assets: string): Promise<void> {
   await prune("");
 }
 
-function bundle(graph: GraphDocument, layout: LayoutResult, dashboard: DashboardDocument | null): string {
-  return `{"schemaVersion":"1.0","graph":${serializeGraphDocument(graph).trim()},"layout":${serializeLayoutDeterministic(layout.layout).trim()},"architecture":${serializeArchitecture(deriveArchitecture(graph)).trim()},"dashboard":${dashboard === null ? "null" : serializeDashboard(dashboard).trim()}}\n`;
+function bundle(graph: GraphDocument, architecture: ArchitectureDocument, layout: LayoutResult, dashboard: DashboardDocument | null): string {
+  return `{"schemaVersion":"1.0","graph":${serializeGraphDocument(graph).trim()},"layout":${serializeLayoutDeterministic(layout.layout).trim()},"architecture":${serializeArchitecture(architecture).trim()},"dashboard":${dashboard === null ? "null" : serializeDashboard(dashboard).trim()}}\n`;
 }
 
 export async function generateArtifacts(
@@ -89,14 +90,15 @@ export async function generateArtifacts(
     if (config.repositoryId !== graph.repository.id) throw new Error("Graph repository identity differs from .topo/config.json");
     const previous = await readOptionalArtifact(root, "graph/layout.json");
     const pins = await readOptionalArtifact(root, "metadata/pins.json");
-    const layout = layoutGraph(graph, { previous, pins });
+    const architecture = deriveArchitecture(graph);
+    const layout = layoutGraphWithArchitecture(graph, architecture, { previous, pins });
     const reports = await storedReports(root);
     const dashboard = reports.length ? normalizeReports(reports, graph) : null;
-    const data = bundle(graph, layout, dashboard);
+    const data = bundle(graph, architecture, layout, dashboard);
     await copySite(root, siteAssets);
     await writeGenerated(root, "graph/graph.json", serializeGraphDocument(graph));
     await writeGenerated(root, "graph/layout.json", serializeLayoutDeterministic(layout.layout));
-    await writeGenerated(root, "graph/architecture.json", serializeArchitecture(deriveArchitecture(graph)));
+    await writeGenerated(root, "graph/architecture.json", serializeArchitecture(architecture));
     await writeGenerated(root, "reports/outputs/layout-delta.json", `${JSON.stringify({ delta: layout.delta, warnings: layout.warnings }, null, 2)}\n`);
     await writeGenerated(root, "reports/outputs/dashboard.json", dashboard === null ? "null\n" : serializeDashboard(dashboard));
     await writeGenerated(root, "cache/site/data.json", data);
@@ -120,8 +122,9 @@ export async function ingestReports(root: string, inputPaths: string[], siteAsse
     const dashboard = normalizeReports([...existing, ...incoming], graph);
     const previous = await readArtifact(root, "graph/layout.json");
     const pins = await readOptionalArtifact(root, "metadata/pins.json");
-    const layout = layoutGraph(graph, { previous, pins });
-    const data = bundle(graph, layout, dashboard);
+    const architecture = deriveArchitecture(graph);
+    const layout = layoutGraphWithArchitecture(graph, architecture, { previous, pins });
+    const data = bundle(graph, architecture, layout, dashboard);
     for (const report of incoming) {
       const serialized = serializeReport(report);
       const fingerprint = createHash("sha256").update(serialized).digest("hex");
