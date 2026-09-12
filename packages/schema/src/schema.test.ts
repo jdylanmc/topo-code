@@ -139,15 +139,32 @@ describe("graph schema", () => {
         revision: "3b143e2",
       },
       viewId: "files",
-      algorithm: { id: "fixture-grid", version: "1.0.0" },
-      nodes: [
-        { nodeId: "path:z.ts", x: 2.0004, y: 1, width: 10, height: 10 },
-        { nodeId: "path:a.ts", x: 0, y: 0, width: 10, height: 10 },
+      algorithm: {
+        id: "fixture-grid",
+        version: "1.0.0",
+        config: { spacing: 2 },
+        seed: "fixture",
+      },
+      items: [
+        {
+          subject: { kind: "derived", id: "tangle:z" },
+          x: 2.0004,
+          y: 1,
+          width: 10,
+          height: 10,
+        },
+        {
+          subject: { kind: "container", id: "container:a" },
+          x: 0,
+          y: 0,
+          width: 10,
+          height: 10,
+        },
       ],
-      edges: [],
+      routes: [],
       bounds: { x: 0, y: 0, width: 12.0004, height: 10 },
     };
-    const reordered = { ...layout, nodes: [...layout.nodes].reverse() };
+    const reordered = { ...layout, items: [...layout.items].reverse() };
 
     expect(serializeLayoutDocument(layout)).toBe(
       serializeLayoutDocument(reordered),

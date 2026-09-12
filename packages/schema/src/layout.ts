@@ -1,8 +1,9 @@
 import {
   LAYOUT_SCHEMA_VERSION,
+  type JsonValue,
   type LayoutDocument,
-  type LayoutEdge,
-  type LayoutNode,
+  type LayoutItem,
+  type LayoutRoute,
 } from "./model.js";
 import {
   GraphValidationError,
@@ -19,6 +20,23 @@ function isNonEmptyString(value: unknown): value is string {
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
+}
+
+function isJsonValue(value: unknown): value is JsonValue {
+  if (
+    value === null ||
+    typeof value === "string" ||
+    typeof value === "boolean"
+  ) {
+    return true;
+  }
+  if (typeof value === "number") {
+    return Number.isFinite(value);
+  }
+  if (Array.isArray(value)) {
+    return value.every(isJsonValue);
+  }
+  return isRecord(value) && Object.values(value).every(isJsonValue);
 }
 
 function validateGeometry(
@@ -59,10 +77,10 @@ function validateGeometry(
   }
 }
 
-function validateUniqueReferenceIds(
+function validateUniqueSubjects(
   values: unknown,
   path: string,
-  key: "nodeId" | "edgeId",
+  allowedKinds: ReadonlySet<string>,
   issues: ValidationIssue[],
 ): void {
   if (!Array.isArray(values)) {
@@ -76,22 +94,28 @@ function validateUniqueReferenceIds(
 
   const ids = new Set<string>();
   values.forEach((value, index) => {
-    if (!isRecord(value) || !isNonEmptyString(value[key])) {
+    if (
+      !isRecord(value) ||
+      !isRecord(value.subject) ||
+      !allowedKinds.has(String(value.subject.kind)) ||
+      !isNonEmptyString(value.subject.id)
+    ) {
       issues.push({
         code: "required-id",
-        path: `${path}[${index}].${key}`,
-        message: "Expected a core graph identifier.",
+        path: `${path}[${index}].subject`,
+        message: "Expected a supported layout subject.",
       });
       return;
     }
-    if (ids.has(value[key])) {
+    const subjectKey = `${String(value.subject.kind)}:${value.subject.id}`;
+    if (ids.has(subjectKey)) {
       issues.push({
         code: "duplicate-id",
-        path: `${path}[${index}].${key}`,
-        message: `Duplicate graph identifier "${value[key]}".`,
+        path: `${path}[${index}].subject`,
+        message: `Duplicate layout subject "${subjectKey}".`,
       });
     }
-    ids.add(value[key]);
+    ids.add(subjectKey);
   });
 }
 
@@ -158,30 +182,60 @@ export function validateLayoutDocument(value: unknown): ValidationIssue[] {
         });
       }
     }
+    if (
+      !isRecord(value.algorithm.config) ||
+      !isJsonValue(value.algorithm.config)
+    ) {
+      issues.push({
+        code: "invalid-algorithm-config",
+        path: "$.algorithm.config",
+        message: "Expected deterministic JSON algorithm configuration.",
+      });
+    }
+    if (
+      value.algorithm.seed !== undefined &&
+      !isNonEmptyString(value.algorithm.seed)
+    ) {
+      issues.push({
+        code: "invalid-algorithm-seed",
+        path: "$.algorithm.seed",
+        message: "Expected a non-empty deterministic seed.",
+      });
+    }
   }
 
-  validateUniqueReferenceIds(value.nodes, "$.nodes", "nodeId", issues);
-  if (Array.isArray(value.nodes)) {
-    value.nodes.forEach((node, index) =>
-      validateGeometry(node, `$.nodes[${index}]`, true, issues),
+  validateUniqueSubjects(
+    value.items,
+    "$.items",
+    new Set(["node", "container", "derived"]),
+    issues,
+  );
+  if (Array.isArray(value.items)) {
+    value.items.forEach((item, index) =>
+      validateGeometry(item, `$.items[${index}]`, true, issues),
     );
   }
 
-  validateUniqueReferenceIds(value.edges, "$.edges", "edgeId", issues);
-  if (Array.isArray(value.edges)) {
-    value.edges.forEach((edge, edgeIndex) => {
-      if (!isRecord(edge) || !Array.isArray(edge.points)) {
+  validateUniqueSubjects(
+    value.routes,
+    "$.routes",
+    new Set(["edge", "derived"]),
+    issues,
+  );
+  if (Array.isArray(value.routes)) {
+    value.routes.forEach((route, routeIndex) => {
+      if (!isRecord(route) || !Array.isArray(route.points)) {
         issues.push({
           code: "required-array",
-          path: `$.edges[${edgeIndex}].points`,
+          path: `$.routes[${routeIndex}].points`,
           message: "Expected routed edge points.",
         });
         return;
       }
-      edge.points.forEach((point, pointIndex) =>
+      route.points.forEach((point, pointIndex) =>
         validateGeometry(
           point,
-          `$.edges[${edgeIndex}].points[${pointIndex}]`,
+          `$.routes[${routeIndex}].points[${pointIndex}]`,
           false,
           issues,
         ),
@@ -207,20 +261,34 @@ function round(value: number, precision: number): number {
   return Math.round((value + Number.EPSILON) * scale) / scale;
 }
 
-function canonicalNode(node: LayoutNode, precision: number): LayoutNode {
+function sortJson(value: JsonValue): JsonValue {
+  if (Array.isArray(value)) {
+    return value.map(sortJson);
+  }
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, child]) => [key, sortJson(child)]),
+    );
+  }
+  return value;
+}
+
+function canonicalItem(item: LayoutItem, precision: number): LayoutItem {
   return {
-    nodeId: node.nodeId,
-    x: round(node.x, precision),
-    y: round(node.y, precision),
-    width: round(node.width, precision),
-    height: round(node.height, precision),
+    subject: { kind: item.subject.kind, id: item.subject.id },
+    x: round(item.x, precision),
+    y: round(item.y, precision),
+    width: round(item.width, precision),
+    height: round(item.height, precision),
   };
 }
 
-function canonicalEdge(edge: LayoutEdge, precision: number): LayoutEdge {
+function canonicalRoute(route: LayoutRoute, precision: number): LayoutRoute {
   return {
-    edgeId: edge.edgeId,
-    points: edge.points.map((point) => ({
+    subject: { kind: route.subject.kind, id: route.subject.id },
+    points: route.points.map((point) => ({
       x: round(point.x, precision),
       y: round(point.y, precision),
     })),
@@ -242,13 +310,28 @@ export function canonicalizeLayoutDocument(
         : { revision: document.graphRef.revision }),
     },
     viewId: document.viewId,
-    algorithm: { ...document.algorithm },
-    nodes: document.nodes
-      .map((node) => canonicalNode(node, precision))
-      .sort((left, right) => left.nodeId.localeCompare(right.nodeId)),
-    edges: document.edges
-      .map((edge) => canonicalEdge(edge, precision))
-      .sort((left, right) => left.edgeId.localeCompare(right.edgeId)),
+    algorithm: {
+      id: document.algorithm.id,
+      version: document.algorithm.version,
+      config: sortJson(document.algorithm.config) as Record<string, JsonValue>,
+      ...(document.algorithm.seed === undefined
+        ? {}
+        : { seed: document.algorithm.seed }),
+    },
+    items: document.items
+      .map((item) => canonicalItem(item, precision))
+      .sort(
+        (left, right) =>
+          left.subject.kind.localeCompare(right.subject.kind) ||
+          left.subject.id.localeCompare(right.subject.id),
+      ),
+    routes: document.routes
+      .map((route) => canonicalRoute(route, precision))
+      .sort(
+        (left, right) =>
+          left.subject.kind.localeCompare(right.subject.kind) ||
+          left.subject.id.localeCompare(right.subject.id),
+      ),
     bounds: {
       x: round(document.bounds.x, precision),
       y: round(document.bounds.y, precision),

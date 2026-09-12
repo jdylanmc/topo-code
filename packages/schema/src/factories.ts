@@ -42,11 +42,11 @@ export function createGraphDocument(
 
 export type LayoutDocumentInput = Omit<
   LayoutDocument,
-  "schemaVersion" | "nodes" | "edges"
+  "schemaVersion" | "items" | "routes"
 > & {
   schemaVersion?: LayoutDocument["schemaVersion"];
-  nodes?: LayoutDocument["nodes"];
-  edges?: LayoutDocument["edges"];
+  items?: LayoutDocument["items"];
+  routes?: LayoutDocument["routes"];
 };
 
 export function createLayoutDocument(
@@ -58,8 +58,8 @@ export function createLayoutDocument(
     graphRef: input.graphRef,
     viewId: input.viewId,
     algorithm: input.algorithm,
-    nodes: input.nodes ?? [],
-    edges: input.edges ?? [],
+    items: input.items ?? [],
+    routes: input.routes ?? [],
     bounds: input.bounds,
   };
 }
