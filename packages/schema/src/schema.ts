@@ -1,0 +1,265 @@
+import { GRAPH_SCHEMA_VERSION } from "./model.js";
+
+export const GRAPH_JSON_SCHEMA = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: `https://topo-code.dev/schema/graph/v${GRAPH_SCHEMA_VERSION}`,
+  title: "TOPO canonical graph",
+  type: "object",
+  required: [
+    "schemaVersion",
+    "graphId",
+    "repository",
+    "modules",
+    "nodes",
+    "edges",
+    "containers",
+    "attributes",
+    "evidence",
+    "extensions",
+  ],
+  properties: {
+    schemaVersion: { type: "string", pattern: "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$" },
+    graphId: { type: "string", minLength: 1 },
+    repository: { $ref: "#/$defs/repository" },
+    modules: {
+      type: "array",
+      items: { $ref: "#/$defs/module" },
+    },
+    nodes: { type: "array", items: { $ref: "#/$defs/node" } },
+    edges: { type: "array", items: { $ref: "#/$defs/edge" } },
+    containers: {
+      type: "array",
+      items: { $ref: "#/$defs/container" },
+    },
+    attributes: {
+      type: "array",
+      items: { $ref: "#/$defs/attribute" },
+    },
+    evidence: {
+      type: "array",
+      items: { $ref: "#/$defs/evidence" },
+    },
+    extensions: {
+      type: "object",
+      additionalProperties: { $ref: "#/$defs/jsonValue" },
+    },
+  },
+  additionalProperties: false,
+  $defs: {
+    id: { type: "string", minLength: 1 },
+    schemaVersion: {
+      type: "string",
+      pattern: "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+    },
+    semanticVersion: {
+      type: "string",
+      pattern:
+        "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+    },
+    jsonValue: {
+      anyOf: [
+        { type: "null" },
+        { type: "boolean" },
+        { type: "number" },
+        { type: "string" },
+        {
+          type: "array",
+          items: { $ref: "#/$defs/jsonValue" },
+        },
+        {
+          type: "object",
+          additionalProperties: { $ref: "#/$defs/jsonValue" },
+        },
+      ],
+    },
+    position: {
+      type: "object",
+      required: ["line", "column"],
+      properties: {
+        line: { type: "integer", minimum: 1 },
+        column: { type: "integer", minimum: 1 },
+      },
+      additionalProperties: false,
+    },
+    sourceLocation: {
+      type: "object",
+      required: ["path", "start"],
+      properties: {
+        path: { type: "string", minLength: 1 },
+        start: { $ref: "#/$defs/position" },
+        end: { $ref: "#/$defs/position" },
+      },
+      additionalProperties: false,
+    },
+    sourceAnchor: {
+      type: "object",
+      required: ["path"],
+      properties: {
+        path: { type: "string", minLength: 1 },
+        symbol: { type: "string", minLength: 1 },
+        contentPattern: { type: "string", minLength: 1 },
+      },
+      dependentRequired: {
+        contentPattern: ["symbol"],
+      },
+      additionalProperties: false,
+    },
+    evidence: {
+      type: "object",
+      required: ["id", "kind", "label"],
+      properties: {
+        id: { $ref: "#/$defs/id" },
+        kind: { enum: ["source", "report", "annotation"] },
+        label: { type: "string", minLength: 1 },
+        fingerprint: { type: "string", minLength: 1 },
+        anchor: { $ref: "#/$defs/sourceAnchor" },
+        location: { $ref: "#/$defs/sourceLocation" },
+        locator: { type: "string", minLength: 1 },
+        observedAt: { type: "string", format: "date-time" },
+      },
+      additionalProperties: false,
+    },
+    provenance: {
+      type: "object",
+      required: ["kind", "moduleId", "method", "evidenceIds"],
+      properties: {
+        kind: { enum: ["observed", "derived", "inferred", "human"] },
+        moduleId: { type: "string", minLength: 1 },
+        method: { type: "string", minLength: 1 },
+        evidenceIds: {
+          type: "array",
+          items: { $ref: "#/$defs/id" },
+          uniqueItems: true,
+        },
+      },
+      additionalProperties: false,
+    },
+    identity: {
+      type: "object",
+      required: ["kind", "value"],
+      properties: {
+        kind: { enum: ["path", "external", "synthetic"] },
+        value: { type: "string", minLength: 1 },
+      },
+      additionalProperties: false,
+    },
+    node: {
+      type: "object",
+      required: ["id", "label", "kind", "identity"],
+      properties: {
+        id: { $ref: "#/$defs/id" },
+        label: { type: "string", minLength: 1 },
+        kind: { type: "string", minLength: 1 },
+        identity: { $ref: "#/$defs/identity" },
+        fingerprint: { type: "string", minLength: 1 },
+      },
+      additionalProperties: false,
+    },
+    edge: {
+      type: "object",
+      required: [
+        "id",
+        "label",
+        "type",
+        "sourceId",
+        "targetId",
+        "provenance",
+      ],
+      properties: {
+        id: { $ref: "#/$defs/id" },
+        label: { type: "string", minLength: 1 },
+        type: { type: "string", minLength: 1 },
+        sourceId: { $ref: "#/$defs/id" },
+        targetId: { $ref: "#/$defs/id" },
+        provenance: { $ref: "#/$defs/provenance" },
+      },
+      additionalProperties: false,
+    },
+    container: {
+      type: "object",
+      required: ["id", "label", "type", "memberIds"],
+      properties: {
+        id: { $ref: "#/$defs/id" },
+        label: { type: "string", minLength: 1 },
+        type: { type: "string", minLength: 1 },
+        memberIds: {
+          type: "array",
+          items: { $ref: "#/$defs/id" },
+          uniqueItems: true,
+        },
+        parentId: { $ref: "#/$defs/id" },
+      },
+      additionalProperties: false,
+    },
+    subject: {
+      type: "object",
+      required: ["kind", "id"],
+      properties: {
+        kind: { enum: ["node", "edge", "container"] },
+        id: { $ref: "#/$defs/id" },
+      },
+      additionalProperties: false,
+    },
+    witness: {
+      type: "object",
+      required: ["nodeId", "fingerprint", "relationship"],
+      properties: {
+        nodeId: { $ref: "#/$defs/id" },
+        fingerprint: { type: "string", minLength: 1 },
+        relationship: { enum: ["self", "neighbor"] },
+      },
+      additionalProperties: false,
+    },
+    attribute: {
+      type: "object",
+      required: [
+        "id",
+        "subject",
+        "key",
+        "value",
+        "provenance",
+        "evidenceIds",
+        "confidence",
+      ],
+      properties: {
+        id: { $ref: "#/$defs/id" },
+        subject: { $ref: "#/$defs/subject" },
+        key: { type: "string", minLength: 1 },
+        value: { $ref: "#/$defs/jsonValue" },
+        provenance: { $ref: "#/$defs/provenance" },
+        evidenceIds: {
+          type: "array",
+          items: { $ref: "#/$defs/id" },
+          uniqueItems: true,
+        },
+        confidence: { type: "number", minimum: 0, maximum: 1 },
+        witnesses: {
+          type: "array",
+          items: { $ref: "#/$defs/witness" },
+          uniqueItems: true,
+        },
+      },
+      additionalProperties: false,
+    },
+    module: {
+      type: "object",
+      required: ["id", "version", "schemaVersion"],
+      properties: {
+        id: { type: "string", minLength: 1 },
+        version: { $ref: "#/$defs/semanticVersion" },
+        schemaVersion: { $ref: "#/$defs/schemaVersion" },
+      },
+      additionalProperties: false,
+    },
+    repository: {
+      type: "object",
+      required: ["id", "label"],
+      properties: {
+        id: { type: "string", minLength: 1 },
+        label: { type: "string", minLength: 1 },
+        revision: { type: "string", minLength: 1 },
+      },
+      additionalProperties: false,
+    },
+  },
+} as const;
