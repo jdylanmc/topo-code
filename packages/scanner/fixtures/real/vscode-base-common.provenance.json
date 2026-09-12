@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "1.0",
+  "repositoryId": "microsoft/vscode",
+  "upstream": "https://github.com/microsoft/vscode.git",
+  "revision": "3879d0e80faeaeb351bbb44dd0f74f1bac12fc0a",
+  "selectedPath": ".",
+  "configDiscovery": "all repository tsconfig*.json files",
+  "graphFile": "vscode-base-common.graph.json",
+  "authoritative": true,
+  "counts": {
+    "nodes": 160,
+    "edges": 439,
+    "containers": 15,
+    "sourceFiles": 158,
+    "linesOfCode": 51186
+  },
+  "limitations": [],
+  "scan": {
+    "durationMilliseconds": 285,
+    "nodeVersion": "v24.20.0",
+    "platform": "darwin",
+    "architecture": "arm64",
+    "cpu": "Apple M5 Pro",
+    "logicalCpuCount": 18,
+    "memoryBytes": 68719476736
+  },
+  "reproductionCommand": "corepack yarn workspace @topo/scanner fixture --root /Users/dylan/git/_opensource/microsoft/vscode/src/vs/base/common --output /Users/dylan/.paseo/worktrees/09j4b0p6/phase-one-scanner/packages/scanner/fixtures/real/vscode-base-common --repository-id microsoft/vscode --allow-partial false"
+}

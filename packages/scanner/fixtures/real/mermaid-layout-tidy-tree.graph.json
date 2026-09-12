@@ -1,0 +1,782 @@
+{
+  "schemaVersion": "1.0",
+  "graphId": "repo:mermaid-js/mermaid",
+  "repository": {
+    "id": "mermaid-js/mermaid",
+    "label": "src",
+    "revision": "3f5f7a6781cc8c788b8b5fa3d4e62edce9288f60"
+  },
+  "modules": [
+    {
+      "id": "@topo/scanner-typescript",
+      "version": "0.0.0",
+      "schemaVersion": "1.0"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "external:npm:mermaid",
+      "label": "mermaid",
+      "kind": "external",
+      "identity": {
+        "kind": "external",
+        "value": "npm:mermaid"
+      }
+    },
+    {
+      "id": "external:npm:non-layered-tidy-tree-layout",
+      "label": "non-layered-tidy-tree-layout",
+      "kind": "external",
+      "identity": {
+        "kind": "external",
+        "value": "npm:non-layered-tidy-tree-layout"
+      }
+    },
+    {
+      "id": "external:npm:vitest",
+      "label": "vitest",
+      "kind": "external",
+      "identity": {
+        "kind": "external",
+        "value": "npm:vitest"
+      }
+    },
+    {
+      "id": "path:index.ts",
+      "label": "index.ts",
+      "kind": "file",
+      "identity": {
+        "kind": "path",
+        "value": "index.ts"
+      },
+      "fingerprint": "sha256:da87d522fe7ffdda1d796b348f6da858c73046ceab49730b187f11f95cff03ec"
+    },
+    {
+      "id": "path:layout.test.ts",
+      "label": "layout.test.ts",
+      "kind": "file",
+      "identity": {
+        "kind": "path",
+        "value": "layout.test.ts"
+      },
+      "fingerprint": "sha256:82228797e5908f138f9989a0676989d387ec0d80b40b5b36988db69bcf1ed82f"
+    },
+    {
+      "id": "path:layout.ts",
+      "label": "layout.ts",
+      "kind": "file",
+      "identity": {
+        "kind": "path",
+        "value": "layout.ts"
+      },
+      "fingerprint": "sha256:07d2b8a29e5274e738d6d94a088fcfb9690a72ba8d2a30f5f2b7bd84719f2506"
+    },
+    {
+      "id": "path:layouts.ts",
+      "label": "layouts.ts",
+      "kind": "file",
+      "identity": {
+        "kind": "path",
+        "value": "layouts.ts"
+      },
+      "fingerprint": "sha256:ea3bb7ed7257800a629df59479d70436dfd7c5241dee495fbdd99e87df1bc5f4"
+    },
+    {
+      "id": "path:non-layered-tidy-tree-layout.d.ts",
+      "label": "non-layered-tidy-tree-layout.d.ts",
+      "kind": "file",
+      "identity": {
+        "kind": "path",
+        "value": "non-layered-tidy-tree-layout.d.ts"
+      },
+      "fingerprint": "sha256:65013f1cfc7a81dc0c91cdaabe4016159564d07f0798d7306d7a5f524e33a018"
+    },
+    {
+      "id": "path:render.ts",
+      "label": "render.ts",
+      "kind": "file",
+      "identity": {
+        "kind": "path",
+        "value": "render.ts"
+      },
+      "fingerprint": "sha256:936f4d299a6cf88017afe36a6cc5f43c89910242e6f78079a978c339c00312e7"
+    },
+    {
+      "id": "path:types.ts",
+      "label": "types.ts",
+      "kind": "file",
+      "identity": {
+        "kind": "path",
+        "value": "types.ts"
+      },
+      "fingerprint": "sha256:a90eceeca6ae9f6f31094103b97a5cbd97b70f53a795e68811d5a49224a296e9"
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge:imports:path:index.ts->path:layout.ts",
+      "label": "imports",
+      "type": "imports",
+      "sourceId": "path:index.ts",
+      "targetId": "path:layout.ts",
+      "provenance": {
+        "kind": "observed",
+        "moduleId": "@topo/scanner-typescript",
+        "method": "typescript-compiler-api",
+        "evidenceIds": [
+          "evidence:import:index.ts:4ff015aa56f316a7f"
+        ]
+      }
+    },
+    {
+      "id": "edge:imports:path:index.ts->path:layouts.ts",
+      "label": "imports",
+      "type": "imports",
+      "sourceId": "path:index.ts",
+      "targetId": "path:layouts.ts",
+      "provenance": {
+        "kind": "observed",
+        "moduleId": "@topo/scanner-typescript",
+        "method": "typescript-compiler-api",
+        "evidenceIds": [
+          "evidence:import:index.ts:8b5de22eb930c8065"
+        ]
+      }
+    },
+    {
+      "id": "edge:imports:path:index.ts->path:render.ts",
+      "label": "imports",
+      "type": "imports",
+      "sourceId": "path:index.ts",
+      "targetId": "path:render.ts",
+      "provenance": {
+        "kind": "observed",
+        "moduleId": "@topo/scanner-typescript",
+        "method": "typescript-compiler-api",
+        "evidenceIds": [
+          "evidence:import:index.ts:3903a42e4ea0e44db"
+        ]
+      }
+    },
+    {
+      "id": "edge:imports:path:index.ts->path:types.ts",
+      "label": "imports",
+      "type": "imports",
+      "sourceId": "path:index.ts",
+      "targetId": "path:types.ts",
+      "provenance": {
+        "kind": "observed",
+        "moduleId": "@topo/scanner-typescript",
+        "method": "typescript-compiler-api",
+        "evidenceIds": [
+          "evidence:import:index.ts:48b52dc788a1a5531"
+        ]
+      }
+    },
+    {
+      "id": "edge:imports:path:layout.test.ts->external:npm:mermaid",
+      "label": "imports",
+      "type": "imports",
+      "sourceId": "path:layout.test.ts",
+      "targetId": "external:npm:mermaid",
+      "provenance": {
+        "kind": "observed",
+        "moduleId": "@topo/scanner-typescript",
+        "method": "typescript-compiler-api",
+        "evidenceIds": [
+          "evidence:import:layout.test.ts:8c15bd90af7f60712"
+        ]
+      }
+    },
+    {
+      "id": "edge:imports:path:layout.test.ts->external:npm:vitest",
+      "label": "imports",
+      "type": "imports",
+      "sourceId": "path:layout.test.ts",
+      "targetId": "external:npm:vitest",
+      "provenance": {
+        "kind": "observed",
+        "moduleId": "@topo/scanner-typescript",
+        "method": "typescript-compiler-api",
+        "evidenceIds": [
+          "evidence:import:layout.test.ts:9b9d2a9ac599ab645"
+        ]
+      }
+    },
+    {
+      "id": "edge:imports:path:layout.test.ts->path:layout.ts",
+      "label": "imports",
+      "type": "imports",
+      "sourceId": "path:layout.test.ts",
+      "targetId": "path:layout.ts",
+      "provenance": {
+        "kind": "observed",
+        "moduleId": "@topo/scanner-typescript",
+        "method": "typescript-compiler-api",
+        "evidenceIds": [
+          "evidence:import:layout.test.ts:4ff015aa56f316a7f"
+        ]
+      }
+    },
+    {
+      "id": "edge:imports:path:layout.test.ts->path:types.ts",
+      "label": "imports",
+      "type": "imports",
+      "sourceId": "path:layout.test.ts",
+      "targetId": "path:types.ts",
+      "provenance": {
+        "kind": "observed",
+        "moduleId": "@topo/scanner-typescript",
+        "method": "typescript-compiler-api",
+        "evidenceIds": [
+          "evidence:import:layout.test.ts:48b52dc788a1a5531"
+        ]
+      }
+    },
+    {
+      "id": "edge:imports:path:layout.ts->external:npm:mermaid",
+      "label": "imports",
+      "type": "imports",
+      "sourceId": "path:layout.ts",
+      "targetId": "external:npm:mermaid",
+      "provenance": {
+        "kind": "observed",
+        "moduleId": "@topo/scanner-typescript",
+        "method": "typescript-compiler-api",
+        "evidenceIds": [
+          "evidence:import:layout.ts:674c2a5522b1dece1",
+          "evidence:import:layout.ts:8c15bd90af7f60712"
+        ]
+      }
+    },
+    {
+      "id": "edge:imports:path:layout.ts->external:npm:non-layered-tidy-tree-layout",
+      "label": "imports",
+      "type": "imports",
+      "sourceId": "path:layout.ts",
+      "targetId": "external:npm:non-layered-tidy-tree-layout",
+      "provenance": {
+        "kind": "observed",
+        "moduleId": "@topo/scanner-typescript",
+        "method": "typescript-compiler-api",
+        "evidenceIds": [
+          "evidence:import:layout.ts:d9aa6c22e15cd4acc"
+        ]
+      }
+    },
+    {
+      "id": "edge:imports:path:layout.ts->path:types.ts",
+      "label": "imports",
+      "type": "imports",
+      "sourceId": "path:layout.ts",
+      "targetId": "path:types.ts",
+      "provenance": {
+        "kind": "observed",
+        "moduleId": "@topo/scanner-typescript",
+        "method": "typescript-compiler-api",
+        "evidenceIds": [
+          "evidence:import:layout.ts:48b52dc788a1a5531"
+        ]
+      }
+    },
+    {
+      "id": "edge:imports:path:layouts.ts->external:npm:mermaid",
+      "label": "imports",
+      "type": "imports",
+      "sourceId": "path:layouts.ts",
+      "targetId": "external:npm:mermaid",
+      "provenance": {
+        "kind": "observed",
+        "moduleId": "@topo/scanner-typescript",
+        "method": "typescript-compiler-api",
+        "evidenceIds": [
+          "evidence:import:layouts.ts:8c15bd90af7f60712"
+        ]
+      }
+    },
+    {
+      "id": "edge:imports:path:layouts.ts->path:render.ts",
+      "label": "imports",
+      "type": "imports",
+      "sourceId": "path:layouts.ts",
+      "targetId": "path:render.ts",
+      "provenance": {
+        "kind": "observed",
+        "moduleId": "@topo/scanner-typescript",
+        "method": "typescript-compiler-api",
+        "evidenceIds": [
+          "evidence:import:layouts.ts:3903a42e4ea0e44db"
+        ]
+      }
+    },
+    {
+      "id": "edge:imports:path:render.ts->external:npm:mermaid",
+      "label": "imports",
+      "type": "imports",
+      "sourceId": "path:render.ts",
+      "targetId": "external:npm:mermaid",
+      "provenance": {
+        "kind": "observed",
+        "moduleId": "@topo/scanner-typescript",
+        "method": "typescript-compiler-api",
+        "evidenceIds": [
+          "evidence:import:render.ts:8c15bd90af7f60712"
+        ]
+      }
+    },
+    {
+      "id": "edge:imports:path:render.ts->path:layout.ts",
+      "label": "imports",
+      "type": "imports",
+      "sourceId": "path:render.ts",
+      "targetId": "path:layout.ts",
+      "provenance": {
+        "kind": "observed",
+        "moduleId": "@topo/scanner-typescript",
+        "method": "typescript-compiler-api",
+        "evidenceIds": [
+          "evidence:import:render.ts:4ff015aa56f316a7f"
+        ]
+      }
+    },
+    {
+      "id": "edge:imports:path:types.ts->external:npm:mermaid",
+      "label": "imports",
+      "type": "imports",
+      "sourceId": "path:types.ts",
+      "targetId": "external:npm:mermaid",
+      "provenance": {
+        "kind": "observed",
+        "moduleId": "@topo/scanner-typescript",
+        "method": "typescript-compiler-api",
+        "evidenceIds": [
+          "evidence:import:types.ts:8c15bd90af7f60712"
+        ]
+      }
+    }
+  ],
+  "containers": [
+    {
+      "id": "container:directory:.",
+      "label": "src",
+      "type": "directory",
+      "memberIds": [
+        "path:index.ts",
+        "path:layout.test.ts",
+        "path:layout.ts",
+        "path:layouts.ts",
+        "path:non-layered-tidy-tree-layout.d.ts",
+        "path:render.ts",
+        "path:types.ts"
+      ]
+    }
+  ],
+  "attributes": [
+    {
+      "id": "attribute:path:index.ts:dev.topo.source.lines",
+      "subject": {
+        "kind": "node",
+        "id": "path:index.ts"
+      },
+      "key": "dev.topo.source.lines",
+      "value": 51,
+      "provenance": {
+        "kind": "observed",
+        "moduleId": "@topo/scanner-typescript",
+        "method": "typescript-compiler-api",
+        "evidenceIds": [
+          "evidence:source:index.ts"
+        ]
+      },
+      "evidenceIds": [
+        "evidence:source:index.ts"
+      ],
+      "confidence": 1,
+      "witnesses": [
+        {
+          "nodeId": "path:index.ts",
+          "fingerprint": "sha256:da87d522fe7ffdda1d796b348f6da858c73046ceab49730b187f11f95cff03ec",
+          "relationship": "self"
+        }
+      ]
+    },
+    {
+      "id": "attribute:path:layout.test.ts:dev.topo.source.lines",
+      "subject": {
+        "kind": "node",
+        "id": "path:layout.test.ts"
+      },
+      "key": "dev.topo.source.lines",
+      "value": 448,
+      "provenance": {
+        "kind": "observed",
+        "moduleId": "@topo/scanner-typescript",
+        "method": "typescript-compiler-api",
+        "evidenceIds": [
+          "evidence:source:layout.test.ts"
+        ]
+      },
+      "evidenceIds": [
+        "evidence:source:layout.test.ts"
+      ],
+      "confidence": 1,
+      "witnesses": [
+        {
+          "nodeId": "path:layout.test.ts",
+          "fingerprint": "sha256:82228797e5908f138f9989a0676989d387ec0d80b40b5b36988db69bcf1ed82f",
+          "relationship": "self"
+        }
+      ]
+    },
+    {
+      "id": "attribute:path:layout.ts:dev.topo.source.lines",
+      "subject": {
+        "kind": "node",
+        "id": "path:layout.ts"
+      },
+      "key": "dev.topo.source.lines",
+      "value": 654,
+      "provenance": {
+        "kind": "observed",
+        "moduleId": "@topo/scanner-typescript",
+        "method": "typescript-compiler-api",
+        "evidenceIds": [
+          "evidence:source:layout.ts"
+        ]
+      },
+      "evidenceIds": [
+        "evidence:source:layout.ts"
+      ],
+      "confidence": 1,
+      "witnesses": [
+        {
+          "nodeId": "path:layout.ts",
+          "fingerprint": "sha256:07d2b8a29e5274e738d6d94a088fcfb9690a72ba8d2a30f5f2b7bd84719f2506",
+          "relationship": "self"
+        }
+      ]
+    },
+    {
+      "id": "attribute:path:layouts.ts:dev.topo.source.lines",
+      "subject": {
+        "kind": "node",
+        "id": "path:layouts.ts"
+      },
+      "key": "dev.topo.source.lines",
+      "value": 14,
+      "provenance": {
+        "kind": "observed",
+        "moduleId": "@topo/scanner-typescript",
+        "method": "typescript-compiler-api",
+        "evidenceIds": [
+          "evidence:source:layouts.ts"
+        ]
+      },
+      "evidenceIds": [
+        "evidence:source:layouts.ts"
+      ],
+      "confidence": 1,
+      "witnesses": [
+        {
+          "nodeId": "path:layouts.ts",
+          "fingerprint": "sha256:ea3bb7ed7257800a629df59479d70436dfd7c5241dee495fbdd99e87df1bc5f4",
+          "relationship": "self"
+        }
+      ]
+    },
+    {
+      "id": "attribute:path:non-layered-tidy-tree-layout.d.ts:dev.topo.source.lines",
+      "subject": {
+        "kind": "node",
+        "id": "path:non-layered-tidy-tree-layout.d.ts"
+      },
+      "key": "dev.topo.source.lines",
+      "value": 19,
+      "provenance": {
+        "kind": "observed",
+        "moduleId": "@topo/scanner-typescript",
+        "method": "typescript-compiler-api",
+        "evidenceIds": [
+          "evidence:source:non-layered-tidy-tree-layout.d.ts"
+        ]
+      },
+      "evidenceIds": [
+        "evidence:source:non-layered-tidy-tree-layout.d.ts"
+      ],
+      "confidence": 1,
+      "witnesses": [
+        {
+          "nodeId": "path:non-layered-tidy-tree-layout.d.ts",
+          "fingerprint": "sha256:65013f1cfc7a81dc0c91cdaabe4016159564d07f0798d7306d7a5f524e33a018",
+          "relationship": "self"
+        }
+      ]
+    },
+    {
+      "id": "attribute:path:render.ts:dev.topo.source.lines",
+      "subject": {
+        "kind": "node",
+        "id": "path:render.ts"
+      },
+      "key": "dev.topo.source.lines",
+      "value": 181,
+      "provenance": {
+        "kind": "observed",
+        "moduleId": "@topo/scanner-typescript",
+        "method": "typescript-compiler-api",
+        "evidenceIds": [
+          "evidence:source:render.ts"
+        ]
+      },
+      "evidenceIds": [
+        "evidence:source:render.ts"
+      ],
+      "confidence": 1,
+      "witnesses": [
+        {
+          "nodeId": "path:render.ts",
+          "fingerprint": "sha256:936f4d299a6cf88017afe36a6cc5f43c89910242e6f78079a978c339c00312e7",
+          "relationship": "self"
+        }
+      ]
+    },
+    {
+      "id": "attribute:path:types.ts:dev.topo.source.lines",
+      "subject": {
+        "kind": "node",
+        "id": "path:types.ts"
+      },
+      "key": "dev.topo.source.lines",
+      "value": 71,
+      "provenance": {
+        "kind": "observed",
+        "moduleId": "@topo/scanner-typescript",
+        "method": "typescript-compiler-api",
+        "evidenceIds": [
+          "evidence:source:types.ts"
+        ]
+      },
+      "evidenceIds": [
+        "evidence:source:types.ts"
+      ],
+      "confidence": 1,
+      "witnesses": [
+        {
+          "nodeId": "path:types.ts",
+          "fingerprint": "sha256:a90eceeca6ae9f6f31094103b97a5cbd97b70f53a795e68811d5a49224a296e9",
+          "relationship": "self"
+        }
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "id": "evidence:import:index.ts:3903a42e4ea0e44db",
+      "kind": "source",
+      "label": "index.ts imports ./render.js",
+      "fingerprint": "sha256:da87d522fe7ffdda1d796b348f6da858c73046ceab49730b187f11f95cff03ec",
+      "locator": "path:index.ts#import:\"./render.js\""
+    },
+    {
+      "id": "evidence:import:index.ts:48b52dc788a1a5531",
+      "kind": "source",
+      "label": "index.ts imports ./types.js",
+      "fingerprint": "sha256:da87d522fe7ffdda1d796b348f6da858c73046ceab49730b187f11f95cff03ec",
+      "locator": "path:index.ts#import:\"./types.js\""
+    },
+    {
+      "id": "evidence:import:index.ts:4ff015aa56f316a7f",
+      "kind": "source",
+      "label": "index.ts imports ./layout.js",
+      "fingerprint": "sha256:da87d522fe7ffdda1d796b348f6da858c73046ceab49730b187f11f95cff03ec",
+      "locator": "path:index.ts#import:\"./layout.js\""
+    },
+    {
+      "id": "evidence:import:index.ts:8b5de22eb930c8065",
+      "kind": "source",
+      "label": "index.ts imports ./layouts.js",
+      "fingerprint": "sha256:da87d522fe7ffdda1d796b348f6da858c73046ceab49730b187f11f95cff03ec",
+      "locator": "path:index.ts#import:\"./layouts.js\""
+    },
+    {
+      "id": "evidence:import:layout.test.ts:48b52dc788a1a5531",
+      "kind": "source",
+      "label": "layout.test.ts imports ./types.js",
+      "fingerprint": "sha256:82228797e5908f138f9989a0676989d387ec0d80b40b5b36988db69bcf1ed82f",
+      "locator": "path:layout.test.ts#import:\"./types.js\""
+    },
+    {
+      "id": "evidence:import:layout.test.ts:4ff015aa56f316a7f",
+      "kind": "source",
+      "label": "layout.test.ts imports ./layout.js",
+      "fingerprint": "sha256:82228797e5908f138f9989a0676989d387ec0d80b40b5b36988db69bcf1ed82f",
+      "locator": "path:layout.test.ts#import:\"./layout.js\""
+    },
+    {
+      "id": "evidence:import:layout.test.ts:8c15bd90af7f60712",
+      "kind": "source",
+      "label": "layout.test.ts imports mermaid",
+      "fingerprint": "sha256:82228797e5908f138f9989a0676989d387ec0d80b40b5b36988db69bcf1ed82f",
+      "locator": "path:layout.test.ts#import:\"mermaid\""
+    },
+    {
+      "id": "evidence:import:layout.test.ts:9b9d2a9ac599ab645",
+      "kind": "source",
+      "label": "layout.test.ts imports vitest",
+      "fingerprint": "sha256:82228797e5908f138f9989a0676989d387ec0d80b40b5b36988db69bcf1ed82f",
+      "locator": "path:layout.test.ts#import:\"vitest\""
+    },
+    {
+      "id": "evidence:import:layout.ts:48b52dc788a1a5531",
+      "kind": "source",
+      "label": "layout.ts imports ./types.js",
+      "fingerprint": "sha256:07d2b8a29e5274e738d6d94a088fcfb9690a72ba8d2a30f5f2b7bd84719f2506",
+      "locator": "path:layout.ts#import:\"./types.js\""
+    },
+    {
+      "id": "evidence:import:layout.ts:674c2a5522b1dece1",
+      "kind": "source",
+      "label": "layout.ts imports mermaid/src/types.js",
+      "fingerprint": "sha256:07d2b8a29e5274e738d6d94a088fcfb9690a72ba8d2a30f5f2b7bd84719f2506",
+      "locator": "path:layout.ts#import:\"mermaid/src/types.js\""
+    },
+    {
+      "id": "evidence:import:layout.ts:8c15bd90af7f60712",
+      "kind": "source",
+      "label": "layout.ts imports mermaid",
+      "fingerprint": "sha256:07d2b8a29e5274e738d6d94a088fcfb9690a72ba8d2a30f5f2b7bd84719f2506",
+      "locator": "path:layout.ts#import:\"mermaid\""
+    },
+    {
+      "id": "evidence:import:layout.ts:d9aa6c22e15cd4acc",
+      "kind": "source",
+      "label": "layout.ts imports non-layered-tidy-tree-layout",
+      "fingerprint": "sha256:07d2b8a29e5274e738d6d94a088fcfb9690a72ba8d2a30f5f2b7bd84719f2506",
+      "locator": "path:layout.ts#import:\"non-layered-tidy-tree-layout\""
+    },
+    {
+      "id": "evidence:import:layouts.ts:3903a42e4ea0e44db",
+      "kind": "source",
+      "label": "layouts.ts imports ./render.js",
+      "fingerprint": "sha256:ea3bb7ed7257800a629df59479d70436dfd7c5241dee495fbdd99e87df1bc5f4",
+      "locator": "path:layouts.ts#import:\"./render.js\""
+    },
+    {
+      "id": "evidence:import:layouts.ts:8c15bd90af7f60712",
+      "kind": "source",
+      "label": "layouts.ts imports mermaid",
+      "fingerprint": "sha256:ea3bb7ed7257800a629df59479d70436dfd7c5241dee495fbdd99e87df1bc5f4",
+      "locator": "path:layouts.ts#import:\"mermaid\""
+    },
+    {
+      "id": "evidence:import:render.ts:4ff015aa56f316a7f",
+      "kind": "source",
+      "label": "render.ts imports ./layout.js",
+      "fingerprint": "sha256:936f4d299a6cf88017afe36a6cc5f43c89910242e6f78079a978c339c00312e7",
+      "locator": "path:render.ts#import:\"./layout.js\""
+    },
+    {
+      "id": "evidence:import:render.ts:8c15bd90af7f60712",
+      "kind": "source",
+      "label": "render.ts imports mermaid",
+      "fingerprint": "sha256:936f4d299a6cf88017afe36a6cc5f43c89910242e6f78079a978c339c00312e7",
+      "locator": "path:render.ts#import:\"mermaid\""
+    },
+    {
+      "id": "evidence:import:types.ts:8c15bd90af7f60712",
+      "kind": "source",
+      "label": "types.ts imports mermaid",
+      "fingerprint": "sha256:a90eceeca6ae9f6f31094103b97a5cbd97b70f53a795e68811d5a49224a296e9",
+      "locator": "path:types.ts#import:\"mermaid\""
+    },
+    {
+      "id": "evidence:source:index.ts",
+      "kind": "source",
+      "label": "index.ts",
+      "fingerprint": "sha256:da87d522fe7ffdda1d796b348f6da858c73046ceab49730b187f11f95cff03ec",
+      "locator": "path:index.ts"
+    },
+    {
+      "id": "evidence:source:layout.test.ts",
+      "kind": "source",
+      "label": "layout.test.ts",
+      "fingerprint": "sha256:82228797e5908f138f9989a0676989d387ec0d80b40b5b36988db69bcf1ed82f",
+      "locator": "path:layout.test.ts"
+    },
+    {
+      "id": "evidence:source:layout.ts",
+      "kind": "source",
+      "label": "layout.ts",
+      "fingerprint": "sha256:07d2b8a29e5274e738d6d94a088fcfb9690a72ba8d2a30f5f2b7bd84719f2506",
+      "locator": "path:layout.ts"
+    },
+    {
+      "id": "evidence:source:layouts.ts",
+      "kind": "source",
+      "label": "layouts.ts",
+      "fingerprint": "sha256:ea3bb7ed7257800a629df59479d70436dfd7c5241dee495fbdd99e87df1bc5f4",
+      "locator": "path:layouts.ts"
+    },
+    {
+      "id": "evidence:source:non-layered-tidy-tree-layout.d.ts",
+      "kind": "source",
+      "label": "non-layered-tidy-tree-layout.d.ts",
+      "fingerprint": "sha256:65013f1cfc7a81dc0c91cdaabe4016159564d07f0798d7306d7a5f524e33a018",
+      "locator": "path:non-layered-tidy-tree-layout.d.ts"
+    },
+    {
+      "id": "evidence:source:render.ts",
+      "kind": "source",
+      "label": "render.ts",
+      "fingerprint": "sha256:936f4d299a6cf88017afe36a6cc5f43c89910242e6f78079a978c339c00312e7",
+      "locator": "path:render.ts"
+    },
+    {
+      "id": "evidence:source:types.ts",
+      "kind": "source",
+      "label": "types.ts",
+      "fingerprint": "sha256:a90eceeca6ae9f6f31094103b97a5cbd97b70f53a795e68811d5a49224a296e9",
+      "locator": "path:types.ts"
+    }
+  ],
+  "extensions": {
+    "dev.topo.scanner": {
+      "adapter": {
+        "capabilities": {
+          "granularity": [
+            "directory",
+            "file"
+          ],
+          "languages": [
+            "javascript",
+            "typescript"
+          ],
+          "moduleResolution": "typescript-compiler",
+          "partialResults": true,
+          "relationships": [
+            "imports"
+          ],
+          "workspaceManifests": [
+            "package.json"
+          ]
+        },
+        "contractVersion": "1.0",
+        "id": "@topo/scanner-typescript",
+        "version": "0.0.0"
+      },
+      "authoritative": true,
+      "diagnostics": [],
+      "metrics": {
+        "configCount": 0,
+        "coveredWorkspacePackageCount": 0,
+        "externalImportCount": 8,
+        "linesOfCode": 1438,
+        "localImportCount": 9,
+        "sourceFileCount": 7,
+        "unresolvedImportCount": 0,
+        "workspacePackageCount": 0
+      },
+      "status": "complete"
+    }
+  }
+}
