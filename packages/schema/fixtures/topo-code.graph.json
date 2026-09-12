@@ -1,0 +1,138 @@
+{
+  "schemaVersion": "1.0",
+  "graphId": "repo:jdylanmc/topo-code",
+  "repository": {
+    "id": "jdylanmc/topo-code",
+    "label": "topo-code",
+    "revision": "3b143e2"
+  },
+  "modules": [
+    {
+      "id": "@topo/scanner-typescript",
+      "version": "0.0.0",
+      "schemaVersion": "1.0"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "path:.",
+      "label": "topo-code",
+      "kind": "repository",
+      "identity": {
+        "kind": "path",
+        "value": "."
+      },
+      "fingerprint": "git-tree:edf7ffefb8716e1457e254a17960c0278b7e9f8f"
+    },
+    {
+      "id": "path:README.md",
+      "label": "README.md",
+      "kind": "file",
+      "identity": {
+        "kind": "path",
+        "value": "README.md"
+      },
+      "fingerprint": "git-blob:6ac285dbc8412fb3eb0555b6f1b71f5976cae849"
+    },
+    {
+      "id": "external:https://github.com/jdylanmc/topo-code/issues/1",
+      "label": "Product requirements",
+      "kind": "external",
+      "identity": {
+        "kind": "external",
+        "value": "https://github.com/jdylanmc/topo-code/issues/1"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge:README.md->issue:1",
+      "label": "governed by",
+      "type": "references",
+      "sourceId": "path:README.md",
+      "targetId": "external:https://github.com/jdylanmc/topo-code/issues/1",
+      "provenance": {
+        "kind": "observed",
+        "moduleId": "@topo/scanner-typescript",
+        "method": "markdown-link",
+        "evidenceIds": [
+          "source:README.md:23"
+        ]
+      }
+    }
+  ],
+  "containers": [
+    {
+      "id": "container:.",
+      "label": "Repository root",
+      "type": "directory",
+      "memberIds": [
+        "path:.",
+        "path:README.md"
+      ]
+    }
+  ],
+  "attributes": [
+    {
+      "id": "attribute:README.md:line-count",
+      "subject": {
+        "kind": "node",
+        "id": "path:README.md"
+      },
+      "key": "dev.topo.source.lines",
+      "value": 39,
+      "provenance": {
+        "kind": "observed",
+        "moduleId": "@topo/scanner-typescript",
+        "method": "line-count",
+        "evidenceIds": [
+          "source:README.md"
+        ]
+      },
+      "evidenceIds": [
+        "source:README.md"
+      ],
+      "confidence": 1,
+      "witnesses": [
+        {
+          "nodeId": "path:README.md",
+          "fingerprint": "git-blob:6ac285dbc8412fb3eb0555b6f1b71f5976cae849",
+          "relationship": "self"
+        }
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "id": "source:README.md",
+      "kind": "source",
+      "label": "README.md",
+      "fingerprint": "git-blob:6ac285dbc8412fb3eb0555b6f1b71f5976cae849",
+      "location": {
+        "path": "README.md",
+        "start": {
+          "line": 1,
+          "column": 1
+        }
+      }
+    },
+    {
+      "id": "source:README.md:23",
+      "kind": "source",
+      "label": "README product requirements link",
+      "fingerprint": "git-blob:6ac285dbc8412fb3eb0555b6f1b71f5976cae849",
+      "location": {
+        "path": "README.md",
+        "start": {
+          "line": 23,
+          "column": 1
+        },
+        "end": {
+          "line": 23,
+          "column": 97
+        }
+      }
+    }
+  ],
+  "extensions": {}
+}
