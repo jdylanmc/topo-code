@@ -1,5 +1,7 @@
 import {
+  assessGraphDocumentCompatibility,
   assessSchemaCompatibility,
+  type SchemaCompatibility,
   parseGraphSchemaVersion,
 } from "./compatibility.js";
 import type {
@@ -549,10 +551,21 @@ export function assertGraphDocument(
   }
 }
 
-export function parseGraphDocument(serialized: string): GraphDocument {
+export interface ParsedGraphDocument {
+  document: GraphDocument;
+  compatibility: SchemaCompatibility;
+}
+
+export function parseGraphDocument(
+  serialized: string,
+  supportedModules: Readonly<Record<string, string>> = {},
+): ParsedGraphDocument {
   const value: unknown = JSON.parse(serialized);
   assertGraphDocument(value);
-  return value;
+  return {
+    document: value,
+    compatibility: assessGraphDocumentCompatibility(value, supportedModules),
+  };
 }
 
 export function isSupportedGraphSchemaVersion(

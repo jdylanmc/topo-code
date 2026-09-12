@@ -21,7 +21,9 @@ const fixturePath = fileURLToPath(
 );
 
 function fixture(): GraphDocument {
-  return parseGraphDocument(readFileSync(fixturePath, "utf8"));
+  return parseGraphDocument(readFileSync(fixturePath, "utf8"), {
+    "@topo/scanner-typescript": "1.0",
+  }).document;
 }
 
 describe("graph schema", () => {
@@ -85,18 +87,43 @@ describe("graph schema", () => {
   it("makes version skew explicit", () => {
     expect(assessSchemaCompatibility(GRAPH_SCHEMA_VERSION)).toEqual({
       compatible: true,
+      authoritative: true,
       warnings: [],
       errors: [],
     });
     expect(assessSchemaCompatibility("1.1")).toMatchObject({
       compatible: true,
+      authoritative: false,
       warnings: [expect.stringContaining("newer")],
       errors: [],
     });
     expect(assessSchemaCompatibility("2.0")).toMatchObject({
       compatible: false,
+      authoritative: false,
       warnings: [],
       errors: [expect.stringContaining("incompatible")],
+    });
+  });
+
+  it("never presents unsupported semantics as authoritative", () => {
+    const graph = fixture();
+    graph.schemaVersion = "1.1";
+
+    const newer = parseGraphDocument(JSON.stringify(graph), {
+      "@topo/scanner-typescript": "1.0",
+    });
+    expect(newer.compatibility).toMatchObject({
+      compatible: true,
+      authoritative: false,
+      warnings: [expect.stringContaining("newer")],
+    });
+
+    graph.schemaVersion = GRAPH_SCHEMA_VERSION;
+    const missingModule = parseGraphDocument(JSON.stringify(graph));
+    expect(missingModule.compatibility).toMatchObject({
+      compatible: true,
+      authoritative: false,
+      warnings: [expect.stringContaining("not available")],
     });
   });
 
