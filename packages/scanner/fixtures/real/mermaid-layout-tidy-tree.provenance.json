@@ -3,7 +3,7 @@
   "repositoryId": "mermaid-js/mermaid",
   "upstream": "https://github.com/mermaid-js/mermaid.git",
   "revision": "3f5f7a6781cc8c788b8b5fa3d4e62edce9288f60",
-  "selectedPath": ".",
+  "selectedPath": "packages/mermaid-layout-tidy-tree/src",
   "configDiscovery": "all repository tsconfig*.json files",
   "graphFile": "mermaid-layout-tidy-tree.graph.json",
   "authoritative": true,
@@ -16,7 +16,7 @@
   },
   "limitations": [],
   "scan": {
-    "durationMilliseconds": 136,
+    "durationMilliseconds": 150,
     "nodeVersion": "v24.20.0",
     "platform": "darwin",
     "architecture": "arm64",

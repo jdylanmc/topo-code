@@ -154,6 +154,15 @@ describe("@topo/scanner", () => {
         type: "imports",
       }),
     );
+    expect(result.graph.evidence).toContainEqual(
+      expect.objectContaining({
+        anchor: {
+          path: "packages/app/src/index.ts",
+          symbol: "import:@fixture/lib",
+          contentPattern: "\"@fixture/lib\"",
+        },
+      }),
+    );
   });
 
   it("roots resolution at options.root and resolves ESM .js specifiers to .ts", async () => {

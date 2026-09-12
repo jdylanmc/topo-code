@@ -3,7 +3,7 @@
   "repositoryId": "microsoft/vscode",
   "upstream": "https://github.com/microsoft/vscode.git",
   "revision": "3879d0e80faeaeb351bbb44dd0f74f1bac12fc0a",
-  "selectedPath": ".",
+  "selectedPath": "src/vs/base/common",
   "configDiscovery": "all repository tsconfig*.json files",
   "graphFile": "vscode-base-common.graph.json",
   "authoritative": true,
@@ -16,7 +16,7 @@
   },
   "limitations": [],
   "scan": {
-    "durationMilliseconds": 285,
+    "durationMilliseconds": 387,
     "nodeVersion": "v24.20.0",
     "platform": "darwin",
     "architecture": "arm64",

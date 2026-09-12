@@ -408,6 +408,7 @@ function sourceEvidence(source: SourceRecord): Evidence {
     kind: "source",
     label: source.repositoryPath,
     fingerprint: source.fingerprint,
+    anchor: { path: source.repositoryPath },
     locator: `path:${source.repositoryPath}`,
   };
 }
@@ -422,6 +423,11 @@ function importEvidence(
     kind: "source",
     label: `${source.repositoryPath} imports ${specifier}`,
     fingerprint: source.fingerprint,
+    anchor: {
+      path: source.repositoryPath,
+      symbol: `import:${specifier}`,
+      contentPattern: JSON.stringify(specifier),
+    },
     locator: `path:${source.repositoryPath}#import:${JSON.stringify(specifier)}`,
   };
 }
