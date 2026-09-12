@@ -17,6 +17,25 @@ const outputPath = path.resolve(
     : "benchmarks/results/latest.json",
 );
 const headed = process.argv.includes("--headed");
+function argumentValue(name) {
+  const index = process.argv.indexOf(name);
+  return index < 0 ? undefined : process.argv[index + 1];
+}
+const runTimeoutMilliseconds = Number(
+  argumentValue("--run-timeout-ms") ?? "90000",
+);
+if (
+  !Number.isFinite(runTimeoutMilliseconds) ||
+  runTimeoutMilliseconds <= 0
+) {
+  throw new Error("--run-timeout-ms must be a positive finite number.");
+}
+const fixtureOptions = {
+  mermaidGraph: argumentValue("--mermaid-graph"),
+  mermaidProvenance: argumentValue("--mermaid-provenance"),
+  vscodeGraph: argumentValue("--vscode-graph"),
+  vscodeProvenance: argumentValue("--vscode-provenance"),
+};
 const launchArgs = [
   "--disable-background-timer-throttling",
   "--disable-renderer-backgrounding",
@@ -78,11 +97,48 @@ function summarizeEvents(events) {
   };
 }
 
-async function runWorkload(page, fixture, renderer) {
+function failedResult(fixture, renderer, scope, error) {
+  return {
+    status: "failed",
+    fixture: fixture.name,
+    fixtureKind: fixture.fixtureKind,
+    renderer,
+    scope,
+    graph: {
+      nodes: fixture.nodes,
+      edges: fixture.edges,
+      tangles: fixture.tangles,
+    },
+    error: error instanceof Error ? error.message : String(error),
+  };
+}
+
+async function runWithTimeout(context, page, fixture, renderer, scope) {
+  let timer;
+  try {
+    return await Promise.race([
+      runWorkload(page, fixture, renderer, scope),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => {
+          void context.close();
+          reject(
+            new Error(
+              `Workload exceeded ${runTimeoutMilliseconds} ms and was stopped.`,
+            ),
+          );
+        }, runTimeoutMilliseconds);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function runWorkload(page, fixture, renderer, scope) {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(
-    `http://127.0.0.1:4181/${fixture.name}/index.html?renderer=${renderer}&scope=all`,
+    `http://127.0.0.1:4181/${fixture.name}/index.html?renderer=${renderer}${scope === "expanded" ? "&scope=all" : ""}`,
     { waitUntil: "networkidle", timeout: 120_000 },
   );
   await page.evaluate(() => window.__TOPO_READY__);
@@ -141,9 +197,14 @@ async function runWorkload(page, fixture, renderer) {
     await page.mouse.wheel(0, index < 30 ? -18 : 18);
   }
 
-  const collapseButton = page.locator(".expanded-list button").first();
-  if (await collapseButton.count()) {
-    await collapseButton.click();
+  if (scope === "expanded") {
+    const collapseButton = page.locator(".expanded-list button").first();
+    if (await collapseButton.count()) await collapseButton.click();
+  } else {
+    const expandButton = page
+      .locator('.webgl-a11y button[data-entity-id^="directory:"]')
+      .first();
+    if (await expandButton.count()) await expandButton.click({ force: true });
   }
   await page.waitForTimeout(600);
 
@@ -182,9 +243,11 @@ async function runWorkload(page, fixture, renderer) {
   )?.value;
 
   return {
+    status: "completed",
     fixture: fixture.name,
     fixtureKind: fixture.fixtureKind,
     renderer,
+    scope,
     graph: {
       nodes: fixture.nodes,
       edges: fixture.edges,
@@ -194,7 +257,10 @@ async function runWorkload(page, fixture, renderer) {
       viewport: { width: 1280, height: 800 },
       panPointerMoves: 80,
       zoomWheelEvents: 60,
-      layoutTransition: "collapse first expanded directory; 300ms renderer transition",
+      layoutTransition:
+        scope === "expanded"
+          ? "collapse first expanded directory; 300ms renderer transition"
+          : "expand first visible directory; 300ms renderer transition",
       selectionInput: "keyboard Enter on first accessible entity",
     },
     frames: {
@@ -222,7 +288,7 @@ async function runWorkload(page, fixture, renderer) {
   };
 }
 
-const { server, fixtures } = await startFixtureServer(4181);
+const { server, fixtures } = await startFixtureServer(4181, fixtureOptions);
 let browser;
 try {
   browser = await chromium.launch({
@@ -231,20 +297,10 @@ try {
     ...(existsSync(chromePath) ? { executablePath: chromePath } : {}),
   });
   const results = [];
-  for (const fixture of fixtures) {
-    for (const renderer of ["svg", "webgl"]) {
-      const context = await browser.newContext({
-        viewport: { width: 1280, height: 800 },
-        deviceScaleFactor: 1,
-      });
-      const page = await context.newPage();
-      results.push(await runWorkload(page, fixture, renderer));
-      await context.close();
-    }
-  }
   const report = {
     schemaVersion: "1.0",
     generatedAt: new Date().toISOString(),
+    status: "incomplete",
     environment: {
       platform: platform(),
       release: release(),
@@ -259,12 +315,49 @@ try {
       gpuFlags:
         "No GPU-disabling flags supplied. Headless Chrome compositor/GPU behavior may differ from a visible browser.",
     },
+    workloadTimeoutMilliseconds: runTimeoutMilliseconds,
     fixtures,
     results,
-    decision: "pending-real-fixtures",
+    decision: fixtureOptions.mermaidGraph
+      ? "pending-visible-browser-validation"
+      : "pending-real-fixtures",
   };
-  await mkdir(path.dirname(outputPath), { recursive: true });
-  await writeFile(outputPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
+  const writeCheckpoint = async () => {
+    await mkdir(path.dirname(outputPath), { recursive: true });
+    await writeFile(outputPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
+  };
+  await writeCheckpoint();
+  for (const fixture of fixtures) {
+    for (const scope of ["directory", "expanded"]) {
+      for (const renderer of ["svg", "webgl"]) {
+        const context = await browser.newContext({
+          viewport: { width: 1280, height: 800 },
+          deviceScaleFactor: 1,
+        });
+        try {
+          const page = await context.newPage();
+          results.push(
+            await runWithTimeout(
+              context,
+              page,
+              fixture,
+              renderer,
+              scope,
+            ),
+          );
+        } catch (error) {
+          results.push(failedResult(fixture, renderer, scope, error));
+        } finally {
+          if (context.pages().length > 0) await context.close();
+        }
+        await writeCheckpoint();
+      }
+    }
+  }
+  report.status = results.some((result) => result.status === "failed")
+    ? "completed-with-failures"
+    : "completed";
+  await writeCheckpoint();
   process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
 } finally {
   await browser?.close();

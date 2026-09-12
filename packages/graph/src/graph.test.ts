@@ -11,6 +11,7 @@ import {
   GraphEngineValidationError,
   deriveArchitecture,
   layoutGraph,
+  layoutGraphWithArchitecture,
   projectGraph,
   serializeArchitecture,
   serializeLayoutDeterministic,
@@ -324,6 +325,23 @@ describe("@topo/graph", () => {
       code: "invalid-previous-layout",
     });
     expect(invalidPrevious.delta.addedSubjectIds.length).toBeGreaterThan(0);
+  });
+
+  it("accepts a precomputed architecture without changing layout output", () => {
+    const fixture = graph(
+      [node("src/a.ts"), node("src/b.ts")],
+      [["path:src/a.ts", "path:src/b.ts"]],
+    );
+    const architecture = deriveArchitecture(fixture);
+    const options = {
+      expandedContainerIds: ["directory:.", "directory:src"],
+    };
+
+    expect(
+      serializeLayoutDeterministic(
+        layoutGraphWithArchitecture(fixture, architecture, options).layout,
+      ),
+    ).toBe(serializeLayoutDeterministic(layoutGraph(fixture, options).layout));
   });
 
   it("validates pins, forbids line anchors, and never overwrites authored data", () => {

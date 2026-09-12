@@ -40,6 +40,12 @@ Layout is **per view**, identified by `(graphId, viewId)`. Persistence location
 is intentionally owned by the `.topo` workspace pipeline rather than this
 package.
 
+Callers that already retain the architecture should use
+`layoutGraphWithArchitecture(graph, architecture, options?)`. It is
+semantically identical to `layoutGraph` but avoids recomputing directory,
+strongly connected component, and spine indexes during interactive
+expand/collapse operations.
+
 ## Directory-first aggregation
 
 Phase 1 uses repository-relative path identity to derive an auditable directory

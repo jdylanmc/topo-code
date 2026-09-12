@@ -14,8 +14,8 @@ function fixture(): GraphDocument {
     repository: { id: "test", label: "Test", revision: "r1" },
     modules: [
       {
-        id: "@topo/test",
-        version: "1.0.0",
+        id: "@topo/scanner-typescript",
+        version: "0.0.0",
         schemaVersion: GRAPH_SCHEMA_VERSION,
       },
     ],
@@ -42,7 +42,7 @@ function fixture(): GraphDocument {
         targetId: "path:src/b.ts",
         provenance: {
           kind: "observed",
-          moduleId: "@topo/test",
+          moduleId: "@topo/scanner-typescript",
           method: "fixture",
           evidenceIds: ["evidence:a"],
         },
@@ -98,6 +98,11 @@ describe("site data contract", () => {
     });
     expect(artifacts.dashboard).toEqual({ availability: "unavailable" });
     expect(artifacts.architectureSource).toBe("artifact");
+    expect(artifacts.quality).toEqual({
+      authoritative: true,
+      scannerStatus: "complete",
+      warnings: [],
+    });
   });
 
   it("derives omitted architecture but rejects malformed required fields", async () => {
@@ -132,6 +137,37 @@ describe("site data contract", () => {
 
     await expect(loadArtifacts()).resolves.toMatchObject({
       dashboard: { availability: "empty", value: {} },
+    });
+  });
+
+  it("surfaces partial scanner output independently of module compatibility", async () => {
+    const graph = fixture();
+    graph.extensions["dev.topo.scanner"] = {
+      authoritative: false,
+      status: "partial",
+      diagnostics: [
+        {
+          code: "missing-generated-types",
+          message: "Generated type declarations were unavailable.",
+        },
+      ],
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        new Response(JSON.stringify(envelope(graph)), { status: 200 }),
+      ),
+    );
+
+    const artifacts = await loadArtifacts();
+    expect(artifacts.compatibility.authoritative).toBe(true);
+    expect(artifacts.quality).toEqual({
+      authoritative: false,
+      scannerStatus: "partial",
+      warnings: [
+        "Scanner output is partial and is not authoritative.",
+        "Generated type declarations were unavailable.",
+      ],
     });
   });
 

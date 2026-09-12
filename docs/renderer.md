@@ -26,6 +26,14 @@ dependencies. The package exports the built entry as `@topo/site/index.html`.
 The command-line interface copies the whole `dist` directory to
 `.topo/cache/site`.
 
+The schema's generated validator imports Ajv's `equal` and `ucs2length`
+helpers. Vite aliases those two helpers to equivalent browser-only
+implementations because the upstream modules include inert CommonJS generator
+metadata strings. PixiJS is loaded with its official `pixi.js/unsafe-eval`
+compatibility module. Despite that module's name, it replaces generated
+shader, uniform, uniform-buffer, and particle update functions with static
+implementations; the site does not enable `unsafe-eval`.
+
 The site performs exactly one no-cache fetch:
 
 ```text
@@ -83,11 +91,15 @@ corepack yarn workspace @topo/site test:browser
 ```
 
 The Playwright suite serves the production build, not the Vite development
-server. It verifies:
+server, with the command-line interface's exact Content Security Policy. It
+verifies:
 
 - the atomic envelope loads;
 - directory expansion changes the projection;
 - SVG and WebGL switch without changing data;
+- WebGL initializes with `script-src 'self'` and no `unsafe-eval`;
+- a failed asynchronous renderer initialization leaves the active SVG scene
+  visible and selected while showing a renderer error;
 - the WebGL accessibility surface supports keyboard selection;
 - external filtering updates the map;
 - malformed envelopes show an error and render no graph.
@@ -97,7 +109,8 @@ server. It verifies:
 ```sh
 corepack yarn workspace @topo/site build
 node benchmarks/renderer-bakeoff.mjs \
-  --output benchmarks/results/phase-one-headless.json
+  --output benchmarks/results/phase-one-headless.json \
+  --run-timeout-ms 90000
 ```
 
 `benchmarks/prepare-fixtures.mjs` copies the same production bundle beside each
@@ -115,6 +128,10 @@ The harness records:
 - JavaScript heap from Chrome DevTools Protocol `Performance.getMetrics`;
 - accessible entity and visible SVG label counts;
 - renderer/GPU metadata and browser page errors.
+
+Each renderer/scope workload has an overall timeout, defaulting to 90 seconds.
+The report is rewritten after every workload. A timeout is retained as a
+`failed` result and previously completed measurements survive interruption.
 
 Memory numbers are JavaScript heap only. They exclude DOM storage, SVG backing
 data, PixiJS GPU buffers/textures, driver allocations, and browser process
@@ -142,20 +159,40 @@ Fixtures:
 | medium | synthetic stress fixture | 549, including 20 externals | 2,108 | one 93-node tangle |
 | large | synthetic stress fixture | 2,580, including 80 externals | 12,000 | one 150-node tangle |
 
-Results:
+Optimized results:
 
-| Fixture | Renderer | delivered FPS | frame p95 ms | worst frame ms | input-to-paint p50 / p95 / max ms | JS heap |
-|---|---|---:|---:|---:|---:|---:|
-| small | SVG | 60.002 | 16.67 | 16.670 | 16 / 48 / 48 | 7.1 MB |
-| small | WebGL | 59.808 | 16.67 | 33.330 | 16 / 48 / 48 | 9.6 MB |
-| medium | SVG | 59.086 | 16.67 | 83.335 | 32 / 40 / 104 | 23.5 MB |
-| medium | WebGL | 57.474 | 16.67 | 133.330 | 32 / 48 / 272 | 77.7 MB |
-| large | SVG | 31.541 | 16.67 | 3,716.525 | 152 / 152 / 3,744 | 44.8 MB |
-| large | WebGL | 26.340 | 16.67 | 4,466.490 | 16 / 152 / 4,496 | 178.8 MB |
+| Fixture | Scope | Renderer | delivered FPS | worst frame ms | layout ms |
+|---|---|---|---:|---:|---:|
+| medium | directory | SVG | 59.532 | 33.330 | 9.785 |
+| medium | directory | WebGL | 59.019 | 83.330 | 10.535 |
+| medium | expanded | SVG | 59.769 | 33.330 | 6.915 |
+| medium | expanded | WebGL | 59.756 | 33.330 | 7.195 |
+| large | directory | SVG | 57.037 | 183.325 | 40.000 |
+| large | directory | WebGL | 57.383 | 166.665 | 40.665 |
+| large | expanded | SVG | 56.447 | 166.660 | 40.030 |
+| large | expanded | WebGL | 47.924 | 983.295 | 41.375 |
 
-The large-run delivered FPS includes the measured multi-second main-thread
-layout-transition stall; it is not a steady-state animation claim. Raw frame
-intervals and Event Timing samples are retained in the JSON.
+Before architecture reuse and spatial indexing, the same expanded large
+workload delivered 31.541 FPS / 3,716.525 ms worst frame for SVG and 26.340 FPS
+/ 4,466.490 ms for WebGL. The optimized SVG run exceeds 50 delivered FPS on
+this synthetic workload. Expanded WebGL remains below the Phase 1 target.
+Raw frame intervals and Event Timing samples are retained in the JSON.
+
+## Real-fixture status
+
+The real browser benchmark attempt was interrupted after exceeding ten minutes
+before a result file was delivered. It is **incomplete**, not a zero or a
+performance pass. The engine-only preparation measurements completed:
+
+| Fixture | Nodes | Edges | Parse ms | Derive ms | Layout ms | Total ms |
+|---|---:|---:|---:|---:|---:|---:|
+| Mermaid partial | 1,225 | 4,136 | 28.773 | 54.353 | 14.907 | 98.033 |
+| Visual Studio Code partial | 9,376 | 105,549 | 537.818 | 6,830.489 | 317.348 | 7,685.655 |
+
+Both scans are explicitly partial and non-authoritative. Browser renderer
+measurements for them remain required. The harness now checkpoints each
+workload and stops individual runs at the configured timeout, so a slow Visual
+Studio Code run cannot discard completed Mermaid evidence.
 
 ## Qualitative comparison
 
@@ -173,18 +210,11 @@ intervals and Event Timing samples are retained in the JSON.
 
 No renderer is selected yet.
 
-The synthetic results do not support assuming WebGL is faster. This PixiJS
-implementation creates one display object and one text texture per node and
-used substantially more JavaScript heap at medium and large sizes. Both
-renderers suffered a multi-second large transition, indicating shared
-projection/layout and full-scene update work must be profiled before renderer
-selection.
-
-Issue #5 requires the 529-module Mermaid graph and a substantially larger real
-repository. The scanner fixture agent was unavailable when contacted, so those
-measurements remain pending. The parent should rerun this harness with real
-fixture envelopes and in a visible browser before recording a production
-choice.
+The synthetic results do not support assuming WebGL is faster. Shared layout
+work is now bounded on the synthetic workload, but expanded WebGL still misses
+the greater-than-50-FPS criterion. Real partial Mermaid and Visual Studio Code
+browser runs plus a visible-browser run remain required before recording a
+production choice.
 
 ## Dependencies and licenses
 

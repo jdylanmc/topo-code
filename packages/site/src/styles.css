@@ -145,6 +145,20 @@ input:focus-visible,
   background-size: 32px 32px;
 }
 
+.renderer-layer {
+  position: absolute;
+  inset: 0;
+}
+
+.renderer-layer-pending {
+  visibility: hidden;
+}
+
+.renderer-error {
+  color: #ff7b72;
+  font-weight: 600;
+}
+
 .topo-canvas {
   display: block;
   width: 100%;

@@ -16,7 +16,7 @@ import type {
 
 const SUPPORTED_MODULES = {
   "@topo/scanner-typescript": {
-    version: "1.0.0",
+    version: "0.0.0",
     schemaVersion: "1.0",
   },
   "@topo/test": {
@@ -71,6 +71,60 @@ function isEmptyJson(value: unknown): boolean {
     value !== null &&
     Object.keys(value).length === 0
   );
+}
+
+function scannerQuality(graph: GraphDocument): {
+  authoritative: boolean;
+  status: string;
+  warnings: string[];
+} {
+  const value = graph.extensions["dev.topo.scanner"];
+  if (value === undefined) {
+    return { authoritative: true, status: "complete", warnings: [] };
+  }
+  if (
+    typeof value !== "object" ||
+    value === null ||
+    Array.isArray(value) ||
+    typeof value.authoritative !== "boolean" ||
+    typeof value.status !== "string" ||
+    value.status.length === 0 ||
+    !Array.isArray(value.diagnostics)
+  ) {
+    throw new ArtifactLoadError(
+      "data.json graph.extensions.dev.topo.scanner",
+      "Expected authoritative:boolean, status:string, and diagnostics:array.",
+    );
+  }
+  const diagnostics = value.diagnostics.map((diagnostic, index) => {
+    if (typeof diagnostic === "string" && diagnostic.length > 0) {
+      return diagnostic;
+    }
+    if (
+      typeof diagnostic === "object" &&
+      diagnostic !== null &&
+      !Array.isArray(diagnostic) &&
+      "message" in diagnostic &&
+      typeof diagnostic.message === "string" &&
+      diagnostic.message.length > 0
+    ) {
+      return diagnostic.message;
+    }
+    throw new ArtifactLoadError(
+      "data.json graph.extensions.dev.topo.scanner",
+      `Diagnostic ${index} must be a string or an object with a message.`,
+    );
+  });
+  return {
+    authoritative: value.authoritative,
+    status: value.status,
+    warnings: value.authoritative
+      ? []
+      : [
+          `Scanner output is ${value.status} and is not authoritative.`,
+          ...diagnostics,
+        ],
+  };
 }
 
 function validateArchitecture(
@@ -153,6 +207,7 @@ export async function loadArtifacts(): Promise<LoadedArtifacts> {
   const architecture = hasArchitecture
     ? validateArchitecture(envelope.architecture, parsedGraph.document)
     : deriveArchitecture(parsedGraph.document);
+  const scanner = scannerQuality(parsedGraph.document);
 
   let dashboard: DashboardArtifact;
   if (envelope.dashboard === null) {
@@ -173,5 +228,11 @@ export async function loadArtifacts(): Promise<LoadedArtifacts> {
     architecture,
     architectureSource: hasArchitecture ? "artifact" : "derived",
     dashboard,
+    quality: {
+      authoritative:
+        parsedGraph.compatibility.authoritative && scanner.authoritative,
+      scannerStatus: scanner.status,
+      warnings: [...parsedGraph.compatibility.warnings, ...scanner.warnings],
+    },
   };
 }

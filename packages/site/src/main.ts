@@ -3,6 +3,7 @@ import type {
   AppModel,
   BenchmarkApi,
   Renderer,
+  RendererCallbacks,
   RendererKind,
   TopoWindow,
   ViewState,
@@ -72,7 +73,10 @@ class TopoApp {
   readonly #model: AppModel;
   readonly #cyclicNodeIds: Set<string>;
   #renderer: Renderer | undefined;
+  #rendererHost: HTMLElement | undefined;
   #renderToken = 0;
+  #lastLayoutComputationMs = 0;
+  #lastTransitionDispatchMs = 0;
 
   private constructor(root: HTMLElement, model: AppModel) {
     this.#root = root;
@@ -107,7 +111,12 @@ class TopoApp {
             ),
       ),
     };
-    const layoutResult = createLayout(artifacts.graph, state, artifacts.layout);
+    const layoutResult = createLayout(
+      artifacts.graph,
+      artifacts.architecture,
+      state,
+      artifacts.layout,
+    );
     const app = new TopoApp(root, { artifacts, state, layoutResult });
     await app.#initialize();
     return app;
@@ -143,6 +152,7 @@ class TopoApp {
               <span data-status="counts"></span>
               <span data-status="dashboard"></span>
               <span data-status="architecture"></span>
+              <span class="renderer-error" data-status="renderer-error" role="alert" hidden></span>
             </div>
             <div class="map-host" tabindex="0" aria-label="Architecture map. Use arrow keys to move, Enter to expand, plus and minus to zoom.">
               <nav class="webgl-a11y visually-hidden" aria-label="WebGL map entities"></nav>
@@ -172,7 +182,7 @@ class TopoApp {
         button.addEventListener("click", () => {
           const kind = button.dataset.renderer;
           if (kind === "svg" || kind === "webgl") {
-            void this.#replaceRenderer(kind);
+            void this.#replaceRenderer(kind).catch(() => undefined);
           }
         });
       },
@@ -216,8 +226,8 @@ class TopoApp {
       this.#root,
       ".authority-banner",
     );
-    const compatibility = this.#model.artifacts.compatibility;
-    if (compatibility.authoritative) {
+    const quality = this.#model.artifacts.quality;
+    if (quality.authoritative) {
       banner.hidden = true;
       return;
     }
@@ -228,14 +238,15 @@ class TopoApp {
     banner.append(strong, " ");
     const message = document.createElement("span");
     message.textContent =
-      compatibility.warnings.join(" ") ||
+      quality.warnings.join(" ") ||
       "One or more producing modules are unavailable or incompatible.";
     banner.append(message);
   }
 
   async #replaceRenderer(kind: RendererKind): Promise<void> {
+    if (this.#renderer?.kind === kind) return;
     const token = ++this.#renderToken;
-    const host = requiredElement<HTMLElement>(this.#root, ".map-host");
+    const mapHost = requiredElement<HTMLElement>(this.#root, ".map-host");
     const accessibility = requiredElement<HTMLElement>(
       this.#root,
       ".webgl-a11y",
@@ -245,17 +256,36 @@ class TopoApp {
       y: 24,
       scale: 1,
     };
-    this.#renderer?.destroy();
-    this.#renderer = undefined;
-    const renderer = await createRenderer(kind, host);
-    if (token !== this.#renderToken) {
-      renderer.destroy();
-      return;
+    const candidateHost = document.createElement("div");
+    candidateHost.className = "renderer-layer renderer-layer-pending";
+    candidateHost.setAttribute("aria-hidden", "true");
+    mapHost.insertBefore(candidateHost, accessibility);
+
+    let renderer: Renderer;
+    try {
+      renderer = await createRenderer(kind, candidateHost);
+      if (token !== this.#renderToken) {
+        renderer.destroy();
+        candidateHost.remove();
+        return;
+      }
+      renderer.setTransform(transform);
+      renderer.render(this.#createScene(), this.#rendererCallbacks(), false);
+    } catch (error) {
+      candidateHost.remove();
+      if (token === this.#renderToken) this.#showRendererError(kind, error);
+      throw error;
     }
-    host.append(accessibility);
+
+    const previousRenderer = this.#renderer;
+    const previousHost = this.#rendererHost;
     this.#renderer = renderer;
+    this.#rendererHost = candidateHost;
     this.#model.state.renderer = kind;
-    renderer.setTransform(transform);
+    candidateHost.classList.remove("renderer-layer-pending");
+    candidateHost.setAttribute("aria-hidden", "false");
+    previousRenderer?.destroy();
+    previousHost?.remove();
     setQueryRenderer(kind);
     this.#root.querySelectorAll<HTMLButtonElement>("[data-renderer]").forEach(
       (button) =>
@@ -265,40 +295,49 @@ class TopoApp {
         ),
     );
     accessibility.classList.toggle("visually-hidden", kind !== "webgl");
+    this.#clearRendererError();
     this.#refresh(false);
   }
 
+  #showRendererError(kind: RendererKind, error: unknown): void {
+    const status = requiredElement<HTMLElement>(
+      this.#root,
+      '[data-status="renderer-error"]',
+    );
+    const label = kind === "webgl" ? "PixiJS / WebGL" : "D3 / SVG";
+    const message = error instanceof Error ? error.message : String(error);
+    status.textContent = `${label} could not start: ${message}`;
+    status.hidden = false;
+  }
+
+  #clearRendererError(): void {
+    const status = requiredElement<HTMLElement>(
+      this.#root,
+      '[data-status="renderer-error"]',
+    );
+    status.hidden = true;
+    status.textContent = "";
+  }
+
   #relayout(): void {
+    const started = performance.now();
     const previous = this.#model.layoutResult.layout;
     this.#model.layoutResult = createLayout(
       this.#model.artifacts.graph,
+      this.#model.artifacts.architecture,
       this.#model.state,
       previous,
     );
+    this.#lastLayoutComputationMs = performance.now() - started;
     this.#refresh(true);
+    this.#lastTransitionDispatchMs = performance.now() - started;
   }
 
   #refresh(animate: boolean): void {
     const renderer = this.#renderer;
     if (!renderer) return;
-    const scene = createScene(
-      this.#model.artifacts.graph,
-      this.#model.layoutResult,
-      this.#model.state,
-      this.#cyclicNodeIds,
-    );
-    renderer.render(
-      scene,
-      {
-        select: (entityId) => this.#select(entityId),
-        activate: (entityId) => this.#activate(entityId),
-        focus: (entityId) => {
-          this.#model.state.focusedEntityId = entityId;
-          this.#refresh(false);
-        },
-      },
-      animate,
-    );
+    const scene = this.#createScene();
+    renderer.render(scene, this.#rendererCallbacks(), animate);
     requiredElement<HTMLElement>(
       this.#root,
       ".app-shell",
@@ -322,6 +361,26 @@ class TopoApp {
     this.#renderExpanded();
     this.#renderCycles();
     this.#renderSelection();
+  }
+
+  #createScene(): ReturnType<typeof createScene> {
+    return createScene(
+      this.#model.artifacts.graph,
+      this.#model.layoutResult,
+      this.#model.state,
+      this.#cyclicNodeIds,
+    );
+  }
+
+  #rendererCallbacks(): RendererCallbacks {
+    return {
+      select: (entityId) => this.#select(entityId),
+      activate: (entityId) => this.#activate(entityId),
+      focus: (entityId) => {
+        this.#model.state.focusedEntityId = entityId;
+        this.#refresh(false);
+      },
+    };
   }
 
   #renderAccessibility(
@@ -616,6 +675,8 @@ class TopoApp {
         collapsedTangleIds: [...this.#model.state.collapsedTangleIds].sort(
           compareText,
         ),
+        lastLayoutComputationMs: this.#lastLayoutComputationMs,
+        lastTransitionDispatchMs: this.#lastTransitionDispatchMs,
       }),
       setRenderer: (kind) => this.setRenderer(kind),
       resetView: () => this.resetView(),

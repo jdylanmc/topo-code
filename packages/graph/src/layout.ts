@@ -12,6 +12,7 @@ import { projectGraph } from "./project.js";
 import {
   GraphEngineValidationError,
   type GraphProjection,
+  type ArchitectureDocument,
   type LayoutOptions,
   type LayoutPin,
   type LayoutResult,
@@ -23,6 +24,57 @@ interface GridConfig {
   cellHeight: number;
   columns: number;
   padding: number;
+}
+
+class SpatialIndex {
+  readonly #buckets = new Map<string, LayoutItem[]>();
+  readonly #grid: GridConfig;
+
+  constructor(grid: GridConfig) {
+    this.#grid = grid;
+  }
+
+  #keys(item: LayoutItem): string[] {
+    const minimumColumn = Math.floor(
+      (item.x - this.#grid.padding) / this.#grid.cellWidth,
+    );
+    const maximumColumn = Math.floor(
+      (item.x + item.width + this.#grid.padding) / this.#grid.cellWidth,
+    );
+    const minimumRow = Math.floor(
+      (item.y - this.#grid.padding) / this.#grid.cellHeight,
+    );
+    const maximumRow = Math.floor(
+      (item.y + item.height + this.#grid.padding) / this.#grid.cellHeight,
+    );
+    const keys: string[] = [];
+    for (let row = minimumRow; row <= maximumRow; row += 1) {
+      for (let column = minimumColumn; column <= maximumColumn; column += 1) {
+        keys.push(`${column}:${row}`);
+      }
+    }
+    return keys;
+  }
+
+  add(item: LayoutItem): void {
+    for (const key of this.#keys(item)) {
+      const bucket = this.#buckets.get(key) ?? [];
+      bucket.push(item);
+      this.#buckets.set(key, bucket);
+    }
+  }
+
+  overlaps(item: LayoutItem): boolean {
+    const candidates = new Set<LayoutItem>();
+    for (const key of this.#keys(item)) {
+      for (const candidate of this.#buckets.get(key) ?? []) {
+        candidates.add(candidate);
+      }
+    }
+    return [...candidates].some((candidate) =>
+      overlaps(item, candidate, this.#grid.padding),
+    );
+  }
 }
 
 const DEFAULT_GRID: GridConfig = {
@@ -176,16 +228,17 @@ function overlaps(left: LayoutItem, right: LayoutItem, padding: number): boolean
 
 function nextGridItem(
   item: Omit<LayoutItem, "x" | "y">,
-  occupied: readonly LayoutItem[],
+  occupied: SpatialIndex,
   grid: GridConfig,
+  startingSlot: number,
 ): LayoutItem {
-  for (let slot = 0; slot < Number.MAX_SAFE_INTEGER; slot += 1) {
+  for (let slot = startingSlot; slot < Number.MAX_SAFE_INTEGER; slot += 1) {
     const candidate: LayoutItem = {
       ...item,
       x: (slot % grid.columns) * grid.cellWidth,
       y: Math.floor(slot / grid.columns) * grid.cellHeight,
     };
-    if (!occupied.some((current) => overlaps(candidate, current, grid.padding))) {
+    if (!occupied.overlaps(candidate)) {
       return candidate;
     }
   }
@@ -273,9 +326,12 @@ function routeEdges(
     .sort((left, right) => compareText(left.subject.id, right.subject.id));
 }
 
-export function layoutGraph(graph: unknown, optionsValue?: unknown): LayoutResult {
+export function layoutGraphWithArchitecture(
+  graph: unknown,
+  architecture: ArchitectureDocument,
+  optionsValue?: unknown,
+): LayoutResult {
   const options = validateOptions(optionsValue);
-  const architecture = deriveArchitecture(graph);
   const graphDocument = graph as GraphDocument;
   const projection = projectGraph(graph, architecture, options);
   const grid = validateGrid(options.grid);
@@ -314,6 +370,7 @@ export function layoutGraph(graph: unknown, optionsValue?: unknown): LayoutResul
   }
 
   const items: LayoutItem[] = [];
+  const spatialIndex = new SpatialIndex(grid);
   const preservedSubjectIds: string[] = [];
   const addedSubjectIds: string[] = [];
   const pinnedSubjectIds: string[] = [];
@@ -344,7 +401,7 @@ export function layoutGraph(graph: unknown, optionsValue?: unknown): LayoutResul
   )) {
     const entity = entityById.get(subjectId)!;
     const item = createItem(entity, pin.position);
-    if (items.some((current) => overlaps(item, current, grid.padding))) {
+    if (spatialIndex.overlaps(item)) {
       throw new GraphEngineValidationError([
         {
           path: `$.pins.${pin.id}`,
@@ -353,6 +410,7 @@ export function layoutGraph(graph: unknown, optionsValue?: unknown): LayoutResul
       ]);
     }
     items.push(item);
+    spatialIndex.add(item);
     pinnedSubjectIds.push(entity.id);
   }
 
@@ -361,7 +419,7 @@ export function layoutGraph(graph: unknown, optionsValue?: unknown): LayoutResul
     const prior = previous.get(entity.id);
     if (!prior) continue;
     const item = { ...prior, subject: createItem(entity, prior).subject };
-    if (items.some((current) => overlaps(item, current, grid.padding))) {
+    if (spatialIndex.overlaps(item)) {
       throw new GraphEngineValidationError([
         {
           path: "$.pins",
@@ -370,15 +428,27 @@ export function layoutGraph(graph: unknown, optionsValue?: unknown): LayoutResul
       ]);
     }
     items.push(item);
+    spatialIndex.add(item);
     preservedSubjectIds.push(entity.id);
   }
 
+  let nextSlot = 0;
   for (const entity of projection.visibleEntities) {
     if (pinBySubject.has(entity.id) || previous.has(entity.id)) continue;
     const size = dimensions(entity.kind, entity.memberNodeIds.length);
     const subject = createItem(entity, { x: 0, y: 0 }).subject;
-    const item = nextGridItem({ subject, ...size }, items, grid);
+    const item = nextGridItem(
+      { subject, ...size },
+      spatialIndex,
+      grid,
+      nextSlot,
+    );
     items.push(item);
+    spatialIndex.add(item);
+    nextSlot =
+      Math.floor(item.y / grid.cellHeight) * grid.columns +
+      Math.floor(item.x / grid.cellWidth) +
+      1;
     addedSubjectIds.push(entity.id);
   }
   items.sort((left, right) => compareText(left.subject.id, right.subject.id));
@@ -432,4 +502,12 @@ export function layoutGraph(graph: unknown, optionsValue?: unknown): LayoutResul
     },
     warnings,
   };
+}
+
+export function layoutGraph(graph: unknown, optionsValue?: unknown): LayoutResult {
+  return layoutGraphWithArchitecture(
+    graph,
+    deriveArchitecture(graph),
+    optionsValue,
+  );
 }

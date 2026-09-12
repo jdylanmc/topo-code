@@ -26,6 +26,11 @@ export interface LoadedArtifacts {
   architecture: ArchitectureDocument;
   architectureSource: "artifact" | "derived";
   dashboard: DashboardArtifact;
+  quality: {
+    authoritative: boolean;
+    scannerStatus: string;
+    warnings: string[];
+  };
 }
 
 export interface ViewState {
@@ -100,6 +105,8 @@ export interface AppSnapshot {
   selectedEntityId?: string;
   expandedContainerIds: string[];
   collapsedTangleIds: string[];
+  lastLayoutComputationMs: number;
+  lastTransitionDispatchMs: number;
 }
 
 export interface BenchmarkApi {

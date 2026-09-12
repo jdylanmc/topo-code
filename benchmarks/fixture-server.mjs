@@ -14,6 +14,18 @@ const MIME_TYPES = {
   ".svg": "image/svg+xml",
 };
 
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data:",
+  "connect-src 'self'",
+  "worker-src 'self' blob:",
+  "object-src 'none'",
+  "frame-ancestors 'none'",
+  "base-uri 'none'",
+].join("; ");
+
 function safePath(urlPath) {
   const decoded = decodeURIComponent(urlPath.split("?")[0]);
   const relative = decoded.replace(/^\/+/, "");
@@ -27,8 +39,8 @@ function safePath(urlPath) {
   return resolved;
 }
 
-export async function startFixtureServer(port = 4178) {
-  const fixtures = await prepareFixtures();
+export async function startFixtureServer(port = 4178, fixtureOptions = {}) {
+  const fixtures = await prepareFixtures(fixtureOptions);
   const server = http.createServer(async (request, response) => {
     const requested = safePath(request.url ?? "/");
     if (!requested) {
@@ -46,6 +58,7 @@ export async function startFixtureServer(port = 4178) {
     }
     response.setHeader("Cross-Origin-Opener-Policy", "same-origin");
     response.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+    response.setHeader("Content-Security-Policy", CONTENT_SECURITY_POLICY);
     response.setHeader("Cache-Control", "no-store");
     response.setHeader(
       "Content-Type",
