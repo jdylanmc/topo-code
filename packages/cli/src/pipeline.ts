@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readFile, readdir, writeFile } from "node:fs/promises";
+import { readFile, readdir, rmdir, stat, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   assertGraphDocument,
@@ -33,18 +33,45 @@ import {
 async function storedReports(root: string): Promise<unknown[]> {
   const directory = await workspacePath(root, "reports/inputs");
   const names = (await readdir(directory)).filter((name) => name.endsWith(".json")).sort();
-  return Promise.all(names.map((name) => readArtifact(root, `reports/inputs/${name}`)));
+  return Promise.all(names.map(async (name) => {
+    const report = parseReport(await readArtifact(root, `reports/inputs/${name}`));
+    const fingerprint = createHash("sha256").update(serializeReport(report)).digest("hex");
+    if (name !== `${fingerprint}.json`) {
+      throw new Error(`Stored report ${name} does not match its canonical content hash; re-ingest the changed evidence as ${fingerprint}.json.`);
+    }
+    return report;
+  }));
 }
 
-async function copySite(root: string, assets: string, relative = ""): Promise<void> {
-  const entries = await readdir(join(assets, relative), { withFileTypes: true });
-  for (const entry of entries) {
-    const name = relative ? `${relative}/${entry.name}` : entry.name;
-    if (entry.isDirectory()) await copySite(root, assets, name);
-    else if (entry.isFile()) {
-      await writeGenerated(root, `cache/site/${name}`, await readFile(join(assets, name)));
-    } else throw new Error(`Unsupported site asset type: ${name}`);
+async function copySite(root: string, assets: string): Promise<void> {
+  if (!(await stat(join(assets, "index.html"))).isFile()) throw new Error("Built site must contain index.html");
+  const expected = new Set(["data.json"]);
+  async function copy(relative: string) {
+    const entries = await readdir(join(assets, relative), { withFileTypes: true });
+    for (const entry of entries) {
+      const name = relative ? `${relative}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) await copy(name);
+      else if (entry.isFile()) {
+        expected.add(name);
+        await writeGenerated(root, `cache/site/${name}`, await readFile(join(assets, name)));
+      } else throw new Error(`Unsupported site asset type: ${name}`);
+    }
   }
+  async function prune(relative: string) {
+    const directory = await workspacePath(root, relative ? `cache/site/${relative}` : "cache/site");
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const name = relative ? `${relative}/${entry.name}` : entry.name;
+      const path = await workspacePath(root, `cache/site/${name}`);
+      if (entry.isDirectory()) {
+        await prune(name);
+        if (!(await readdir(path)).length) await rmdir(path);
+      } else if (entry.isFile()) {
+        if (!expected.has(name)) await unlink(path);
+      } else throw new Error(`Unsupported cached site asset type: ${name}`);
+    }
+  }
+  await copy("");
+  await prune("");
 }
 
 function bundle(graph: GraphDocument, layout: LayoutResult, dashboard: DashboardDocument | null): string {

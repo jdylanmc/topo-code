@@ -38,6 +38,8 @@ describe("versioned report ingestion", () => {
   it("rejects malformed/unknown versions, stale and conflicting evidence", () => {
     expect(() => parseReport({ ...fixture(), schemaVersion: "2.0" })).toThrow("version");
     expect(() => parseReport({ ...fixture(), extra: true })).toThrow("unknown");
+    expect(() => parseReport({ ...fixture(), configuration: new Date() })).toThrow("plain JSON");
+    expect(() => parseReport({ ...fixture(), configuration: { nested: new Map() } })).toThrow("plain JSON");
     const stale = fixture(); stale.source.revision = "older";
     expect(() => normalizeReports([stale], graph)).toThrow("Stale");
     const foreign = fixture(); foreign.source.repositoryId = "other";

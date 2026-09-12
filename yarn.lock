@@ -481,6 +481,7 @@ __metadata:
   dependencies:
     "@topo/schema": "workspace:*"
     "@types/node": "npm:^22.0.0"
+    ignore: "npm:^7.0.0"
     typescript: "npm:^7.0.2"
     typescript-compiler-api: "npm:typescript@^6.0.0"
     vite: "npm:8.2.2"
@@ -1805,6 +1806,13 @@ __metadata:
   dependencies:
     minimatch: "npm:^10.0.3"
   checksum: 10c0/fec71d904adaaf233f2f5a67cc547857d960abe1f41a8b43f675617a322aabe9401fb9afa13aba825d21d91c454d5cad72ecba156e69443f3df40288d6ebd058
+  languageName: node
+  linkType: hard
+
+"ignore@npm:^7.0.0":
+  version: 7.0.8
+  resolution: "ignore@npm:7.0.8::__archiveUrl=https%3A%2F%2Fms-feed-25.pkgs.visualstudio.com%2F1es-public%2F_packaging%2Fnpm-public%2Fnpm%2Fregistry%2Fignore%2F-%2Fignore-7.0.8.tgz"
+  checksum: 10c0/95ed888e66ad46c478680af1628ac1d242a623fcac418bd5533b91549f609a6756985a32ebfe087b1d97806f52a20f991c804e3b074e9cf16fd1404f2bcd9c0a
   languageName: node
   linkType: hard
 

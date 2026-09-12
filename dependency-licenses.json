@@ -15,6 +15,11 @@
       "license": "ISC",
       "source": "https://github.com/d3/d3/blob/v7.9.0/LICENSE"
     },
+    "ignore": {
+      "range": "^7.0.0",
+      "license": "MIT",
+      "source": "https://registry.npmjs.org/ignore/7.0.8"
+    },
     "pixi.js": {
       "range": "^8.13.2",
       "license": "MIT",

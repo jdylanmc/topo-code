@@ -65,6 +65,9 @@ one atomically replaced `cache/site/data.json`, not graph and layout files
 independently, so it cannot combine snapshots from two different regenerations.
 Reviewable files are replaced individually: after interruption, rerun generation
 to reconstruct them; no multi-file filesystem transaction is claimed.
+When the tool's compiled assets change, retired files are pruned from the cached
+site. Reload open browser tabs after upgrading the tool; the asset set itself is
+not an atomic multi-file deployment.
 
 Scanner output is recomputed, not restored from a hidden cross-machine cache.
 The workspace's `cacheKey` helper hashes canonical evidence/configuration; any

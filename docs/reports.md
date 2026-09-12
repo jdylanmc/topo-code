@@ -52,6 +52,9 @@ by path/key; findings by ID; object keys by code-unit ordering. An unchanged
 revision, normalized inputs and configuration produce byte-identical dashboard
 output. `collectedAt` is supplied evidence, not a new timestamp created on each
 run. Array order in adapter-specific configuration is preserved.
+Stored input filenames are revalidated against their canonical content hashes.
+Do not edit a hashed input in place: move the old evidence out of the input set
+and ingest the changed report so its filename and fingerprint remain consistent.
 
 ## Explicit rejection rules
 

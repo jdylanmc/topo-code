@@ -44,6 +44,9 @@ export interface DashboardDocument {
 
 function object(value: unknown, label: string, keys: string[]): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) throw new Error(`${label} must be an object`);
+  if (Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null) {
+    throw new Error(`${label} must be a plain JSON object`);
+  }
   const record = value as Record<string, unknown>;
   const extra = Object.keys(record).filter((key) => !keys.includes(key));
   if (extra.length) throw new Error(`${label} has unknown keys: ${extra.join(", ")}`);
@@ -68,6 +71,9 @@ function json(value: unknown): JsonValue {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (Array.isArray(value)) return value.map(json);
   if (typeof value === "object" && value !== null) {
+    if (Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null) {
+      throw new Error("Report configuration must contain only plain JSON objects");
+    }
     return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, json(item)]));
   }
   throw new Error("Report configuration must contain only finite JSON values");

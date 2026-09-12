@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
@@ -75,6 +75,32 @@ describe("scan-to-dashboard artifact integration", () => {
     await expect(ingestReports(root, [input], assets)).rejects.toThrow("Stale");
     expect(await readFile(join(root, ".topo/cache/site/data.json"), "utf8")).toBe(before);
     expect(await readdir(join(root, ".topo/reports/inputs"))).toHaveLength(0);
+  });
+
+  it("rejects modified content-addressed evidence before republishing", async () => {
+    const { root, assets, graph } = await fixture();
+    await generateArtifacts(root, graph, assets);
+    const input = join(await temp(), "report.json");
+    await writeFile(input, JSON.stringify(report(graph)));
+    await ingestReports(root, [input], assets);
+    const before = await readFile(join(root, ".topo/cache/site/data.json"), "utf8");
+    const [name] = await readdir(join(root, ".topo/reports/inputs"));
+    const changed = report(graph); changed.metrics[0]!.value = 99;
+    await writeFile(join(root, ".topo/reports/inputs", name!), JSON.stringify(changed));
+    await expect(generateArtifacts(root, graph, assets)).rejects.toThrow("content hash");
+    expect(await readFile(join(root, ".topo/cache/site/data.json"), "utf8")).toBe(before);
+  });
+
+  it("removes retired assets while preserving current binary asset bytes", async () => {
+    const { root, assets, graph } = await fixture();
+    await writeFile(join(assets, "retired.js"), "retired");
+    const image = Buffer.from([0, 255, 128, 10]);
+    await writeFile(join(assets, "image.png"), image);
+    await generateArtifacts(root, graph, assets);
+    await unlink(join(assets, "retired.js"));
+    await generateArtifacts(root, graph, assets);
+    await expect(readFile(join(root, ".topo/cache/site/retired.js"))).rejects.toMatchObject({ code: "ENOENT" });
+    expect(await readFile(join(root, ".topo/cache/site/image.png"))).toEqual(image);
   });
 
   it("serializes writers and releases locks after failures", async () => {
