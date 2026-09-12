@@ -1,0 +1,26 @@
+{
+  "name": "topo-code",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "yarn@4.18.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "node scripts/run-workspaces.mjs build",
+    "check": "yarn typecheck && yarn test && yarn build && yarn licenses:check",
+    "licenses:check": "node scripts/check-licenses.mjs && license-checker-rseidelsohn --production --excludePrivatePackages --onlyAllow '0BSD;Apache-2.0;BSD-2-Clause;BSD-3-Clause;BlueOak-1.0.0;CC0-1.0;ISC;MIT;Python-2.0'",
+    "test": "node --test scripts/run-workspaces.test.mjs && node scripts/run-workspaces.mjs test",
+    "typecheck": "node scripts/run-workspaces.mjs typecheck"
+  },
+  "devDependencies": {
+    "license-checker-rseidelsohn": "^5.0.1",
+    "typescript": "^7.0.2",
+    "vite": "8.2.2",
+    "vitest": "^5.0.0"
+  }
+}

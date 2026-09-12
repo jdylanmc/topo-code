@@ -37,3 +37,33 @@ the record — not memory, and not this README.
 ## Licence
 
 MIT. See [LICENSE](./LICENSE).
+
+## Development
+
+Topocode is a private Yarn workspace during Phase 1. Packages live at
+`packages/<name>` and use the local `@topo/<name>` convention; no registry
+publication is configured while public namespace availability remains
+unverified.
+
+Requirements:
+
+- Node.js 22 or newer
+- Yarn 4.18.0, activated through Corepack
+
+Run `yarn install`, then `yarn check`. The root command requires every landed
+package to define `build`, `typecheck`, and `test` scripts. An empty workspace is
+allowed only while the initial package branches have not landed; once a package
+manifest exists, a missing script or failed package command fails the root
+check.
+
+Every shipped third-party dependency must also have an exact range, SPDX licence
+identifier, and evidence URL in `dependency-licenses.json`. The initial check
+covers direct production dependencies; transitive obligation reporting remains
+required before distribution.
+
+Package TypeScript configurations extend `../../tsconfig.base.json`. Packages
+use ECMAScript modules, expose their public API from `src/index.ts`, and keep
+Vitest tests beside source as `*.test.ts`.
+
+Only `.topo/cache/` is ignored. Configuration, graph data, report inputs and
+outputs, and metadata retain independent source-control lifecycles.
