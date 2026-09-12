@@ -47,7 +47,7 @@ await assertScannerConformance(adapter);
 Adapters accept `unknown` and validate every option. The TypeScript adapter
 declares contract version `1.0`, supported languages, file/directory
 granularity, import relationships, TypeScript module resolution, `package.json`
-workspaces, and partial-result support.
+workspaces, opaque CSS assets, and partial-result support.
 
 ## Graph rules
 
@@ -56,6 +56,12 @@ workspaces, and partial-result support.
 - Directory containers are repository-relative and deterministic.
 - Imports are typed `imports` edges with source evidence anchored by path and
   import content pattern. Line numbers are not identifiers or durable anchors.
+- Existing relative CSS imports become opaque `asset` nodes with path identity,
+  SHA-256 fingerprints, evidence, containment, and import edges. CSS is not
+  parsed. Missing or repository-external assets remain errors.
+- Imports that resolve to generated `outDir` files are mapped back through the
+  owning TypeScript project's `rootDir` and `outDir`. Missing or ambiguous
+  source mappings remain errors; generated output never becomes a fake node.
 - Package and Node.js imports become terminal external nodes. Unresolved
   relative, path-alias, and workspace imports are diagnostics, never fake
   specifier nodes.
@@ -70,8 +76,10 @@ The scanner discovers every `tsconfig*.json` outside generated/vendor
 directories instead of trusting only a root config. It also reads root
 `package.json` workspace declarations, validates named package manifests, and
 uses package source/export metadata to resolve workspace aliases when
-`node_modules` is absent. Repositories without a TypeScript config use an
-inferred TypeScript program over discovered JavaScript and TypeScript files.
+`node_modules` is absent. Repositories without a TypeScript config use default
+compiler options while each file is parsed independently. Metrics keep
+`sourceFileCount` and source `linesOfCode` separate from `assetFileCount` and
+`assetImportCount`.
 
 ## Real fixtures
 

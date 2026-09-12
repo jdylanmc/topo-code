@@ -51,10 +51,33 @@ interface SourceRecord {
   lines: number;
 }
 
+interface AssetRecord {
+  absolutePath: string;
+  repositoryPath: string;
+  fingerprint: string;
+}
+
+interface OutputMapping {
+  configPath: string;
+  rootDirectory: string;
+  outputDirectory: string;
+}
+
 interface ImportRecord {
   source: SourceRecord;
   specifier: string;
   anchor: string;
+}
+
+function assetEvidence(asset: AssetRecord): Evidence {
+  return {
+    id: `evidence:asset:${asset.repositoryPath}`,
+    kind: "source",
+    label: asset.repositoryPath,
+    fingerprint: asset.fingerprint,
+    anchor: { path: asset.repositoryPath },
+    locator: `path:${asset.repositoryPath}`,
+  };
 }
 
 const DEFAULT_QUALITY = {
@@ -211,6 +234,7 @@ async function loadConfiguredSources(
   root: string,
   configPaths: readonly string[],
   diagnostics: ScanDiagnostic[],
+  outputMappings: OutputMapping[],
 ): Promise<Map<string, SourceRecord>> {
   const records = new Map<string, SourceRecord>();
 
@@ -238,6 +262,16 @@ async function loadConfiguredSources(
       parsed.options,
       diagnostics,
     );
+    if (
+      parsed.options.rootDir !== undefined &&
+      parsed.options.outDir !== undefined
+    ) {
+      outputMappings.push({
+        configPath: toRepositoryPath(root, configPath),
+        rootDirectory: path.resolve(parsed.options.rootDir),
+        outputDirectory: path.resolve(parsed.options.outDir),
+      });
+    }
     const moduleResolutionCache = ts.createModuleResolutionCache(
       path.dirname(configPath),
       (fileName) => fileName,
@@ -430,6 +464,59 @@ function resolveSourceCandidate(
   return undefined;
 }
 
+function resolveGeneratedOutput(
+  resolvedFileName: string,
+  outputMappings: readonly OutputMapping[],
+  sourceByAbsolutePath: ReadonlyMap<string, SourceRecord>,
+):
+  | { kind: "none" }
+  | { kind: "resolved"; source: SourceRecord }
+  | { kind: "ambiguous"; configPaths: string[] } {
+  const matches = new Map<string, { source: SourceRecord; configPath: string }>();
+  for (const mapping of outputMappings) {
+    if (!isWithin(mapping.outputDirectory, resolvedFileName)) {
+      continue;
+    }
+    const relativeOutputPath = path.relative(
+      mapping.outputDirectory,
+      resolvedFileName,
+    );
+    const source = resolveSourceCandidate(
+      [path.join(mapping.rootDirectory, relativeOutputPath)],
+      sourceByAbsolutePath,
+    );
+    if (source !== undefined) {
+      matches.set(source.absolutePath, {
+        source,
+        configPath: mapping.configPath,
+      });
+    }
+  }
+  if (matches.size === 0) {
+    return { kind: "none" };
+  }
+  if (matches.size === 1) {
+    return { kind: "resolved", source: [...matches.values()][0]!.source };
+  }
+  return {
+    kind: "ambiguous",
+    configPaths: [...matches.values()]
+      .map((match) => match.configPath)
+      .sort(compareText),
+  };
+}
+
+function assetSpecifierPath(specifier: string): string | undefined {
+  if (!specifier.startsWith(".")) {
+    return undefined;
+  }
+  const literalPath = specifier.split(/[?#]/u, 1)[0];
+  return literalPath !== undefined &&
+    path.extname(literalPath).toLowerCase() === ".css"
+    ? literalPath
+    : undefined;
+}
+
 function externalLocator(specifier: string): string {
   return specifier.startsWith("node:")
     ? specifier
@@ -445,13 +532,13 @@ function provenance(evidenceIds: string[]): Provenance {
   };
 }
 
-function directoriesForSources(
+function directoriesForPaths(
   rootLabel: string,
-  sources: readonly SourceRecord[],
+  repositoryPaths: readonly string[],
 ): GraphContainer[] {
   const directories = new Set<string>(["."]);
-  for (const source of sources) {
-    let directory = path.posix.dirname(source.repositoryPath);
+  for (const repositoryPath of repositoryPaths) {
+    let directory = path.posix.dirname(repositoryPath);
     while (directory !== ".") {
       directories.add(directory);
       directory = path.posix.dirname(directory);
@@ -461,11 +548,12 @@ function directoriesForSources(
   return [...directories]
     .sort(compareText)
     .map((directory) => {
-      const memberIds = sources
+      const memberIds = repositoryPaths
         .filter(
-          (source) => path.posix.dirname(source.repositoryPath) === directory,
+          (repositoryPath) =>
+            path.posix.dirname(repositoryPath) === directory,
         )
-        .map((source) => createPathNodeId(source.repositoryPath))
+        .map((repositoryPath) => createPathNodeId(repositoryPath))
         .sort(compareText);
       return {
         id: createContainerId("directory", directory),
@@ -576,10 +664,12 @@ export async function scanRepository(
     files,
   );
   const diagnostics: ScanDiagnostic[] = [];
+  const outputMappings: OutputMapping[] = [];
   const configuredSources = await loadConfiguredSources(
     options.root,
     configPaths,
     diagnostics,
+    outputMappings,
   );
   const unconfiguredPaths = sourcePaths.filter(
     (sourcePath) =>
@@ -603,9 +693,11 @@ export async function scanRepository(
   const sourceByAbsolutePath = new Map(
     sortedSources.map((source) => [path.resolve(source.absolutePath), source]),
   );
+  const filePaths = new Set(files.map((filePath) => path.resolve(filePath)));
 
   const nodes = new Map<string, GraphNode>();
   const evidence = new Map<string, Evidence>();
+  const assets = new Map<string, AssetRecord>();
   for (const source of sortedSources) {
     const nodeId = createPathNodeId(source.repositoryPath);
     nodes.set(nodeId, {
@@ -624,6 +716,7 @@ export async function scanRepository(
     { sourceId: string; targetId: string; evidenceIds: Set<string> }
   >();
   let localImportCount = 0;
+  let assetImportCount = 0;
   let externalImportCount = 0;
   let unresolvedImportCount = 0;
 
@@ -631,6 +724,63 @@ export async function scanRepository(
     const imports = [...source.imports].sort(compareText);
     for (const specifier of imports) {
       const importItem = importEvidence(source, specifier);
+      const assetPath = assetSpecifierPath(specifier);
+      if (assetPath !== undefined) {
+        const absoluteAssetPath = path.resolve(
+          path.dirname(source.absolutePath),
+          assetPath,
+        );
+        if (
+          !isWithin(options.root, absoluteAssetPath) ||
+          !filePaths.has(absoluteAssetPath)
+        ) {
+          unresolvedImportCount += 1;
+          diagnostics.push({
+            code: "unresolved-local-asset",
+            severity: "error",
+            message: `Could not resolve local CSS asset "${specifier}" from "${source.repositoryPath}".`,
+            path: source.repositoryPath,
+            specifier,
+          });
+          continue;
+        }
+        let asset = assets.get(absoluteAssetPath);
+        if (asset === undefined) {
+          const content = await readFile(absoluteAssetPath, "utf8");
+          asset = {
+            absolutePath: absoluteAssetPath,
+            repositoryPath: toRepositoryPath(
+              options.root,
+              absoluteAssetPath,
+            ),
+            fingerprint: sha256(content),
+          };
+          assets.set(absoluteAssetPath, asset);
+          const assetId = createPathNodeId(asset.repositoryPath);
+          nodes.set(assetId, {
+            id: assetId,
+            label: path.posix.basename(asset.repositoryPath),
+            kind: "asset",
+            identity: { kind: "path", value: asset.repositoryPath },
+            fingerprint: asset.fingerprint,
+          });
+          const item = assetEvidence(asset);
+          evidence.set(item.id, item);
+        }
+        const sourceId = createPathNodeId(source.repositoryPath);
+        const targetId = createPathNodeId(asset.repositoryPath);
+        const edgeId = createEdgeId("imports", sourceId, targetId);
+        evidence.set(importItem.id, importItem);
+        const accumulated = edgeEvidence.get(edgeId) ?? {
+          sourceId,
+          targetId,
+          evidenceIds: new Set<string>(),
+        };
+        accumulated.evidenceIds.add(importItem.id);
+        edgeEvidence.set(edgeId, accumulated);
+        assetImportCount += 1;
+        continue;
+      }
       const resolved = ts.resolveModuleName(
         specifier,
         source.absolutePath,
@@ -682,6 +832,26 @@ export async function scanRepository(
         if (target !== undefined) {
           targetId = createPathNodeId(target.repositoryPath);
           localImportCount += 1;
+        } else {
+          const generated = resolveGeneratedOutput(
+            path.resolve(resolved.resolvedFileName),
+            outputMappings,
+            sourceByAbsolutePath,
+          );
+          if (generated.kind === "resolved") {
+            targetId = createPathNodeId(generated.source.repositoryPath);
+            localImportCount += 1;
+          } else if (generated.kind === "ambiguous") {
+            unresolvedImportCount += 1;
+            diagnostics.push({
+              code: "ambiguous-generated-output",
+              severity: "error",
+              message: `Generated output import "${specifier}" from "${source.repositoryPath}" maps to multiple source projects: ${generated.configPaths.join(", ")}.`,
+              path: source.repositoryPath,
+              specifier,
+            });
+            continue;
+          }
         }
       } else if (
         resolved !== undefined &&
@@ -770,8 +940,10 @@ export async function scanRepository(
     workspacePackageCount: workspaces.length,
     coveredWorkspacePackageCount,
     sourceFileCount: sortedSources.length,
+    assetFileCount: assets.size,
     linesOfCode: sortedSources.reduce((sum, source) => sum + source.lines, 0),
     localImportCount,
+    assetImportCount,
     externalImportCount,
     unresolvedImportCount,
   };
@@ -820,6 +992,9 @@ export async function scanRepository(
         workspaceManifests: [
           ...TYPESCRIPT_SCANNER_MANIFEST.capabilities.workspaceManifests,
         ],
+        opaqueAssets: [
+          ...TYPESCRIPT_SCANNER_MANIFEST.capabilities.opaqueAssets,
+        ],
         partialResults:
           TYPESCRIPT_SCANNER_MANIFEST.capabilities.partialResults,
       },
@@ -855,7 +1030,13 @@ export async function scanRepository(
       compareText(left.id, right.id),
     ),
     edges,
-    containers: directoriesForSources(rootLabel, sortedSources),
+    containers: directoriesForPaths(
+      rootLabel,
+      [
+        ...sortedSources.map((source) => source.repositoryPath),
+        ...[...assets.values()].map((asset) => asset.repositoryPath),
+      ].sort(compareText),
+    ),
     attributes: sortedSources.flatMap((source) => {
       const nodeId = createPathNodeId(source.repositoryPath);
       const evidenceId = `evidence:source:${source.repositoryPath}`;

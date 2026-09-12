@@ -9,6 +9,7 @@ export interface ScannerCapabilities {
   relationships: readonly ["imports"];
   moduleResolution: "typescript-compiler";
   workspaceManifests: readonly ["package.json"];
+  opaqueAssets: readonly ["css"];
   partialResults: true;
 }
 
@@ -29,6 +30,7 @@ export const TYPESCRIPT_SCANNER_MANIFEST: ScannerManifest = {
     relationships: ["imports"],
     moduleResolution: "typescript-compiler",
     workspaceManifests: ["package.json"],
+    opaqueAssets: ["css"],
     partialResults: true,
   },
 };
@@ -62,8 +64,10 @@ export interface ScanMetrics {
   workspacePackageCount: number;
   coveredWorkspacePackageCount: number;
   sourceFileCount: number;
+  assetFileCount: number;
   linesOfCode: number;
   localImportCount: number;
+  assetImportCount: number;
   externalImportCount: number;
   unresolvedImportCount: number;
 }

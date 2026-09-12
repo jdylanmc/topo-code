@@ -199,6 +199,163 @@ describe("@topo/scanner", () => {
     }
   });
 
+  it("maps generated output imports back to project source", async () => {
+    const root = await temporaryRepository();
+    await write(
+      root,
+      "packages/library/tsconfig.json",
+      JSON.stringify({
+        compilerOptions: {
+          declaration: true,
+          module: "NodeNext",
+          moduleResolution: "NodeNext",
+          outDir: "dist",
+          rootDir: "src",
+        },
+        include: ["src"],
+      }),
+    );
+    await write(
+      root,
+      "packages/library/src/index.ts",
+      "export const value = 1;\n",
+    );
+    await write(
+      root,
+      "packages/library/dist/index.d.ts",
+      "export declare const value = 1;\n",
+    );
+    await write(
+      root,
+      "benchmarks/prepare.mjs",
+      'import { value } from "../packages/library/dist/index.js";\nconsole.log(value);\n',
+    );
+
+    const result = await scanRepository({ root });
+
+    expect(result.authoritative).toBe(true);
+    expect(result.graph.edges).toContainEqual(
+      expect.objectContaining({
+        sourceId: "path:benchmarks/prepare.mjs",
+        targetId: "path:packages/library/src/index.ts",
+      }),
+    );
+    expect(
+      result.graph.nodes.some((node) => node.id.includes("/dist/")),
+    ).toBe(false);
+  });
+
+  it("represents existing CSS imports as opaque assets", async () => {
+    const root = await temporaryRepository();
+    await write(
+      root,
+      "src/index.ts",
+      'import "./styles.css";\nexport const value = 1;\n',
+    );
+    await write(root, "src/styles.css", ".root { color: red; }\n");
+
+    const result = await scanRepository({ root });
+
+    expect(result.authoritative).toBe(true);
+    expect(result.metrics).toMatchObject({
+      sourceFileCount: 1,
+      assetFileCount: 1,
+      assetImportCount: 1,
+      linesOfCode: 3,
+    });
+    expect(result.graph.nodes).toContainEqual(
+      expect.objectContaining({
+        id: "path:src/styles.css",
+        kind: "asset",
+        fingerprint: expect.stringMatching(/^sha256:/u),
+      }),
+    );
+    expect(result.graph.edges).toContainEqual(
+      expect.objectContaining({
+        sourceId: "path:src/index.ts",
+        targetId: "path:src/styles.css",
+      }),
+    );
+  });
+
+  it("rejects missing CSS assets", async () => {
+    const root = await temporaryRepository();
+    await write(root, "src/index.ts", 'import "./missing.css";\n');
+
+    await expect(scanRepository({ root })).rejects.toMatchObject({
+      name: "ScanError",
+      diagnostics: expect.arrayContaining([
+        expect.objectContaining({ code: "unresolved-local-asset" }),
+      ]),
+    });
+  });
+
+  it("rejects ambiguous and absent generated output mappings", async () => {
+    const ambiguous = await temporaryRepository();
+    for (const directory of ["a", "b"]) {
+      await write(
+        ambiguous,
+        `tsconfig.${directory}.json`,
+        JSON.stringify({
+          compilerOptions: {
+            module: "NodeNext",
+            moduleResolution: "NodeNext",
+            outDir: "dist",
+            rootDir: directory,
+          },
+          include: [directory],
+        }),
+      );
+      await write(
+        ambiguous,
+        `${directory}/index.ts`,
+        `export const ${directory} = true;\n`,
+      );
+    }
+    await write(
+      ambiguous,
+      "dist/index.d.ts",
+      "export declare const value: boolean;\n",
+    );
+    await write(
+      ambiguous,
+      "consumer.mjs",
+      'import "./dist/index.js";\n',
+    );
+    await expect(scanRepository({ root: ambiguous })).rejects.toMatchObject({
+      diagnostics: expect.arrayContaining([
+        expect.objectContaining({ code: "ambiguous-generated-output" }),
+      ]),
+    });
+
+    const absent = await temporaryRepository();
+    await write(
+      absent,
+      "tsconfig.json",
+      JSON.stringify({
+        compilerOptions: {
+          module: "NodeNext",
+          moduleResolution: "NodeNext",
+          outDir: "dist",
+          rootDir: "src",
+        },
+        include: ["src"],
+      }),
+    );
+    await write(absent, "src/index.ts", "export const value = true;\n");
+    await write(
+      absent,
+      "dist/orphan.d.ts",
+      "export declare const orphan: boolean;\n",
+    );
+    await write(absent, "consumer.mjs", 'import "./dist/orphan.js";\n');
+    await expect(scanRepository({ root: absent })).rejects.toMatchObject({
+      diagnostics: expect.arrayContaining([
+        expect.objectContaining({ code: "resolved-import-outside-scan" }),
+      ]),
+    });
+  });
+
   it("rejects unresolved local imports unless partial output is explicit", async () => {
     const root = await temporaryRepository();
     await write(root, "index.ts", 'import "./missing.js";\n');
