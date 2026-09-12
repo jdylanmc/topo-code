@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -39,6 +40,27 @@ async function createWorkspace(root, directory, manifest) {
     manifest,
   );
 }
+
+test("the direct inventory cannot skip external @topo names and shares the license policy", async (context) => {
+  const root = await createFixture(context);
+  await mkdir(path.join(root, "scripts"));
+  for (const name of ["check-licenses.mjs", "dependency-notices.mjs"]) {
+    await copyFile(new URL(name, import.meta.url), path.join(root, "scripts", name));
+  }
+  await createWorkspace(root, "app", {
+    name: "@topo/app",
+    dependencies: { "@topo/external": "1.0.0" },
+  });
+  await writeJson(path.join(root, "dependency-licenses.json"), { dependencies: {} });
+  const run = () => execFileSync(process.execPath, [path.join(root, "scripts/check-licenses.mjs")], { encoding: "utf8", stdio: "pipe" });
+  assert.throws(run, /missing from dependency-licenses/);
+  await writeJson(path.join(root, "dependency-licenses.json"), {
+    dependencies: {
+      "@topo/external": { range: "1.0.0", license: "Unlicense", source: "https://example.invalid/license" },
+    },
+  });
+  assert.match(run(), /Licence inventory covers 1/);
+});
 
 async function createLicenseOverride(
   root,

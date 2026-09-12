@@ -1,21 +1,11 @@
 import { readdir, readFile } from "node:fs/promises";
-
-const allowedLicenses = new Set([
-  "0BSD",
-  "Apache-2.0",
-  "BSD-2-Clause",
-  "BSD-3-Clause",
-  "BlueOak-1.0.0",
-  "CC0-1.0",
-  "ISC",
-  "MIT",
-  "Python-2.0"
-]);
+import { ALLOWED_LICENSES as allowedLicenses } from "./dependency-notices.mjs";
 
 const inventory = JSON.parse(
   await readFile(new URL("../dependency-licenses.json", import.meta.url), "utf8")
 );
 const declaredDependencies = new Map();
+const workspaceNames = new Set();
 const packageDirectory = new URL("../packages/", import.meta.url);
 let packageDirectories = [];
 
@@ -44,6 +34,7 @@ for (const directory of packageDirectories.filter((entry) => entry.isDirectory()
     throw error;
   }
 
+  workspaceNames.add(manifest.name);
   for (const [name, range] of Object.entries(manifest.dependencies ?? {})) {
     const existingRange = declaredDependencies.get(name);
 
@@ -62,7 +53,10 @@ const errors = [];
 for (const [name, range] of [...declaredDependencies].sort(([left], [right]) =>
   left.localeCompare(right)
 )) {
-  if (name.startsWith("@topo/")) {
+  if (range.startsWith("workspace:")) {
+    if (!workspaceNames.has(name)) {
+      errors.push(`${name} is declared as a workspace but has no package manifest`);
+    }
     continue;
   }
 
