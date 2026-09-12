@@ -19,6 +19,7 @@ export async function prepareFixtureWithDeadline({
   deadlineMilliseconds,
   testBlockMilliseconds,
   onWorker,
+  onWorkerMessage,
 }) {
   const worker = new Worker(workerUrl, {
     workerData: {
@@ -29,31 +30,35 @@ export async function prepareFixtureWithDeadline({
         : { testBlockMilliseconds }),
     },
   });
-  onWorker?.(worker);
   let timer;
   try {
+    onWorker?.(worker);
     return await new Promise((resolve, reject) => {
       let settled = false;
-      const settle = (callback, value) => {
+        let receivedResult = false;
+        const settle = (callback, value) => {
         if (settled) return;
         settled = true;
         clearTimeout(timer);
         callback(value);
       };
-      worker.once("message", (message) => {
+      worker.on("message", (message) => {
+        onWorkerMessage?.(message);
         if (message.status === "completed") {
+          receivedResult = true;
           settle(resolve, message.fixture);
-        } else {
+        } else if (message.status === "failed") {
+          receivedResult = true;
           settle(reject, new Error(message.error));
         }
       });
       worker.once("error", (error) => settle(reject, error));
       worker.once("exit", (code) => {
-        if (code !== 0) {
+        if (!receivedResult) {
           settle(
             reject,
             new Error(
-              `Fixture "${fixtureName}" preparation worker exited with code ${code}.`,
+              `Fixture "${fixtureName}" preparation worker exited with code ${code} without returning a result.`,
             ),
           );
         }

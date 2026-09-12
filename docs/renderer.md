@@ -117,6 +117,7 @@ node benchmarks/renderer-bakeoff.mjs \
   --preparation-timeout-ms 90000 \
   --fixture-timeout-ms 240000 \
   --total-timeout-ms 600000 \
+  --cleanup-timeout-ms 5000 \
   --run-timeout-ms 90000
 ```
 

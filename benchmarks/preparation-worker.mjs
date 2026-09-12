@@ -6,7 +6,9 @@ if (!parentPort) {
 }
 
 try {
+  parentPort.postMessage({ status: "ready" });
   if (workerData.testBlockMilliseconds !== undefined) {
+    parentPort.postMessage({ status: "cpu-block-started" });
     const end = Date.now() + workerData.testBlockMilliseconds;
     while (Date.now() < end) {
       // Intentionally blocks this worker for deadline regression coverage.

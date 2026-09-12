@@ -20,7 +20,8 @@ corepack yarn workspace @topo/site benchmark -- \
   --preparation-timeout-ms 90000 \
   --fixture-timeout-ms 240000 \
   --total-timeout-ms 600000 \
-  --run-timeout-ms 90000
+  --run-timeout-ms 90000 \
+  --cleanup-timeout-ms 5000
 ```
 
 Select one or more fixtures independently with repeatable or comma-separated
@@ -53,9 +54,11 @@ preparation and each browser workload is 90 seconds. The default cumulative
 browser budget for one fixture is four minutes, and the default total selected
 run budget is ten minutes. Each stage receives the smallest remaining
 applicable budget, so sequential workload timeouts cannot silently multiply
-past those limits.
+past those limits. Context cleanup has a separately recorded five-second
+default slack so cleanup cannot consume an unbounded workload budget.
 
-The output file is a live checkpoint, written before each fixture preparation
+The output file is a live checkpoint, atomically replaced through a sibling
+temporary file before each fixture preparation
 and browser workload, before browser launch, and after each stage completes or
 fails. `currentStage` and `fixturePreparation` include fixture identity, status,
 elapsed time, effective/configured deadlines, and error text. A timed-out
@@ -66,8 +69,11 @@ Any timeout, incomplete stage, or other failure sets a nonzero process exit
 code.
 
 Worker termination is awaited. Browser contexts, the browser instance, and the
-fixture server are closed by the parent with bounded cleanup; the harness does
-not use process-name kills. SVG and WebGL workloads continue to share the same
+fixture server are closed by the parent with bounded cleanup. The browser is
+launched as an owned Playwright `BrowserServer`; if graceful cleanup exceeds
+its deadline, only that owned process is force-stopped. Every cleanup resource
+is attempted even after an earlier failure. The harness does not use
+process-name kills. SVG and WebGL workloads continue to share the same
 materialized graph, architecture, layout, viewport, and interaction sequence.
 
 Focused lifecycle regression:
@@ -76,8 +82,10 @@ Focused lifecycle regression:
 corepack yarn node --test benchmarks/renderer-bakeoff.test.mjs
 ```
 
-The test injects a ten-second CPU-block inside the preparation worker, applies
-a 100 ms deadline, verifies prompt termination, a failure checkpoint, and exit
-code 1, then verifies successful preparation of the real `small` fixture. The
-test-only `--test-block-preparation-ms` option exists solely for this
-regression.
+The tests wait for the worker's `cpu-block-started` acknowledgement before
+asserting that a ten-second CPU block is interrupted by a one-second deadline.
+They verify the failure checkpoint and exit code 1, successful preparation of
+the real `small` fixture, bounded hung context creation/cleanup, forced shutdown
+of only an owned browser process, cleanup error reporting, and fixture-server
+port release. The test-only `--test-block-preparation-ms` option exists solely
+for this regression.
