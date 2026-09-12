@@ -103,8 +103,8 @@ code-unit identifier order. With a compatible previous layout:
 
 Authored pins are separate inputs and are never written back or modified. Pins
 override generated positions, must use integer coordinates, and must not
-overlap. Their anchor is `(path, symbol, content pattern)`, degrading in that
-order. `pattern` requires `symbol`; line numbers are rejected. A pin whose
+overlap. Their anchor is `(path, symbol, contentPattern)`, degrading in that
+order. `contentPattern` requires `symbol`; line numbers are rejected. A pin whose
 subject disappears is returned as an `orphaned-pin` warning rather than being
 silently deleted.
 

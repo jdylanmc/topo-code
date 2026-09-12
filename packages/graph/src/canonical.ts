@@ -1,25 +1,13 @@
-import type { LayoutDocument } from "@topo/schema";
-import { compareText, isRecord } from "./internal.js";
+import { serializeJson, type JsonValue, type LayoutDocument } from "@topo/schema";
+import { compareText } from "./internal.js";
 import type {
   ArchitectureDocument,
   GraphProjection,
   LayoutResult,
 } from "./types.js";
 
-function canonicalValue(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(canonicalValue);
-  if (isRecord(value)) {
-    return Object.fromEntries(
-      Object.entries(value)
-        .sort(([left], [right]) => compareText(left, right))
-        .map(([key, child]) => [key, canonicalValue(child)]),
-    );
-  }
-  return value;
-}
-
 function serialize(value: unknown): string {
-  return `${JSON.stringify(canonicalValue(value), null, 2)}\n`;
+  return serializeJson(value as JsonValue);
 }
 
 export function serializeArchitecture(

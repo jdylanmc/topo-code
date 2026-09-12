@@ -331,7 +331,11 @@ describe("@topo/graph", () => {
     const pin = {
       id: "pin:a",
       subject: { kind: "node" as const, id: "path:src/a.ts" },
-      anchor: { path: "src/a.ts", symbol: "a", pattern: "export const a" },
+      anchor: {
+        path: "src/a.ts",
+        symbol: "a",
+        contentPattern: "export const a",
+      },
       position: { x: 800, y: 480 },
     };
     const result = layoutGraph(fixture, {
@@ -342,7 +346,11 @@ describe("@topo/graph", () => {
     expect(pin).toEqual({
       id: "pin:a",
       subject: { kind: "node", id: "path:src/a.ts" },
-      anchor: { path: "src/a.ts", symbol: "a", pattern: "export const a" },
+      anchor: {
+        path: "src/a.ts",
+        symbol: "a",
+        contentPattern: "export const a",
+      },
       position: { x: 800, y: 480 },
     });
 
@@ -361,7 +369,10 @@ describe("@topo/graph", () => {
         pins: [
           {
             ...pin,
-            anchor: { path: "src/a.ts", pattern: "export const a" },
+            anchor: {
+              path: "src/a.ts",
+              contentPattern: "export const a",
+            },
           },
         ],
       }),

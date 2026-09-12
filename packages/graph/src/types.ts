@@ -3,6 +3,7 @@ import type {
   GraphDocument,
   LayoutDocument,
   LayoutPoint,
+  SourceAnchor,
 } from "@topo/schema";
 
 export interface DirectoryContainer {
@@ -149,11 +150,7 @@ export interface ProjectionOptions {
   sparseEdgesOnly?: boolean;
 }
 
-export interface LayoutAnchor {
-  path: string;
-  symbol?: string;
-  pattern?: string;
-}
+export type LayoutAnchor = SourceAnchor;
 
 export interface LayoutPin {
   id: string;

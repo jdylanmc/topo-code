@@ -81,14 +81,14 @@ function validatePins(value: unknown): readonly LayoutPin[] {
     }
     if (
       isRecord(pin.anchor) &&
-      pin.anchor.pattern !== undefined &&
-      (typeof pin.anchor.pattern !== "string" ||
-        pin.anchor.pattern.length === 0 ||
+      pin.anchor.contentPattern !== undefined &&
+      (typeof pin.anchor.contentPattern !== "string" ||
+        pin.anchor.contentPattern.length === 0 ||
         typeof pin.anchor.symbol !== "string" ||
         pin.anchor.symbol.length === 0)
     ) {
       issues.push({
-        path: `${path}.anchor.pattern`,
+        path: `${path}.anchor.contentPattern`,
         message: "A content pattern must be non-empty and scoped by symbol.",
       });
     }
@@ -194,7 +194,7 @@ function nextGridItem(
 
 function previousItems(
   previous: unknown,
-  graphId: string,
+  graph: GraphDocument,
   viewId: string,
   warnings: LayoutWarning[],
 ): Map<string, LayoutItem> {
@@ -208,10 +208,10 @@ function previousItems(
     return new Map();
   }
   const document = previous as LayoutDocument;
-  if (document.graphRef.graphId !== graphId) {
+  if (document.graphRef.graphId !== graph.graphId) {
     warnings.push({
       code: "previous-layout-graph-mismatch",
-      message: `Previous layout graph "${document.graphRef.graphId}" does not match "${graphId}".`,
+      message: `Previous layout graph "${document.graphRef.graphId}" does not match "${graph.graphId}".`,
     });
     return new Map();
   }
@@ -254,7 +254,14 @@ function routeEdges(
       };
       const middleX = Math.round((start.x + end.x) / 2);
       return {
-        subject: { kind: "derived" as const, id: edge.id },
+        subject: {
+          kind: "derived" as const,
+          id: edge.id,
+          sourceSubjects: edge.memberEdgeIds.map((id) => ({
+            kind: "edge" as const,
+            id,
+          })),
+        },
         points: [
           start,
           { x: middleX, y: start.y },
@@ -269,13 +276,14 @@ function routeEdges(
 export function layoutGraph(graph: unknown, optionsValue?: unknown): LayoutResult {
   const options = validateOptions(optionsValue);
   const architecture = deriveArchitecture(graph);
+  const graphDocument = graph as GraphDocument;
   const projection = projectGraph(graph, architecture, options);
   const grid = validateGrid(options.grid);
   const pins = validatePins(options.pins);
   const warnings: LayoutWarning[] = [];
   const previous = previousItems(
     options.previous,
-    architecture.graphId,
+    graphDocument,
     projection.viewId,
     warnings,
   );
@@ -317,15 +325,17 @@ export function layoutGraph(graph: unknown, optionsValue?: unknown): LayoutResul
     position: { x: number; y: number },
   ): LayoutItem => {
     const size = dimensions(entity.kind, entity.memberNodeIds.length);
-    const subject = {
-      kind:
-        entity.kind === "node"
-          ? ("node" as const)
-          : entity.kind === "container"
-            ? ("container" as const)
-            : ("derived" as const),
-      id: entity.id,
-    };
+    const subject =
+      entity.kind === "node"
+        ? { kind: "node" as const, id: entity.id }
+        : {
+            kind: "derived" as const,
+            id: entity.id,
+            sourceSubjects: entity.memberNodeIds.map((id) => ({
+              kind: "node" as const,
+              id,
+            })),
+          };
     return { subject, ...position, ...size };
   };
 
@@ -377,7 +387,6 @@ export function layoutGraph(graph: unknown, optionsValue?: unknown): LayoutResul
   const minimumY = Math.min(0, ...items.map((item) => item.y));
   const maximumX = Math.max(0, ...items.map((item) => item.x + item.width));
   const maximumY = Math.max(0, ...items.map((item) => item.y + item.height));
-  const graphDocument = graph as GraphDocument;
   const layout: LayoutDocument = {
     schemaVersion: LAYOUT_SCHEMA_VERSION,
     layoutId: stableId("layout", [architecture.graphId, projection.viewId]),
