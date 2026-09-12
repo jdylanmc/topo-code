@@ -19,7 +19,9 @@ export default defineConfig({
     },
   },
   webServer: {
-    command: "node ../../benchmarks/fixture-server.mjs --port 4178",
+    command:
+      "node ../../benchmarks/prepare-fixtures.mjs --fixture small,medium && " +
+      "node ../../benchmarks/fixture-server.mjs --port 4178",
     port: 4178,
     reuseExistingServer: false,
     timeout: 120_000,

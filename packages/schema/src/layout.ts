@@ -418,15 +418,9 @@ export function parseLayoutDocument(serialized: string): LayoutDocument {
 function validateLayoutSubjectAgainstGraph(
   subject: LayoutSubject,
   path: string,
-  graph: GraphDocument,
+  subjectIds: Record<"node" | "edge" | "container", ReadonlySet<string>>,
   issues: ValidationIssue[],
 ): void {
-  const subjectIds = {
-    node: new Set(graph.nodes.map((node) => node.id)),
-    edge: new Set(graph.edges.map((edge) => edge.id)),
-    container: new Set(graph.containers.map((container) => container.id)),
-  };
-
   if (subject.kind !== "derived") {
     if (!subjectIds[subject.kind].has(subject.id)) {
       issues.push({
@@ -504,11 +498,19 @@ export function validateLayoutAgainstGraph(
     });
   }
 
+  if (document.items.length === 0 && document.routes.length === 0) {
+    return issues;
+  }
+  const subjectIds = {
+    node: new Set(graph.nodes.map((node) => node.id)),
+    edge: new Set(graph.edges.map((edge) => edge.id)),
+    container: new Set(graph.containers.map((container) => container.id)),
+  };
   document.items.forEach((item, index) =>
     validateLayoutSubjectAgainstGraph(
       item.subject,
       `$.items[${index}].subject`,
-      graph,
+      subjectIds,
       issues,
     ),
   );
@@ -516,7 +518,7 @@ export function validateLayoutAgainstGraph(
     validateLayoutSubjectAgainstGraph(
       route.subject,
       `$.routes[${index}].subject`,
-      graph,
+      subjectIds,
       issues,
     ),
   );

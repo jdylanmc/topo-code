@@ -1,6 +1,6 @@
 # Renderer bake-off
 
-Status: **decision pending real medium and large repository fixtures**.
+Status: **real headless measurements recorded; renderer decision still open**.
 
 `@topo/site` contains two browser implementations over one projection, layout,
 interaction state, visual vocabulary, and artifact envelope:
@@ -14,10 +14,10 @@ production renderer by this phase.
 
 ## Deployment and data contract
 
-The package builds once with:
+Build the packages and shipped notices with:
 
 ```sh
-corepack yarn workspace @topo/site build
+corepack yarn build
 ```
 
 Vite writes `packages/site/dist/index.html` and hashed bundled assets with
@@ -92,7 +92,8 @@ corepack yarn workspace @topo/site test:browser
 
 The Playwright suite serves the production build, not the Vite development
 server, with the command-line interface's exact Content Security Policy. It
-verifies:
+explicitly prepares its small and medium fixtures before starting the server,
+rather than depending on leftover benchmark output. It verifies:
 
 - the atomic envelope loads;
 - directory expansion changes the projection;
@@ -111,7 +112,7 @@ focused regression commands are documented in
 [`benchmark-harness.md`](./benchmark-harness.md).
 
 ```sh
-corepack yarn workspace @topo/site build
+corepack yarn build
 node benchmarks/renderer-bakeoff.mjs \
   --output benchmarks/results/phase-one-headless.json \
   --preparation-timeout-ms 90000 \
@@ -188,21 +189,56 @@ workload delivered 31.541 FPS / 3,716.525 ms worst frame for SVG and 26.340 FPS
 this synthetic workload. Expanded WebGL remains below the Phase 1 target.
 Raw frame intervals and Event Timing samples are retained in the JSON.
 
-## Real-fixture status
+## Real-fixture measurements
 
-The real browser benchmark attempt was interrupted after exceeding ten minutes
-before a result file was delivered. It is **incomplete**, not a zero or a
-performance pass. The engine-only preparation measurements completed:
+Raw data:
+[`real-repositories-headless.json`](../benchmarks/results/real-repositories-headless.json).
+All eight workloads completed in **54.889 seconds** using the same headless
+Chrome, hardware, viewport, and interaction script described above. No page
+errors occurred; keyboard selection succeeded in every case. Every browser
+context, the owned browser process, and the fixture server closed successfully.
 
-| Fixture | Nodes | Edges | Parse ms | Derive ms | Layout ms | Total ms |
-|---|---:|---:|---:|---:|---:|---:|
-| Mermaid partial | 1,225 | 4,136 | 28.773 | 54.353 | 14.907 | 98.033 |
-| Visual Studio Code partial | 9,376 | 105,549 | 537.818 | 6,830.489 | 317.348 | 7,685.655 |
+| Fixture | Nodes | Edges | Source LOC | Fixture preparation |
+|---|---:|---:|---:|---:|
+| Mermaid partial | 1,225 | 4,136 | 202,090 | 170 ms |
+| Visual Studio Code partial | 9,376 | 105,549 | 2,993,413 | 2,491 ms |
 
-Both scans are explicitly partial and non-authoritative. Browser renderer
-measurements for them remain required. The harness now checkpoints each
-workload and stops individual runs at the configured timeout, so a slow Visual
-Studio Code run cannot discard completed Mermaid evidence.
+Preparation here includes fixture materialization, not just graph derivation.
+Both scans remain explicitly **partial and non-authoritative**. Full source
+scope, upstream revisions, and license provenance are retained with the
+fixtures; these are not synthetic graphs.
+
+| Fixture | Scope | Renderer | Delivered FPS | Worst frame ms | Last layout ms | JS heap MiB |
+|---|---|---|---:|---:|---:|---:|
+| Mermaid | directory | SVG | 59.736 | 33.330 | 16.215 | 41.5 |
+| Mermaid | directory | WebGL | 59.467 | 33.335 | 20.370 | 33.0 |
+| Mermaid | expanded | SVG | 58.726 | 66.660 | 22.610 | 45.8 |
+| Mermaid | expanded | WebGL | 58.192 | 66.665 | 31.070 | 103.6 |
+| Visual Studio Code | directory | SVG | 56.019 | 266.655 | 222.595 | 664.9 |
+| Visual Studio Code | directory | WebGL | 54.901 | 283.320 | 229.430 | 741.2 |
+| Visual Studio Code | expanded | SVG | 33.129 | 1,649.935 | 693.240 | 774.2 |
+| Visual Studio Code | expanded | WebGL | 42.366 | 1,316.615 | 748.005 | 1,750.4 |
+
+Heap is the post-workload JavaScript heap, not peak or total renderer memory.
+Raw frame intervals, Event Timing input-to-paint samples, final scene state,
+and accessibility counts remain in the report. These are single runs, not
+statistical or cross-platform guarantees.
+
+The original ten-minute interruption remains recorded as incomplete in
+`real-headless.incomplete.json`. The subsequent bounded pre-fix Visual Studio
+Code run is retained in
+[`real-vscode-before-validation-index.json`](../benchmarks/results/real-vscode-before-validation-index.json):
+all four workloads timed out at approximately 30 seconds, with successful
+cleanup and a nonzero exit. Profiling identified repeated graph-wide index
+construction during layout validation, independently of preparation.
+The [performance notes](./graph-performance.md) explain both fixes.
+
+Both new reports bind the measured application to source hashes. Their graph
+input paths are normalized to `frozen-fixtures/`; the underlying large JSON
+graphs are not duplicated into Git. Reproduce with the bounded harness's
+`--fixture mermaid,vscode`, explicit graph/provenance paths, a 30-second
+preparation/workload budget, a 120-second per-fixture budget, and a 180-second
+total budget.
 
 ## Qualitative comparison
 
@@ -220,11 +256,12 @@ Studio Code run cannot discard completed Mermaid evidence.
 
 No renderer is selected yet.
 
-The synthetic results do not support assuming WebGL is faster. Shared layout
-work is now bounded on the synthetic workload, but expanded WebGL still misses
-the greater-than-50-FPS criterion. Real partial Mermaid and Visual Studio Code
-browser runs plus a visible-browser run remain required before recording a
-production choice.
+The results do not support assuming WebGL is universally faster. Both backends
+exceed 50 delivered FPS on real Mermaid and directory-level Visual Studio Code
+in this headless run. Both miss the criterion on expanded Visual Studio Code;
+WebGL also has substantially higher measured JavaScript heap there.
+Large-scene improvements, visible-browser measurements, and visual/accessibility
+review remain before recording a production choice.
 
 ## Dependencies and licenses
 
@@ -238,5 +275,5 @@ production choice.
 | `vitest` | 5.0.0 | unit tests | MIT |
 | `typescript` | 7.0.2 | type checking | Apache-2.0 |
 
-Versions shown are the locally resolved versions. The parent-owned lockfile and
-dependency license inventory must be regenerated after integration.
+Versions shown are the locally resolved versions. The committed lockfile and
+installed runtime-closure/license checks remain authoritative.

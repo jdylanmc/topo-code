@@ -32,6 +32,7 @@ interface MutableDirectory {
   childContainerIds: Set<string>;
   memberNodeIds: Set<string>;
   descendantNodeIds: Set<string>;
+  internalEdgeIds: string[];
 }
 
 function directoryId(path: string): string {
@@ -50,6 +51,7 @@ function pathDirectory(path: string): string {
 
 function buildDirectories(graph: GraphDocument): DirectoryContainer[] {
   const directories = new Map<string, MutableDirectory>();
+  const ancestorsByNodeId = new Map<string, MutableDirectory[]>();
 
   function ensure(path: string): MutableDirectory {
     const existing = directories.get(path);
@@ -64,6 +66,7 @@ function buildDirectories(graph: GraphDocument): DirectoryContainer[] {
       childContainerIds: new Set(),
       memberNodeIds: new Set(),
       descendantNodeIds: new Set(),
+      internalEdgeIds: [],
     };
     directories.set(path, value);
     if (parent !== undefined) {
@@ -77,11 +80,25 @@ function buildDirectories(graph: GraphDocument): DirectoryContainer[] {
     if (node.identity.kind !== "path") continue;
     const directory = pathDirectory(node.identity.value);
     const segments = directory.length === 0 ? [] : directory.split("/");
+    const ancestors: MutableDirectory[] = [];
     for (let index = 0; index <= segments.length; index += 1) {
       const path = segments.slice(0, index).join("/");
-      ensure(path).descendantNodeIds.add(node.id);
+      const ancestor = ensure(path);
+      ancestor.descendantNodeIds.add(node.id);
+      ancestors.push(ancestor);
     }
+    ancestorsByNodeId.set(node.id, ancestors);
     ensure(directory).memberNodeIds.add(node.id);
+  }
+
+  for (const edge of graph.edges) {
+    const source = ancestorsByNodeId.get(edge.sourceId);
+    const target = ancestorsByNodeId.get(edge.targetId);
+    if (!source || !target) continue;
+    for (let depth = 0; depth < Math.min(source.length, target.length); depth += 1) {
+      if (source[depth] !== target[depth]) break;
+      source[depth]!.internalEdgeIds.push(edge.id);
+    }
   }
 
   return [...directories.values()]
@@ -96,14 +113,7 @@ function buildDirectories(graph: GraphDocument): DirectoryContainer[] {
       childContainerIds: sorted(directory.childContainerIds),
       memberNodeIds: sorted(directory.memberNodeIds),
       descendantNodeIds: sorted(directory.descendantNodeIds),
-      internalEdgeIds: graph.edges
-        .filter(
-          (edge) =>
-            directory.descendantNodeIds.has(edge.sourceId) &&
-            directory.descendantNodeIds.has(edge.targetId),
-        )
-        .map((edge) => edge.id)
-        .sort(compareText),
+      internalEdgeIds: directory.internalEdgeIds.sort(compareText),
     }))
     .sort((left, right) => compareText(left.id, right.id));
 }
@@ -378,6 +388,9 @@ function deriveNodeVisualValues(graph: GraphDocument): NodeVisualValues[] {
   const totals = graph.nodes.map(
     (node) => (incoming.get(node.id) ?? 0) + (outgoing.get(node.id) ?? 0),
   );
+  const prominenceByDegree = new Map(
+    [...new Set(totals)].map((total) => [total, rankScale(total, totals)]),
+  );
   return graph.nodes
     .map((node) => {
       const inDegree = incoming.get(node.id) ?? 0;
@@ -388,7 +401,7 @@ function deriveNodeVisualValues(graph: GraphDocument): NodeVisualValues[] {
         inDegree,
         outDegree,
         totalDegree,
-        prominence: rankScale(totalDegree, totals),
+        prominence: prominenceByDegree.get(totalDegree)!,
         scale: "rank",
         derived: true,
       } satisfies NodeVisualValues;

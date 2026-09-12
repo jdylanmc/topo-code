@@ -6,16 +6,17 @@ materialized by a dedicated worker thread. The parent process can therefore
 enforce `--preparation-timeout-ms` by terminating that worker even when graph
 work is CPU-bound.
 
-Build the production site before running the harness:
+From the repository root, build the packages and shipped notices before running
+the harness:
 
 ```sh
-corepack yarn workspace @topo/site build
+corepack yarn build
 ```
 
 Run the compatible synthetic fixture set (`small`, `medium`, and `large`):
 
 ```sh
-corepack yarn workspace @topo/site benchmark -- \
+node benchmarks/renderer-bakeoff.mjs \
   --output benchmarks/results/latest.json \
   --preparation-timeout-ms 90000 \
   --fixture-timeout-ms 240000 \
@@ -28,11 +29,11 @@ Select one or more fixtures independently with repeatable or comma-separated
 `--fixture` values:
 
 ```sh
-corepack yarn workspace @topo/site benchmark -- \
+node benchmarks/renderer-bakeoff.mjs \
   --fixture small \
   --output benchmarks/results/small.json
 
-corepack yarn workspace @topo/site benchmark -- \
+node benchmarks/renderer-bakeoff.mjs \
   --fixture small,medium \
   --output benchmarks/results/small-medium.json
 ```
@@ -41,7 +42,7 @@ Real partial fixtures are independently selectable and require their matching
 graph and provenance files:
 
 ```sh
-corepack yarn workspace @topo/site benchmark -- \
+node benchmarks/renderer-bakeoff.mjs \
   --fixture mermaid \
   --mermaid-graph /path/to/mermaid.graph.json \
   --mermaid-provenance /path/to/mermaid.provenance.json \
@@ -75,6 +76,11 @@ its deadline, only that owned process is force-stopped. Every cleanup resource
 is attempted even after an earlier failure. The harness does not use
 process-name kills. SVG and WebGL workloads continue to share the same
 materialized graph, architecture, layout, viewport, and interaction sequence.
+
+The fixture server only serves existing snapshots; it does not prepare or
+replace them. Playwright explicitly prepares `small,medium` before launching
+its supervised fixture server. The browser suite therefore works after a
+small-only benchmark or from an empty generated directory.
 
 Focused lifecycle regression:
 

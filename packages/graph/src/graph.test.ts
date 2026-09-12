@@ -149,6 +149,62 @@ describe("@topo/graph", () => {
     });
   });
 
+  it("indexes shared directory ancestry without losing loops, parallel edges or mixed identities", () => {
+    const nodes = [
+      node("root.ts"),
+      node("src/a.ts"),
+      node("src/shared/b.ts"),
+      node("test/c.ts"),
+      external("react"),
+      {
+        id: "synthetic:entry",
+        label: "Entry",
+        kind: "entry",
+        identity: { kind: "synthetic", value: "entry" },
+      } satisfies GraphNode,
+    ];
+    const fixture = graph(nodes, [
+      ["path:root.ts", "path:src/a.ts"],
+      ["path:src/a.ts", "path:src/shared/b.ts"],
+      ["path:src/a.ts", "path:src/shared/b.ts"],
+      ["path:src/shared/b.ts", "path:src/shared/b.ts"],
+      ["path:test/c.ts", "path:src/a.ts"],
+      ["path:src/a.ts", "external:react"],
+      ["synthetic:entry", "path:root.ts"],
+    ]);
+    const architecture = deriveArchitecture(fixture);
+    for (const directory of architecture.directoryContainers) {
+      const members = new Set(directory.descendantNodeIds);
+      expect(directory.internalEdgeIds).toEqual(
+        fixture.edges.filter((edge) => members.has(edge.sourceId) && members.has(edge.targetId))
+          .map((edge) => edge.id).sort(),
+      );
+    }
+    const population = architecture.nodeVisualValues.map((value) => value.totalDegree);
+    const unique = [...new Set(population)].sort((left, right) => left - right);
+    for (const value of architecture.nodeVisualValues) {
+      const expected = unique.length <= 1 ? 1 : 1 + unique.indexOf(value.totalDegree) / (unique.length - 1) * 4;
+      expect(value.prominence).toBe(Math.round(expected * 1_000_000) / 1_000_000);
+    }
+    expect(serializeArchitecture(deriveArchitecture(shuffled(fixture)))).toBe(serializeArchitecture(architecture));
+  });
+
+  it("does not reread the full edge array for every directory", () => {
+    const nodes = Array.from({ length: 600 }, (_, index) => node(`packages/p${index}/main.ts`));
+    const fixture = graph(nodes, nodes.slice(1).map((item, index) => [nodes[index]!.id, item.id]));
+    const edges = fixture.edges;
+    let edgeArrayReads = 0;
+    Object.defineProperty(fixture, "edges", {
+      enumerable: true,
+      get: () => { edgeArrayReads += 1; return edges; },
+    });
+    const architecture = deriveArchitecture(fixture);
+    expect(architecture.directoryContainers).toHaveLength(602);
+    expect(edgeArrayReads).toBeLessThan(100);
+    expect(architecture.directoryContainers.find((directory) => directory.id === "directory:packages")?.internalEdgeIds)
+      .toHaveLength(599);
+  });
+
   it("marks tight cycles, a 93-node tangle, and cycle-impact spine edges", () => {
     const tangleNodes = Array.from({ length: 93 }, (_, index) =>
       node(`src/n${String(index).padStart(2, "0")}.ts`),
