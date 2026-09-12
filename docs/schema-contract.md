@@ -82,7 +82,11 @@ core structure while reporting newer semantics as non-authoritative.
 
 ## Validation
 
-`validateGraphStructure` applies the checked Draft 2020-12 JSON Schema.
+`validateGraphStructure` applies the checked Draft 2020-12 JSON Schema through
+Ajv standalone code generated at build time. The browser entry never compiles a
+schema and contains no `require`, Node global, or dynamic function
+construction. `schema:check` fails when the generated validator is stale.
+
 `validateGraphDocument` then applies graph semantics:
 
 - unique primitive and evidence identifiers;

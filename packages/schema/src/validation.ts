@@ -1,5 +1,3 @@
-import { Ajv2020, type ErrorObject } from "ajv/dist/2020.js";
-import addFormats from "ajv-formats";
 import {
   assessGraphDocumentCompatibility,
   assessSchemaCompatibility,
@@ -11,12 +9,12 @@ import {
   createPathNodeId,
   createSyntheticNodeId,
 } from "./ids.js";
+import generatedValidateStructure from "./generated/graph-validator.js";
 import type {
   GraphDocument,
   GraphSchemaVersion,
   Provenance,
 } from "./model.js";
-import { GRAPH_JSON_SCHEMA } from "./schema.js";
 
 export interface ValidationIssue {
   code: string;
@@ -36,14 +34,22 @@ export class GraphValidationError extends Error {
   }
 }
 
-const ajv = new Ajv2020({
-  allErrors: true,
-  strict: true,
-});
-(addFormats as unknown as (instance: Ajv2020) => Ajv2020)(ajv);
-const validateStructure = ajv.compile(GRAPH_JSON_SCHEMA);
+interface StandaloneValidator {
+  (value: unknown): boolean;
+  errors?: StandaloneError[] | null;
+}
 
-function formatAjvPath(error: ErrorObject): string {
+interface StandaloneError {
+  instancePath: string;
+  keyword: string;
+  params: Record<string, unknown>;
+  message?: string;
+}
+
+const validateStructure =
+  generatedValidateStructure as StandaloneValidator;
+
+function formatAjvPath(error: StandaloneError): string {
   const suffix =
     error.keyword === "required"
       ? `/${String(error.params.missingProperty)}`

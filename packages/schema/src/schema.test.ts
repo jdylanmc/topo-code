@@ -31,6 +31,9 @@ const fixturePath = fileURLToPath(
 const schemaPath = fileURLToPath(
   new URL("../graph.schema.json", import.meta.url),
 );
+const generatedValidatorPath = fileURLToPath(
+  new URL("./generated/graph-validator.ts", import.meta.url),
+);
 const supportedModules = {
   "@topo/scanner-typescript": {
     version: "0.0.0",
@@ -102,6 +105,17 @@ describe("published graph schema", () => {
 
     expect(validate(JSON.parse(readFileSync(fixturePath, "utf8")))).toBe(true);
     expect(validate.errors).toBeNull();
+  });
+
+  it("ships generated validation without runtime code generation", () => {
+    const generated = readFileSync(generatedValidatorPath, "utf8");
+
+    expect(generated).not.toMatch(
+      /require\(|new Function|node:|process\.|globalThis\.eval/,
+    );
+    expect(generated).toContain(
+      'import ucs2LengthModule from "ajv/dist/runtime/ucs2length.js";',
+    );
   });
 
   it("keeps runtime structural validation aligned with the schema", () => {
