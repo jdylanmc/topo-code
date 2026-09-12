@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -36,6 +37,51 @@ async function createWorkspace(root, directory, manifest) {
   await writeJson(
     path.join(root, "packages", directory, "package.json"),
     manifest,
+  );
+}
+
+async function createLicenseOverride(
+  root,
+  {
+    content = "Copyright fixture\n\nMIT text\n",
+    installedVersion = "1.0.0",
+    overrideVersion = installedVersion,
+    sha256 = createHash("sha256").update(content).digest("hex"),
+    sourceCommit = "0123456789abcdef0123456789abcdef01234567",
+  } = {},
+) {
+  const licenseFile = "runtime-1.0.0-LICENSE";
+  const overrideDirectory = path.join(root, "licenses", "third-party");
+  await mkdir(overrideDirectory, { recursive: true });
+  await writeFile(path.join(overrideDirectory, licenseFile), content);
+  await writeJson(path.join(overrideDirectory, "overrides.json"), {
+    version: 1,
+    overrides: [
+      {
+        name: "runtime",
+        version: overrideVersion,
+        spdx: "MIT",
+        licenseFile,
+        sha256,
+        sourceRepository: "example/runtime",
+        sourceCommitUrl:
+          `https://github.com/example/runtime/commit/${sourceCommit}`,
+        sourceLicenseUrl:
+          `https://raw.githubusercontent.com/example/runtime/${sourceCommit}/LICENSE`,
+        packageMetadataUrl:
+          `https://www.npmjs.com/package/runtime/v/${overrideVersion}`,
+      },
+    ],
+  });
+  await createPackage(
+    root,
+    "runtime",
+    {
+      name: "runtime",
+      version: installedVersion,
+      license: "MIT",
+    },
+    null,
   );
 }
 
@@ -174,6 +220,77 @@ test("rejects complex or unapproved license identifiers", async (context) => {
   );
 });
 
+test("accepts a reviewed exact-version license override", async (context) => {
+  const root = await createFixture(context);
+  await createWorkspace(root, "app", {
+    name: "@topo/app",
+    dependencies: { runtime: "1.0.0" },
+  });
+  await createLicenseOverride(root);
+
+  const closure = await collectDependencyClosure({ rootDirectory: root });
+  const notices = renderThirdPartyNotices(closure);
+
+  assert.deepEqual(closure.problems, []);
+  assert.match(
+    notices,
+    /Verified source commit: https:\/\/github\.com\/example\/runtime\/commit\//,
+  );
+  assert.match(notices, /Vendored license SHA-256: [0-9a-f]{64}/);
+  assert.match(notices, /Copyright fixture\n\nMIT text/);
+});
+
+test("rejects a license override when the installed version changes", async (context) => {
+  const root = await createFixture(context);
+  await createWorkspace(root, "app", {
+    name: "@topo/app",
+    dependencies: { runtime: "1.0.1" },
+  });
+  await createLicenseOverride(root, {
+    installedVersion: "1.0.1",
+    overrideVersion: "1.0.0",
+  });
+
+  const closure = await collectDependencyClosure({ rootDirectory: root });
+
+  assert.throws(
+    () => renderThirdPartyNotices(closure),
+    /runtime@1\.0\.0 license override is unused/,
+  );
+  assert.match(
+    closure.problems.join("\n"),
+    /runtime@1\.0\.1 ships no license or copying text/,
+  );
+});
+
+test("rejects a license override with a mismatched digest", async (context) => {
+  const root = await createFixture(context);
+  await createWorkspace(root, "app", {
+    name: "@topo/app",
+    dependencies: { runtime: "1.0.0" },
+  });
+  await createLicenseOverride(root, { sha256: "0".repeat(64) });
+
+  await assert.rejects(
+    collectDependencyClosure({ rootDirectory: root }),
+    /override license SHA-256 mismatch/,
+  );
+});
+
+test("rejects a license override with unpinned source evidence", async (context) => {
+  const root = await createFixture(context);
+  await createWorkspace(root, "app", {
+    name: "@topo/app",
+    dependencies: { runtime: "1.0.0" },
+  });
+  await createLicenseOverride(root, { sourceCommit: "main" });
+
+  await assert.rejects(
+    collectDependencyClosure({ rootDirectory: root }),
+    /invalid source commit URL/,
+  );
+});
+
 test("rejects stale notices", async (context) => {
   const root = await createFixture(context);
   await createWorkspace(root, "app", {
@@ -207,7 +324,7 @@ test("copies only a verified notice file into the built site", async (context) =
     root,
     "runtime",
     { name: "runtime", version: "1.0.0", license: "MIT" },
-    "Copyright fixture\n\nMIT text\n",
+    "Copyright fixture \r\n\r\nMIT text\r\n",
   );
   await mkdir(path.join(root, "packages", "site", "dist"), {
     recursive: true,
@@ -222,5 +339,17 @@ test("copies only a verified notice file into the built site", async (context) =
       "utf8",
     ),
     await readFile(path.join(root, "THIRD_PARTY_NOTICES.txt"), "utf8"),
+  );
+  assert.equal(
+    (await readFile(path.join(root, "THIRD_PARTY_NOTICES.txt"), "utf8")).includes(
+      "\r",
+    ),
+    false,
+  );
+  assert.equal(
+    (await readFile(path.join(root, "THIRD_PARTY_NOTICES.txt"), "utf8")).includes(
+      "fixture ",
+    ),
+    false,
   );
 });

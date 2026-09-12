@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {
   copyFile,
   mkdir,
@@ -21,13 +22,21 @@ export const ALLOWED_LICENSES = new Set([
   "ISC",
   "MIT",
   "Python-2.0",
+  "Unlicense",
 ]);
 
 const LICENSE_FILE_PATTERN = /^(?:licen[cs]e|copying)(?:[._-].*)?$/i;
 const NOTICE_FILE_PATTERN = /^notice(?:[._-].*)?$/i;
+const SHA256_PATTERN = /^[0-9a-f]{64}$/;
+const COMMIT_URL_PATTERN =
+  /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/commit\/([0-9a-f]{40})$/;
 
 function compareCodeUnits(left, right) {
   return left < right ? -1 : left > right ? 1 : 0;
+}
+
+function normalizeAttributionText(content) {
+  return content.replace(/\r\n?/g, "\n").replace(/[ \t]+$/gm, "");
 }
 
 function dependencyEntries(manifest, kind) {
@@ -107,11 +116,108 @@ async function readAttributionFiles(packageDirectory) {
     texts.push({
       file,
       kind: NOTICE_FILE_PATTERN.test(file) ? "notice" : "license",
-      content,
+      content: normalizeAttributionText(content),
     });
   }
 
   return texts;
+}
+
+async function readLicenseOverrides(rootDirectory) {
+  const overrideDirectory = path.join(rootDirectory, "licenses", "third-party");
+  const manifestPath = path.join(overrideDirectory, "overrides.json");
+  if (!(await pathExists(manifestPath))) {
+    return new Map();
+  }
+
+  const manifest = await readManifest(manifestPath);
+  if (manifest.version !== 1 || !Array.isArray(manifest.overrides)) {
+    throw new Error(
+      "licenses/third-party/overrides.json must contain version 1 and an overrides array.",
+    );
+  }
+
+  const overrides = new Map();
+  for (const override of manifest.overrides) {
+    const requiredStrings = [
+      "name",
+      "version",
+      "spdx",
+      "licenseFile",
+      "sha256",
+      "sourceRepository",
+      "sourceCommitUrl",
+      "sourceLicenseUrl",
+      "packageMetadataUrl",
+    ];
+    for (const field of requiredStrings) {
+      if (typeof override[field] !== "string" || override[field].length === 0) {
+        throw new Error(`License override has invalid ${field}.`);
+      }
+    }
+
+    const identity = `${override.name}@${override.version}`;
+    if (overrides.has(identity)) {
+      throw new Error(`Duplicate license override for ${identity}.`);
+    }
+    if (!ALLOWED_LICENSES.has(override.spdx)) {
+      throw new Error(
+        `${identity} override uses unapproved license "${override.spdx}".`,
+      );
+    }
+    if (
+      path.basename(override.licenseFile) !== override.licenseFile ||
+      override.licenseFile === "." ||
+      override.licenseFile === ".."
+    ) {
+      throw new Error(`${identity} override licenseFile must be a file name.`);
+    }
+    if (!SHA256_PATTERN.test(override.sha256)) {
+      throw new Error(`${identity} override has invalid SHA-256.`);
+    }
+
+    const commitMatch = COMMIT_URL_PATTERN.exec(override.sourceCommitUrl);
+    if (
+      !commitMatch ||
+      `${commitMatch[1]}/${commitMatch[2]}` !== override.sourceRepository
+    ) {
+      throw new Error(`${identity} override has invalid source commit URL.`);
+    }
+    const sourceCommit = commitMatch[3];
+    const expectedLicensePrefix =
+      `https://raw.githubusercontent.com/${override.sourceRepository}/` +
+      `${sourceCommit}/`;
+    if (
+      !override.sourceLicenseUrl.startsWith(expectedLicensePrefix) ||
+      override.sourceLicenseUrl === expectedLicensePrefix
+    ) {
+      throw new Error(`${identity} override has invalid source license URL.`);
+    }
+    const expectedMetadataUrl =
+      `https://www.npmjs.com/package/${override.name}/v/${override.version}`;
+    if (override.packageMetadataUrl !== expectedMetadataUrl) {
+      throw new Error(`${identity} override has invalid package metadata URL.`);
+    }
+
+    const licensePath = path.join(overrideDirectory, override.licenseFile);
+    const content = await readFile(licensePath);
+    const actualSha256 = createHash("sha256").update(content).digest("hex");
+    if (actualSha256 !== override.sha256) {
+      throw new Error(
+        `${identity} override license SHA-256 mismatch: expected ${override.sha256}, got ${actualSha256}.`,
+      );
+    }
+    if (content.includes(0)) {
+      throw new Error(`${identity} override license contains binary data.`);
+    }
+
+    overrides.set(identity, {
+      ...override,
+      content: normalizeAttributionText(content.toString("utf8")),
+    });
+  }
+
+  return overrides;
 }
 
 async function discoverWorkspaces(rootDirectory) {
@@ -186,6 +292,7 @@ export async function collectDependencyClosure({
 } = {}) {
   const root = await realpath(rootDirectory);
   const workspaces = await discoverWorkspaces(root);
+  const licenseOverrides = await readLicenseOverrides(root);
   const queue = [];
 
   for (const [name, { manifest, manifestPath }] of [...workspaces].sort(
@@ -198,6 +305,7 @@ export async function collectDependencyClosure({
   const packagesByIdentity = new Map();
   const optionalExclusions = [];
   const problems = [];
+  const usedLicenseOverrides = new Set();
 
   while (queue.length > 0) {
     queue.sort(queueComparator);
@@ -236,7 +344,32 @@ export async function collectDependencyClosure({
     let record = packagesByIdentity.get(identity);
 
     if (!record) {
-      const attributionFiles = await readAttributionFiles(packageDirectory);
+      let attributionFiles = await readAttributionFiles(packageDirectory);
+      if (!attributionFiles.some((file) => file.kind === "license")) {
+        const override = licenseOverrides.get(identity);
+        if (override) {
+          usedLicenseOverrides.add(identity);
+          attributionFiles = [
+            ...attributionFiles,
+            {
+              content: override.content,
+              file: override.licenseFile,
+              kind: "license",
+              source: {
+                commitUrl: override.sourceCommitUrl,
+                licenseUrl: override.sourceLicenseUrl,
+                packageMetadataUrl: override.packageMetadataUrl,
+                sha256: override.sha256,
+              },
+            },
+          ];
+          if (manifest.license !== override.spdx) {
+            problems.push(
+              `${identity} declares "${manifest.license}" but its reviewed override is "${override.spdx}".`,
+            );
+          }
+        }
+      }
       record = {
         aliases: new Set(),
         attributionFiles,
@@ -288,6 +421,14 @@ export async function collectDependencyClosure({
       manifestPath,
       dependency.chain,
     );
+  }
+
+  for (const identity of licenseOverrides.keys()) {
+    if (!usedLicenseOverrides.has(identity)) {
+      problems.push(
+        `${identity} license override is unused; remove it or verify the installed package version.`,
+      );
+    }
   }
 
   return {
@@ -361,13 +502,21 @@ export function renderThirdPartyNotices(closure) {
     lines.push("\n");
 
     for (const attribution of dependency.attributionFiles) {
+      if (attribution.source) {
+        lines.push(
+          `Reviewed package metadata: ${attribution.source.packageMetadataUrl}\n`,
+          `Verified source commit: ${attribution.source.commitUrl}\n`,
+          `Verified source license: ${attribution.source.licenseUrl}\n`,
+          `Vendored license SHA-256: ${attribution.source.sha256}\n`,
+        );
+      }
       lines.push(`----- BEGIN ${attribution.file} -----\n`);
       appendText(lines, attribution.content);
       lines.push(`----- END ${attribution.file} -----\n\n`);
     }
   }
 
-  return lines.join("");
+  return lines.join("").replace(/\n+$/, "\n");
 }
 
 export async function writeThirdPartyNotices({
