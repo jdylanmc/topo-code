@@ -11,16 +11,16 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "node scripts/run-workspaces.mjs build",
+    "build": "node scripts/run-workspaces.mjs build && node scripts/dependency-notices.mjs --site",
     "check": "yarn typecheck && yarn build && yarn test && yarn licenses:check",
-    "licenses:check": "node scripts/check-licenses.mjs && license-checker-rseidelsohn --production --excludePrivatePackages --onlyAllow '0BSD;Apache-2.0;BSD-2-Clause;BSD-3-Clause;BlueOak-1.0.0;CC0-1.0;ISC;MIT;Python-2.0'",
-    "test": "node --test scripts/run-workspaces.test.mjs && node scripts/run-workspaces.mjs test",
+    "licenses:check": "node scripts/check-licenses.mjs && node scripts/dependency-notices.mjs --check",
+    "licenses:write": "node scripts/dependency-notices.mjs --write",
+    "test": "node --test scripts/run-workspaces.test.mjs scripts/dependency-notices.test.mjs && node scripts/run-workspaces.mjs test",
     "typecheck": "node scripts/run-workspaces.mjs typecheck",
     "topo": "node packages/cli/dist/main.js"
   },
   "devDependencies": {
     "@types/node": "^22",
-    "license-checker-rseidelsohn": "^5.0.1",
     "typescript": "^7.0.2",
     "vite": "8.2.2",
     "vitest": "^5.0.0"

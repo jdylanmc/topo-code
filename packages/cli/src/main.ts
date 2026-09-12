@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 import { execFile } from "node:child_process";
 import { dirname, resolve } from "node:path";
-import { readdir } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs, promisify } from "node:util";
 import { scanRepository } from "@topo/scanner";
-import { initializeWorkspace, workspacePath } from "@topo/workspace";
+import { initializeWorkspace, isMissing, workspacePath } from "@topo/workspace";
 import { generateArtifacts, ingestReports } from "./pipeline.js";
 import { serveSite } from "./server.js";
 
@@ -29,8 +29,15 @@ async function sourceState(root: string): Promise<{ revision: string; dirty: boo
   return { revision, dirty: status.length > 0 };
 }
 
-function siteAssets(): string {
-  return dirname(fileURLToPath(import.meta.resolve("@topo/site/index.html")));
+async function siteAssets(): Promise<string> {
+  const assets = dirname(fileURLToPath(import.meta.resolve("@topo/site/index.html")));
+  try {
+    await Promise.all(["LICENSE.txt", "THIRD_PARTY_NOTICES.txt"].map((name) => readFile(resolve(assets, name))));
+  } catch (error) {
+    if (!isMissing(error)) throw error;
+    throw new Error("Built site license notices are missing; run corepack yarn build in the Topocode checkout.");
+  }
+  return assets;
 }
 
 function assertCoreModules(modules: string[]): void {
@@ -77,11 +84,12 @@ export async function runCli(args: string[]): Promise<number> {
   }
   const { config } = await initializeWorkspace(root);
   assertCoreModules(config.modules);
+  const assets = await siteAssets();
   const state = await sourceState(root);
   if (command === "ingest") {
     if (positionals.length < 3) throw new Error("ingest requires a repository and at least one report file");
     if (state.dirty) throw new Error("Report ingestion requires clean source files at the scanned revision; .topo artifacts are excluded.");
-    const result = await ingestReports(root, positionals.slice(2).map((path) => resolve(path)), siteAssets(), state.revision);
+    const result = await ingestReports(root, positionals.slice(2).map((path) => resolve(path)), assets, state.revision);
     console.log(`Ingested ${result.inputs.length} reports; ${result.metrics.length} metrics, ${result.findings.length} findings`);
     return 0;
   }
@@ -97,7 +105,7 @@ export async function runCli(args: string[]): Promise<number> {
     quality: { allowPartial: values["allow-partial"] ?? false },
   });
   if ((await sourceState(root)).revision !== state.revision) throw new Error("Repository revision changed during scan; retry");
-  const artifacts = await generateArtifacts(root, result.graph, siteAssets());
+  const artifacts = await generateArtifacts(root, result.graph, assets);
   for (const diagnostic of result.diagnostics) console.warn(`${diagnostic.severity}: ${diagnostic.code}: ${diagnostic.message}`);
   for (const warning of artifacts.layout.warnings) console.warn(`layout: ${warning.code}: ${warning.message}`);
   console.log(`${result.authoritative ? "Scanned" : "PARTIAL PREVIEW:"} ${result.metrics.sourceFileCount} files, ${result.graph.edges.length} edges, ${result.metrics.linesOfCode} lines in ${((performance.now() - start) / 1000).toFixed(2)}s`);

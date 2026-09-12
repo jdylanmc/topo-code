@@ -32,11 +32,13 @@ node scripts/dependency-notices.mjs --site
 - `--write` validates the closure and replaces `THIRD_PARTY_NOTICES.txt`.
 - `--check` validates licences and fails if the tracked notice file differs.
 - `--site` first performs `--check`, then copies the verified file into
-  `packages/site/dist/THIRD_PARTY_NOTICES.txt`. The site must already be built.
+  `packages/site/dist/THIRD_PARTY_NOTICES.txt`, alongside Topocode's own
+  `LICENSE.txt`. The site must already be built.
 
-The root build should run `--check` in Continuous Integration (CI). Site
-packaging should run `--site` after the site build. Command-line packaging must
-include the same tracked notice file.
+The root build runs `--site` after building the packages. Continuous Integration
+(CI) also runs the direct inventory and installed-closure drift gates.
+Command-line packaging must include the same tracked notice file; npm
+distribution remains a separate, unconfigured milestone.
 
 ## Policy
 

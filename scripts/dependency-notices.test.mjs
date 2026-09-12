@@ -316,6 +316,7 @@ test("rejects stale notices", async (context) => {
 
 test("copies only a verified notice file into the built site", async (context) => {
   const root = await createFixture(context);
+  await writeFile(path.join(root, "LICENSE"), "First-party fixture license\n");
   await createWorkspace(root, "site", {
     name: "@topo/site",
     dependencies: { runtime: "1.0.0" },
@@ -333,6 +334,10 @@ test("copies only a verified notice file into the built site", async (context) =
   await writeThirdPartyNotices({ rootDirectory: root });
   await copyThirdPartyNoticesToSite({ rootDirectory: root });
 
+  assert.equal(
+    await readFile(path.join(root, "packages", "site", "dist", "LICENSE.txt"), "utf8"),
+    "First-party fixture license\n",
+  );
   assert.equal(
     await readFile(
       path.join(root, "packages", "site", "dist", "THIRD_PARTY_NOTICES.txt"),

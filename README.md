@@ -98,9 +98,11 @@ manifest exists, a missing script or failed package command fails the root
 check.
 
 Every shipped third-party dependency must have an exact range, SPDX licence
-identifier, and evidence URL in `dependency-licenses.json`. Production dependency
-attribution must include the actual installed transitive closure, not only the
-root package's empty production dependency list.
+identifier, and evidence URL in `dependency-licenses.json`. Production dependency attribution includes the actual installed transitive
+closure, not only the root package's empty production dependency list.
+`corepack yarn licenses:write` updates `THIRD_PARTY_NOTICES.txt` after dependency
+changes. The root build verifies and ships it with the site's own license;
+[license policy and pinned evidence](./docs/licenses.md) describe the gates.
 
 Package TypeScript configurations extend `../../tsconfig.base.json`. Packages
 use ECMAScript modules, expose their public API from `src/index.ts`, and keep

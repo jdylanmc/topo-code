@@ -571,6 +571,10 @@ export async function copyThirdPartyNoticesToSite({
     sourcePath,
     path.join(siteDirectory, "THIRD_PARTY_NOTICES.txt"),
   );
+  await copyFile(
+    path.join(rootDirectory, "LICENSE"),
+    path.join(siteDirectory, "LICENSE.txt"),
+  );
   return closure;
 }
 
