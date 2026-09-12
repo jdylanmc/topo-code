@@ -26,6 +26,12 @@ import {
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 export const generatedRoot = path.join(root, "benchmarks", ".generated");
 const siteDist = path.join(root, "packages", "site", "dist");
+export const defaultFixtureNames = ["small", "medium", "large"];
+export const supportedFixtureNames = [
+  ...defaultFixtureNames,
+  "mermaid",
+  "vscode",
+];
 
 function createSyntheticGraph({
   label,
@@ -241,50 +247,46 @@ function argumentValue(name) {
   return index < 0 ? undefined : process.argv[index + 1];
 }
 
-export async function prepareFixtures(options = {}) {
+function requiredOption(options, name, fixtureName) {
+  const value = options[name];
+  if (!value) {
+    throw new Error(
+      `Fixture "${fixtureName}" requires --${name.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}.`,
+    );
+  }
+  return value;
+}
+
+export function parseFixtureNames(values = []) {
+  if (values.some((value) => value === undefined)) {
+    throw new Error("--fixture requires a value.");
+  }
+  const names = values.flatMap((value) => value.split(",")).filter(Boolean);
+  const selected = names.length === 0 ? defaultFixtureNames : names;
+  for (const name of selected) {
+    if (!supportedFixtureNames.includes(name)) {
+      throw new Error(
+        `Unsupported fixture "${name}". Expected one of: ${supportedFixtureNames.join(", ")}.`,
+      );
+    }
+  }
+  return [...new Set(selected)];
+}
+
+export async function initializeGeneratedRoot() {
   await rm(generatedRoot, { recursive: true, force: true });
   await mkdir(generatedRoot, { recursive: true });
-  const fixtures = [
-    await writeFixture("small", await smallGraph(), "real-small"),
-  ];
+}
 
-  if (
-    options.mermaidGraph &&
-    options.mermaidProvenance &&
-    options.vscodeGraph &&
-    options.vscodeProvenance
-  ) {
-    const mermaid = await loadRealFixture(
-      options.mermaidGraph,
-      options.mermaidProvenance,
-    );
-    fixtures.push(
-      await writeFixture(
-        "mermaid",
-        mermaid.graph,
-        "real-partial",
-        mermaid.evidence,
-        mermaid.parseMilliseconds,
-      ),
-    );
-    const vscode = await loadRealFixture(
-      options.vscodeGraph,
-      options.vscodeProvenance,
-    );
-    fixtures.push(
-      await writeFixture(
-        "vscode",
-        vscode.graph,
-        "real-partial",
-        vscode.evidence,
-        vscode.parseMilliseconds,
-      ),
-    );
-    return fixtures;
+export async function prepareFixture(name, options = {}) {
+  if (!supportedFixtureNames.includes(name)) {
+    throw new Error(`Unsupported fixture "${name}".`);
   }
-
-  fixtures.push(
-    await writeFixture(
+  if (name === "small") {
+    return writeFixture("small", await smallGraph(), "real-small");
+  }
+  if (name === "medium") {
+    return writeFixture(
       "medium",
       createSyntheticGraph({
         label: "synthetic-medium",
@@ -294,8 +296,10 @@ export async function prepareFixtures(options = {}) {
         stronglyConnectedSize: 93,
       }),
       "synthetic-stress",
-    ),
-    await writeFixture(
+    );
+  }
+  if (name === "large") {
+    return writeFixture(
       "large",
       createSyntheticGraph({
         label: "synthetic-large",
@@ -305,13 +309,37 @@ export async function prepareFixtures(options = {}) {
         stronglyConnectedSize: 150,
       }),
       "synthetic-stress",
-    ),
+    );
+  }
+
+  const graphPath = requiredOption(options, `${name}Graph`, name);
+  const provenancePath = requiredOption(options, `${name}Provenance`, name);
+  const fixture = await loadRealFixture(graphPath, provenancePath);
+  return writeFixture(
+    name,
+    fixture.graph,
+    "real-partial",
+    fixture.evidence,
+    fixture.parseMilliseconds,
   );
+}
+
+export async function prepareFixtures(options = {}) {
+  const fixtureNames = parseFixtureNames(options.fixtureNames);
+  await initializeGeneratedRoot();
+  const fixtures = [];
+  for (const name of fixtureNames) {
+    fixtures.push(await prepareFixture(name, options));
+  }
   return fixtures;
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const fixtureNames = process.argv.flatMap((value, index, arguments_) =>
+    value === "--fixture" ? [arguments_[index + 1]] : [],
+  );
   const fixtures = await prepareFixtures({
+    fixtureNames,
     mermaidGraph: argumentValue("--mermaid-graph"),
     mermaidProvenance: argumentValue("--mermaid-provenance"),
     vscodeGraph: argumentValue("--vscode-graph"),

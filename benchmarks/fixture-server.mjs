@@ -3,7 +3,7 @@ import { stat } from "node:fs/promises";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { generatedRoot, prepareFixtures } from "./prepare-fixtures.mjs";
+import { generatedRoot } from "./prepare-fixtures.mjs";
 
 const MIME_TYPES = {
   ".css": "text/css; charset=utf-8",
@@ -39,8 +39,7 @@ function safePath(urlPath) {
   return resolved;
 }
 
-export async function startFixtureServer(port = 4178, fixtureOptions = {}) {
-  const fixtures = await prepareFixtures(fixtureOptions);
+export async function startFixtureServer(port = 4178) {
   const server = http.createServer(async (request, response) => {
     const requested = safePath(request.url ?? "/");
     if (!requested) {
@@ -70,15 +69,15 @@ export async function startFixtureServer(port = 4178, fixtureOptions = {}) {
     server.once("error", reject);
     server.listen(port, "127.0.0.1", resolve);
   });
-  return { server, fixtures, port };
+  return { server, port };
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const portArgument = process.argv.indexOf("--port");
   const port =
     portArgument >= 0 ? Number(process.argv[portArgument + 1]) : 4178;
-  const { fixtures } = await startFixtureServer(port);
+  await startFixtureServer(port);
   process.stdout.write(
-    `Fixture server listening at http://127.0.0.1:${port} for ${fixtures.map((fixture) => fixture.name).join(", ")}\n`,
+    `Fixture server listening at http://127.0.0.1:${port}\n`,
   );
 }

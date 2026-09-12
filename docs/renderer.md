@@ -106,10 +106,17 @@ verifies:
 
 ## Reproducible benchmark
 
+Harness lifecycle, fixture selection, deadlines, checkpoint semantics, and
+focused regression commands are documented in
+[`benchmark-harness.md`](./benchmark-harness.md).
+
 ```sh
 corepack yarn workspace @topo/site build
 node benchmarks/renderer-bakeoff.mjs \
   --output benchmarks/results/phase-one-headless.json \
+  --preparation-timeout-ms 90000 \
+  --fixture-timeout-ms 240000 \
+  --total-timeout-ms 600000 \
   --run-timeout-ms 90000
 ```
 
@@ -129,9 +136,11 @@ The harness records:
 - accessible entity and visible SVG label counts;
 - renderer/GPU metadata and browser page errors.
 
-Each renderer/scope workload has an overall timeout, defaulting to 90 seconds.
-The report is rewritten after every workload. A timeout is retained as a
-`failed` result and previously completed measurements survive interruption.
+Each fixture preparation runs in a terminable worker with an overall timeout.
+Each renderer/scope workload has a separate overall timeout. Both default to 90
+seconds. The report is rewritten before and after each stage. A timeout is
+retained as a structured failure, previously completed measurements survive,
+and the process exits nonzero.
 
 Memory numbers are JavaScript heap only. They exclude DOM storage, SVG backing
 data, PixiJS GPU buffers/textures, driver allocations, and browser process
