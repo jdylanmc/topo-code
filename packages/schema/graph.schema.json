@@ -1,0 +1,256 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://topo-code.dev/schema/graph/v1.0",
+  "title": "TOPO canonical graph",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "graphId",
+    "repository",
+    "modules",
+    "nodes",
+    "edges",
+    "containers",
+    "attributes",
+    "evidence",
+    "extensions"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+    },
+    "graphId": {
+      "$ref": "#/$defs/id"
+    },
+    "repository": {
+      "type": "object",
+      "required": ["id", "label"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": { "$ref": "#/$defs/id" },
+        "revision": { "$ref": "#/$defs/id" }
+      },
+      "additionalProperties": false
+    },
+    "modules": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/module" }
+    },
+    "nodes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/node" }
+    },
+    "edges": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/edge" }
+    },
+    "containers": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/container" }
+    },
+    "attributes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/attribute" }
+    },
+    "evidence": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/evidence" }
+    },
+    "extensions": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "module": {
+      "type": "object",
+      "required": ["id", "version", "schemaVersion"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "version": { "$ref": "#/$defs/id" },
+        "schemaVersion": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "identity": {
+      "type": "object",
+      "required": ["kind", "value"],
+      "properties": {
+        "kind": {
+          "enum": ["path", "external", "synthetic"]
+        },
+        "value": { "$ref": "#/$defs/id" }
+      },
+      "additionalProperties": false
+    },
+    "node": {
+      "type": "object",
+      "required": ["id", "label", "kind", "identity"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": { "$ref": "#/$defs/id" },
+        "kind": { "$ref": "#/$defs/id" },
+        "identity": { "$ref": "#/$defs/identity" },
+        "fingerprint": { "$ref": "#/$defs/id" }
+      },
+      "additionalProperties": false
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["kind", "moduleId", "method", "evidenceIds"],
+      "properties": {
+        "kind": {
+          "enum": ["observed", "derived", "inferred", "human"]
+        },
+        "moduleId": { "$ref": "#/$defs/id" },
+        "method": { "$ref": "#/$defs/id" },
+        "evidenceIds": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/id" },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "edge": {
+      "type": "object",
+      "required": [
+        "id",
+        "label",
+        "type",
+        "sourceId",
+        "targetId",
+        "provenance"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": { "$ref": "#/$defs/id" },
+        "type": { "$ref": "#/$defs/id" },
+        "sourceId": { "$ref": "#/$defs/id" },
+        "targetId": { "$ref": "#/$defs/id" },
+        "provenance": { "$ref": "#/$defs/provenance" }
+      },
+      "additionalProperties": false
+    },
+    "container": {
+      "type": "object",
+      "required": ["id", "label", "type", "memberIds"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": { "$ref": "#/$defs/id" },
+        "type": { "$ref": "#/$defs/id" },
+        "memberIds": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/id" },
+          "uniqueItems": true
+        },
+        "parentId": { "$ref": "#/$defs/id" }
+      },
+      "additionalProperties": false
+    },
+    "subject": {
+      "type": "object",
+      "required": ["kind", "id"],
+      "properties": {
+        "kind": {
+          "enum": ["node", "edge", "container"]
+        },
+        "id": { "$ref": "#/$defs/id" }
+      },
+      "additionalProperties": false
+    },
+    "witness": {
+      "type": "object",
+      "required": ["nodeId", "fingerprint", "relationship"],
+      "properties": {
+        "nodeId": { "$ref": "#/$defs/id" },
+        "fingerprint": { "$ref": "#/$defs/id" },
+        "relationship": {
+          "enum": ["self", "neighbor"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "attribute": {
+      "type": "object",
+      "required": [
+        "id",
+        "subject",
+        "key",
+        "value",
+        "provenance",
+        "evidenceIds",
+        "confidence"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "subject": { "$ref": "#/$defs/subject" },
+        "key": { "$ref": "#/$defs/id" },
+        "value": true,
+        "provenance": { "$ref": "#/$defs/provenance" },
+        "evidenceIds": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/id" },
+          "uniqueItems": true
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "witnesses": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/witness" },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "position": {
+      "type": "object",
+      "required": ["line", "column"],
+      "properties": {
+        "line": { "type": "integer", "minimum": 1 },
+        "column": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "location": {
+      "type": "object",
+      "required": ["path", "start"],
+      "properties": {
+        "path": { "$ref": "#/$defs/id" },
+        "start": { "$ref": "#/$defs/position" },
+        "end": { "$ref": "#/$defs/position" }
+      },
+      "additionalProperties": false
+    },
+    "evidence": {
+      "type": "object",
+      "required": ["id", "kind", "label"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "kind": {
+          "enum": ["source", "report", "annotation"]
+        },
+        "label": { "$ref": "#/$defs/id" },
+        "fingerprint": { "$ref": "#/$defs/id" },
+        "location": { "$ref": "#/$defs/location" },
+        "locator": { "$ref": "#/$defs/id" },
+        "observedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
