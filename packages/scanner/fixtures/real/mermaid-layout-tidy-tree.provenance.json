@@ -7,6 +7,13 @@
   "configDiscovery": "all repository tsconfig*.json files",
   "graphFile": "mermaid-layout-tidy-tree.graph.json",
   "authoritative": true,
+  "license": {
+    "spdx": "MIT",
+    "notice": "mermaid.LICENSE.txt",
+    "upstreamFile": "LICENSE",
+    "upstreamUrl": "https://github.com/mermaid-js/mermaid/blob/3f5f7a6781cc8c788b8b5fa3d4e62edce9288f60/LICENSE",
+    "sha256": "ec9fb67dcb25eccc416ed56e1aab819222c805a2a4bfe4cb19e7556bf2ffde80"
+  },
   "counts": {
     "nodes": 10,
     "edges": 16,
@@ -24,5 +31,5 @@
     "logicalCpuCount": 18,
     "memoryBytes": 68719476736
   },
-  "reproductionCommand": "corepack yarn workspace @topo/scanner fixture --root /Users/dylan/git/_opensource/mermaid-js/mermaid/packages/mermaid-layout-tidy-tree/src --output /Users/dylan/.paseo/worktrees/09j4b0p6/phase-one-scanner/packages/scanner/fixtures/real/mermaid-layout-tidy-tree --repository-id mermaid-js/mermaid --allow-partial false"
+  "reproductionCommand": "corepack yarn workspace @topo/scanner fixture --root \"$MERMAID_CHECKOUT/packages/mermaid-layout-tidy-tree/src\" --output packages/scanner/fixtures/real/mermaid-layout-tidy-tree --repository-id mermaid-js/mermaid --allow-partial false --checkout-variable MERMAID_CHECKOUT --license \"$MERMAID_CHECKOUT/LICENSE\" --license-notice mermaid.LICENSE.txt --license-spdx MIT"
 }

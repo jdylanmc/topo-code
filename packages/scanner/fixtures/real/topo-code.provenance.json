@@ -24,5 +24,5 @@
     "logicalCpuCount": 18,
     "memoryBytes": 68719476736
   },
-  "reproductionCommand": "corepack yarn workspace @topo/scanner fixture --root /Users/dylan/.paseo/worktrees/09j4b0p6/phase-one-scanner --output /Users/dylan/.paseo/worktrees/09j4b0p6/phase-one-scanner/packages/scanner/fixtures/real/topo-code --repository-id jdylanmc/topo-code --allow-partial false"
+  "reproductionCommand": "corepack yarn workspace @topo/scanner fixture --root \"$TOPO_CODE_CHECKOUT\" --output packages/scanner/fixtures/real/topo-code --repository-id jdylanmc/topo-code --allow-partial false --checkout-variable TOPO_CODE_CHECKOUT"
 }

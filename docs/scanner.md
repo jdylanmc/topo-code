@@ -93,19 +93,33 @@ compiler options while each file is parsed independently. Metrics keep
 Build the package, then generate a graph and adjacent provenance record:
 
 ```sh
+export MERMAID_CHECKOUT=/path/to/mermaid-js/mermaid
 corepack yarn workspace @topo/scanner build
 corepack yarn workspace @topo/scanner fixture \
-  --root /Users/dylan/git/_opensource/mermaid-js/mermaid \
+  --root "$MERMAID_CHECKOUT" \
   --output packages/scanner/fixtures/real/mermaid \
   --repository-id mermaid-js/mermaid \
-  --allow-partial false
+  --allow-partial false \
+  --checkout-variable MERMAID_CHECKOUT \
+  --license "$MERMAID_CHECKOUT/LICENSE" \
+  --license-notice mermaid.LICENSE.txt \
+  --license-spdx MIT
 ```
 
 The graph excludes timestamps, absolute paths, durations, and hardware. The
 adjacent provenance file records upstream URL, exact revision, selected path,
 configuration discovery, actual graph and lines-of-code counts, limitations,
-duration, hardware, and the reproduction command. Large upstream source trees
-are never copied into this repository.
+duration, hardware, license attribution, and a portable reproduction command.
+Set `TOPO_CODE_CHECKOUT`, `MERMAID_CHECKOUT`, or `VSCODE_CHECKOUT` to the
+corresponding pinned checkout before running a recorded command. Large upstream
+source trees are never copied into this repository.
+
+Mermaid fixture provenance references the verbatim
+`fixtures/real/mermaid.LICENSE.txt` from the pinned upstream `LICENSE`.
+Visual Studio Code fixture provenance references the verbatim
+`fixtures/real/vscode.LICENSE.txt` from pinned upstream `LICENSE.txt`. Each
+record includes the exact commit URL and SHA-256 digest so attribution can be
+verified without relying on a mutable branch.
 
 Committed real fixtures:
 
@@ -114,6 +128,11 @@ Committed real fixtures:
 | `topo-code` | `18a6588d5946c1026a1a2c335ba51b92f231eb8f` | repository root | 19 | 64 | 3,981 |
 | `mermaid-full` | `3f5f7a6781cc8c788b8b5fa3d4e62edce9288f60` | repository root | 1,111 | 4,136 | 202,090 |
 | `vscode-src` | `3879d0e80faeaeb351bbb44dd0f74f1bac12fc0a` | `src` | 9,252 | 105,549 | 2,993,413 |
+
+`mermaid-layout-tidy-tree` and `vscode-base-common` are small, selected-path,
+authoritative correctness fixtures. `mermaid-full` and `vscode-src` are the
+full-repository/full-source benchmark scopes shown above; they are the renderer
+scale evidence and are explicitly non-authoritative where diagnostics remain.
 
 The full Mermaid and Visual Studio Code graphs are explicitly partial and
 non-authoritative. Their clean checkouts omit generated files and installed type
