@@ -4,28 +4,12 @@ import type {
   GraphDocument,
   GraphEdge,
   GraphNode,
-  JsonValue,
 } from "./model.js";
+import { canonicalizeJson, compareCodeUnits, serializeJson } from "./json.js";
 import { assertGraphDocument } from "./validation.js";
 
 function compareId(left: { id: string }, right: { id: string }): number {
-  return left.id.localeCompare(right.id);
-}
-
-function sortJson(value: JsonValue): JsonValue {
-  if (Array.isArray(value)) {
-    return value.map(sortJson);
-  }
-
-  if (value !== null && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value)
-        .sort(([left], [right]) => left.localeCompare(right))
-        .map(([key, child]) => [key, sortJson(child)]),
-    );
-  }
-
-  return value;
+  return compareCodeUnits(left.id, right.id);
 }
 
 function canonicalNode(node: GraphNode): GraphNode {
@@ -73,7 +57,7 @@ function canonicalAttribute(attribute: GraphAttribute): GraphAttribute {
     id: attribute.id,
     subject: { kind: attribute.subject.kind, id: attribute.subject.id },
     key: attribute.key,
-    value: sortJson(attribute.value),
+    value: canonicalizeJson(attribute.value),
     provenance: {
       kind: attribute.provenance.kind,
       moduleId: attribute.provenance.moduleId,
@@ -87,8 +71,9 @@ function canonicalAttribute(attribute: GraphAttribute): GraphAttribute {
       : {
           witnesses: [...attribute.witnesses].sort(
             (left, right) =>
-              left.nodeId.localeCompare(right.nodeId) ||
-              left.relationship.localeCompare(right.relationship),
+              compareCodeUnits(left.nodeId, right.nodeId) ||
+              compareCodeUnits(left.relationship, right.relationship) ||
+              compareCodeUnits(left.fingerprint, right.fingerprint),
           ),
         }),
   };
@@ -120,6 +105,19 @@ export function canonicalizeGraphDocument(
         ...(evidence.fingerprint === undefined
           ? {}
           : { fingerprint: evidence.fingerprint }),
+        ...(evidence.anchor === undefined
+          ? {}
+          : {
+              anchor: {
+                path: evidence.anchor.path,
+                ...(evidence.anchor.symbol === undefined
+                  ? {}
+                  : { symbol: evidence.anchor.symbol }),
+                ...(evidence.anchor.contentPattern === undefined
+                  ? {}
+                  : { contentPattern: evidence.anchor.contentPattern }),
+              },
+            }),
         ...(evidence.location === undefined
           ? {}
           : {
@@ -139,11 +137,15 @@ export function canonicalizeGraphDocument(
           : { observedAt: evidence.observedAt }),
       }))
       .sort(compareId),
-    extensions: sortJson(document.extensions) as Record<string, JsonValue>,
+    extensions: canonicalizeJson(
+      document.extensions,
+    ) as GraphDocument["extensions"],
   };
 }
 
 export function serializeGraphDocument(document: GraphDocument): string {
   assertGraphDocument(document);
-  return `${JSON.stringify(canonicalizeGraphDocument(document), null, 2)}\n`;
+  return serializeJson(
+    canonicalizeGraphDocument(document) as unknown as import("./model.js").JsonValue,
+  );
 }

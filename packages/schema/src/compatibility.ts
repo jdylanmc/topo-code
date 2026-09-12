@@ -17,7 +17,22 @@ interface ParsedVersion {
   minor: number;
 }
 
+interface ParsedSemanticVersion extends ParsedVersion {
+  patch: number;
+}
+
+export interface SupportedModuleVersion {
+  version: string;
+  schemaVersion: GraphSchemaVersion;
+}
+
+export type SupportedModules = Readonly<
+  Record<string, SupportedModuleVersion | GraphSchemaVersion>
+>;
+
 const VERSION_PATTERN = /^(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
+const SEMANTIC_VERSION_PATTERN =
+  /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 
 export function parseGraphSchemaVersion(
   version: string,
@@ -31,6 +46,33 @@ export function parseGraphSchemaVersion(
     major: Number(match[1]),
     minor: Number(match[2]),
   };
+}
+
+function parseSemanticVersion(
+  version: string,
+): ParsedSemanticVersion | undefined {
+  const match = SEMANTIC_VERSION_PATTERN.exec(version);
+  if (!match) {
+    return undefined;
+  }
+  return {
+    major: Number(match[1]),
+    minor: Number(match[2]),
+    patch: Number(match[3]),
+  };
+}
+
+function isNewerSemanticVersion(
+  document: ParsedSemanticVersion,
+  supported: ParsedSemanticVersion,
+): boolean {
+  return (
+    document.major > supported.major ||
+    (document.major === supported.major &&
+      (document.minor > supported.minor ||
+        (document.minor === supported.minor &&
+          document.patch > supported.patch)))
+  );
 }
 
 export function assessSchemaCompatibility(
@@ -90,29 +132,67 @@ export function assessSchemaCompatibility(
 
 export function assessModuleCompatibility(
   documentModules: readonly ModuleManifestEntry[],
-  supportedModules: Readonly<Record<string, string>>,
+  supportedModules: SupportedModules,
 ): SchemaCompatibility {
   const warnings: string[] = [];
 
   for (const module of documentModules) {
-    const supportedVersion = supportedModules[module.id];
-    if (supportedVersion === undefined) {
+    const supported = supportedModules[module.id];
+    if (supported === undefined) {
       warnings.push(
-        `Module "${module.id}" is not available; its namespaced contributions will be ignored.`,
+        `Module "${module.id}" is not available; its contributions remain present but must not be treated as understood.`,
       );
+      continue;
+    }
+
+    if (typeof supported === "string") {
+      const compatibility = assessSchemaCompatibility(
+        module.schemaVersion,
+        supported,
+      );
+      warnings.push(
+        `Module "${module.id}" implementation version ${module.version} was not supplied by the consumer and cannot be treated as authoritative.`,
+      );
+      if (!compatibility.compatible) {
+        warnings.push(
+          `Module "${module.id}" schema ${module.schemaVersion} is incompatible with supported schema ${supported}; its contributions remain present but unsupported.`,
+        );
+      } else {
+        warnings.push(
+          ...compatibility.warnings.map((warning) => `${module.id}: ${warning}`),
+        );
+      }
       continue;
     }
 
     const compatibility = assessSchemaCompatibility(
       module.schemaVersion,
-      supportedVersion as GraphSchemaVersion,
+      supported.schemaVersion,
     );
     if (!compatibility.compatible) {
       warnings.push(
-        `Module "${module.id}" schema ${module.schemaVersion} is incompatible with supported schema ${supportedVersion}; its contributions will be ignored.`,
+        `Module "${module.id}" schema ${module.schemaVersion} is incompatible with supported schema ${supported.schemaVersion}; its contributions remain present but unsupported.`,
       );
     } else {
-      warnings.push(...compatibility.warnings.map((warning) => `${module.id}: ${warning}`));
+      warnings.push(
+        ...compatibility.warnings.map((warning) => `${module.id}: ${warning}`),
+      );
+    }
+
+    const documentVersion = parseSemanticVersion(module.version);
+    const supportedVersion = parseSemanticVersion(supported.version);
+    if (!documentVersion || !supportedVersion) {
+      warnings.push(
+        `Module "${module.id}" implementation version could not be compared (${module.version} versus ${supported.version}).`,
+      );
+    } else if (documentVersion.major !== supportedVersion.major) {
+      warnings.push(
+        `Module "${module.id}" implementation ${module.version} is incompatible with supported implementation ${supported.version}; its contributions remain present but unsupported.`,
+      );
+    } else if (isNewerSemanticVersion(documentVersion, supportedVersion)) {
+      warnings.push(
+        `Module "${module.id}" implementation ${module.version} is newer than supported implementation ${supported.version}; its contributions must not be treated as authoritative.`,
+      );
     }
   }
 
@@ -126,7 +206,7 @@ export function assessModuleCompatibility(
 
 export function assessGraphDocumentCompatibility(
   document: Pick<GraphDocument, "schemaVersion" | "modules">,
-  supportedModules: Readonly<Record<string, string>> = {},
+  supportedModules: SupportedModules = {},
   supportedVersion: GraphSchemaVersion = GRAPH_SCHEMA_VERSION,
 ): SchemaCompatibility {
   const schema = assessSchemaCompatibility(

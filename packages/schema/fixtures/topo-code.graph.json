@@ -15,12 +15,12 @@
   ],
   "nodes": [
     {
-      "id": "path:.",
+      "id": "synthetic:repository-root",
       "label": "topo-code",
       "kind": "repository",
       "identity": {
-        "kind": "path",
-        "value": "."
+        "kind": "synthetic",
+        "value": "repository-root"
       },
       "fingerprint": "git-tree:edf7ffefb8716e1457e254a17960c0278b7e9f8f"
     },
@@ -56,7 +56,7 @@
         "moduleId": "@topo/scanner-typescript",
         "method": "markdown-link",
         "evidenceIds": [
-          "source:README.md:23"
+          "source:README.md:product-requirements-link"
         ]
       }
     }
@@ -67,7 +67,7 @@
       "label": "Repository root",
       "type": "directory",
       "memberIds": [
-        "path:.",
+        "synthetic:repository-root",
         "path:README.md"
       ]
     }
@@ -108,6 +108,9 @@
       "kind": "source",
       "label": "README.md",
       "fingerprint": "git-blob:6ac285dbc8412fb3eb0555b6f1b71f5976cae849",
+      "anchor": {
+        "path": "README.md"
+      },
       "location": {
         "path": "README.md",
         "start": {
@@ -117,10 +120,15 @@
       }
     },
     {
-      "id": "source:README.md:23",
+      "id": "source:README.md:product-requirements-link",
       "kind": "source",
       "label": "README product requirements link",
       "fingerprint": "git-blob:6ac285dbc8412fb3eb0555b6f1b71f5976cae849",
+      "anchor": {
+        "path": "README.md",
+        "symbol": "Design",
+        "contentPattern": "The product requirements live in"
+      },
       "location": {
         "path": "README.md",
         "start": {

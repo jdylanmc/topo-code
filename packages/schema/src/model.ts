@@ -20,11 +20,18 @@ export interface SourceLocation {
   };
 }
 
+export interface SourceAnchor {
+  path: string;
+  symbol?: string;
+  contentPattern?: string;
+}
+
 export interface Evidence {
   id: EntityId;
   kind: "source" | "report" | "annotation";
   label: string;
   fingerprint?: string;
+  anchor?: SourceAnchor;
   location?: SourceLocation;
   locator?: string;
   observedAt?: string;
@@ -122,6 +129,7 @@ export interface LayoutPoint {
 export interface LayoutSubject {
   kind: "node" | "container" | "edge" | "derived";
   id: EntityId;
+  sourceSubjects?: AttributeSubject[];
 }
 
 export interface LayoutItem {

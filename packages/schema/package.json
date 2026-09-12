@@ -15,8 +15,20 @@
     "./graph.schema.json": "./graph.schema.json"
   },
   "scripts": {
-    "build": "tsc -b",
-    "typecheck": "tsc -b --pretty false",
-    "test": "vitest run"
+    "build": "node scripts/generate-validator.mjs --check && tsc -b && node scripts/smoke-validator.mjs",
+    "schema:generate": "node scripts/generate-validator.mjs",
+    "schema:check": "node scripts/generate-validator.mjs --check",
+    "typecheck": "node scripts/generate-validator.mjs --check && tsc -b --pretty false",
+    "test": "node scripts/generate-validator.mjs --check && vitest run"
+  },
+  "dependencies": {
+    "ajv": "8.17.1",
+    "ajv-formats": "3.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "typescript": "^7.0.2",
+    "vite": "8.2.2",
+    "vitest": "^5.0.0"
   }
 }

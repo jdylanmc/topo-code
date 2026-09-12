@@ -1,3 +1,14 @@
 {
-  "dependencies": {}
+  "dependencies": {
+    "ajv": {
+      "range": "8.17.1",
+      "license": "MIT",
+      "source": "https://github.com/ajv-validator/ajv/blob/v8.17.1/LICENSE"
+    },
+    "ajv-formats": {
+      "range": "3.0.1",
+      "license": "MIT",
+      "source": "https://github.com/ajv-validator/ajv-formats/blob/v3.0.1/LICENSE"
+    }
+  }
 }
