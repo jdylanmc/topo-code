@@ -119,16 +119,25 @@ export interface LayoutPoint {
   y: number;
 }
 
-export interface LayoutNode {
-  nodeId: EntityId;
+export interface LayoutSubject {
+  kind: "node" | "container" | "edge" | "derived";
+  id: EntityId;
+}
+
+export interface LayoutItem {
+  subject: LayoutSubject & {
+    kind: "node" | "container" | "derived";
+  };
   x: number;
   y: number;
   width: number;
   height: number;
 }
 
-export interface LayoutEdge {
-  edgeId: EntityId;
+export interface LayoutRoute {
+  subject: LayoutSubject & {
+    kind: "edge" | "derived";
+  };
   points: LayoutPoint[];
 }
 
@@ -151,8 +160,10 @@ export interface LayoutDocument {
   algorithm: {
     id: string;
     version: string;
+    config: Record<string, JsonValue>;
+    seed?: string;
   };
-  nodes: LayoutNode[];
-  edges: LayoutEdge[];
+  items: LayoutItem[];
+  routes: LayoutRoute[];
   bounds: LayoutBounds;
 }
