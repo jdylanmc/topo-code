@@ -1,14 +1,22 @@
+import { Ajv2020, type ErrorObject } from "ajv/dist/2020.js";
+import addFormats from "ajv-formats";
 import {
   assessGraphDocumentCompatibility,
   assessSchemaCompatibility,
   type SchemaCompatibility,
-  parseGraphSchemaVersion,
+  type SupportedModules,
 } from "./compatibility.js";
+import {
+  createExternalNodeId,
+  createPathNodeId,
+  createSyntheticNodeId,
+} from "./ids.js";
 import type {
   GraphDocument,
   GraphSchemaVersion,
-  JsonValue,
+  Provenance,
 } from "./model.js";
+import { GRAPH_JSON_SCHEMA } from "./schema.js";
 
 export interface ValidationIssue {
   code: string;
@@ -28,516 +36,319 @@ export class GraphValidationError extends Error {
   }
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
+const ajv = new Ajv2020({
+  allErrors: true,
+  strict: true,
+});
+(addFormats as unknown as (instance: Ajv2020) => Ajv2020)(ajv);
+const validateStructure = ajv.compile(GRAPH_JSON_SCHEMA);
+
+function formatAjvPath(error: ErrorObject): string {
+  const suffix =
+    error.keyword === "required"
+      ? `/${String(error.params.missingProperty)}`
+      : error.keyword === "additionalProperties"
+        ? `/${String(error.params.additionalProperty)}`
+        : "";
+  const pointer = `${error.instancePath}${suffix}`;
+  if (pointer.length === 0) {
+    return "$";
+  }
+  return `$${pointer.replaceAll("~1", "/").replaceAll("~0", "~")}`;
 }
 
-function isNonEmptyString(value: unknown): value is string {
-  return typeof value === "string" && value.length > 0;
+export function validateGraphStructure(value: unknown): ValidationIssue[] {
+  if (validateStructure(value)) {
+    return [];
+  }
+  return (validateStructure.errors ?? []).map((error) => ({
+    code: `schema-${error.keyword}`,
+    path: formatAjvPath(error),
+    message: error.message ?? "JSON Schema validation failed.",
+  }));
 }
 
-function isJsonValue(value: unknown): value is JsonValue {
-  if (
-    value === null ||
-    typeof value === "string" ||
-    typeof value === "boolean"
-  ) {
-    return true;
-  }
-  if (typeof value === "number") {
-    return Number.isFinite(value);
-  }
-  if (Array.isArray(value)) {
-    return value.every(isJsonValue);
-  }
-  return isRecord(value) && Object.values(value).every(isJsonValue);
-}
-
-function addRequiredString(
-  record: Record<string, unknown>,
-  key: string,
-  path: string,
-  issues: ValidationIssue[],
-): void {
-  if (!isNonEmptyString(record[key])) {
-    issues.push({
-      code: "required-string",
-      path: `${path}.${key}`,
-      message: "Expected a non-empty string.",
-    });
-  }
-}
-
-function validateUniqueIds(
-  values: unknown,
+function addDuplicateIssues(
+  values: readonly string[],
   path: string,
   issues: ValidationIssue[],
 ): Set<string> {
   const ids = new Set<string>();
-  if (!Array.isArray(values)) {
-    issues.push({
-      code: "required-array",
-      path,
-      message: "Expected an array.",
-    });
-    return ids;
-  }
-
-  values.forEach((value, index) => {
-    if (!isRecord(value) || !isNonEmptyString(value.id)) {
-      issues.push({
-        code: "required-id",
-        path: `${path}[${index}].id`,
-        message: "Expected a non-empty stable identifier.",
-      });
-      return;
-    }
-    if (ids.has(value.id)) {
+  values.forEach((id, index) => {
+    if (ids.has(id)) {
       issues.push({
         code: "duplicate-id",
-        path: `${path}[${index}].id`,
-        message: `Duplicate identifier "${value.id}".`,
+        path: `${path}[${index}]`,
+        message: `Duplicate identifier "${id}".`,
       });
     }
-    ids.add(value.id);
+    ids.add(id);
   });
   return ids;
 }
 
 function validateProvenance(
-  value: unknown,
+  provenance: Provenance,
   path: string,
-  evidenceIds: Set<string>,
+  moduleIds: ReadonlySet<string>,
+  evidenceIds: ReadonlySet<string>,
   issues: ValidationIssue[],
 ): void {
-  if (!isRecord(value)) {
+  if (!moduleIds.has(provenance.moduleId)) {
     issues.push({
-      code: "required-object",
-      path,
-      message: "Expected provenance.",
-    });
-    return;
-  }
-
-  if (
-    value.kind !== "observed" &&
-    value.kind !== "derived" &&
-    value.kind !== "inferred" &&
-    value.kind !== "human"
-  ) {
-    issues.push({
-      code: "invalid-provenance-kind",
-      path: `${path}.kind`,
-      message: "Expected observed, derived, inferred, or human.",
+      code: "unknown-module",
+      path: `${path}.moduleId`,
+      message: `Unknown module "${provenance.moduleId}".`,
     });
   }
-  addRequiredString(value, "moduleId", path, issues);
-  addRequiredString(value, "method", path, issues);
+  addDuplicateIssues(provenance.evidenceIds, `${path}.evidenceIds`, issues);
+  provenance.evidenceIds.forEach((id, index) => {
+    if (!evidenceIds.has(id)) {
+      issues.push({
+        code: "unknown-evidence",
+        path: `${path}.evidenceIds[${index}]`,
+        message: `Unknown evidence identifier "${id}".`,
+      });
+    }
+  });
+}
 
-  if (!Array.isArray(value.evidenceIds)) {
-    issues.push({
-      code: "required-array",
-      path: `${path}.evidenceIds`,
-      message: "Expected an evidence identifier array.",
-    });
-  } else {
-    value.evidenceIds.forEach((id, index) => {
-      if (!isNonEmptyString(id) || !evidenceIds.has(id)) {
-        issues.push({
-          code: "unknown-evidence",
-          path: `${path}.evidenceIds[${index}]`,
-          message: `Unknown evidence identifier "${String(id)}".`,
-        });
-      }
-    });
+function expectedNodeId(node: GraphDocument["nodes"][number]): string {
+  switch (node.identity.kind) {
+    case "path":
+      return createPathNodeId(node.identity.value);
+    case "external":
+      return createExternalNodeId(node.identity.value);
+    case "synthetic":
+      return createSyntheticNodeId(node.identity.value);
   }
 }
 
-function validateAttribute(
-  value: unknown,
-  index: number,
-  nodeIds: Set<string>,
-  edgeIds: Set<string>,
-  containerIds: Set<string>,
-  evidenceIds: Set<string>,
-  issues: ValidationIssue[],
-): void {
-  const path = `$.attributes[${index}]`;
-  if (!isRecord(value)) {
-    return;
-  }
-  addRequiredString(value, "key", path, issues);
-  if (!isJsonValue(value.value)) {
-    issues.push({
-      code: "invalid-json-value",
-      path: `${path}.value`,
-      message: "Attribute values must be finite JSON values.",
-    });
-  }
-  if (
-    typeof value.confidence !== "number" ||
-    value.confidence < 0 ||
-    value.confidence > 1
-  ) {
-    issues.push({
-      code: "invalid-confidence",
-      path: `${path}.confidence`,
-      message: "Confidence must be between 0 and 1.",
-    });
-  }
-  validateProvenance(value.provenance, `${path}.provenance`, evidenceIds, issues);
+function isNamespacedExtension(key: string): boolean {
+  return key.includes(".") || key.includes("/");
+}
 
-  if (!isRecord(value.subject)) {
+export function validateGraphDocument(value: unknown): ValidationIssue[] {
+  const structuralIssues = validateGraphStructure(value);
+  if (structuralIssues.length > 0) {
+    return structuralIssues;
+  }
+
+  const document = value as GraphDocument;
+  const issues: ValidationIssue[] = [];
+  const schemaCompatibility = assessSchemaCompatibility(document.schemaVersion);
+  schemaCompatibility.errors.forEach((message) =>
     issues.push({
-      code: "required-object",
-      path: `${path}.subject`,
-      message: "Expected an attribute subject.",
+      code: "incompatible-schema-version",
+      path: "$.schemaVersion",
+      message,
+    }),
+  );
+
+  const moduleIds = addDuplicateIssues(
+    document.modules.map((module) => module.id),
+    "$.modules",
+    issues,
+  );
+  const nodeIds = addDuplicateIssues(
+    document.nodes.map((node) => node.id),
+    "$.nodes",
+    issues,
+  );
+  const edgeIds = addDuplicateIssues(
+    document.edges.map((edge) => edge.id),
+    "$.edges",
+    issues,
+  );
+  const containerIds = addDuplicateIssues(
+    document.containers.map((container) => container.id),
+    "$.containers",
+    issues,
+  );
+  addDuplicateIssues(
+    document.attributes.map((attribute) => attribute.id),
+    "$.attributes",
+    issues,
+  );
+  const evidenceIds = addDuplicateIssues(
+    document.evidence.map((evidence) => evidence.id),
+    "$.evidence",
+    issues,
+  );
+
+  const externalNodeIds = new Set<string>();
+  document.nodes.forEach((node, index) => {
+    let expected: string;
+    try {
+      expected = expectedNodeId(node);
+    } catch (error) {
+      issues.push({
+        code: "invalid-identity",
+        path: `$.nodes[${index}].identity.value`,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return;
+    }
+    if (node.id !== expected) {
+      issues.push({
+        code: "identity-mismatch",
+        path: `$.nodes[${index}].id`,
+        message: `Node identifier must be "${expected}" for its declared identity.`,
+      });
+    }
+    if (node.identity.kind === "external") {
+      externalNodeIds.add(node.id);
+    }
+  });
+
+  const adjacentNodes = new Map<string, Set<string>>();
+  for (const nodeId of nodeIds) {
+    adjacentNodes.set(nodeId, new Set());
+  }
+
+  document.edges.forEach((edge, index) => {
+    const path = `$.edges[${index}]`;
+    if (!nodeIds.has(edge.sourceId)) {
+      issues.push({
+        code: "unknown-node",
+        path: `${path}.sourceId`,
+        message: "Edge source must reference an existing node.",
+      });
+    }
+    if (!nodeIds.has(edge.targetId)) {
+      issues.push({
+        code: "unknown-node",
+        path: `${path}.targetId`,
+        message: "Edge target must reference an existing node.",
+      });
+    }
+    if (externalNodeIds.has(edge.sourceId)) {
+      issues.push({
+        code: "external-source",
+        path: `${path}.sourceId`,
+        message: "External nodes are terminal and cannot be edge sources.",
+      });
+    }
+    adjacentNodes.get(edge.sourceId)?.add(edge.targetId);
+    adjacentNodes.get(edge.targetId)?.add(edge.sourceId);
+    validateProvenance(
+      edge.provenance,
+      `${path}.provenance`,
+      moduleIds,
+      evidenceIds,
+      issues,
+    );
+  });
+
+  const validMemberIds = new Set([...nodeIds, ...containerIds]);
+  document.containers.forEach((container, index) => {
+    const path = `$.containers[${index}]`;
+    addDuplicateIssues(container.memberIds, `${path}.memberIds`, issues);
+    container.memberIds.forEach((id, memberIndex) => {
+      if (!validMemberIds.has(id)) {
+        issues.push({
+          code: "unknown-member",
+          path: `${path}.memberIds[${memberIndex}]`,
+          message: `Unknown container member "${id}".`,
+        });
+      }
     });
-  } else {
-    const subjectSets: Record<string, Set<string>> = {
-      node: nodeIds,
-      edge: edgeIds,
-      container: containerIds,
-    };
-    const subjectSet =
-      typeof value.subject.kind === "string"
-        ? subjectSets[value.subject.kind]
-        : undefined;
-    if (!subjectSet || !isNonEmptyString(value.subject.id) || !subjectSet.has(value.subject.id)) {
+    if (
+      container.parentId !== undefined &&
+      !containerIds.has(container.parentId)
+    ) {
+      issues.push({
+        code: "unknown-container",
+        path: `${path}.parentId`,
+        message: "Parent must reference an existing container.",
+      });
+    }
+  });
+
+  const subjectSets = {
+    node: nodeIds,
+    edge: edgeIds,
+    container: containerIds,
+  } as const;
+  document.attributes.forEach((attribute, index) => {
+    const path = `$.attributes[${index}]`;
+    if (!subjectSets[attribute.subject.kind].has(attribute.subject.id)) {
       issues.push({
         code: "unknown-subject",
         path: `${path}.subject`,
         message: "Attribute subject must reference an existing primitive.",
       });
     }
-  }
-
-  if (!Array.isArray(value.evidenceIds)) {
-    issues.push({
-      code: "required-array",
-      path: `${path}.evidenceIds`,
-      message: "Expected an evidence identifier array.",
-    });
-  } else {
-    value.evidenceIds.forEach((id, evidenceIndex) => {
-      if (!isNonEmptyString(id) || !evidenceIds.has(id)) {
+    validateProvenance(
+      attribute.provenance,
+      `${path}.provenance`,
+      moduleIds,
+      evidenceIds,
+      issues,
+    );
+    addDuplicateIssues(attribute.evidenceIds, `${path}.evidenceIds`, issues);
+    attribute.evidenceIds.forEach((id, evidenceIndex) => {
+      if (!evidenceIds.has(id)) {
         issues.push({
           code: "unknown-evidence",
           path: `${path}.evidenceIds[${evidenceIndex}]`,
-          message: `Unknown evidence identifier "${String(id)}".`,
+          message: `Unknown evidence identifier "${id}".`,
         });
       }
     });
-  }
 
-  if (value.witnesses !== undefined) {
-    if (!Array.isArray(value.witnesses)) {
-      issues.push({
-        code: "required-array",
-        path: `${path}.witnesses`,
-        message: "Expected fingerprint witnesses.",
-      });
-    } else {
-      value.witnesses.forEach((witness, witnessIndex) => {
+    if (attribute.witnesses !== undefined) {
+      addDuplicateIssues(
+        attribute.witnesses.map((witness) => witness.nodeId),
+        `${path}.witnesses`,
+        issues,
+      );
+      attribute.witnesses.forEach((witness, witnessIndex) => {
         const witnessPath = `${path}.witnesses[${witnessIndex}]`;
-        if (!isRecord(witness)) {
-          issues.push({
-            code: "required-object",
-            path: witnessPath,
-            message: "Expected a fingerprint witness.",
-          });
-          return;
-        }
-        if (
-          !isNonEmptyString(witness.nodeId) ||
-          !nodeIds.has(witness.nodeId)
-        ) {
+        if (!nodeIds.has(witness.nodeId)) {
           issues.push({
             code: "unknown-node",
             path: `${witnessPath}.nodeId`,
             message: "Witness must reference an existing node.",
           });
+          return;
         }
-        addRequiredString(witness, "fingerprint", witnessPath, issues);
+        if (attribute.subject.kind !== "node") {
+          return;
+        }
         if (
-          witness.relationship !== "self" &&
-          witness.relationship !== "neighbor"
+          witness.relationship === "self" &&
+          witness.nodeId !== attribute.subject.id
         ) {
           issues.push({
-            code: "invalid-witness-relationship",
-            path: `${witnessPath}.relationship`,
-            message: "Expected self or neighbor.",
+            code: "invalid-self-witness",
+            path: `${witnessPath}.nodeId`,
+            message: "A self witness must reference the attributed node.",
+          });
+        }
+        if (
+          witness.relationship === "neighbor" &&
+          !adjacentNodes.get(attribute.subject.id)?.has(witness.nodeId)
+        ) {
+          issues.push({
+            code: "invalid-neighbor-witness",
+            path: `${witnessPath}.nodeId`,
+            message: "A neighbor witness must be directly adjacent to the attributed node.",
           });
         }
       });
     }
-  }
-}
+  });
 
-export function validateGraphDocument(value: unknown): ValidationIssue[] {
-  const issues: ValidationIssue[] = [];
-  if (!isRecord(value)) {
-    return [
-      {
-        code: "required-object",
-        path: "$",
-        message: "Expected a graph document object.",
-      },
-    ];
-  }
-
-  addRequiredString(value, "graphId", "$", issues);
-  if (
-    !isNonEmptyString(value.schemaVersion) ||
-    !parseGraphSchemaVersion(value.schemaVersion)
-  ) {
-    issues.push({
-      code: "invalid-schema-version",
-      path: "$.schemaVersion",
-      message: 'Expected a "major.minor" schema version.',
-    });
-  } else {
-    const compatibility = assessSchemaCompatibility(value.schemaVersion);
-    compatibility.errors.forEach((message) =>
+  Object.keys(document.extensions).forEach((key) => {
+    if (!isNamespacedExtension(key)) {
       issues.push({
-        code: "incompatible-schema-version",
-        path: "$.schemaVersion",
-        message,
-      }),
-    );
-  }
-
-  if (!isRecord(value.repository)) {
-    issues.push({
-      code: "required-object",
-      path: "$.repository",
-      message: "Expected repository identity.",
-    });
-  } else {
-    addRequiredString(value.repository, "id", "$.repository", issues);
-    addRequiredString(value.repository, "label", "$.repository", issues);
-  }
-
-  const nodeIds = validateUniqueIds(value.nodes, "$.nodes", issues);
-  const edgeIds = validateUniqueIds(value.edges, "$.edges", issues);
-  const containerIds = validateUniqueIds(
-    value.containers,
-    "$.containers",
-    issues,
-  );
-  validateUniqueIds(value.attributes, "$.attributes", issues);
-  const evidenceIds = validateUniqueIds(value.evidence, "$.evidence", issues);
-
-  if (Array.isArray(value.evidence)) {
-    value.evidence.forEach((evidence, index) => {
-      const path = `$.evidence[${index}]`;
-      if (!isRecord(evidence)) return;
-      addRequiredString(evidence, "label", path, issues);
-      if (
-        evidence.kind !== "source" &&
-        evidence.kind !== "report" &&
-        evidence.kind !== "annotation"
-      ) {
-        issues.push({
-          code: "invalid-evidence-kind",
-          path: `${path}.kind`,
-          message: "Expected source, report, or annotation.",
-        });
-      }
-      if (evidence.location !== undefined) {
-        if (!isRecord(evidence.location)) {
-          issues.push({
-            code: "required-object",
-            path: `${path}.location`,
-            message: "Expected a source location.",
-          });
-        } else {
-          addRequiredString(
-            evidence.location,
-            "path",
-            `${path}.location`,
-            issues,
-          );
-          if (!isRecord(evidence.location.start)) {
-            issues.push({
-              code: "required-object",
-              path: `${path}.location.start`,
-              message: "Expected a start position.",
-            });
-          } else {
-            for (const key of ["line", "column"]) {
-              if (
-                !Number.isInteger(evidence.location.start[key]) ||
-                (evidence.location.start[key] as number) < 1
-              ) {
-                issues.push({
-                  code: "invalid-source-position",
-                  path: `${path}.location.start.${key}`,
-                  message: "Expected a positive integer.",
-                });
-              }
-            }
-          }
-        }
-      }
-    });
-  }
-
-  if (!Array.isArray(value.modules)) {
-    issues.push({
-      code: "required-array",
-      path: "$.modules",
-      message: "Expected a module manifest.",
-    });
-  } else {
-    const moduleIds = new Set<string>();
-    value.modules.forEach((module, index) => {
-      const path = `$.modules[${index}]`;
-      if (!isRecord(module)) {
-        issues.push({
-          code: "required-object",
-          path,
-          message: "Expected a module manifest entry.",
-        });
-        return;
-      }
-      addRequiredString(module, "id", path, issues);
-      addRequiredString(module, "version", path, issues);
-      if (
-        !isNonEmptyString(module.schemaVersion) ||
-        !parseGraphSchemaVersion(module.schemaVersion)
-      ) {
-        issues.push({
-          code: "invalid-schema-version",
-          path: `${path}.schemaVersion`,
-          message: 'Expected a "major.minor" schema version.',
-        });
-      }
-      if (isNonEmptyString(module.id)) {
-        if (moduleIds.has(module.id)) {
-          issues.push({
-            code: "duplicate-module",
-            path: `${path}.id`,
-            message: `Duplicate module "${module.id}".`,
-          });
-        }
-        moduleIds.add(module.id);
-      }
-    });
-  }
-
-  if (Array.isArray(value.nodes)) {
-    value.nodes.forEach((node, index) => {
-      const path = `$.nodes[${index}]`;
-      if (!isRecord(node)) return;
-      addRequiredString(node, "label", path, issues);
-      addRequiredString(node, "kind", path, issues);
-      if (!isRecord(node.identity)) {
-        issues.push({
-          code: "required-object",
-          path: `${path}.identity`,
-          message: "Expected node identity.",
-        });
-      } else {
-        if (
-          node.identity.kind !== "path" &&
-          node.identity.kind !== "external" &&
-          node.identity.kind !== "synthetic"
-        ) {
-          issues.push({
-            code: "invalid-identity-kind",
-            path: `${path}.identity.kind`,
-            message: "Expected path, external, or synthetic.",
-          });
-        }
-        addRequiredString(node.identity, "value", `${path}.identity`, issues);
-      }
-    });
-  }
-
-  if (Array.isArray(value.edges)) {
-    value.edges.forEach((edge, index) => {
-      const path = `$.edges[${index}]`;
-      if (!isRecord(edge)) return;
-      addRequiredString(edge, "label", path, issues);
-      addRequiredString(edge, "type", path, issues);
-      if (!isNonEmptyString(edge.sourceId) || !nodeIds.has(edge.sourceId)) {
-        issues.push({
-          code: "unknown-node",
-          path: `${path}.sourceId`,
-          message: "Edge source must reference an existing node.",
-        });
-      }
-      if (!isNonEmptyString(edge.targetId) || !nodeIds.has(edge.targetId)) {
-        issues.push({
-          code: "unknown-node",
-          path: `${path}.targetId`,
-          message: "Edge target must reference an existing node.",
-        });
-      }
-      validateProvenance(edge.provenance, `${path}.provenance`, evidenceIds, issues);
-    });
-  }
-
-  if (Array.isArray(value.containers)) {
-    const validMemberIds = new Set([...nodeIds, ...containerIds]);
-    value.containers.forEach((container, index) => {
-      const path = `$.containers[${index}]`;
-      if (!isRecord(container)) return;
-      addRequiredString(container, "label", path, issues);
-      addRequiredString(container, "type", path, issues);
-      if (!Array.isArray(container.memberIds)) {
-        issues.push({
-          code: "required-array",
-          path: `${path}.memberIds`,
-          message: "Expected member identifiers.",
-        });
-      } else {
-        container.memberIds.forEach((id, memberIndex) => {
-          if (!isNonEmptyString(id) || !validMemberIds.has(id)) {
-            issues.push({
-              code: "unknown-member",
-              path: `${path}.memberIds[${memberIndex}]`,
-              message: `Unknown container member "${String(id)}".`,
-            });
-          }
-        });
-      }
-      if (
-        container.parentId !== undefined &&
-        (!isNonEmptyString(container.parentId) ||
-          !containerIds.has(container.parentId))
-      ) {
-        issues.push({
-          code: "unknown-container",
-          path: `${path}.parentId`,
-          message: "Parent must reference an existing container.",
-        });
-      }
-    });
-  }
-
-  if (Array.isArray(value.attributes)) {
-    value.attributes.forEach((attribute, index) =>
-      validateAttribute(
-        attribute,
-        index,
-        nodeIds,
-        edgeIds,
-        containerIds,
-        evidenceIds,
-        issues,
-      ),
-    );
-  }
-
-  if (!isRecord(value.extensions) || !isJsonValue(value.extensions)) {
-    issues.push({
-      code: "invalid-extensions",
-      path: "$.extensions",
-      message: "Extensions must be a JSON object keyed by module namespace.",
-    });
-  }
+        code: "unnamespaced-extension",
+        path: `$.extensions.${key}`,
+        message: "Extension keys must contain a namespace separator.",
+      });
+    }
+  });
 
   return issues;
 }
@@ -558,7 +369,7 @@ export interface ParsedGraphDocument {
 
 export function parseGraphDocument(
   serialized: string,
-  supportedModules: Readonly<Record<string, string>> = {},
+  supportedModules: SupportedModules = {},
 ): ParsedGraphDocument {
   const value: unknown = JSON.parse(serialized);
   assertGraphDocument(value);

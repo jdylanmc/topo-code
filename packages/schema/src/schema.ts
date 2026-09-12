@@ -39,7 +39,10 @@ export const GRAPH_JSON_SCHEMA = {
       type: "array",
       items: { $ref: "#/$defs/evidence" },
     },
-    extensions: { type: "object" },
+    extensions: {
+      type: "object",
+      additionalProperties: { $ref: "#/$defs/jsonValue" },
+    },
   },
   additionalProperties: false,
   $defs: {
@@ -47,6 +50,27 @@ export const GRAPH_JSON_SCHEMA = {
     schemaVersion: {
       type: "string",
       pattern: "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+    },
+    semanticVersion: {
+      type: "string",
+      pattern:
+        "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+    },
+    jsonValue: {
+      anyOf: [
+        { type: "null" },
+        { type: "boolean" },
+        { type: "number" },
+        { type: "string" },
+        {
+          type: "array",
+          items: { $ref: "#/$defs/jsonValue" },
+        },
+        {
+          type: "object",
+          additionalProperties: { $ref: "#/$defs/jsonValue" },
+        },
+      ],
     },
     position: {
       type: "object",
@@ -67,6 +91,19 @@ export const GRAPH_JSON_SCHEMA = {
       },
       additionalProperties: false,
     },
+    sourceAnchor: {
+      type: "object",
+      required: ["path"],
+      properties: {
+        path: { type: "string", minLength: 1 },
+        symbol: { type: "string", minLength: 1 },
+        contentPattern: { type: "string", minLength: 1 },
+      },
+      dependentRequired: {
+        contentPattern: ["symbol"],
+      },
+      additionalProperties: false,
+    },
     evidence: {
       type: "object",
       required: ["id", "kind", "label"],
@@ -75,6 +112,7 @@ export const GRAPH_JSON_SCHEMA = {
         kind: { enum: ["source", "report", "annotation"] },
         label: { type: "string", minLength: 1 },
         fingerprint: { type: "string", minLength: 1 },
+        anchor: { $ref: "#/$defs/sourceAnchor" },
         location: { $ref: "#/$defs/sourceLocation" },
         locator: { type: "string", minLength: 1 },
         observedAt: { type: "string", format: "date-time" },
@@ -187,7 +225,7 @@ export const GRAPH_JSON_SCHEMA = {
         id: { $ref: "#/$defs/id" },
         subject: { $ref: "#/$defs/subject" },
         key: { type: "string", minLength: 1 },
-        value: {},
+        value: { $ref: "#/$defs/jsonValue" },
         provenance: { $ref: "#/$defs/provenance" },
         evidenceIds: {
           type: "array",
@@ -208,7 +246,7 @@ export const GRAPH_JSON_SCHEMA = {
       required: ["id", "version", "schemaVersion"],
       properties: {
         id: { type: "string", minLength: 1 },
-        version: { type: "string", minLength: 1 },
+        version: { $ref: "#/$defs/semanticVersion" },
         schemaVersion: { $ref: "#/$defs/schemaVersion" },
       },
       additionalProperties: false,

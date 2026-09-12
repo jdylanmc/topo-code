@@ -1,10 +1,18 @@
 import {
   LAYOUT_SCHEMA_VERSION,
+  type AttributeSubject,
+  type GraphDocument,
   type JsonValue,
   type LayoutDocument,
   type LayoutItem,
   type LayoutRoute,
+  type LayoutSubject,
 } from "./model.js";
+import {
+  canonicalizeJson,
+  compareCodeUnits,
+  serializeJson,
+} from "./json.js";
 import {
   GraphValidationError,
   type ValidationIssue,
@@ -116,6 +124,32 @@ function validateUniqueSubjects(
       });
     }
     ids.add(subjectKey);
+
+    if (value.subject.sourceSubjects !== undefined) {
+      if (!Array.isArray(value.subject.sourceSubjects)) {
+        issues.push({
+          code: "required-array",
+          path: `${path}[${index}].subject.sourceSubjects`,
+          message: "Expected source primitive references.",
+        });
+      } else {
+        value.subject.sourceSubjects.forEach((source, sourceIndex) => {
+          if (
+            !isRecord(source) ||
+            (source.kind !== "node" &&
+              source.kind !== "edge" &&
+              source.kind !== "container") ||
+            !isNonEmptyString(source.id)
+          ) {
+            issues.push({
+              code: "required-id",
+              path: `${path}[${index}].subject.sourceSubjects[${sourceIndex}]`,
+              message: "Expected a source graph primitive.",
+            });
+          }
+        });
+      }
+    }
   });
 }
 
@@ -261,23 +295,31 @@ function round(value: number, precision: number): number {
   return Math.round((value + Number.EPSILON) * scale) / scale;
 }
 
-function sortJson(value: JsonValue): JsonValue {
-  if (Array.isArray(value)) {
-    return value.map(sortJson);
-  }
-  if (value !== null && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value)
-        .sort(([left], [right]) => left.localeCompare(right))
-        .map(([key, child]) => [key, sortJson(child)]),
+function canonicalSourceSubjects(
+  sourceSubjects: AttributeSubject[] | undefined,
+): AttributeSubject[] | undefined {
+  return sourceSubjects
+    ?.map((subject) => ({ kind: subject.kind, id: subject.id }))
+    .sort(
+      (left, right) =>
+        compareCodeUnits(left.kind, right.kind) ||
+        compareCodeUnits(left.id, right.id),
     );
-  }
-  return value;
 }
 
 function canonicalItem(item: LayoutItem, precision: number): LayoutItem {
   return {
-    subject: { kind: item.subject.kind, id: item.subject.id },
+    subject: {
+      kind: item.subject.kind,
+      id: item.subject.id,
+      ...(item.subject.sourceSubjects === undefined
+        ? {}
+        : {
+            sourceSubjects: canonicalSourceSubjects(
+              item.subject.sourceSubjects,
+            ),
+          }),
+    },
     x: round(item.x, precision),
     y: round(item.y, precision),
     width: round(item.width, precision),
@@ -287,7 +329,17 @@ function canonicalItem(item: LayoutItem, precision: number): LayoutItem {
 
 function canonicalRoute(route: LayoutRoute, precision: number): LayoutRoute {
   return {
-    subject: { kind: route.subject.kind, id: route.subject.id },
+    subject: {
+      kind: route.subject.kind,
+      id: route.subject.id,
+      ...(route.subject.sourceSubjects === undefined
+        ? {}
+        : {
+            sourceSubjects: canonicalSourceSubjects(
+              route.subject.sourceSubjects,
+            ),
+          }),
+    },
     points: route.points.map((point) => ({
       x: round(point.x, precision),
       y: round(point.y, precision),
@@ -313,7 +365,10 @@ export function canonicalizeLayoutDocument(
     algorithm: {
       id: document.algorithm.id,
       version: document.algorithm.version,
-      config: sortJson(document.algorithm.config) as Record<string, JsonValue>,
+      config: canonicalizeJson(document.algorithm.config) as Record<
+        string,
+        JsonValue
+      >,
       ...(document.algorithm.seed === undefined
         ? {}
         : { seed: document.algorithm.seed }),
@@ -322,15 +377,15 @@ export function canonicalizeLayoutDocument(
       .map((item) => canonicalItem(item, precision))
       .sort(
         (left, right) =>
-          left.subject.kind.localeCompare(right.subject.kind) ||
-          left.subject.id.localeCompare(right.subject.id),
+          compareCodeUnits(left.subject.kind, right.subject.kind) ||
+          compareCodeUnits(left.subject.id, right.subject.id),
       ),
     routes: document.routes
       .map((route) => canonicalRoute(route, precision))
       .sort(
         (left, right) =>
-          left.subject.kind.localeCompare(right.subject.kind) ||
-          left.subject.id.localeCompare(right.subject.id),
+          compareCodeUnits(left.subject.kind, right.subject.kind) ||
+          compareCodeUnits(left.subject.id, right.subject.id),
       ),
     bounds: {
       x: round(document.bounds.x, precision),
@@ -346,11 +401,125 @@ export function serializeLayoutDocument(
   precision = 3,
 ): string {
   assertLayoutDocument(document);
-  return `${JSON.stringify(canonicalizeLayoutDocument(document, precision), null, 2)}\n`;
+  return serializeJson(
+    canonicalizeLayoutDocument(
+      document,
+      precision,
+    ) as unknown as JsonValue,
+  );
 }
 
 export function parseLayoutDocument(serialized: string): LayoutDocument {
   const value: unknown = JSON.parse(serialized);
   assertLayoutDocument(value);
   return value;
+}
+
+function validateLayoutSubjectAgainstGraph(
+  subject: LayoutSubject,
+  path: string,
+  graph: GraphDocument,
+  issues: ValidationIssue[],
+): void {
+  const subjectIds = {
+    node: new Set(graph.nodes.map((node) => node.id)),
+    edge: new Set(graph.edges.map((edge) => edge.id)),
+    container: new Set(graph.containers.map((container) => container.id)),
+  };
+
+  if (subject.kind !== "derived") {
+    if (!subjectIds[subject.kind].has(subject.id)) {
+      issues.push({
+        code: "unknown-layout-subject",
+        path: `${path}.id`,
+        message: "Layout subject must reference an existing graph primitive.",
+      });
+    }
+  } else if (
+    subject.sourceSubjects === undefined ||
+    subject.sourceSubjects.length === 0
+  ) {
+    issues.push({
+      code: "missing-derived-sources",
+      path: `${path}.sourceSubjects`,
+      message: "Derived geometry must reference at least one source primitive.",
+    });
+  }
+
+  if (subject.sourceSubjects !== undefined) {
+    const seen = new Set<string>();
+    subject.sourceSubjects.forEach((source, index) => {
+      const sourcePath = `${path}.sourceSubjects[${index}]`;
+      const key = `${source.kind}:${source.id}`;
+      if (seen.has(key)) {
+        issues.push({
+          code: "duplicate-layout-source",
+          path: sourcePath,
+          message: `Duplicate derived source "${key}".`,
+        });
+      }
+      seen.add(key);
+      if (!subjectIds[source.kind].has(source.id)) {
+        issues.push({
+          code: "unknown-layout-source",
+          path: sourcePath,
+          message: "Derived geometry source must reference an existing primitive.",
+        });
+      }
+    });
+  }
+}
+
+export function validateLayoutAgainstGraph(
+  document: LayoutDocument,
+  graph: GraphDocument,
+): ValidationIssue[] {
+  const issues = validateLayoutDocument(document);
+  if (issues.length > 0) {
+    return issues;
+  }
+
+  if (document.graphRef.graphId !== graph.graphId) {
+    issues.push({
+      code: "graph-reference-mismatch",
+      path: "$.graphRef.graphId",
+      message: "Layout graph identifier does not match the graph document.",
+    });
+  }
+  if (document.graphRef.schemaVersion !== graph.schemaVersion) {
+    issues.push({
+      code: "graph-version-mismatch",
+      path: "$.graphRef.schemaVersion",
+      message: "Layout graph schema version does not match the graph document.",
+    });
+  }
+  if (
+    document.graphRef.revision !== undefined &&
+    document.graphRef.revision !== graph.repository.revision
+  ) {
+    issues.push({
+      code: "graph-revision-mismatch",
+      path: "$.graphRef.revision",
+      message: "Layout graph revision does not match the graph document.",
+    });
+  }
+
+  document.items.forEach((item, index) =>
+    validateLayoutSubjectAgainstGraph(
+      item.subject,
+      `$.items[${index}].subject`,
+      graph,
+      issues,
+    ),
+  );
+  document.routes.forEach((route, index) =>
+    validateLayoutSubjectAgainstGraph(
+      route.subject,
+      `$.routes[${index}].subject`,
+      graph,
+      issues,
+    ),
+  );
+
+  return issues;
 }

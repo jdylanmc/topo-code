@@ -7,11 +7,17 @@ function requireIdPart(value: string, label: string): string {
 }
 
 export function normalizeRepositoryPath(path: string): string {
-  const normalized = path.replaceAll("\\", "/").replace(/^\.\//, "");
+  const normalized = path.replaceAll("\\", "/");
+  const components = normalized.split("/");
   if (
     normalized.length === 0 ||
+    normalized.includes("\0") ||
     normalized.startsWith("/") ||
-    normalized.split("/").includes("..")
+    /^[A-Za-z]:\//.test(normalized) ||
+    components.some(
+      (component) =>
+        component.length === 0 || component === "." || component === "..",
+    )
   ) {
     throw new Error(`Repository path "${path}" must be relative and contained.`);
   }
@@ -24,6 +30,10 @@ export function createPathNodeId(path: string): string {
 
 export function createExternalNodeId(locator: string): string {
   return `external:${requireIdPart(locator, "External locator")}`;
+}
+
+export function createSyntheticNodeId(identity: string): string {
+  return `synthetic:${requireIdPart(identity, "Synthetic identity")}`;
 }
 
 export function createEdgeId(
