@@ -1,0 +1,32 @@
+{
+  "name": "@topo/scanner",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "fixture": "node dist/fixture.js",
+    "typecheck": "tsc -b --pretty false",
+    "test": "vitest run src"
+  },
+  "dependencies": {
+    "@topo/schema": "workspace:*",
+    "ignore": "^7.0.0",
+    "typescript-compiler-api": "npm:typescript@^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^7.0.2",
+    "vite": "8.2.2",
+    "vitest": "^5.0.0"
+  }
+}

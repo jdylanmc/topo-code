@@ -1,0 +1,4316 @@
+{
+  "schemaVersion": "1.0",
+  "generatedAt": "2026-09-12T21:23:25.913Z",
+  "environment": {
+    "platform": "darwin",
+    "release": "25.6.0",
+    "architecture": "arm64",
+    "cpu": "Apple M5 Pro",
+    "logicalCpuCount": 18,
+    "totalMemoryBytes": 68719476736,
+    "browser": "153.0.8010.37",
+    "headless": true,
+    "executable": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "launchArgs": [
+      "--disable-background-timer-throttling",
+      "--disable-renderer-backgrounding"
+    ],
+    "gpuFlags": "No GPU-disabling flags supplied. Headless Chrome compositor/GPU behavior may differ from a visible browser."
+  },
+  "fixtures": [
+    {
+      "name": "small",
+      "fixtureKind": "real-small",
+      "graphId": "repo:jdylanmc/topo-code",
+      "nodes": 3,
+      "edges": 1,
+      "tangles": 0,
+      "urlPath": "/small/index.html"
+    },
+    {
+      "name": "medium",
+      "fixtureKind": "synthetic-stress",
+      "graphId": "synthetic:synthetic-medium",
+      "nodes": 549,
+      "edges": 2108,
+      "tangles": 1,
+      "urlPath": "/medium/index.html"
+    },
+    {
+      "name": "large",
+      "fixtureKind": "synthetic-stress",
+      "graphId": "synthetic:synthetic-large",
+      "nodes": 2580,
+      "edges": 12000,
+      "tangles": 1,
+      "urlPath": "/large/index.html"
+    }
+  ],
+  "results": [
+    {
+      "fixture": "small",
+      "fixtureKind": "real-small",
+      "renderer": "svg",
+      "graph": {
+        "nodes": 3,
+        "edges": 1,
+        "tangles": 0
+      },
+      "workload": {
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "panPointerMoves": 80,
+        "zoomWheelEvents": 60,
+        "layoutTransition": "collapse first expanded directory; 300ms renderer transition",
+        "selectionInput": "keyboard Enter on first accessible entity"
+      },
+      "frames": {
+        "rawIntervalsMs": [
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.67,
+          16.665,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.66,
+          16.67,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.67,
+          16.66,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.67,
+          16.66,
+          16.67,
+          16.66
+        ],
+        "summary": {
+          "samples": 251,
+          "durationMs": 4183.165,
+          "deliveredFps": 60.002,
+          "frameIntervalMs": {
+            "mean": 16.666,
+            "p50": 16.664999999999964,
+            "p95": 16.670000000000073,
+            "p99": 16.670000000000073,
+            "maximum": 16.670000000000073
+          },
+          "framesOver16_7ms": 0,
+          "framesOver33_3ms": 0
+        }
+      },
+      "inputToNextPaint": {
+        "source": "PerformanceEventTiming.duration",
+        "available": true,
+        "limitation": "Browser Event Timing measures trusted input start through the next presentation opportunity and is duration-quantized. Empty means Chrome emitted no qualifying entry; handler time is not substituted.",
+        "samples": [
+          {
+            "name": "pointerdown",
+            "duration": 48,
+            "startTime": 582.9199999570847
+          },
+          {
+            "name": "mousedown",
+            "duration": 48,
+            "startTime": 582.9199999570847
+          },
+          {
+            "name": "pointerup",
+            "duration": 16,
+            "startTime": 1932.6899999976158
+          },
+          {
+            "name": "mouseup",
+            "duration": 16,
+            "startTime": 1932.6899999976158
+          },
+          {
+            "name": "click",
+            "duration": 16,
+            "startTime": 1932.6899999976158
+          },
+          {
+            "name": "keydown",
+            "duration": 16,
+            "startTime": 4538.214999973774
+          },
+          {
+            "name": "keyup",
+            "duration": 16,
+            "startTime": 4538.954999983311
+          }
+        ],
+        "durationMs": {
+          "p50": 16,
+          "p95": 48,
+          "maximum": 48
+        }
+      },
+      "memory": {
+        "method": "Chrome DevTools Protocol Performance.getMetrics",
+        "jsHeapUsedBytes": 7083312,
+        "jsHeapTotalBytes": 11141120,
+        "limitation": "JavaScript heap only. It excludes DOM, SVG backing storage, PixiJS GPU buffers/textures, driver memory, and browser process overhead."
+      },
+      "accessibility": {
+        "accessibleEntityCount": 3,
+        "svgLabelCount": 3,
+        "keyboardSelectionSucceeded": true,
+        "highContrastControl": true
+      },
+      "graphics": {
+        "backend": "SVG",
+        "elementCount": 13,
+        "hardwareAccelerated": false
+      },
+      "finalSnapshot": {
+        "renderer": "svg",
+        "graphId": "repo:jdylanmc/topo-code",
+        "visibleNodes": 3,
+        "visibleEdges": 1,
+        "selectedEntityId": "external:https://github.com/jdylanmc/topo-code/issues/1",
+        "expandedContainerIds": [
+          "directory:."
+        ],
+        "collapsedTangleIds": []
+      },
+      "pageErrors": []
+    },
+    {
+      "fixture": "small",
+      "fixtureKind": "real-small",
+      "renderer": "webgl",
+      "graph": {
+        "nodes": 3,
+        "edges": 1,
+        "tangles": 0
+      },
+      "workload": {
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "panPointerMoves": 80,
+        "zoomWheelEvents": 60,
+        "layoutTransition": "collapse first expanded directory; 300ms renderer transition",
+        "selectionInput": "keyboard Enter on first accessible entity"
+      },
+      "frames": {
+        "rawIntervalsMs": [
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.67,
+          16.665,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.67,
+          16.665,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.66,
+          16.67,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.66,
+          16.67,
+          16.665,
+          16.67,
+          16.66,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.66,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.66,
+          16.67,
+          16.67,
+          16.665,
+          16.66,
+          16.665,
+          16.67,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.67,
+          16.66,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          33.33,
+          16.67,
+          16.665,
+          16.67,
+          16.66,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67
+        ],
+        "summary": {
+          "samples": 307,
+          "durationMs": 5133.13,
+          "deliveredFps": 59.808,
+          "frameIntervalMs": {
+            "mean": 16.72,
+            "p50": 16.664999999999964,
+            "p95": 16.670000000000073,
+            "p99": 16.670000000000073,
+            "maximum": 33.32999999999993
+          },
+          "framesOver16_7ms": 1,
+          "framesOver33_3ms": 1
+        }
+      },
+      "inputToNextPaint": {
+        "source": "PerformanceEventTiming.duration",
+        "available": true,
+        "limitation": "Browser Event Timing measures trusted input start through the next presentation opportunity and is duration-quantized. Empty means Chrome emitted no qualifying entry; handler time is not substituted.",
+        "samples": [
+          {
+            "name": "pointerover",
+            "duration": 16,
+            "startTime": 575.5250000357628
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 575.5250000357628
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 575.5250000357628
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 575.5250000357628
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 575.5250000357628
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 575.5250000357628
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 575.5250000357628
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 575.5250000357628
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 575.5250000357628
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 575.5250000357628
+          },
+          {
+            "name": "mouseover",
+            "duration": 16,
+            "startTime": 575.5250000357628
+          },
+          {
+            "name": "pointerdown",
+            "duration": 32,
+            "startTime": 577.2600000500679
+          },
+          {
+            "name": "mousedown",
+            "duration": 32,
+            "startTime": 577.2600000500679
+          },
+          {
+            "name": "gotpointercapture",
+            "duration": 32,
+            "startTime": 578.1200000047684
+          },
+          {
+            "name": "pointerup",
+            "duration": 32,
+            "startTime": 1910.7950000166893
+          },
+          {
+            "name": "mouseup",
+            "duration": 32,
+            "startTime": 1910.7950000166893
+          },
+          {
+            "name": "lostpointercapture",
+            "duration": 32,
+            "startTime": 1910.7950000166893
+          },
+          {
+            "name": "click",
+            "duration": 32,
+            "startTime": 1910.7950000166893
+          },
+          {
+            "name": "keydown",
+            "duration": 48,
+            "startTime": 5515.205000042915
+          },
+          {
+            "name": "keyup",
+            "duration": 48,
+            "startTime": 5515.920000016689
+          }
+        ],
+        "durationMs": {
+          "p50": 16,
+          "p95": 48,
+          "maximum": 48
+        }
+      },
+      "memory": {
+        "method": "Chrome DevTools Protocol Performance.getMetrics",
+        "jsHeapUsedBytes": 9615016,
+        "jsHeapTotalBytes": 13500416,
+        "limitation": "JavaScript heap only. It excludes DOM, SVG backing storage, PixiJS GPU buffers/textures, driver memory, and browser process overhead."
+      },
+      "accessibility": {
+        "accessibleEntityCount": 3,
+        "svgLabelCount": 0,
+        "keyboardSelectionSucceeded": true,
+        "highContrastControl": true
+      },
+      "graphics": {
+        "backend": "PixiJS WebGL",
+        "renderer": "py",
+        "webglVersion": 2,
+        "gpuVendor": "Google Inc. (Apple)",
+        "gpuRenderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Pro, Unspecified Version)",
+        "resolution": 1
+      },
+      "finalSnapshot": {
+        "renderer": "webgl",
+        "graphId": "repo:jdylanmc/topo-code",
+        "visibleNodes": 3,
+        "visibleEdges": 1,
+        "selectedEntityId": "external:https://github.com/jdylanmc/topo-code/issues/1",
+        "expandedContainerIds": [
+          "directory:."
+        ],
+        "collapsedTangleIds": []
+      },
+      "pageErrors": []
+    },
+    {
+      "fixture": "medium",
+      "fixtureKind": "synthetic-stress",
+      "renderer": "svg",
+      "graph": {
+        "nodes": 549,
+        "edges": 2108,
+        "tangles": 1
+      },
+      "workload": {
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "panPointerMoves": 80,
+        "zoomWheelEvents": 60,
+        "layoutTransition": "collapse first expanded directory; 300ms renderer transition",
+        "selectionInput": "keyboard Enter on first accessible entity"
+      },
+      "frames": {
+        "rawIntervalsMs": [
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          83.335,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66
+        ],
+        "summary": {
+          "samples": 258,
+          "durationMs": 4366.49,
+          "deliveredFps": 59.086,
+          "frameIntervalMs": {
+            "mean": 16.924,
+            "p50": 16.664999999999964,
+            "p95": 16.670000000000073,
+            "p99": 16.670000000000073,
+            "maximum": 83.33500000000004
+          },
+          "framesOver16_7ms": 1,
+          "framesOver33_3ms": 1
+        }
+      },
+      "inputToNextPaint": {
+        "source": "PerformanceEventTiming.duration",
+        "available": true,
+        "limitation": "Browser Event Timing measures trusted input start through the next presentation opportunity and is duration-quantized. Empty means Chrome emitted no qualifying entry; handler time is not substituted.",
+        "samples": [
+          {
+            "name": "pointerover",
+            "duration": 16,
+            "startTime": 583.75
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 583.75
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 583.75
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 583.75
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 583.75
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 583.75
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 583.75
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 583.75
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 583.75
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 583.75
+          },
+          {
+            "name": "mouseover",
+            "duration": 16,
+            "startTime": 583.75
+          },
+          {
+            "name": "pointerdown",
+            "duration": 40,
+            "startTime": 603.375
+          },
+          {
+            "name": "mousedown",
+            "duration": 40,
+            "startTime": 603.375
+          },
+          {
+            "name": "pointerup",
+            "duration": 16,
+            "startTime": 1952.660000026226
+          },
+          {
+            "name": "mouseup",
+            "duration": 16,
+            "startTime": 1952.660000026226
+          },
+          {
+            "name": "click",
+            "duration": 16,
+            "startTime": 1952.660000026226
+          },
+          {
+            "name": "pointerout",
+            "duration": 32,
+            "startTime": 3986.4050000309944
+          },
+          {
+            "name": "pointerleave",
+            "duration": 32,
+            "startTime": 3986.4050000309944
+          },
+          {
+            "name": "pointerleave",
+            "duration": 32,
+            "startTime": 3986.4050000309944
+          },
+          {
+            "name": "pointerleave",
+            "duration": 32,
+            "startTime": 3986.4050000309944
+          },
+          {
+            "name": "pointerover",
+            "duration": 32,
+            "startTime": 3986.4050000309944
+          },
+          {
+            "name": "pointerenter",
+            "duration": 32,
+            "startTime": 3986.4050000309944
+          },
+          {
+            "name": "pointerenter",
+            "duration": 32,
+            "startTime": 3986.4050000309944
+          },
+          {
+            "name": "pointerenter",
+            "duration": 32,
+            "startTime": 3986.4050000309944
+          },
+          {
+            "name": "pointerenter",
+            "duration": 32,
+            "startTime": 3986.4050000309944
+          },
+          {
+            "name": "mouseout",
+            "duration": 32,
+            "startTime": 3986.4050000309944
+          },
+          {
+            "name": "mouseover",
+            "duration": 32,
+            "startTime": 3986.4050000309944
+          },
+          {
+            "name": "pointerdown",
+            "duration": 32,
+            "startTime": 3986.435000002384
+          },
+          {
+            "name": "mousedown",
+            "duration": 32,
+            "startTime": 3986.435000002384
+          },
+          {
+            "name": "pointerup",
+            "duration": 32,
+            "startTime": 3986.449999988079
+          },
+          {
+            "name": "mouseup",
+            "duration": 32,
+            "startTime": 3986.449999988079
+          },
+          {
+            "name": "click",
+            "duration": 32,
+            "startTime": 3986.449999988079
+          },
+          {
+            "name": "pointerover",
+            "duration": 32,
+            "startTime": 3986.449999988079
+          },
+          {
+            "name": "mouseover",
+            "duration": 32,
+            "startTime": 3986.449999988079
+          },
+          {
+            "name": "keydown",
+            "duration": 104,
+            "startTime": 4620.7699999809265
+          },
+          {
+            "name": "pointerover",
+            "duration": 16,
+            "startTime": 4707.389999985695
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 4707.389999985695
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 4707.389999985695
+          },
+          {
+            "name": "mouseover",
+            "duration": 16,
+            "startTime": 4707.389999985695
+          },
+          {
+            "name": "keyup",
+            "duration": 16,
+            "startTime": 4707.610000014305
+          }
+        ],
+        "durationMs": {
+          "p50": 32,
+          "p95": 40,
+          "maximum": 104
+        }
+      },
+      "memory": {
+        "method": "Chrome DevTools Protocol Performance.getMetrics",
+        "jsHeapUsedBytes": 23473168,
+        "jsHeapTotalBytes": 48103424,
+        "limitation": "JavaScript heap only. It excludes DOM, SVG backing storage, PixiJS GPU buffers/textures, driver memory, and browser process overhead."
+      },
+      "accessibility": {
+        "accessibleEntityCount": 549,
+        "svgLabelCount": 549,
+        "keyboardSelectionSucceeded": true,
+        "highContrastControl": true
+      },
+      "graphics": {
+        "backend": "SVG",
+        "elementCount": 4304,
+        "hardwareAccelerated": false
+      },
+      "finalSnapshot": {
+        "renderer": "svg",
+        "graphId": "synthetic:synthetic-medium",
+        "visibleNodes": 549,
+        "visibleEdges": 2108,
+        "selectedEntityId": "directory:src",
+        "expandedContainerIds": [
+          "directory:.",
+          "directory:src",
+          "directory:src/group-000",
+          "directory:src/group-001",
+          "directory:src/group-002",
+          "directory:src/group-003",
+          "directory:src/group-004",
+          "directory:src/group-005",
+          "directory:src/group-006",
+          "directory:src/group-007",
+          "directory:src/group-008",
+          "directory:src/group-009",
+          "directory:src/group-010",
+          "directory:src/group-011",
+          "directory:src/group-012",
+          "directory:src/group-013",
+          "directory:src/group-014",
+          "directory:src/group-015",
+          "directory:src/group-016",
+          "directory:src/group-017",
+          "directory:src/group-018",
+          "directory:src/group-019",
+          "directory:src/group-020",
+          "directory:src/group-021",
+          "directory:src/group-022"
+        ],
+        "collapsedTangleIds": []
+      },
+      "pageErrors": []
+    },
+    {
+      "fixture": "medium",
+      "fixtureKind": "synthetic-stress",
+      "renderer": "webgl",
+      "graph": {
+        "nodes": 549,
+        "edges": 2108,
+        "tangles": 1
+      },
+      "workload": {
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "panPointerMoves": 80,
+        "zoomWheelEvents": 60,
+        "layoutTransition": "collapse first expanded directory; 300ms renderer transition",
+        "selectionInput": "keyboard Enter on first accessible entity"
+      },
+      "frames": {
+        "rawIntervalsMs": [
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.66,
+          16.67,
+          16.67,
+          16.665,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          66.665,
+          33.33,
+          16.665,
+          133.33,
+          16.665,
+          16.665
+        ],
+        "summary": {
+          "samples": 250,
+          "durationMs": 4349.82,
+          "deliveredFps": 57.474,
+          "frameIntervalMs": {
+            "mean": 17.399,
+            "p50": 16.664999999999964,
+            "p95": 16.670000000000073,
+            "p99": 33.32999999999993,
+            "maximum": 133.32999999999993
+          },
+          "framesOver16_7ms": 3,
+          "framesOver33_3ms": 3
+        }
+      },
+      "inputToNextPaint": {
+        "source": "PerformanceEventTiming.duration",
+        "available": true,
+        "limitation": "Browser Event Timing measures trusted input start through the next presentation opportunity and is duration-quantized. Empty means Chrome emitted no qualifying entry; handler time is not substituted.",
+        "samples": [
+          {
+            "name": "pointerover",
+            "duration": 32,
+            "startTime": 722.5649999976158
+          },
+          {
+            "name": "pointerenter",
+            "duration": 32,
+            "startTime": 722.5649999976158
+          },
+          {
+            "name": "pointerenter",
+            "duration": 32,
+            "startTime": 722.5649999976158
+          },
+          {
+            "name": "pointerenter",
+            "duration": 32,
+            "startTime": 722.5649999976158
+          },
+          {
+            "name": "pointerenter",
+            "duration": 32,
+            "startTime": 722.5649999976158
+          },
+          {
+            "name": "pointerenter",
+            "duration": 32,
+            "startTime": 722.5649999976158
+          },
+          {
+            "name": "pointerenter",
+            "duration": 32,
+            "startTime": 722.5649999976158
+          },
+          {
+            "name": "pointerenter",
+            "duration": 32,
+            "startTime": 722.5649999976158
+          },
+          {
+            "name": "pointerenter",
+            "duration": 32,
+            "startTime": 722.5649999976158
+          },
+          {
+            "name": "pointerenter",
+            "duration": 32,
+            "startTime": 722.5649999976158
+          },
+          {
+            "name": "pointerenter",
+            "duration": 32,
+            "startTime": 722.5649999976158
+          },
+          {
+            "name": "mouseover",
+            "duration": 32,
+            "startTime": 722.5649999976158
+          },
+          {
+            "name": "pointerdown",
+            "duration": 48,
+            "startTime": 739.6149999499321
+          },
+          {
+            "name": "mousedown",
+            "duration": 48,
+            "startTime": 739.6149999499321
+          },
+          {
+            "name": "pointerout",
+            "duration": 40,
+            "startTime": 742.9549999833107
+          },
+          {
+            "name": "pointerleave",
+            "duration": 40,
+            "startTime": 742.9549999833107
+          },
+          {
+            "name": "pointerleave",
+            "duration": 40,
+            "startTime": 742.9549999833107
+          },
+          {
+            "name": "pointerover",
+            "duration": 40,
+            "startTime": 742.9549999833107
+          },
+          {
+            "name": "mouseout",
+            "duration": 40,
+            "startTime": 742.9549999833107
+          },
+          {
+            "name": "mouseover",
+            "duration": 40,
+            "startTime": 742.9549999833107
+          },
+          {
+            "name": "pointerout",
+            "duration": 32,
+            "startTime": 1203.074999988079
+          },
+          {
+            "name": "pointerover",
+            "duration": 32,
+            "startTime": 1203.074999988079
+          },
+          {
+            "name": "pointerenter",
+            "duration": 32,
+            "startTime": 1203.074999988079
+          },
+          {
+            "name": "mouseout",
+            "duration": 32,
+            "startTime": 1203.074999988079
+          },
+          {
+            "name": "mouseover",
+            "duration": 32,
+            "startTime": 1203.074999988079
+          },
+          {
+            "name": "pointerout",
+            "duration": 40,
+            "startTime": 1219.5699999928474
+          },
+          {
+            "name": "pointerover",
+            "duration": 40,
+            "startTime": 1219.5699999928474
+          },
+          {
+            "name": "pointerenter",
+            "duration": 40,
+            "startTime": 1219.5699999928474
+          },
+          {
+            "name": "mouseout",
+            "duration": 40,
+            "startTime": 1219.5699999928474
+          },
+          {
+            "name": "mouseover",
+            "duration": 40,
+            "startTime": 1219.5699999928474
+          },
+          {
+            "name": "pointerover",
+            "duration": 16,
+            "startTime": 1255.1699999570847
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 1255.1699999570847
+          },
+          {
+            "name": "mouseover",
+            "duration": 16,
+            "startTime": 1255.1699999570847
+          },
+          {
+            "name": "pointerout",
+            "duration": 32,
+            "startTime": 1369.3149999976158
+          },
+          {
+            "name": "pointerleave",
+            "duration": 32,
+            "startTime": 1369.3149999976158
+          },
+          {
+            "name": "pointerover",
+            "duration": 32,
+            "startTime": 1369.3149999976158
+          },
+          {
+            "name": "mouseout",
+            "duration": 32,
+            "startTime": 1369.3149999976158
+          },
+          {
+            "name": "mouseover",
+            "duration": 32,
+            "startTime": 1369.3149999976158
+          },
+          {
+            "name": "pointerout",
+            "duration": 32,
+            "startTime": 1389.3100000023842
+          },
+          {
+            "name": "pointerover",
+            "duration": 32,
+            "startTime": 1389.3100000023842
+          },
+          {
+            "name": "pointerenter",
+            "duration": 32,
+            "startTime": 1389.3100000023842
+          },
+          {
+            "name": "mouseout",
+            "duration": 32,
+            "startTime": 1389.3100000023842
+          },
+          {
+            "name": "mouseover",
+            "duration": 32,
+            "startTime": 1389.3100000023842
+          },
+          {
+            "name": "pointerout",
+            "duration": 32,
+            "startTime": 1471.074999988079
+          },
+          {
+            "name": "pointerleave",
+            "duration": 32,
+            "startTime": 1471.074999988079
+          },
+          {
+            "name": "pointerover",
+            "duration": 32,
+            "startTime": 1471.074999988079
+          },
+          {
+            "name": "pointerenter",
+            "duration": 32,
+            "startTime": 1471.074999988079
+          },
+          {
+            "name": "mouseout",
+            "duration": 32,
+            "startTime": 1471.074999988079
+          },
+          {
+            "name": "mouseover",
+            "duration": 32,
+            "startTime": 1471.074999988079
+          },
+          {
+            "name": "pointerout",
+            "duration": 32,
+            "startTime": 1536.2949999570847
+          },
+          {
+            "name": "pointerleave",
+            "duration": 32,
+            "startTime": 1536.2949999570847
+          },
+          {
+            "name": "pointerover",
+            "duration": 32,
+            "startTime": 1536.2949999570847
+          },
+          {
+            "name": "mouseout",
+            "duration": 32,
+            "startTime": 1536.2949999570847
+          },
+          {
+            "name": "mouseover",
+            "duration": 32,
+            "startTime": 1536.2949999570847
+          },
+          {
+            "name": "pointerout",
+            "duration": 32,
+            "startTime": 1555.3799999952316
+          },
+          {
+            "name": "pointerover",
+            "duration": 32,
+            "startTime": 1555.3799999952316
+          },
+          {
+            "name": "pointerenter",
+            "duration": 32,
+            "startTime": 1555.3799999952316
+          },
+          {
+            "name": "mouseout",
+            "duration": 32,
+            "startTime": 1555.3799999952316
+          },
+          {
+            "name": "mouseover",
+            "duration": 32,
+            "startTime": 1555.3799999952316
+          },
+          {
+            "name": "pointerout",
+            "duration": 32,
+            "startTime": 1603.8149999976158
+          },
+          {
+            "name": "pointerleave",
+            "duration": 32,
+            "startTime": 1603.8149999976158
+          },
+          {
+            "name": "pointerover",
+            "duration": 32,
+            "startTime": 1603.8149999976158
+          },
+          {
+            "name": "mouseout",
+            "duration": 32,
+            "startTime": 1603.8149999976158
+          },
+          {
+            "name": "mouseover",
+            "duration": 32,
+            "startTime": 1603.8149999976158
+          },
+          {
+            "name": "pointerout",
+            "duration": 32,
+            "startTime": 1620.3899999856949
+          },
+          {
+            "name": "pointerover",
+            "duration": 32,
+            "startTime": 1620.3899999856949
+          },
+          {
+            "name": "pointerenter",
+            "duration": 32,
+            "startTime": 1620.3899999856949
+          },
+          {
+            "name": "mouseout",
+            "duration": 32,
+            "startTime": 1620.3899999856949
+          },
+          {
+            "name": "mouseover",
+            "duration": 32,
+            "startTime": 1620.3899999856949
+          },
+          {
+            "name": "pointerover",
+            "duration": 16,
+            "startTime": 1649.7450000047684
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 1649.7450000047684
+          },
+          {
+            "name": "mouseover",
+            "duration": 16,
+            "startTime": 1649.7450000047684
+          },
+          {
+            "name": "pointerout",
+            "duration": 32,
+            "startTime": 1686.4449999928474
+          },
+          {
+            "name": "pointerleave",
+            "duration": 32,
+            "startTime": 1686.4449999928474
+          },
+          {
+            "name": "pointerover",
+            "duration": 32,
+            "startTime": 1686.4449999928474
+          },
+          {
+            "name": "pointerenter",
+            "duration": 32,
+            "startTime": 1686.4449999928474
+          },
+          {
+            "name": "mouseout",
+            "duration": 32,
+            "startTime": 1686.4449999928474
+          },
+          {
+            "name": "mouseover",
+            "duration": 32,
+            "startTime": 1686.4449999928474
+          },
+          {
+            "name": "pointerout",
+            "duration": 32,
+            "startTime": 1953.2249999642372
+          },
+          {
+            "name": "pointerleave",
+            "duration": 32,
+            "startTime": 1953.2249999642372
+          },
+          {
+            "name": "pointerover",
+            "duration": 32,
+            "startTime": 1953.2249999642372
+          },
+          {
+            "name": "mouseout",
+            "duration": 32,
+            "startTime": 1953.2249999642372
+          },
+          {
+            "name": "mouseover",
+            "duration": 32,
+            "startTime": 1953.2249999642372
+          },
+          {
+            "name": "pointerout",
+            "duration": 32,
+            "startTime": 1972.739999949932
+          },
+          {
+            "name": "pointerover",
+            "duration": 32,
+            "startTime": 1972.739999949932
+          },
+          {
+            "name": "pointerenter",
+            "duration": 32,
+            "startTime": 1972.739999949932
+          },
+          {
+            "name": "mouseout",
+            "duration": 32,
+            "startTime": 1972.739999949932
+          },
+          {
+            "name": "mouseover",
+            "duration": 32,
+            "startTime": 1972.739999949932
+          },
+          {
+            "name": "pointerout",
+            "duration": 32,
+            "startTime": 2037.2799999713898
+          },
+          {
+            "name": "pointerleave",
+            "duration": 32,
+            "startTime": 2037.2799999713898
+          },
+          {
+            "name": "pointerover",
+            "duration": 32,
+            "startTime": 2037.2799999713898
+          },
+          {
+            "name": "pointerenter",
+            "duration": 32,
+            "startTime": 2037.2799999713898
+          },
+          {
+            "name": "mouseout",
+            "duration": 32,
+            "startTime": 2037.2799999713898
+          },
+          {
+            "name": "mouseover",
+            "duration": 32,
+            "startTime": 2037.2799999713898
+          },
+          {
+            "name": "pointerup",
+            "duration": 32,
+            "startTime": 2103.0199999809265
+          },
+          {
+            "name": "mouseup",
+            "duration": 32,
+            "startTime": 2103.0199999809265
+          },
+          {
+            "name": "pointerout",
+            "duration": 32,
+            "startTime": 4142.639999985695
+          },
+          {
+            "name": "pointerleave",
+            "duration": 32,
+            "startTime": 4142.639999985695
+          },
+          {
+            "name": "pointerleave",
+            "duration": 32,
+            "startTime": 4142.639999985695
+          },
+          {
+            "name": "pointerleave",
+            "duration": 32,
+            "startTime": 4142.639999985695
+          },
+          {
+            "name": "pointerleave",
+            "duration": 32,
+            "startTime": 4142.639999985695
+          },
+          {
+            "name": "pointerover",
+            "duration": 32,
+            "startTime": 4142.639999985695
+          },
+          {
+            "name": "pointerenter",
+            "duration": 32,
+            "startTime": 4142.639999985695
+          },
+          {
+            "name": "pointerenter",
+            "duration": 32,
+            "startTime": 4142.639999985695
+          },
+          {
+            "name": "pointerenter",
+            "duration": 32,
+            "startTime": 4142.639999985695
+          },
+          {
+            "name": "pointerenter",
+            "duration": 32,
+            "startTime": 4142.639999985695
+          },
+          {
+            "name": "mouseout",
+            "duration": 32,
+            "startTime": 4142.639999985695
+          },
+          {
+            "name": "mouseover",
+            "duration": 32,
+            "startTime": 4142.639999985695
+          },
+          {
+            "name": "pointerdown",
+            "duration": 32,
+            "startTime": 4142.685000002384
+          },
+          {
+            "name": "mousedown",
+            "duration": 32,
+            "startTime": 4142.685000002384
+          },
+          {
+            "name": "pointerup",
+            "duration": 32,
+            "startTime": 4142.739999949932
+          },
+          {
+            "name": "mouseup",
+            "duration": 32,
+            "startTime": 4142.739999949932
+          },
+          {
+            "name": "click",
+            "duration": 32,
+            "startTime": 4142.739999949932
+          },
+          {
+            "name": "pointerover",
+            "duration": 32,
+            "startTime": 4142.739999949932
+          },
+          {
+            "name": "mouseover",
+            "duration": 32,
+            "startTime": 4142.739999949932
+          },
+          {
+            "name": "keydown",
+            "duration": 272,
+            "startTime": 4773.329999983311
+          },
+          {
+            "name": "pointerover",
+            "duration": 200,
+            "startTime": 4846.424999952316
+          },
+          {
+            "name": "pointerenter",
+            "duration": 200,
+            "startTime": 4846.424999952316
+          },
+          {
+            "name": "pointerenter",
+            "duration": 200,
+            "startTime": 4846.424999952316
+          },
+          {
+            "name": "mouseover",
+            "duration": 200,
+            "startTime": 4846.424999952316
+          },
+          {
+            "name": "keyup",
+            "duration": 208,
+            "startTime": 4846.664999961853
+          }
+        ],
+        "durationMs": {
+          "p50": 32,
+          "p95": 48,
+          "maximum": 272
+        }
+      },
+      "memory": {
+        "method": "Chrome DevTools Protocol Performance.getMetrics",
+        "jsHeapUsedBytes": 77671676,
+        "jsHeapTotalBytes": 124239872,
+        "limitation": "JavaScript heap only. It excludes DOM, SVG backing storage, PixiJS GPU buffers/textures, driver memory, and browser process overhead."
+      },
+      "accessibility": {
+        "accessibleEntityCount": 549,
+        "svgLabelCount": 0,
+        "keyboardSelectionSucceeded": true,
+        "highContrastControl": true
+      },
+      "graphics": {
+        "backend": "PixiJS WebGL",
+        "renderer": "py",
+        "webglVersion": 2,
+        "gpuVendor": "Google Inc. (Apple)",
+        "gpuRenderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Pro, Unspecified Version)",
+        "resolution": 1
+      },
+      "finalSnapshot": {
+        "renderer": "webgl",
+        "graphId": "synthetic:synthetic-medium",
+        "visibleNodes": 549,
+        "visibleEdges": 2108,
+        "selectedEntityId": "directory:src",
+        "expandedContainerIds": [
+          "directory:.",
+          "directory:src",
+          "directory:src/group-000",
+          "directory:src/group-001",
+          "directory:src/group-002",
+          "directory:src/group-003",
+          "directory:src/group-004",
+          "directory:src/group-005",
+          "directory:src/group-006",
+          "directory:src/group-007",
+          "directory:src/group-008",
+          "directory:src/group-009",
+          "directory:src/group-010",
+          "directory:src/group-011",
+          "directory:src/group-012",
+          "directory:src/group-013",
+          "directory:src/group-014",
+          "directory:src/group-015",
+          "directory:src/group-016",
+          "directory:src/group-017",
+          "directory:src/group-018",
+          "directory:src/group-019",
+          "directory:src/group-020",
+          "directory:src/group-021",
+          "directory:src/group-022"
+        ],
+        "collapsedTangleIds": []
+      },
+      "pageErrors": []
+    },
+    {
+      "fixture": "large",
+      "fixtureKind": "synthetic-stress",
+      "renderer": "svg",
+      "graph": {
+        "nodes": 2580,
+        "edges": 12000,
+        "tangles": 1
+      },
+      "workload": {
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "panPointerMoves": 80,
+        "zoomWheelEvents": 60,
+        "layoutTransition": "collapse first expanded directory; 300ms renderer transition",
+        "selectionInput": "keyboard Enter on first accessible entity"
+      },
+      "frames": {
+        "rawIntervalsMs": [
+          16.665,
+          16.67,
+          16.665,
+          33.33,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.66,
+          16.67,
+          16.67,
+          16.66,
+          16.665,
+          16.67,
+          16.665,
+          16.67,
+          16.66,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.67,
+          16.665,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          116.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          3716.525,
+          16.66,
+          33.335,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.66,
+          33.335,
+          16.665,
+          16.665
+        ],
+        "summary": {
+          "samples": 256,
+          "durationMs": 8116.34,
+          "deliveredFps": 31.541,
+          "frameIntervalMs": {
+            "mean": 31.704,
+            "p50": 16.664999999999964,
+            "p95": 16.670000000000073,
+            "p99": 33.33499999999913,
+            "maximum": 3716.5250000000015
+          },
+          "framesOver16_7ms": 5,
+          "framesOver33_3ms": 5
+        }
+      },
+      "inputToNextPaint": {
+        "source": "PerformanceEventTiming.duration",
+        "available": true,
+        "limitation": "Browser Event Timing measures trusted input start through the next presentation opportunity and is duration-quantized. Empty means Chrome emitted no qualifying entry; handler time is not substituted.",
+        "samples": [
+          {
+            "name": "pointerdown",
+            "duration": 72,
+            "startTime": 4126.770000040531
+          },
+          {
+            "name": "mousedown",
+            "duration": 72,
+            "startTime": 4126.770000040531
+          },
+          {
+            "name": "pointerout",
+            "duration": 152,
+            "startTime": 7526.759999990463
+          },
+          {
+            "name": "pointerleave",
+            "duration": 152,
+            "startTime": 7526.759999990463
+          },
+          {
+            "name": "pointerleave",
+            "duration": 152,
+            "startTime": 7526.759999990463
+          },
+          {
+            "name": "pointerleave",
+            "duration": 152,
+            "startTime": 7526.759999990463
+          },
+          {
+            "name": "pointerover",
+            "duration": 152,
+            "startTime": 7526.759999990463
+          },
+          {
+            "name": "pointerenter",
+            "duration": 152,
+            "startTime": 7526.759999990463
+          },
+          {
+            "name": "pointerenter",
+            "duration": 152,
+            "startTime": 7526.759999990463
+          },
+          {
+            "name": "pointerenter",
+            "duration": 152,
+            "startTime": 7526.759999990463
+          },
+          {
+            "name": "pointerenter",
+            "duration": 152,
+            "startTime": 7526.759999990463
+          },
+          {
+            "name": "mouseout",
+            "duration": 152,
+            "startTime": 7526.759999990463
+          },
+          {
+            "name": "mouseover",
+            "duration": 152,
+            "startTime": 7526.759999990463
+          },
+          {
+            "name": "pointerdown",
+            "duration": 152,
+            "startTime": 7526.785000026226
+          },
+          {
+            "name": "mousedown",
+            "duration": 152,
+            "startTime": 7526.785000026226
+          },
+          {
+            "name": "pointerup",
+            "duration": 152,
+            "startTime": 7526.800000011921
+          },
+          {
+            "name": "mouseup",
+            "duration": 152,
+            "startTime": 7526.800000011921
+          },
+          {
+            "name": "click",
+            "duration": 152,
+            "startTime": 7526.800000011921
+          },
+          {
+            "name": "pointerover",
+            "duration": 152,
+            "startTime": 7526.800000011921
+          },
+          {
+            "name": "mouseover",
+            "duration": 152,
+            "startTime": 7526.800000011921
+          },
+          {
+            "name": "keydown",
+            "duration": 3744,
+            "startTime": 8280.199999988079
+          },
+          {
+            "name": "pointerover",
+            "duration": 88,
+            "startTime": 11939.660000026226
+          },
+          {
+            "name": "pointerenter",
+            "duration": 88,
+            "startTime": 11939.660000026226
+          },
+          {
+            "name": "pointerenter",
+            "duration": 88,
+            "startTime": 11939.660000026226
+          },
+          {
+            "name": "mouseover",
+            "duration": 88,
+            "startTime": 11939.660000026226
+          },
+          {
+            "name": "keyup",
+            "duration": 104,
+            "startTime": 11939.975000023842
+          }
+        ],
+        "durationMs": {
+          "p50": 152,
+          "p95": 152,
+          "maximum": 3744
+        }
+      },
+      "memory": {
+        "method": "Chrome DevTools Protocol Performance.getMetrics",
+        "jsHeapUsedBytes": 44807448,
+        "jsHeapTotalBytes": 112066560,
+        "limitation": "JavaScript heap only. It excludes DOM, SVG backing storage, PixiJS GPU buffers/textures, driver memory, and browser process overhead."
+      },
+      "accessibility": {
+        "accessibleEntityCount": 2580,
+        "svgLabelCount": 2580,
+        "keyboardSelectionSucceeded": true,
+        "highContrastControl": true
+      },
+      "graphics": {
+        "backend": "SVG",
+        "elementCount": 22320,
+        "hardwareAccelerated": false
+      },
+      "finalSnapshot": {
+        "renderer": "svg",
+        "graphId": "synthetic:synthetic-large",
+        "visibleNodes": 2580,
+        "visibleEdges": 12000,
+        "selectedEntityId": "directory:src",
+        "expandedContainerIds": [
+          "directory:.",
+          "directory:src",
+          "directory:src/group-000",
+          "directory:src/group-001",
+          "directory:src/group-002",
+          "directory:src/group-003",
+          "directory:src/group-004",
+          "directory:src/group-005",
+          "directory:src/group-006",
+          "directory:src/group-007",
+          "directory:src/group-008",
+          "directory:src/group-009",
+          "directory:src/group-010",
+          "directory:src/group-011",
+          "directory:src/group-012",
+          "directory:src/group-013",
+          "directory:src/group-014",
+          "directory:src/group-015",
+          "directory:src/group-016",
+          "directory:src/group-017",
+          "directory:src/group-018",
+          "directory:src/group-019",
+          "directory:src/group-020",
+          "directory:src/group-021",
+          "directory:src/group-022",
+          "directory:src/group-023",
+          "directory:src/group-024",
+          "directory:src/group-025",
+          "directory:src/group-026",
+          "directory:src/group-027",
+          "directory:src/group-028",
+          "directory:src/group-029",
+          "directory:src/group-030",
+          "directory:src/group-031",
+          "directory:src/group-032",
+          "directory:src/group-033",
+          "directory:src/group-034",
+          "directory:src/group-035",
+          "directory:src/group-036",
+          "directory:src/group-037",
+          "directory:src/group-038",
+          "directory:src/group-039",
+          "directory:src/group-040",
+          "directory:src/group-041",
+          "directory:src/group-042",
+          "directory:src/group-043",
+          "directory:src/group-044",
+          "directory:src/group-045",
+          "directory:src/group-046",
+          "directory:src/group-047",
+          "directory:src/group-048",
+          "directory:src/group-049",
+          "directory:src/group-050",
+          "directory:src/group-051",
+          "directory:src/group-052",
+          "directory:src/group-053",
+          "directory:src/group-054",
+          "directory:src/group-055",
+          "directory:src/group-056",
+          "directory:src/group-057",
+          "directory:src/group-058",
+          "directory:src/group-059",
+          "directory:src/group-060",
+          "directory:src/group-061",
+          "directory:src/group-062",
+          "directory:src/group-063",
+          "directory:src/group-064",
+          "directory:src/group-065",
+          "directory:src/group-066",
+          "directory:src/group-067",
+          "directory:src/group-068",
+          "directory:src/group-069",
+          "directory:src/group-070",
+          "directory:src/group-071",
+          "directory:src/group-072",
+          "directory:src/group-073",
+          "directory:src/group-074",
+          "directory:src/group-075",
+          "directory:src/group-076",
+          "directory:src/group-077",
+          "directory:src/group-078",
+          "directory:src/group-079",
+          "directory:src/group-080",
+          "directory:src/group-081",
+          "directory:src/group-082",
+          "directory:src/group-083",
+          "directory:src/group-084",
+          "directory:src/group-085",
+          "directory:src/group-086",
+          "directory:src/group-087",
+          "directory:src/group-088",
+          "directory:src/group-089",
+          "directory:src/group-090",
+          "directory:src/group-091",
+          "directory:src/group-092",
+          "directory:src/group-093",
+          "directory:src/group-094",
+          "directory:src/group-095",
+          "directory:src/group-096",
+          "directory:src/group-097",
+          "directory:src/group-098",
+          "directory:src/group-099",
+          "directory:src/group-100",
+          "directory:src/group-101",
+          "directory:src/group-102",
+          "directory:src/group-103",
+          "directory:src/group-104"
+        ],
+        "collapsedTangleIds": []
+      },
+      "pageErrors": []
+    },
+    {
+      "fixture": "large",
+      "fixtureKind": "synthetic-stress",
+      "renderer": "webgl",
+      "graph": {
+        "nodes": 2580,
+        "edges": 12000,
+        "tangles": 1
+      },
+      "workload": {
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "panPointerMoves": 80,
+        "zoomWheelEvents": 60,
+        "layoutTransition": "collapse first expanded directory; 300ms renderer transition",
+        "selectionInput": "keyboard Enter on first accessible entity"
+      },
+      "frames": {
+        "rawIntervalsMs": [
+          949.955,
+          16.67,
+          16.665,
+          16.665,
+          33.335,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.67,
+          16.66,
+          16.665,
+          16.665,
+          16.67,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.67,
+          16.66,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.66,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.66,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.67,
+          133.325,
+          16.665,
+          16.67,
+          16.66,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          4466.49,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.665,
+          16.67,
+          16.665,
+          16.665,
+          16.665,
+          16.665
+        ],
+        "summary": {
+          "samples": 259,
+          "durationMs": 9832.935,
+          "deliveredFps": 26.34,
+          "frameIntervalMs": {
+            "mean": 37.965,
+            "p50": 16.664999999999964,
+            "p95": 16.670000000000073,
+            "p99": 133.3249999999989,
+            "maximum": 4466.490000000002
+          },
+          "framesOver16_7ms": 4,
+          "framesOver33_3ms": 4
+        }
+      },
+      "inputToNextPaint": {
+        "source": "PerformanceEventTiming.duration",
+        "available": true,
+        "limitation": "Browser Event Timing measures trusted input start through the next presentation opportunity and is duration-quantized. Empty means Chrome emitted no qualifying entry; handler time is not substituted.",
+        "samples": [
+          {
+            "name": "pointerover",
+            "duration": 40,
+            "startTime": 4779.415000021458
+          },
+          {
+            "name": "pointerenter",
+            "duration": 40,
+            "startTime": 4779.415000021458
+          },
+          {
+            "name": "pointerenter",
+            "duration": 40,
+            "startTime": 4779.415000021458
+          },
+          {
+            "name": "pointerenter",
+            "duration": 40,
+            "startTime": 4779.415000021458
+          },
+          {
+            "name": "pointerenter",
+            "duration": 40,
+            "startTime": 4779.415000021458
+          },
+          {
+            "name": "pointerenter",
+            "duration": 40,
+            "startTime": 4779.415000021458
+          },
+          {
+            "name": "pointerenter",
+            "duration": 40,
+            "startTime": 4779.415000021458
+          },
+          {
+            "name": "pointerenter",
+            "duration": 40,
+            "startTime": 4779.415000021458
+          },
+          {
+            "name": "pointerenter",
+            "duration": 40,
+            "startTime": 4779.415000021458
+          },
+          {
+            "name": "pointerenter",
+            "duration": 40,
+            "startTime": 4779.415000021458
+          },
+          {
+            "name": "pointerenter",
+            "duration": 40,
+            "startTime": 4779.415000021458
+          },
+          {
+            "name": "mouseover",
+            "duration": 40,
+            "startTime": 4779.415000021458
+          },
+          {
+            "name": "pointerdown",
+            "duration": 48,
+            "startTime": 4794.310000002384
+          },
+          {
+            "name": "mousedown",
+            "duration": 48,
+            "startTime": 4794.310000002384
+          },
+          {
+            "name": "pointerout",
+            "duration": 32,
+            "startTime": 5286.694999992847
+          },
+          {
+            "name": "pointerover",
+            "duration": 32,
+            "startTime": 5286.694999992847
+          },
+          {
+            "name": "pointerenter",
+            "duration": 32,
+            "startTime": 5286.694999992847
+          },
+          {
+            "name": "mouseout",
+            "duration": 32,
+            "startTime": 5286.694999992847
+          },
+          {
+            "name": "mouseover",
+            "duration": 32,
+            "startTime": 5286.694999992847
+          },
+          {
+            "name": "pointerout",
+            "duration": 32,
+            "startTime": 5303.540000021458
+          },
+          {
+            "name": "pointerover",
+            "duration": 32,
+            "startTime": 5303.540000021458
+          },
+          {
+            "name": "pointerenter",
+            "duration": 32,
+            "startTime": 5303.540000021458
+          },
+          {
+            "name": "mouseout",
+            "duration": 32,
+            "startTime": 5303.540000021458
+          },
+          {
+            "name": "mouseover",
+            "duration": 32,
+            "startTime": 5303.540000021458
+          },
+          {
+            "name": "pointerout",
+            "duration": 32,
+            "startTime": 5519.930000007153
+          },
+          {
+            "name": "pointerleave",
+            "duration": 32,
+            "startTime": 5519.930000007153
+          },
+          {
+            "name": "pointerover",
+            "duration": 32,
+            "startTime": 5519.930000007153
+          },
+          {
+            "name": "pointerenter",
+            "duration": 32,
+            "startTime": 5519.930000007153
+          },
+          {
+            "name": "mouseout",
+            "duration": 32,
+            "startTime": 5519.930000007153
+          },
+          {
+            "name": "mouseover",
+            "duration": 32,
+            "startTime": 5519.930000007153
+          },
+          {
+            "name": "pointerout",
+            "duration": 32,
+            "startTime": 5586.085000038147
+          },
+          {
+            "name": "pointerleave",
+            "duration": 32,
+            "startTime": 5586.085000038147
+          },
+          {
+            "name": "pointerover",
+            "duration": 32,
+            "startTime": 5586.085000038147
+          },
+          {
+            "name": "mouseout",
+            "duration": 32,
+            "startTime": 5586.085000038147
+          },
+          {
+            "name": "mouseover",
+            "duration": 32,
+            "startTime": 5586.085000038147
+          },
+          {
+            "name": "pointerout",
+            "duration": 32,
+            "startTime": 5604.069999992847
+          },
+          {
+            "name": "pointerover",
+            "duration": 32,
+            "startTime": 5604.069999992847
+          },
+          {
+            "name": "pointerenter",
+            "duration": 32,
+            "startTime": 5604.069999992847
+          },
+          {
+            "name": "mouseout",
+            "duration": 32,
+            "startTime": 5604.069999992847
+          },
+          {
+            "name": "mouseover",
+            "duration": 32,
+            "startTime": 5604.069999992847
+          },
+          {
+            "name": "pointerout",
+            "duration": 32,
+            "startTime": 5653.704999983311
+          },
+          {
+            "name": "pointerleave",
+            "duration": 32,
+            "startTime": 5653.704999983311
+          },
+          {
+            "name": "pointerleave",
+            "duration": 32,
+            "startTime": 5653.704999983311
+          },
+          {
+            "name": "pointerover",
+            "duration": 32,
+            "startTime": 5653.704999983311
+          },
+          {
+            "name": "mouseout",
+            "duration": 32,
+            "startTime": 5653.704999983311
+          },
+          {
+            "name": "mouseover",
+            "duration": 32,
+            "startTime": 5653.704999983311
+          },
+          {
+            "name": "pointerout",
+            "duration": 32,
+            "startTime": 6119.884999990463
+          },
+          {
+            "name": "pointerover",
+            "duration": 32,
+            "startTime": 6119.884999990463
+          },
+          {
+            "name": "pointerenter",
+            "duration": 32,
+            "startTime": 6119.884999990463
+          },
+          {
+            "name": "mouseout",
+            "duration": 32,
+            "startTime": 6119.884999990463
+          },
+          {
+            "name": "mouseover",
+            "duration": 32,
+            "startTime": 6119.884999990463
+          },
+          {
+            "name": "pointerout",
+            "duration": 32,
+            "startTime": 6136.430000007153
+          },
+          {
+            "name": "pointerover",
+            "duration": 32,
+            "startTime": 6136.430000007153
+          },
+          {
+            "name": "pointerenter",
+            "duration": 32,
+            "startTime": 6136.430000007153
+          },
+          {
+            "name": "mouseout",
+            "duration": 32,
+            "startTime": 6136.430000007153
+          },
+          {
+            "name": "mouseover",
+            "duration": 32,
+            "startTime": 6136.430000007153
+          },
+          {
+            "name": "pointerup",
+            "duration": 32,
+            "startTime": 6169.425000011921
+          },
+          {
+            "name": "mouseup",
+            "duration": 32,
+            "startTime": 6169.425000011921
+          },
+          {
+            "name": "click",
+            "duration": 32,
+            "startTime": 6169.425000011921
+          },
+          {
+            "name": "pointerout",
+            "duration": 16,
+            "startTime": 7250.360000014305
+          },
+          {
+            "name": "pointerleave",
+            "duration": 16,
+            "startTime": 7250.360000014305
+          },
+          {
+            "name": "pointerover",
+            "duration": 16,
+            "startTime": 7250.360000014305
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 7250.360000014305
+          },
+          {
+            "name": "mouseout",
+            "duration": 16,
+            "startTime": 7250.360000014305
+          },
+          {
+            "name": "mouseover",
+            "duration": 16,
+            "startTime": 7250.360000014305
+          },
+          {
+            "name": "pointerout",
+            "duration": 16,
+            "startTime": 7317.860000014305
+          },
+          {
+            "name": "pointerleave",
+            "duration": 16,
+            "startTime": 7317.860000014305
+          },
+          {
+            "name": "pointerover",
+            "duration": 16,
+            "startTime": 7317.860000014305
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 7317.860000014305
+          },
+          {
+            "name": "mouseout",
+            "duration": 16,
+            "startTime": 7317.860000014305
+          },
+          {
+            "name": "mouseover",
+            "duration": 16,
+            "startTime": 7317.860000014305
+          },
+          {
+            "name": "pointerout",
+            "duration": 16,
+            "startTime": 7384.110000014305
+          },
+          {
+            "name": "pointerleave",
+            "duration": 16,
+            "startTime": 7384.110000014305
+          },
+          {
+            "name": "pointerover",
+            "duration": 16,
+            "startTime": 7384.110000014305
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 7384.110000014305
+          },
+          {
+            "name": "mouseout",
+            "duration": 16,
+            "startTime": 7384.110000014305
+          },
+          {
+            "name": "mouseover",
+            "duration": 16,
+            "startTime": 7384.110000014305
+          },
+          {
+            "name": "pointerout",
+            "duration": 16,
+            "startTime": 7451.240000009537
+          },
+          {
+            "name": "pointerleave",
+            "duration": 16,
+            "startTime": 7451.240000009537
+          },
+          {
+            "name": "pointerover",
+            "duration": 16,
+            "startTime": 7451.240000009537
+          },
+          {
+            "name": "mouseout",
+            "duration": 16,
+            "startTime": 7451.240000009537
+          },
+          {
+            "name": "mouseover",
+            "duration": 16,
+            "startTime": 7451.240000009537
+          },
+          {
+            "name": "pointerout",
+            "duration": 16,
+            "startTime": 7484.525000035763
+          },
+          {
+            "name": "pointerover",
+            "duration": 16,
+            "startTime": 7484.525000035763
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 7484.525000035763
+          },
+          {
+            "name": "mouseout",
+            "duration": 16,
+            "startTime": 7484.525000035763
+          },
+          {
+            "name": "mouseover",
+            "duration": 16,
+            "startTime": 7484.525000035763
+          },
+          {
+            "name": "pointerout",
+            "duration": 16,
+            "startTime": 7550.545000016689
+          },
+          {
+            "name": "pointerleave",
+            "duration": 16,
+            "startTime": 7550.545000016689
+          },
+          {
+            "name": "pointerover",
+            "duration": 16,
+            "startTime": 7550.545000016689
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 7550.545000016689
+          },
+          {
+            "name": "mouseout",
+            "duration": 16,
+            "startTime": 7550.545000016689
+          },
+          {
+            "name": "mouseover",
+            "duration": 16,
+            "startTime": 7550.545000016689
+          },
+          {
+            "name": "pointerout",
+            "duration": 16,
+            "startTime": 7617.875
+          },
+          {
+            "name": "pointerleave",
+            "duration": 16,
+            "startTime": 7617.875
+          },
+          {
+            "name": "pointerover",
+            "duration": 16,
+            "startTime": 7617.875
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 7617.875
+          },
+          {
+            "name": "mouseout",
+            "duration": 16,
+            "startTime": 7617.875
+          },
+          {
+            "name": "mouseover",
+            "duration": 16,
+            "startTime": 7617.875
+          },
+          {
+            "name": "pointerout",
+            "duration": 16,
+            "startTime": 7684.25
+          },
+          {
+            "name": "pointerleave",
+            "duration": 16,
+            "startTime": 7684.25
+          },
+          {
+            "name": "pointerover",
+            "duration": 16,
+            "startTime": 7684.25
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 7684.25
+          },
+          {
+            "name": "mouseout",
+            "duration": 16,
+            "startTime": 7684.25
+          },
+          {
+            "name": "mouseover",
+            "duration": 16,
+            "startTime": 7684.25
+          },
+          {
+            "name": "pointerout",
+            "duration": 16,
+            "startTime": 7750.280000030994
+          },
+          {
+            "name": "pointerleave",
+            "duration": 16,
+            "startTime": 7750.280000030994
+          },
+          {
+            "name": "pointerover",
+            "duration": 16,
+            "startTime": 7750.280000030994
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 7750.280000030994
+          },
+          {
+            "name": "mouseout",
+            "duration": 16,
+            "startTime": 7750.280000030994
+          },
+          {
+            "name": "mouseover",
+            "duration": 16,
+            "startTime": 7750.280000030994
+          },
+          {
+            "name": "pointerout",
+            "duration": 16,
+            "startTime": 7817.775000035763
+          },
+          {
+            "name": "pointerleave",
+            "duration": 16,
+            "startTime": 7817.775000035763
+          },
+          {
+            "name": "pointerover",
+            "duration": 16,
+            "startTime": 7817.775000035763
+          },
+          {
+            "name": "mouseout",
+            "duration": 16,
+            "startTime": 7817.775000035763
+          },
+          {
+            "name": "mouseover",
+            "duration": 16,
+            "startTime": 7817.775000035763
+          },
+          {
+            "name": "pointerout",
+            "duration": 16,
+            "startTime": 7851.165000021458
+          },
+          {
+            "name": "pointerover",
+            "duration": 16,
+            "startTime": 7851.165000021458
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 7851.165000021458
+          },
+          {
+            "name": "mouseout",
+            "duration": 16,
+            "startTime": 7851.165000021458
+          },
+          {
+            "name": "mouseover",
+            "duration": 16,
+            "startTime": 7851.165000021458
+          },
+          {
+            "name": "pointerout",
+            "duration": 16,
+            "startTime": 7916.97000002861
+          },
+          {
+            "name": "pointerleave",
+            "duration": 16,
+            "startTime": 7916.97000002861
+          },
+          {
+            "name": "pointerover",
+            "duration": 16,
+            "startTime": 7916.97000002861
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 7916.97000002861
+          },
+          {
+            "name": "mouseout",
+            "duration": 16,
+            "startTime": 7916.97000002861
+          },
+          {
+            "name": "mouseover",
+            "duration": 16,
+            "startTime": 7916.97000002861
+          },
+          {
+            "name": "pointerout",
+            "duration": 16,
+            "startTime": 7984.460000038147
+          },
+          {
+            "name": "pointerleave",
+            "duration": 16,
+            "startTime": 7984.460000038147
+          },
+          {
+            "name": "pointerover",
+            "duration": 16,
+            "startTime": 7984.460000038147
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 7984.460000038147
+          },
+          {
+            "name": "mouseout",
+            "duration": 16,
+            "startTime": 7984.460000038147
+          },
+          {
+            "name": "mouseover",
+            "duration": 16,
+            "startTime": 7984.460000038147
+          },
+          {
+            "name": "pointerout",
+            "duration": 16,
+            "startTime": 8051.194999992847
+          },
+          {
+            "name": "pointerleave",
+            "duration": 16,
+            "startTime": 8051.194999992847
+          },
+          {
+            "name": "pointerover",
+            "duration": 16,
+            "startTime": 8051.194999992847
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 8051.194999992847
+          },
+          {
+            "name": "mouseout",
+            "duration": 16,
+            "startTime": 8051.194999992847
+          },
+          {
+            "name": "mouseover",
+            "duration": 16,
+            "startTime": 8051.194999992847
+          },
+          {
+            "name": "pointerout",
+            "duration": 16,
+            "startTime": 8117.079999983311
+          },
+          {
+            "name": "pointerleave",
+            "duration": 16,
+            "startTime": 8117.079999983311
+          },
+          {
+            "name": "pointerover",
+            "duration": 16,
+            "startTime": 8117.079999983311
+          },
+          {
+            "name": "mouseout",
+            "duration": 16,
+            "startTime": 8117.079999983311
+          },
+          {
+            "name": "mouseover",
+            "duration": 16,
+            "startTime": 8117.079999983311
+          },
+          {
+            "name": "pointerout",
+            "duration": 16,
+            "startTime": 8151.069999992847
+          },
+          {
+            "name": "pointerover",
+            "duration": 16,
+            "startTime": 8151.069999992847
+          },
+          {
+            "name": "pointerenter",
+            "duration": 16,
+            "startTime": 8151.069999992847
+          },
+          {
+            "name": "mouseout",
+            "duration": 16,
+            "startTime": 8151.069999992847
+          },
+          {
+            "name": "mouseover",
+            "duration": 16,
+            "startTime": 8151.069999992847
+          },
+          {
+            "name": "pointerout",
+            "duration": 152,
+            "startTime": 8203.480000019073
+          },
+          {
+            "name": "pointerleave",
+            "duration": 152,
+            "startTime": 8203.480000019073
+          },
+          {
+            "name": "pointerleave",
+            "duration": 152,
+            "startTime": 8203.480000019073
+          },
+          {
+            "name": "pointerleave",
+            "duration": 152,
+            "startTime": 8203.480000019073
+          },
+          {
+            "name": "pointerleave",
+            "duration": 152,
+            "startTime": 8203.480000019073
+          },
+          {
+            "name": "pointerover",
+            "duration": 152,
+            "startTime": 8203.480000019073
+          },
+          {
+            "name": "pointerenter",
+            "duration": 152,
+            "startTime": 8203.480000019073
+          },
+          {
+            "name": "pointerenter",
+            "duration": 152,
+            "startTime": 8203.480000019073
+          },
+          {
+            "name": "pointerenter",
+            "duration": 152,
+            "startTime": 8203.480000019073
+          },
+          {
+            "name": "pointerenter",
+            "duration": 152,
+            "startTime": 8203.480000019073
+          },
+          {
+            "name": "mouseout",
+            "duration": 152,
+            "startTime": 8203.480000019073
+          },
+          {
+            "name": "mouseover",
+            "duration": 152,
+            "startTime": 8203.480000019073
+          },
+          {
+            "name": "pointerdown",
+            "duration": 152,
+            "startTime": 8203.525000035763
+          },
+          {
+            "name": "mousedown",
+            "duration": 152,
+            "startTime": 8203.525000035763
+          },
+          {
+            "name": "pointerup",
+            "duration": 152,
+            "startTime": 8203.550000011921
+          },
+          {
+            "name": "mouseup",
+            "duration": 152,
+            "startTime": 8203.550000011921
+          },
+          {
+            "name": "click",
+            "duration": 152,
+            "startTime": 8203.550000011921
+          },
+          {
+            "name": "pointerover",
+            "duration": 152,
+            "startTime": 8203.550000011921
+          },
+          {
+            "name": "mouseover",
+            "duration": 152,
+            "startTime": 8203.550000011921
+          },
+          {
+            "name": "keydown",
+            "duration": 4496,
+            "startTime": 8957.775000035763
+          },
+          {
+            "name": "pointerover",
+            "duration": 928,
+            "startTime": 12518.475000023842
+          },
+          {
+            "name": "pointerenter",
+            "duration": 928,
+            "startTime": 12518.475000023842
+          },
+          {
+            "name": "pointerenter",
+            "duration": 928,
+            "startTime": 12518.475000023842
+          },
+          {
+            "name": "mouseover",
+            "duration": 928,
+            "startTime": 12518.475000023842
+          },
+          {
+            "name": "keyup",
+            "duration": 944,
+            "startTime": 12518.689999997616
+          }
+        ],
+        "durationMs": {
+          "p50": 16,
+          "p95": 152,
+          "maximum": 4496
+        }
+      },
+      "memory": {
+        "method": "Chrome DevTools Protocol Performance.getMetrics",
+        "jsHeapUsedBytes": 178802596,
+        "jsHeapTotalBytes": 238501888,
+        "limitation": "JavaScript heap only. It excludes DOM, SVG backing storage, PixiJS GPU buffers/textures, driver memory, and browser process overhead."
+      },
+      "accessibility": {
+        "accessibleEntityCount": 2580,
+        "svgLabelCount": 0,
+        "keyboardSelectionSucceeded": true,
+        "highContrastControl": true
+      },
+      "graphics": {
+        "backend": "PixiJS WebGL",
+        "renderer": "py",
+        "webglVersion": 2,
+        "gpuVendor": "Google Inc. (Apple)",
+        "gpuRenderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Pro, Unspecified Version)",
+        "resolution": 1
+      },
+      "finalSnapshot": {
+        "renderer": "webgl",
+        "graphId": "synthetic:synthetic-large",
+        "visibleNodes": 2580,
+        "visibleEdges": 12000,
+        "selectedEntityId": "directory:src",
+        "expandedContainerIds": [
+          "directory:.",
+          "directory:src",
+          "directory:src/group-000",
+          "directory:src/group-001",
+          "directory:src/group-002",
+          "directory:src/group-003",
+          "directory:src/group-004",
+          "directory:src/group-005",
+          "directory:src/group-006",
+          "directory:src/group-007",
+          "directory:src/group-008",
+          "directory:src/group-009",
+          "directory:src/group-010",
+          "directory:src/group-011",
+          "directory:src/group-012",
+          "directory:src/group-013",
+          "directory:src/group-014",
+          "directory:src/group-015",
+          "directory:src/group-016",
+          "directory:src/group-017",
+          "directory:src/group-018",
+          "directory:src/group-019",
+          "directory:src/group-020",
+          "directory:src/group-021",
+          "directory:src/group-022",
+          "directory:src/group-023",
+          "directory:src/group-024",
+          "directory:src/group-025",
+          "directory:src/group-026",
+          "directory:src/group-027",
+          "directory:src/group-028",
+          "directory:src/group-029",
+          "directory:src/group-030",
+          "directory:src/group-031",
+          "directory:src/group-032",
+          "directory:src/group-033",
+          "directory:src/group-034",
+          "directory:src/group-035",
+          "directory:src/group-036",
+          "directory:src/group-037",
+          "directory:src/group-038",
+          "directory:src/group-039",
+          "directory:src/group-040",
+          "directory:src/group-041",
+          "directory:src/group-042",
+          "directory:src/group-043",
+          "directory:src/group-044",
+          "directory:src/group-045",
+          "directory:src/group-046",
+          "directory:src/group-047",
+          "directory:src/group-048",
+          "directory:src/group-049",
+          "directory:src/group-050",
+          "directory:src/group-051",
+          "directory:src/group-052",
+          "directory:src/group-053",
+          "directory:src/group-054",
+          "directory:src/group-055",
+          "directory:src/group-056",
+          "directory:src/group-057",
+          "directory:src/group-058",
+          "directory:src/group-059",
+          "directory:src/group-060",
+          "directory:src/group-061",
+          "directory:src/group-062",
+          "directory:src/group-063",
+          "directory:src/group-064",
+          "directory:src/group-065",
+          "directory:src/group-066",
+          "directory:src/group-067",
+          "directory:src/group-068",
+          "directory:src/group-069",
+          "directory:src/group-070",
+          "directory:src/group-071",
+          "directory:src/group-072",
+          "directory:src/group-073",
+          "directory:src/group-074",
+          "directory:src/group-075",
+          "directory:src/group-076",
+          "directory:src/group-077",
+          "directory:src/group-078",
+          "directory:src/group-079",
+          "directory:src/group-080",
+          "directory:src/group-081",
+          "directory:src/group-082",
+          "directory:src/group-083",
+          "directory:src/group-084",
+          "directory:src/group-085",
+          "directory:src/group-086",
+          "directory:src/group-087",
+          "directory:src/group-088",
+          "directory:src/group-089",
+          "directory:src/group-090",
+          "directory:src/group-091",
+          "directory:src/group-092",
+          "directory:src/group-093",
+          "directory:src/group-094",
+          "directory:src/group-095",
+          "directory:src/group-096",
+          "directory:src/group-097",
+          "directory:src/group-098",
+          "directory:src/group-099",
+          "directory:src/group-100",
+          "directory:src/group-101",
+          "directory:src/group-102",
+          "directory:src/group-103",
+          "directory:src/group-104"
+        ],
+        "collapsedTangleIds": []
+      },
+      "pageErrors": []
+    }
+  ],
+  "decision": "pending-real-fixtures"
+}

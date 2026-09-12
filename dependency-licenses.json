@@ -9,6 +9,26 @@
       "range": "3.0.1",
       "license": "MIT",
       "source": "https://github.com/ajv-validator/ajv-formats/blob/v3.0.1/LICENSE"
+    },
+    "d3": {
+      "range": "^7.9.0",
+      "license": "ISC",
+      "source": "https://github.com/d3/d3/blob/v7.9.0/LICENSE"
+    },
+    "ignore": {
+      "range": "^7.0.0",
+      "license": "MIT",
+      "source": "https://registry.npmjs.org/ignore/7.0.8"
+    },
+    "pixi.js": {
+      "range": "^8.13.2",
+      "license": "MIT",
+      "source": "https://github.com/pixijs/pixijs/blob/v8.20.1/LICENSE"
+    },
+    "typescript-compiler-api": {
+      "range": "npm:typescript@^6.0.0",
+      "license": "Apache-2.0",
+      "source": "https://github.com/microsoft/TypeScript/blob/main/LICENSE.txt"
     }
   }
 }

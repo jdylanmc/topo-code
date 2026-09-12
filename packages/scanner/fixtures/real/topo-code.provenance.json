@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "1.0",
+  "repositoryId": "jdylanmc/topo-code",
+  "upstream": "https://github.com/jdylanmc/topo-code.git",
+  "revision": "18a6588d5946c1026a1a2c335ba51b92f231eb8f",
+  "selectedPath": ".",
+  "configDiscovery": "all repository tsconfig*.json files",
+  "graphFile": "topo-code.graph.json",
+  "authoritative": true,
+  "counts": {
+    "nodes": 31,
+    "edges": 64,
+    "containers": 6,
+    "sourceFiles": 19,
+    "linesOfCode": 3981
+  },
+  "limitations": [],
+  "scan": {
+    "durationMilliseconds": 420,
+    "nodeVersion": "v24.20.0",
+    "platform": "darwin",
+    "architecture": "arm64",
+    "cpu": "Apple M5 Pro",
+    "logicalCpuCount": 18,
+    "memoryBytes": 68719476736
+  },
+  "reproductionCommand": "corepack yarn workspace @topo/scanner fixture --root \"$TOPO_CODE_CHECKOUT\" --output packages/scanner/fixtures/real/topo-code --repository-id jdylanmc/topo-code --allow-partial false --checkout-variable TOPO_CODE_CHECKOUT"
+}

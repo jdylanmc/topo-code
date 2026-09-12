@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "1.0",
+  "repositoryId": "mermaid-js/mermaid",
+  "upstream": "https://github.com/mermaid-js/mermaid.git",
+  "revision": "3f5f7a6781cc8c788b8b5fa3d4e62edce9288f60",
+  "selectedPath": "packages/mermaid-layout-tidy-tree/src",
+  "configDiscovery": "all repository tsconfig*.json files",
+  "graphFile": "mermaid-layout-tidy-tree.graph.json",
+  "authoritative": true,
+  "license": {
+    "spdx": "MIT",
+    "notice": "mermaid.LICENSE.txt",
+    "upstreamFile": "LICENSE",
+    "upstreamUrl": "https://github.com/mermaid-js/mermaid/blob/3f5f7a6781cc8c788b8b5fa3d4e62edce9288f60/LICENSE",
+    "sha256": "ec9fb67dcb25eccc416ed56e1aab819222c805a2a4bfe4cb19e7556bf2ffde80"
+  },
+  "counts": {
+    "nodes": 10,
+    "edges": 16,
+    "containers": 1,
+    "sourceFiles": 7,
+    "linesOfCode": 1438
+  },
+  "limitations": [],
+  "scan": {
+    "durationMilliseconds": 150,
+    "nodeVersion": "v24.20.0",
+    "platform": "darwin",
+    "architecture": "arm64",
+    "cpu": "Apple M5 Pro",
+    "logicalCpuCount": 18,
+    "memoryBytes": 68719476736
+  },
+  "reproductionCommand": "corepack yarn workspace @topo/scanner fixture --root \"$MERMAID_CHECKOUT/packages/mermaid-layout-tidy-tree/src\" --output packages/scanner/fixtures/real/mermaid-layout-tidy-tree --repository-id mermaid-js/mermaid --allow-partial false --checkout-variable MERMAID_CHECKOUT --license \"$MERMAID_CHECKOUT/LICENSE\" --license-notice mermaid.LICENSE.txt --license-spdx MIT"
+}
