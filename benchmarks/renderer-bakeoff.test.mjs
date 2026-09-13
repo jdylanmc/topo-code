@@ -360,6 +360,10 @@ test("layout phase records genuine unsupported fixtures as not applicable", asyn
   };
   assert.deepEqual(collapsedDirectoryCandidates(snapshot), []);
   assert.deepEqual(visibleTangleCandidates(snapshot), []);
+  assert.deepEqual(visibleTangleCandidates({
+    ...snapshot,
+    visibleEntityIds: ["path:a.ts", "derived:tangle:cycle:collapsed"],
+  }), ["derived:tangle:cycle:collapsed"]);
 
   const { phases } = await runBenchmarkPhases({
     remainingMilliseconds: () => 1000,

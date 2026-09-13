@@ -110,9 +110,14 @@ for (const renderer of ["svg", "webgl"] as const) {
     await page.evaluate(() => window.__TOPO_READY__);
     const selector = renderer === "svg" ? ".topo-svg" : ".webgl-a11y";
     const directory = page.locator(`${selector} [data-entity-id^="directory:"]`).first();
+    const id = await directory.getAttribute("data-entity-id");
+    const bounds = await page.locator(".topo-canvas").boundingBox();
+    await page.mouse.move(bounds!.x + bounds!.width / 2, bounds!.y + bounds!.height / 2);
     await directory.focus();
     await page.keyboard.press("Enter");
     await expect(page.locator(".map-host")).toBeFocused();
+    await page.waitForTimeout(350);
+    expect(await page.evaluate(() => window.__TOPO_BENCHMARK__!.snapshot().focusedEntityId)).toBe(id);
     const before = await page.evaluate(() => window.__TOPO_BENCHMARK__!.snapshot().selectedEntityId);
     await page.keyboard.press("ArrowRight");
     expect(await page.evaluate(() => window.__TOPO_BENCHMARK__!.snapshot().selectedEntityId)).not.toBe(before);

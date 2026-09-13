@@ -79,6 +79,7 @@ class TopoApp {
   #lastTransitionDispatchMs = 0;
   readonly #accessibilityButtons = new Map<string, HTMLButtonElement>();
   readonly #resizeObserver = new ResizeObserver(() => this.#renderer?.resize());
+  #keyboardNavigation = false;
 
   private constructor(root: HTMLElement, model: AppModel) {
     this.#root = root;
@@ -220,6 +221,15 @@ class TopoApp {
       () => this.resetView(),
     );
     const mapHost = requiredElement<HTMLElement>(this.#root, ".map-host");
+    mapHost.addEventListener("keydown", () => {
+      this.#keyboardNavigation = true;
+    }, { capture: true });
+    mapHost.addEventListener("pointermove", () => {
+      this.#keyboardNavigation = false;
+    }, { capture: true });
+    mapHost.addEventListener("pointerdown", () => {
+      this.#keyboardNavigation = false;
+    }, { capture: true });
     mapHost.addEventListener("keydown", (event) => this.#onMapKeyDown(event));
   }
 
@@ -383,6 +393,8 @@ class TopoApp {
       select: (entityId) => this.#select(entityId),
       activate: (entityId) => this.#activate(entityId),
       focus: (entityId) => {
+        // Pixi can emit pointerover after geometry moves beneath a stationary pointer.
+        if (this.#keyboardNavigation && this.#renderer?.kind === "webgl") return;
         if (this.#model.state.focusedEntityId === entityId) return;
         this.#model.state.focusedEntityId = entityId;
         this.#renderer?.setInteraction(
@@ -415,6 +427,7 @@ class TopoApp {
         button.type = "button";
         button.dataset.entityId = id;
         button.addEventListener("focus", () => {
+          this.#keyboardNavigation = true;
           this.#model.state.focusedEntityId = id;
           this.#renderer?.setInteraction(this.#model.state.selectedEntityId, id);
           this.#renderer?.focus(id);

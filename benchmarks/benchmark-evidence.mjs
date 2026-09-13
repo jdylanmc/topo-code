@@ -89,7 +89,9 @@ export function collapsedDirectoryCandidates(snapshot) {
 
 export function visibleTangleCandidates(snapshot) {
   if (!Array.isArray(snapshot.visibleEntityIds)) return undefined;
-  return snapshot.visibleEntityIds.filter((id) => id.startsWith("tangle:"));
+  return snapshot.visibleEntityIds.filter((id) =>
+    id.startsWith("derived:tangle:") || id.startsWith("tangle:"),
+  );
 }
 
 export function verifyViewportPreflight(bounds, viewport) {
