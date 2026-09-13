@@ -83,6 +83,20 @@ support:
 - high-contrast toggle and forced-colours support;
 - observed, derived, inferred, human, mixed, and spine visual distinctions.
 
+Zoom limits start at 0.1..8 and widen to include fitted or explicitly transferred
+camera scales. Large persisted maps can fit below 0.1: zooming out at that lower
+limit must stay put, not jump inward to 0.1. Toolbar, keyboard, and wheel input
+share the same limits, which remain reachable through viewport resizing and
+renderer switching. Wheel zoom remains anchored beneath the pointer. This
+changes no scene membership, layout positions, labels, or relationship geometry.
+
+Earlier builds fitted large maps below their hard-coded interactive minimum.
+On the frozen expanded VSCode fixture, the fit scale was about 0.001633; the
+first zoom gesture could jump to 0.1 instead of applying its requested factor.
+Frame-rate records from those builds describe that older camera trajectory.
+Measurements after the zoom-limit correction must not be presented as an
+isolated rendering-speed comparison against those records.
+
 SVG entities are native focusable elements with labels and titles. WebGL uses a
 synchronized accessible Document Object Model (DOM) navigation surface because
 canvas geometry is not exposed to assistive technology. This preserves keyboard
@@ -125,6 +139,8 @@ rather than depending on leftover benchmark output. It verifies:
 - equal-count directory transitions preserve stationary relationships;
 - long partial-scan warnings leave a usable map with observable pan and zoom;
 - keyboard navigation remains usable after its focused directory disappears;
+- fitted large-map zoom preserves direction, bounded steps, pointer anchoring,
+  and camera/range continuity across all input paths, resize, and renderer swaps;
 - external filtering updates the map;
 - malformed envelopes show an error and render no graph.
 
@@ -276,6 +292,40 @@ cheaper layout work, **not** a claim that expanded rendering now meets >50 FPS.
 The old baseline, slower full-matrix candidate, matched reruns, raw frame
 intervals, Event Timing samples, and heap readings all remain available.
 
+## Fitted-zoom correction
+
+Raw data:
+[`real-fitted-zoom-headless.json`](../benchmarks/results/real-fitted-zoom-headless.json),
+from commit `fa84e1b40bab23f7077d63f5b92ef737b21c8131`. All eight real workloads
+completed in **75.446 seconds**, with verified viewport, camera, membership,
+and keyboard effects, no page errors, and successful owned-resource cleanup.
+The frozen input hashes and environment match the preceding runs.
+
+The 60-event wheel sequence now zooms in and back to its starting scale without
+jumping to 0.1. On expanded VSCode, SVG followed approximately
+`0.001633 -> 0.003452 -> 0.001633`; WebGL followed
+`0.001633 -> 0.003670 -> 0.001633`. Existing renderer-specific wheel gains are
+unchanged. All eight cases returned to their starting scale within `1e-10`
+relative error, with unchanged final entity/edge/expansion/tangle counts and
+selected/focused identities versus the projection-session matrix.
+
+| Fixture | Scope | Renderer | Delivered FPS | Worst frame ms | Last layout ms |
+|---|---|---|---:|---:|---:|
+| Mermaid | directory | SVG | 57.048 | 99.990 | 5.085 |
+| Mermaid | directory | WebGL | 60.002 | 16.670 | 8.210 |
+| Mermaid | expanded | SVG | 59.539 | 33.335 | 13.065 |
+| Mermaid | expanded | WebGL | 59.626 | 49.995 | 11.370 |
+| Visual Studio Code | directory | SVG | 57.512 | 100.000 | 80.690 |
+| Visual Studio Code | directory | WebGL | 58.156 | 99.995 | 90.070 |
+| Visual Studio Code | expanded | SVG | 20.933 | 816.635 | 387.095 |
+| Visual Studio Code | expanded | WebGL | 45.085 | 649.970 | 426.335 |
+
+This is a camera-correctness fix, **not an isolated rendering optimization**.
+The corrected camera trajectory differs from older recordings even though
+wheel inputs are identical. All raw samples are retained; these single
+headless observations still miss >50 FPS on expanded VSCode and do not select
+a production renderer.
+
 ## Historical evidence correction
 
 **The real FPS comparisons published with PR #18 are not valid interaction
@@ -324,7 +374,7 @@ The corrected and subsequent results do not support assuming WebGL is
 universally faster. Both backends exceed 50 average delivered FPS on real
 Mermaid and directory-level Visual Studio Code in these headless runs. Both
 still miss the criterion on expanded Visual Studio Code, including the matched
-projection-session reruns.
+projection-session reruns and the fitted-zoom correction.
 Large-scene improvements, visible-browser measurements, and visual/accessibility
 review remain before recording a production choice.
 
