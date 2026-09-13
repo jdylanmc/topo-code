@@ -15,6 +15,7 @@ import { createLayout, createScene } from "./scene.js";
 import { accessibleLabel } from "./renderers/renderer.js";
 import { SvgRenderer } from "./renderers/svg.js";
 import { WebGlRenderer } from "./renderers/webgl.js";
+import { FIT_PADDING, fitScale, ZoomLimits } from "./zoom.js";
 
 function compareText(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
@@ -38,10 +39,11 @@ function initialRenderer(): RendererKind {
 async function createRenderer(
   kind: RendererKind,
   host: HTMLElement,
+  zoomLimits: ZoomLimits,
 ): Promise<Renderer> {
   return kind === "svg"
-    ? new SvgRenderer(host)
-    : WebGlRenderer.create(host);
+    ? new SvgRenderer(host, zoomLimits)
+    : WebGlRenderer.create(host, zoomLimits);
 }
 
 function setQueryRenderer(kind: RendererKind): void {
@@ -73,6 +75,7 @@ class TopoApp {
   readonly #root: HTMLElement;
   readonly #model: AppModel;
   readonly #layoutSession: LayoutSession;
+  readonly #zoomLimits = new ZoomLimits();
   readonly #cyclicNodeIds: Set<string>;
   #renderer: Renderer | undefined;
   #rendererHost: HTMLElement | undefined;
@@ -281,7 +284,7 @@ class TopoApp {
 
     let renderer: Renderer;
     try {
-      renderer = await createRenderer(kind, candidateHost);
+      renderer = await createRenderer(kind, candidateHost, this.#zoomLimits);
       if (token !== this.#renderToken) {
         renderer.destroy();
         candidateHost.remove();
@@ -675,29 +678,20 @@ class TopoApp {
   }
 
   #zoomBy(factor: number): void {
-    if (!this.#renderer) return;
-    const current = this.#renderer.getTransform();
-    this.#renderer.setTransform({
-      ...current,
-      scale: Math.min(8, Math.max(0.1, current.scale * factor)),
-    });
+    this.#renderer?.zoomBy(factor);
   }
 
   resetView(): void {
     if (!this.#renderer) return;
     const host = requiredElement<HTMLElement>(this.#root, ".map-host");
     const bounds = this.#model.layoutResult.layout.bounds;
-    const padding = 32;
-    const availableWidth = Math.max(1, host.clientWidth - padding * 2);
-    const availableHeight = Math.max(1, host.clientHeight - padding * 2);
-    const scale = Math.min(
-      1,
-      availableWidth / Math.max(1, bounds.width),
-      availableHeight / Math.max(1, bounds.height),
-    );
+    const scale = fitScale(bounds, {
+      width: host.clientWidth,
+      height: host.clientHeight,
+    });
     this.#renderer.setTransform({
-      x: padding - bounds.x * scale,
-      y: padding - bounds.y * scale,
+      x: FIT_PADDING - bounds.x * scale,
+      y: FIT_PADDING - bounds.y * scale,
       scale,
     });
   }

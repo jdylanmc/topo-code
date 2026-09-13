@@ -17,6 +17,7 @@ import type {
 } from "../contracts.js";
 import { accessibleLabel, COLORS, nodeColor } from "./renderer.js";
 import { sameNodeAppearance, sameSceneEdges, SceneInteraction } from "./render-state.js";
+import { fitScale, ZoomLimits } from "../zoom.js";
 
 interface DisplayNode {
   container: Container;
@@ -39,6 +40,7 @@ export class WebGlRenderer implements Renderer {
   readonly #displayNodes = new Map<string, DisplayNode>();
   readonly #movingNodes = new Set<DisplayNode>();
   readonly #interaction = new SceneInteraction();
+  readonly #zoomLimits: ZoomLimits;
   #edgesMoving = false;
   #edgeGeometryUpdates = 0;
   #scene: RenderScene | undefined;
@@ -51,12 +53,16 @@ export class WebGlRenderer implements Renderer {
     | undefined;
   #initialized = false;
 
-  private constructor(host: HTMLElement) {
+  private constructor(host: HTMLElement, zoomLimits: ZoomLimits) {
     this.#host = host;
+    this.#zoomLimits = zoomLimits;
   }
 
-  static async create(host: HTMLElement): Promise<WebGlRenderer> {
-    const renderer = new WebGlRenderer(host);
+  static async create(
+    host: HTMLElement,
+    zoomLimits = new ZoomLimits(),
+  ): Promise<WebGlRenderer> {
+    const renderer = new WebGlRenderer(host, zoomLimits);
     await renderer.#initialize();
     return renderer;
   }
@@ -96,7 +102,7 @@ export class WebGlRenderer implements Renderer {
     const pointerX = event.clientX - bounds.left;
     const pointerY = event.clientY - bounds.top;
     const factor = Math.exp(-event.deltaY * 0.0015);
-    const nextScale = Math.min(8, Math.max(0.1, this.#transform.scale * factor));
+    const nextScale = this.#zoomLimits.scaleBy(this.#transform.scale, factor);
     const worldX = (pointerX - this.#transform.x) / this.#transform.scale;
     const worldY = (pointerY - this.#transform.y) / this.#transform.scale;
     this.setTransform({
@@ -158,6 +164,7 @@ export class WebGlRenderer implements Renderer {
     callbacks: RendererCallbacks,
     animate: boolean,
   ): void {
+    this.#updateZoomLimits(scene);
     const edgesChanged = !this.#scene || !sameSceneEdges(this.#scene.edges, scene.edges);
     const hadMovingEdges = this.#edgesMoving && this.#animationDuration > 0;
     this.#scene = scene;
@@ -325,6 +332,7 @@ export class WebGlRenderer implements Renderer {
   }
 
   setTransform(transform: ViewTransform): void {
+    this.#zoomLimits.include(transform.scale);
     this.#transform = transform;
     this.#viewport.position.set(transform.x, transform.y);
     this.#viewport.scale.set(transform.scale);
@@ -332,6 +340,22 @@ export class WebGlRenderer implements Renderer {
 
   getTransform(): ViewTransform {
     return { ...this.#transform };
+  }
+
+  zoomBy(factor: number): void {
+    this.setTransform({
+      ...this.#transform,
+      scale: this.#zoomLimits.scaleBy(this.#transform.scale, factor),
+    });
+  }
+
+  #updateZoomLimits(scene = this.#scene): void {
+    if (scene) {
+      this.#zoomLimits.include(fitScale(scene, {
+        width: this.#host.clientWidth,
+        height: this.#host.clientHeight,
+      }));
+    }
   }
 
   focus(entityId: string): void {
@@ -352,6 +376,7 @@ export class WebGlRenderer implements Renderer {
   }
 
   resize(): void {
+    this.#updateZoomLimits();
     this.#app.resize();
   }
 

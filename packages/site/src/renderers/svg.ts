@@ -24,6 +24,7 @@ import {
   sameSceneEdges,
   SceneInteraction,
 } from "./render-state.js";
+import { fitScale, ZoomLimits } from "../zoom.js";
 
 function routePath(points: ReadonlyArray<{ x: number; y: number }>): string {
   return points
@@ -70,6 +71,7 @@ export class SvgRenderer implements Renderer {
   readonly #svg: Selection<SVGSVGElement, unknown, null, undefined>;
   readonly #content: Selection<SVGGElement, unknown, null, undefined>;
   readonly #zoom: ZoomBehavior<SVGSVGElement, unknown>;
+  readonly #zoomLimits: ZoomLimits;
   #transform: ViewTransform = { x: 24, y: 24, scale: 1 };
   #callbacks: RendererCallbacks | undefined;
   #scene: RenderScene | undefined;
@@ -77,8 +79,9 @@ export class SvgRenderer implements Renderer {
   readonly #nodeElements = new Map<string, SVGGElement>();
   #edgeGeometryUpdates = 0;
 
-  constructor(host: HTMLElement) {
+  constructor(host: HTMLElement, zoomLimits = new ZoomLimits()) {
     this.#host = host;
+    this.#zoomLimits = zoomLimits;
     const svgElement = document.createElementNS(
       "http://www.w3.org/2000/svg",
       "svg",
@@ -94,7 +97,7 @@ export class SvgRenderer implements Renderer {
     this.#svg = select(svgElement);
     this.#content = this.#svg.append("g").attr("class", "viewport");
     this.#zoom = zoom<SVGSVGElement, unknown>()
-      .scaleExtent([0.1, 8])
+      .scaleExtent(this.#zoomLimits.extent)
       .on("zoom", (event) => {
         this.#transform = {
           x: event.transform.x,
@@ -113,6 +116,7 @@ export class SvgRenderer implements Renderer {
     animate: boolean,
   ): void {
     this.#callbacks = callbacks;
+    this.#updateZoomLimits(scene);
     this.#svg
       .attr("viewBox", `0 0 ${Math.max(this.#host.clientWidth, 1)} ${Math.max(this.#host.clientHeight, 1)}`)
       .classed("high-contrast", scene.highContrast);
@@ -232,6 +236,8 @@ export class SvgRenderer implements Renderer {
   }
 
   setTransform(transform: ViewTransform): void {
+    this.#zoomLimits.include(transform.scale);
+    this.#zoom.scaleExtent(this.#zoomLimits.extent);
     this.#transform = transform;
     this.#svg.call(
       this.#zoom.transform,
@@ -245,11 +251,29 @@ export class SvgRenderer implements Renderer {
     return { ...this.#transform };
   }
 
+  zoomBy(factor: number): void {
+    this.setTransform({
+      ...this.#transform,
+      scale: this.#zoomLimits.scaleBy(this.#transform.scale, factor),
+    });
+  }
+
+  #updateZoomLimits(scene = this.#scene): void {
+    if (scene) {
+      this.#zoomLimits.include(fitScale(scene, {
+        width: this.#host.clientWidth,
+        height: this.#host.clientHeight,
+      }));
+    }
+    this.#zoom.scaleExtent(this.#zoomLimits.extent);
+  }
+
   focus(entityId: string): void {
     this.#nodeElements.get(entityId)?.focus();
   }
 
   resize(): void {
+    this.#updateZoomLimits();
     this.#svg.attr(
       "viewBox",
       `0 0 ${Math.max(this.#host.clientWidth, 1)} ${Math.max(this.#host.clientHeight, 1)}`,

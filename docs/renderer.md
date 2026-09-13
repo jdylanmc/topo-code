@@ -83,6 +83,20 @@ support:
 - high-contrast toggle and forced-colours support;
 - observed, derived, inferred, human, mixed, and spine visual distinctions.
 
+Zoom limits start at 0.1..8 and widen to include fitted or explicitly transferred
+camera scales. Large persisted maps can fit below 0.1: zooming out at that lower
+limit must stay put, not jump inward to 0.1. Toolbar, keyboard, and wheel input
+share the same limits, which remain reachable through viewport resizing and
+renderer switching. Wheel zoom remains anchored beneath the pointer. This
+changes no scene membership, layout positions, labels, or relationship geometry.
+
+Earlier builds fitted large maps below their hard-coded interactive minimum.
+On the frozen expanded VSCode fixture, the fit scale was about 0.001633; the
+first zoom gesture could jump to 0.1 instead of applying its requested factor.
+Frame-rate records from those builds describe that older camera trajectory.
+Measurements after the zoom-limit correction must not be presented as an
+isolated rendering-speed comparison against those records.
+
 SVG entities are native focusable elements with labels and titles. WebGL uses a
 synchronized accessible Document Object Model (DOM) navigation surface because
 canvas geometry is not exposed to assistive technology. This preserves keyboard
@@ -125,6 +139,8 @@ rather than depending on leftover benchmark output. It verifies:
 - equal-count directory transitions preserve stationary relationships;
 - long partial-scan warnings leave a usable map with observable pan and zoom;
 - keyboard navigation remains usable after its focused directory disappears;
+- fitted large-map zoom preserves direction, bounded steps, pointer anchoring,
+  and camera/range continuity across all input paths, resize, and renderer swaps;
 - external filtering updates the map;
 - malformed envelopes show an error and render no graph.
 

@@ -84,6 +84,7 @@ export interface Renderer {
   readonly kind: RendererKind;
   render(scene: RenderScene, callbacks: RendererCallbacks, animate: boolean): void;
   setInteraction(selectedId?: string, focusedId?: string): void;
+  zoomBy(factor: number): void;
   setTransform(transform: ViewTransform): void;
   getTransform(): ViewTransform;
   focus(entityId: string): void;
