@@ -91,3 +91,36 @@ declared manifest, validation, and a new site build.
 
 See the [pure core API](./modules-core.md), [generation integration](./modules-generation.md),
 and [schema compatibility contract](./schema-contract.md).
+
+## Workload acceptance
+
+Implementation `df8bf5157623ba3c07d4d80165bc62e933e34044` completed all 24
+frozen Mermaid/VSCode observations above the agreed **30 whole-workload FPS**
+floor. The [source-bound manifest](../benchmarks/results/module-composition-acceptance.json)
+retains every capture, raw interval, verified interaction effect, module
+readiness check, phase observation, and submitted buffer range.
+
+Largest expanded VSCode workload:
+
+| Configuration | Headless FPS | Headed FPS |
+| --- | ---: | ---: |
+| Core only | 46.365 | 48.344 |
+| Both modules | 47.679 | 48.542 |
+| Both modules + curated paths | 49.396 | 50.664 |
+
+The minimum across all observations was 46.365 FPS. Long frames remain in the
+score, including a 597.225 ms frame. All interaction effects were verified and
+no browser errors occurred. Rendering remains uncapped.
+
+These are acceptance observations, not isolated speedup evidence. Curated views
+exclude external/synthetic nodes. Headed near-vsync intervals were about
+6.94 ms versus 16.67 ms headless; cross-mode FPS is not a renderer comparison.
+Optional analysis also has a real generation cost: composing both modules added
+about 3.94-4.38 seconds to the expanded-source VSCode fixture's preparation.
+That cost is reported separately, not hidden in the frame score.
+
+Reproduce using the [benchmark harness](./benchmark-harness.md) with
+`--fixture mermaid,vscode`: run without modules, with
+`--module @topo/module-degree,@topo/module-cycles`, and with both modules plus
+`--curated`; repeat each with `--headed`. Keep preparation and measurements
+sequential, without concurrent builds or scans.
