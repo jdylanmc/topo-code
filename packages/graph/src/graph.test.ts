@@ -3,6 +3,7 @@ import {
   GRAPH_SCHEMA_VERSION,
   LAYOUT_SCHEMA_VERSION,
   createGraphDocument,
+  validateLayoutAgainstGraph,
   type GraphDocument,
   type GraphEdge,
   type GraphNode,
@@ -357,6 +358,51 @@ describe("@topo/graph", () => {
         expect.objectContaining({ code: "orphaned-pin", pinId: "pin:b" }),
       ]),
     );
+  });
+
+  it("refreshes derived layout sources when preserved container membership changes", () => {
+    const original = graph(
+      [node("src/a.ts"), node("src/b.ts"), node("other/c.ts")],
+      [["path:src/a.ts", "path:src/b.ts"]],
+      "r1",
+    );
+    const first = layoutGraph(original, {
+      viewId: "curated",
+      memberNodeIds: ["path:src/a.ts", "path:src/b.ts"],
+    });
+    const changed = graph(
+      [node("src/a.ts"), node("src/new.ts"), node("other/c.ts")],
+      [],
+      "r2",
+    );
+    const second = layoutGraph(changed, {
+      viewId: "curated",
+      memberNodeIds: ["path:src/a.ts", "path:src/new.ts"],
+      previous: first.layout,
+    });
+    const firstContainer = first.layout.items.find(
+      (item) => item.subject.id === "directory:src",
+    )!;
+    const secondContainer = second.layout.items.find(
+      (item) => item.subject.id === "directory:src",
+    )!;
+
+    expect(secondContainer).toMatchObject({
+      x: firstContainer.x,
+      y: firstContainer.y,
+      width: firstContainer.width,
+      height: firstContainer.height,
+      subject: {
+        kind: "derived",
+        id: "directory:src",
+        sourceSubjects: [
+          { kind: "node", id: "path:src/a.ts" },
+          { kind: "node", id: "path:src/new.ts" },
+        ],
+      },
+    });
+    expect(second.delta.preservedSubjectIds).toEqual(["directory:src"]);
+    expect(validateLayoutAgainstGraph(second.layout, changed)).toEqual([]);
   });
 
   it("is byte-identical for unchanged shuffled input and reports invalid prior layouts", () => {

@@ -15,8 +15,8 @@ The goal is to put a software engineer in the human-in-the-loop position: every
 claim the tool makes about a codebase is backed by evidence you can follow, and
 everything a human adds is recorded as such.
 
-> **Status: Phase 1 preview.** The scan-to-site workflow, deterministic reports,
-> stable layouts and WebGL renderer are implemented. WebGL is the sole supported
+> **Status: Local preview.** The scan-to-site workflow, deterministic reports,
+> stable layouts, human-authored views and WebGL renderer are implemented. WebGL is the sole supported
 > renderer, with a 30 FPS acceptable floor and no frame-rate cap; see the
 > [renderer decision and measurements](./docs/renderer.md). This is not yet a published npm CLI.
 
@@ -37,6 +37,12 @@ The site is compiled once; rescanning replaces its data without rebuilding it.
 Nothing is uploaded or installed in the scanned repository.
 WebGL support is required. If initialization fails, the site shows an actionable
 error; it does not switch to another renderer.
+
+Use **New view** to define path membership, explicit overrides, and anchored
+pins. Save definitions locally and review source-change deltas against an
+explicit baseline; rescanning never rewrites authored intent. Exported sites
+can select and export saved views but cannot edit them. See
+[human-authored views](./docs/curated-views.md).
 
 After building, one command also works **from the target repository**:
 

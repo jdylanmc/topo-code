@@ -38,6 +38,7 @@ import {
   installBrowserMeasurements,
   observeBrowserPhases,
 } from "./browser-measurements.mjs";
+import { benchmarkCuratedViewId } from "./curated-fixture.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const chromePath =
@@ -51,6 +52,7 @@ const outputPath = path.resolve(
 );
 const headed = process.argv.includes("--headed");
 const prepareOnly = process.argv.includes("--prepare-only");
+const curated = process.argv.includes("--curated");
 function argumentValue(name) {
   const index = process.argv.indexOf(name);
   return index < 0 ? undefined : process.argv[index + 1];
@@ -132,6 +134,7 @@ const scopeNames = parseChoiceValues({
   defaults: defaultScopes,
 });
 const fixtureOptions = {
+  curated,
   mermaidGraph: argumentValue("--mermaid-graph"),
   mermaidProvenance: argumentValue("--mermaid-provenance"),
   vscodeGraph: argumentValue("--vscode-graph"),
@@ -369,7 +372,7 @@ async function runWorkload(
         name: "navigation",
         run: async () => {
           const response = await page.goto(
-            `http://127.0.0.1:4181/${fixture.name}/index.html?renderer=${renderer}${scope === "expanded" ? "&scope=all" : ""}`,
+            `http://127.0.0.1:4181/${fixture.name}/index.html?renderer=${renderer}${scope === "expanded" ? "&scope=all" : ""}${curated ? `&view=${benchmarkCuratedViewId(scope)}` : ""}`,
             {
               waitUntil: "domcontentloaded",
               timeout: remainingMilliseconds(),
@@ -396,7 +399,14 @@ async function runWorkload(
               `Benchmark API reported renderer "${snapshot.renderer}" instead of "webgl".`,
             );
           }
-          return compactSceneObservation(snapshot);
+          const curatedViewId = await page.evaluate(() => window.__TOPO_BENCHMARK__.snapshot().curatedViewId);
+          if (curated && curatedViewId !== benchmarkCuratedViewId(scope)) {
+            throw new Error(`Expected curated view "${benchmarkCuratedViewId(scope)}"; received "${curatedViewId}".`);
+          }
+          return {
+            ...compactSceneObservation(snapshot),
+            ...(curatedViewId ? { curatedViewId } : {}),
+          };
         },
       },
       {
@@ -652,6 +662,7 @@ async function runWorkload(
               snapshot: {
                 renderer: snapshot.renderer,
                 graphId: snapshot.graphId,
+                ...(snapshot.curatedViewId ? { curatedViewId: snapshot.curatedViewId } : {}),
                 visibleNodes: snapshot.visibleNodes,
                 visibleEdges: snapshot.visibleEdges,
                 expandedContainerCount:
@@ -837,6 +848,7 @@ async function main() {
     selectedFixtures: fixtureNames,
     selectedRenderers: rendererNames,
     selectedScopes: scopeNames,
+    ...(curated ? { curatedViews: "all-repository-paths" } : {}),
     preparationTimeoutMilliseconds,
     fixtureTimeoutMilliseconds,
     totalTimeoutMilliseconds,

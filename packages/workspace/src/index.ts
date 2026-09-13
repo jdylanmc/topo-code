@@ -125,6 +125,23 @@ export async function writeGenerated(root: string, name: string, content: string
   }
 }
 
+export async function writeAuthoredAtomic(root: string, name: string, content: string | Uint8Array): Promise<void> {
+  let target = await workspacePath(root, name);
+  await mkdir(dirname(target), { recursive: true });
+  target = await workspacePath(root, name);
+  const temporary = `${target}.${randomUUID()}.tmp`;
+  try {
+    await writeFile(temporary, content, { flag: "wx" });
+    await rename(temporary, target);
+  } finally {
+    try {
+      await unlink(temporary);
+    } catch (error) {
+      if (!isMissing(error)) throw error;
+    }
+  }
+}
+
 export async function withWorkspaceLock<T>(root: string, action: () => Promise<T>): Promise<T> {
   await initializeWorkspace(root);
   const lock = await workspacePath(root, "cache/write.lock");

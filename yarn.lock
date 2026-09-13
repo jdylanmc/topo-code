@@ -184,6 +184,7 @@ __metadata:
     "@topo/scanner": "workspace:*"
     "@topo/schema": "workspace:*"
     "@topo/site": "workspace:*"
+    "@topo/views": "workspace:*"
     "@topo/workspace": "workspace:*"
     "@types/node": "npm:^22.20.1"
     typescript: "npm:^7.0.2"
@@ -251,8 +252,22 @@ __metadata:
     "@playwright/test": "npm:^1.55.0"
     "@topo/graph": "workspace:*"
     "@topo/schema": "workspace:*"
+    "@topo/views": "workspace:*"
     "@types/node": "npm:^22.18.0"
     pixi.js: "npm:^8.13.2"
+    typescript: "npm:^7.0.2"
+    vite: "npm:8.2.2"
+    vitest: "npm:^5.0.0"
+  languageName: unknown
+  linkType: soft
+
+"@topo/views@workspace:*, @topo/views@workspace:packages/views":
+  version: 0.0.0-use.local
+  resolution: "@topo/views@workspace:packages/views"
+  dependencies:
+    "@topo/graph": "workspace:*"
+    "@topo/schema": "workspace:*"
+    ignore: "npm:^7.0.0"
     typescript: "npm:^7.0.2"
     vite: "npm:8.2.2"
     vitest: "npm:^5.0.0"

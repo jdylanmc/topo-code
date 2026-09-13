@@ -1,9 +1,10 @@
-import { mkdtemp, readFile, readdir, rm, unlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
 import { createGraphDocument, createPathNodeId, type GraphDocument } from "@topo/schema";
 import { initializeWorkspace, withWorkspaceLock } from "@topo/workspace";
+import { serializeCuratedView, type CuratedViewDefinition } from "@topo/views";
 import { generateArtifacts, ingestReports } from "./pipeline.js";
 
 const directories: string[] = [];
@@ -37,6 +38,19 @@ function report(graph: GraphDocument) {
     findings: [],
   };
 }
+function view(): CuratedViewDefinition {
+  return {
+    schemaVersion: "1.0",
+    id: "source",
+    name: "Source",
+    provenance: "human",
+    pathRules: [],
+    includes: [{ kind: "node", path: "a.ts" }],
+    excludes: [],
+    pins: [{ anchor: { kind: "node", path: "missing.ts" }, position: { x: 10, y: 20 } }],
+    expandedPaths: [],
+  };
+}
 
 describe("scan-to-dashboard artifact integration", () => {
   it("preserves unchanged layouts and publishes a consistent deterministic site snapshot", async () => {
@@ -63,6 +77,30 @@ describe("scan-to-dashboard artifact integration", () => {
     expect(await readdir(join(root, ".topo/reports/inputs"))).toHaveLength(1);
     const snapshot = JSON.parse(await readFile(join(root, ".topo/cache/site/data.json"), "utf8"));
     expect(snapshot.dashboard.metrics[0].value).toBe(2);
+  });
+
+  it("publishes curated snapshots and persistent pending-review deltas without rewriting authored bytes", async () => {
+    const { root, assets, graph } = await fixture();
+    const authored = serializeCuratedView(view()).replace('"name": "Source"', '"name":  "Source"');
+    const path = join(root, ".topo/metadata/views/source.json");
+    await mkdir(join(root, ".topo/metadata/views"));
+    await writeFile(path, authored);
+    await generateArtifacts(root, graph, assets);
+    const firstDelta = await readFile(join(root, ".topo/reports/outputs/curated-view-deltas.json"), "utf8");
+    await generateArtifacts(root, graph, assets);
+    expect(await readFile(path, "utf8")).toBe(authored);
+    expect(await readFile(join(root, ".topo/reports/outputs/curated-view-deltas.json"), "utf8")).toBe(firstDelta);
+    expect(JSON.parse(firstDelta).views[0].delta.added).toEqual([{ path: "a.ts", fingerprint: "sha256:abc" }]);
+    expect(JSON.parse(firstDelta).views[0].delta.missingPins).toEqual([{ kind: "node", path: "missing.ts" }]);
+    const scanBundle = JSON.parse(await readFile(join(root, ".topo/cache/site/data.json"), "utf8"));
+    expect(scanBundle.curatedViews.views[0].definition.id).toBe("source");
+
+    const input = join(await temp(), "report.json");
+    await writeFile(input, JSON.stringify(report(graph)));
+    await ingestReports(root, [input], assets);
+    const ingestBundle = JSON.parse(await readFile(join(root, ".topo/cache/site/data.json"), "utf8"));
+    expect(ingestBundle.curatedViews).toEqual(scanBundle.curatedViews);
+    expect(await readFile(path, "utf8")).toBe(authored);
   });
 
   it("does not overwrite successful artifacts when incoming reports are stale", async () => {

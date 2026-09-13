@@ -13,7 +13,10 @@ JSON and unsupported options are errors, not invitations to reset a workspace.
 | `reports/inputs/*.json` | Normalized evidence inputs, content-addressed | Independently commit and review |
 | `reports/outputs/dashboard.json` | Generated normalized dashboard | Optional; reproducible from graph and inputs |
 | `reports/outputs/layout-delta.json` | Comparison against the previous layout | Optional; inspect removed subjects and orphaned pins |
+| `reports/outputs/curated-views.json` | Generated authored-view snapshot | Optional; regenerate from metadata |
+| `reports/outputs/curated-view-deltas.json` | Comparison against explicitly reviewed membership | Optional; pending changes persist across scans |
 | `metadata/` | Human-authored notes and pins | Commit and review; never overwritten by generation |
+| `metadata/views/<id>.json` | Named path view, overrides, pins, review baseline | Commit and review; explicit local saves only |
 | `cache/site/` | Compiled site assets and atomic data snapshot | Ignore; regenerate |
 | `cache/write.lock` | Ephemeral single-writer lock | Ignore |
 
@@ -53,6 +56,12 @@ optional symbol-scoped pattern, and integer `position`. The CLI validates and
 passes these records to the graph engine; it does not rewrite them. Line numbers
 are diagnostics only, never anchor identity. Orphaned pins remain authored data
 and produce warnings rather than disappearing.
+
+Named [human-authored views](./curated-views.md) have independent path-based
+membership and anchored pins. Their reviewed baselines change only through
+explicit review, unlike the default layout delta's previous-snapshot comparison.
+The local server can save view definitions with optimistic graph/file revisions;
+regeneration and ingestion validate but never rewrite them.
 
 ## Concurrency, invalidation and recovery
 

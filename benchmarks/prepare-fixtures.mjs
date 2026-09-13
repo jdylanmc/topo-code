@@ -22,6 +22,7 @@ import {
   deriveArchitecture,
   layoutGraphWithArchitecture,
 } from "../packages/graph/dist/index.js";
+import { createBenchmarkCuratedViews } from "./curated-fixture.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 export const generatedRoot = path.join(root, "benchmarks", ".generated");
@@ -189,6 +190,7 @@ async function writeFixture(
   name,
   graph,
   fixtureKind,
+  options = {},
   evidence,
   parseMilliseconds = 0,
 ) {
@@ -204,6 +206,9 @@ async function writeFixture(
     collapsedTangleIds: [],
   });
   const layoutMilliseconds = performance.now() - layoutStarted;
+  const curatedStarted = performance.now();
+  const curatedViews = options.curated ? createBenchmarkCuratedViews(graph, architecture) : undefined;
+  const curatedMilliseconds = performance.now() - curatedStarted;
   const destination = path.join(generatedRoot, name);
   await mkdir(destination, { recursive: true });
   await cp(siteDist, destination, { recursive: true });
@@ -217,6 +222,7 @@ async function writeFixture(
       fixtureKind,
       metrics: [],
     },
+    ...(curatedViews ? { curatedViews } : {}),
   };
   await writeFile(
     path.join(destination, "data.json"),
@@ -235,8 +241,9 @@ async function writeFixture(
       parseMilliseconds,
       deriveMilliseconds,
       layoutMilliseconds,
+      ...(curatedViews ? { curatedMilliseconds } : {}),
       totalMilliseconds:
-        parseMilliseconds + deriveMilliseconds + layoutMilliseconds,
+        parseMilliseconds + deriveMilliseconds + layoutMilliseconds + (curatedViews ? curatedMilliseconds : 0),
     },
     ...(evidence === undefined ? {} : { evidence }),
   };
@@ -283,7 +290,7 @@ export async function prepareFixture(name, options = {}) {
     throw new Error(`Unsupported fixture "${name}".`);
   }
   if (name === "small") {
-    return writeFixture("small", await smallGraph(), "real-small");
+    return writeFixture("small", await smallGraph(), "real-small", options);
   }
   if (name === "medium") {
     return writeFixture(
@@ -296,6 +303,7 @@ export async function prepareFixture(name, options = {}) {
         stronglyConnectedSize: 93,
       }),
       "synthetic-stress",
+      options,
     );
   }
   if (name === "large") {
@@ -309,6 +317,7 @@ export async function prepareFixture(name, options = {}) {
         stronglyConnectedSize: 150,
       }),
       "synthetic-stress",
+      options,
     );
   }
 
@@ -319,6 +328,7 @@ export async function prepareFixture(name, options = {}) {
     name,
     fixture.graph,
     "real-partial",
+    options,
     fixture.evidence,
     fixture.parseMilliseconds,
   );
@@ -340,6 +350,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   );
   const fixtures = await prepareFixtures({
     fixtureNames,
+    curated: process.argv.includes("--curated"),
     mermaidGraph: argumentValue("--mermaid-graph"),
     mermaidProvenance: argumentValue("--mermaid-provenance"),
     vscodeGraph: argumentValue("--vscode-graph"),

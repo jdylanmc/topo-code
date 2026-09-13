@@ -54,6 +54,16 @@ The only allowed value for `--renderer` is `webgl`; `svg`, mixed values, other
 values, and missing values fail before fixture preparation or browser launch.
 Allowed values for `--scope` are `directory,expanded`.
 
+Add `--curated` to prepare reviewed, deterministic benchmark definitions
+selecting all repository paths, then load the definition matching each scope
+through the real view-selection URL. Readiness verifies the selected view ID.
+Directory scope expands only the root; expanded scope opens every directory.
+Native input, buffer observations, waits, interaction checks, and the
+whole-workload FPS calculation are unchanged. These definitions exclude
+external/synthetic nodes by curated-view semantics: do not treat their scores
+as an equal-membership speedup over the repository map. Without this flag,
+fixture payloads and workloads retain their normal defaults.
+
 Real partial fixtures are independently selectable and require their matching
 graph and provenance files:
 

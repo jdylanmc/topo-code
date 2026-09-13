@@ -14,6 +14,8 @@ import { spawn } from "node:child_process";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { generatedRoot } from "./prepare-fixtures.mjs";
+import { createBenchmarkCuratedViews } from "./curated-fixture.mjs";
+import { evaluateCuratedView, parseCuratedViewsSnapshot } from "../packages/views/dist/index.js";
 import {
   DeadlineError,
   atomicWriteJson,
@@ -116,6 +118,7 @@ test("preparation deadline terminates CPU-bound work and preserves checkpoints",
   const successReportPath = path.join(temporaryDirectory, "success.json");
   const successRun = await runRenderer([
     "--prepare-only",
+    "--curated",
     "--fixture",
     "small",
     "--preparation-timeout-ms",
@@ -146,6 +149,22 @@ test("preparation deadline terminates CPU-bound work and preserves checkpoints",
   assert.ok(
     (await stat(path.join(generatedRoot, "small", "data.json"))).isFile(),
   );
+  const envelope = JSON.parse(await readFile(path.join(generatedRoot, "small", "data.json"), "utf8"));
+  const snapshot = parseCuratedViewsSnapshot(envelope.curatedViews);
+  assert.equal(successReport.curatedViews, "all-repository-paths");
+  assert.deepEqual(snapshot, createBenchmarkCuratedViews(envelope.graph, envelope.architecture));
+  assert.deepEqual(snapshot.views.map((record) => record.definition.id),
+    ["benchmark-paths-directory", "benchmark-paths-expanded"]);
+  assert.deepEqual(snapshot.views[0].definition.expandedPaths, ["."]);
+  assert.deepEqual(snapshot.views[1].definition.expandedPaths,
+    envelope.architecture.directoryContainers.map((container) => container.path || ".").sort());
+  for (const { definition } of snapshot.views) {
+    const evaluation = evaluateCuratedView(envelope.graph, definition);
+    assert.ok(evaluation.nodeIds.length > 0);
+    assert.equal(evaluation.delta.added.length, 0);
+    assert.equal(evaluation.delta.removed.length, 0);
+    assert.equal(evaluation.delta.changed.length, 0);
+  }
 });
 
 test("worker acknowledges CPU blocking before its deadline interrupts it", async () => {
