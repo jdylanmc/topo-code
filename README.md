@@ -152,6 +152,11 @@ credentials, real model, external frozen repository, or benchmark hardware is
 needed. Browser fixtures are prepared automatically from repository-contained
 inputs. Keep renderer benchmark runs separate from this ordinary regression run.
 
+The [production CLI journey](./packages/site/tests/e2e/workflow.spec.ts) follows a
+real Git checkout through scan, deterministic report ingestion, serving, and a
+committed source change, checking stale-evidence rejection and preserved authored
+views and layout positions.
+
 Successful runs show the Node/Vitest and Playwright results and exit **0**.
 Missing tools/scripts/browser binaries, failed builds, assertions, or licence
 checks exit **nonzero**; the first failed gate stops later gates. Browser startup
