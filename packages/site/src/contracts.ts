@@ -55,14 +55,14 @@ export interface SceneNode {
 }
 
 export interface SceneEdge {
-  id: string;
-  sourceId: string;
-  targetId: string;
-  points: Array<{ x: number; y: number }>;
-  width: number;
-  spine: boolean;
-  weight: number;
-  provenance: "observed" | "derived" | "inferred" | "human" | "mixed";
+  readonly id: string;
+  readonly sourceId: string;
+  readonly targetId: string;
+  readonly points: ReadonlyArray<{ readonly x: number; readonly y: number }>;
+  readonly width: number;
+  readonly spine: boolean;
+  readonly weight: number;
+  readonly provenance: "observed" | "derived" | "inferred" | "human" | "mixed";
 }
 
 export interface RenderScene {
@@ -83,6 +83,7 @@ export interface RendererCallbacks {
 export interface Renderer {
   readonly kind: RendererKind;
   render(scene: RenderScene, callbacks: RendererCallbacks, animate: boolean): void;
+  setInteraction(selectedId?: string, focusedId?: string): void;
   setTransform(transform: ViewTransform): void;
   getTransform(): ViewTransform;
   focus(entityId: string): void;
@@ -103,6 +104,9 @@ export interface AppSnapshot {
   visibleNodes: number;
   visibleEdges: number;
   selectedEntityId?: string;
+  focusedEntityId?: string;
+  viewTransform: ViewTransform;
+  visibleEntityIds: string[];
   expandedContainerIds: string[];
   collapsedTangleIds: string[];
   lastLayoutComputationMs: number;

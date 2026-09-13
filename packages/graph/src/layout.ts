@@ -29,12 +29,14 @@ interface GridConfig {
 class SpatialIndex {
   readonly #buckets = new Map<string, LayoutItem[]>();
   readonly #grid: GridConfig;
+  readonly #items = new Set<LayoutItem>();
+  readonly #unindexed = new Set<LayoutItem>();
 
   constructor(grid: GridConfig) {
     this.#grid = grid;
   }
 
-  #keys(item: LayoutItem): string[] {
+  #keys(item: LayoutItem): string[] | undefined {
     const minimumColumn = Math.floor(
       (item.x - this.#grid.padding) / this.#grid.cellWidth,
     );
@@ -47,6 +49,13 @@ class SpatialIndex {
     const maximumRow = Math.floor(
       (item.y + item.height + this.#grid.padding) / this.#grid.cellHeight,
     );
+    // Pathological persisted rectangles use exact comparisons, not unbounded buckets.
+    if (
+      ![minimumColumn, maximumColumn, minimumRow, maximumRow].every(Number.isSafeInteger) ||
+      (maximumColumn - minimumColumn + 1) * (maximumRow - minimumRow + 1) > 4096
+    ) {
+      return undefined;
+    }
     const keys: string[] = [];
     for (let row = minimumRow; row <= maximumRow; row += 1) {
       for (let column = minimumColumn; column <= maximumColumn; column += 1) {
@@ -57,16 +66,41 @@ class SpatialIndex {
   }
 
   add(item: LayoutItem): void {
-    for (const key of this.#keys(item)) {
+    this.#items.add(item);
+    const keys = this.#keys(item);
+    if (!keys) {
+      this.#unindexed.add(item);
+      return;
+    }
+    for (const key of keys) {
       const bucket = this.#buckets.get(key) ?? [];
       bucket.push(item);
       this.#buckets.set(key, bucket);
     }
   }
 
+  remove(item: LayoutItem): void {
+    if (!this.#items.delete(item)) return;
+    if (this.#unindexed.delete(item)) return;
+    for (const key of this.#keys(item) ?? []) {
+      const bucket = this.#buckets.get(key);
+      if (!bucket) continue;
+      const index = bucket.indexOf(item);
+      if (index >= 0) bucket.splice(index, 1);
+      if (bucket.length === 0) this.#buckets.delete(key);
+    }
+  }
+
   overlaps(item: LayoutItem): boolean {
-    const candidates = new Set<LayoutItem>();
-    for (const key of this.#keys(item)) {
+    const keys = this.#keys(item);
+    if (!keys) {
+      for (const candidate of this.#items) {
+        if (overlaps(item, candidate, this.#grid.padding)) return true;
+      }
+      return false;
+    }
+    const candidates = new Set<LayoutItem>(this.#unindexed);
+    for (const key of keys) {
       for (const candidate of this.#buckets.get(key) ?? []) {
         candidates.add(candidate);
       }
@@ -276,15 +310,19 @@ function previousItems(
     return new Map();
   }
   const items = new Map<string, LayoutItem>();
+  const occupied = new SpatialIndex({ ...DEFAULT_GRID, padding: 0 });
   for (const item of document.items) {
-    if ([...items.values()].some((current) => overlaps(item, current, 0))) {
+    if (occupied.overlaps(item)) {
       warnings.push({
         code: "invalid-previous-layout",
         message: "Previous layout was ignored because items overlap.",
       });
       return new Map();
     }
+    const replaced = items.get(item.subject.id);
+    if (replaced) occupied.remove(replaced);
     items.set(item.subject.id, item);
+    occupied.add(item);
   }
   return items;
 }

@@ -507,17 +507,9 @@ async function runWorkload(
             if (nonRootExpanded.length > 0) {
               control = page.locator(".expanded-list button").first();
               action = "collapse-directory";
-            } else {
-              const tangleCandidates = visibleTangleCandidates(before);
-              if (tangleCandidates === undefined) {
-                throw new Error(
-                  "Cannot distinguish an unsupported fixture from a missing tangle control without snapshot().visibleEntityIds.",
-                );
-              }
-              if (tangleCandidates.length > 0) {
-                control = page.locator(".cycle-list button").first();
-                action = "toggle-tangle";
-              }
+            } else if (fixture.tangles > 0) {
+              control = page.locator(".cycle-list button").first();
+              action = "toggle-tangle";
             }
           } else {
             const expectedCandidates = collapsedDirectoryCandidates(before);
@@ -527,9 +519,9 @@ async function runWorkload(
               );
             }
             if (expectedCandidates.length > 0) {
-              const candidates = page.locator(
-                '.webgl-a11y button[data-entity-id^="directory:"]',
-              );
+              const candidates = page.locator(renderer === "svg"
+                ? '.topo-svg [data-entity-id^="directory:"]'
+                : '.webgl-a11y button[data-entity-id^="directory:"]');
               const candidateIds = await candidates.evaluateAll((elements) =>
                 elements.map((element) => element.dataset.entityId ?? null),
               );
@@ -584,7 +576,12 @@ async function runWorkload(
             );
           }
           const controlLabel = await control.textContent();
-          await control.click(scope === "expanded" ? {} : { force: true });
+          if (action === "expand-directory") {
+            await control.focus();
+            await page.keyboard.press("Enter");
+          } else {
+            await control.click();
+          }
           await page.waitForTimeout(600);
           const after = await readLayoutSnapshot(page);
           const effectVerification = verifyLayoutTransition(before, after);
@@ -705,6 +702,9 @@ async function runWorkload(
           const session = await page.context().newCDPSession(page);
           await session.send("Performance.enable");
           performanceMetrics = await session.send("Performance.getMetrics");
+          if (errors.length > 0) {
+            throw new Error(`Browser reported page errors: ${errors.join("; ")}`);
+          }
           return {
             frameSamples: collected.frames.length,
             eventTimingSamples: collected.events.length,
@@ -758,7 +758,7 @@ async function runWorkload(
       layoutTransition:
         scope === "expanded"
           ? "collapse first expanded directory; 300ms renderer transition"
-          : "expand first visible directory; 300ms renderer transition",
+          : "keyboard-expand first visible directory; 300ms renderer transition",
       selectionInput: "keyboard Enter on first accessible entity",
     },
     phaseTiming: {

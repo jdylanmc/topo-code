@@ -59,7 +59,7 @@ export function createScene(
     result.projection.edges.map((edge) => [edge.id, edge]),
   );
   const edges: SceneEdge[] = result.layout.routes
-    .map((route) => {
+    .map((route): SceneEdge | undefined => {
       const edge = edgeById.get(route.subject.id);
       if (!edge) return undefined;
       const kinds = new Set(
