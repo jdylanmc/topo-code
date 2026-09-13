@@ -95,6 +95,43 @@ and waits and is not input-to-paint latency. Raw `requestAnimationFrame`
 intervals and browser `PerformanceEventTiming` entries remain the rendering and
 input responsiveness evidence.
 
+The same workload also records browser-clock windows for `pan`, `zoom`,
+`layout-transition`, and `keyboard-activation`. Named User Timing marks,
+`performance.timeOrigin`, each rAF timestamp, and its callback-entry timestamp
+are retained. Phase FPS is callbacks delivered in the half-open phase window
+divided by that window's duration; finite-window boundary effects can put it
+slightly above the display refresh rate. Interval statistics retain each
+**whole interval** whose callback span intersects the window, including long
+boundary stalls. Adjacent phases may share an interval, so phase summaries are
+not additive. Unobserved trailing time is explicit, and not-applicable phases
+have no FPS/statistics claim. The original whole-run interval series and score
+remain unchanged: no stalled frames are removed from acceptance.
+
+Harness-only passive DOM listeners count delivered events, map drag moves,
+wheel events/deltas, coalesced pointer samples, and trusted/untrusted delivery.
+These are not application-handler invocation counts. Compare delivery counts
+and verified camera trajectories across variants rather than assuming every
+requested move produces exactly one event. Controller dispatch/acknowledgement
+duration is still **not** input-to-paint latency.
+
+WebGL `bufferData` and `bufferSubData` observers record calls, numeric GL target,
+specified storage bytes, submitted data bytes, largest submission, unknown
+byte ranges, JavaScript throws, and synchronous API-call duration per phase.
+ArrayBuffer views, element offsets, and WebGL 2 length arguments are respected;
+a numeric `bufferData` size requests storage but does not submit source bytes.
+These are requested API ranges, not verified GL success, actual GPU transfer
+or execution time, texture traffic, buffer ownership, or resident/peak memory.
+Repeated storage requests must not be summed into a memory-footprint claim.
+Unknown ranges and unavailable hooks mark byte observation partial rather than
+inventing zero-byte measurements. Native methods and listeners are restored
+when sampling ends. No application API or renderer quality setting is changed.
+
+Phase marks and observer round trips add measurement overhead, but do not alter
+the input sequence, explicit waits, camera path, or threshold. Compare versions
+using the **same instrumented harness**. Completed phase captures (including raw
+frame samples and counters) survive a later phase failure; a missing end mark
+remains incomplete, never an inferred successful window.
+
 Layout transitions retain before/after expansion state and
 `visibleEntityIds`. They require expansion-state and visible-membership changes;
 equal node/edge counts are valid when one visible member replaces another.
@@ -135,7 +172,7 @@ small-only benchmark or from an empty generated directory.
 Focused lifecycle regression:
 
 ```sh
-corepack yarn node --test benchmarks/renderer-bakeoff.test.mjs
+corepack yarn node --test benchmarks/renderer-bakeoff.test.mjs benchmarks/browser-measurements.test.mjs
 ```
 
 The tests wait for the worker's `cpu-block-started` acknowledgement before
@@ -145,3 +182,8 @@ the real `small` fixture, bounded hung context creation/cleanup, forced shutdown
 of only an owned browser process, cleanup error reporting, and fixture-server
 port release. The test-only `--test-block-preparation-ms` option exists solely
 for this regression.
+
+Browser-observer tests cover inherited native-method restoration, submitted
+byte ranges versus allocation requests, unknown ranges, original exception
+identity, unchanged rAF intervals, passive input counts, boundary-crossing long
+frames, not-applicable windows, and phase-capture failure preservation.

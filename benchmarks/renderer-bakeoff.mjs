@@ -33,6 +33,11 @@ import {
   verifyLayoutTransition,
   verifyViewportPreflight,
 } from "./benchmark-evidence.mjs";
+import {
+  attributePhaseFrames,
+  installBrowserMeasurements,
+  observeBrowserPhases,
+} from "./browser-measurements.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const chromePath =
@@ -349,10 +354,17 @@ async function runWorkload(
   let viewportPreflight;
   let collected;
   let performanceMetrics;
-  const { phases } = await runBenchmarkPhases({
+  const browserCaptures = new Map();
+  const attachCaptures = (phases) => phases.map((phase) => ({
+    ...phase,
+    ...(browserCaptures.has(phase.name)
+      ? { browserObservation: browserCaptures.get(phase.name) }
+      : {}),
+  }));
+  const phaseOptions = {
     remainingMilliseconds,
     browserErrors: () => errors,
-    definitions: [
+    definitions: observeBrowserPhases(page, [
       {
         name: "navigation",
         run: async () => {
@@ -409,44 +421,7 @@ async function runWorkload(
       {
         name: "sampling-setup",
         run: async () => {
-          return page.evaluate(() => {
-            window.__TOPO_FRAME_INTERVALS__ = [];
-            window.__TOPO_EVENT_TIMINGS__ = [];
-            window.__TOPO_FRAME_ACTIVE__ = true;
-            let previous;
-            const sample = (timestamp) => {
-              if (previous !== undefined) {
-                window.__TOPO_FRAME_INTERVALS__.push(timestamp - previous);
-              }
-              previous = timestamp;
-              if (window.__TOPO_FRAME_ACTIVE__) requestAnimationFrame(sample);
-            };
-            requestAnimationFrame(sample);
-            let eventTimingAvailable = false;
-            if ("PerformanceObserver" in window) {
-              try {
-                const observer = new PerformanceObserver((list) => {
-                  for (const entry of list.getEntries()) {
-                    window.__TOPO_EVENT_TIMINGS__.push({
-                      name: entry.name,
-                      duration: entry.duration,
-                      startTime: entry.startTime,
-                    });
-                  }
-                });
-                observer.observe({
-                  type: "event",
-                  buffered: true,
-                  durationThreshold: 16,
-                });
-                window.__TOPO_EVENT_OBSERVER__ = observer;
-                eventTimingAvailable = true;
-              } catch {
-                // Availability is returned explicitly.
-              }
-            }
-            return { eventTimingAvailable };
-          });
+          return page.evaluate(installBrowserMeasurements, { renderer });
         },
       },
       {
@@ -667,12 +642,12 @@ async function runWorkload(
         name: "metrics",
         run: async () => {
           collected = await page.evaluate(() => {
-            window.__TOPO_FRAME_ACTIVE__ = false;
-            window.__TOPO_EVENT_OBSERVER__?.disconnect();
+            const browserMeasurements = window.__TOPO_BROWSER_MEASUREMENTS__.collect();
             const snapshot = window.__TOPO_BENCHMARK__.snapshot();
             return {
               frames: window.__TOPO_FRAME_INTERVALS__,
               events: window.__TOPO_EVENT_TIMINGS__,
+              browserMeasurements,
               snapshot: {
                 renderer: snapshot.renderer,
                 graphId: snapshot.graphId,
@@ -712,8 +687,16 @@ async function runWorkload(
           };
         },
       },
-    ],
-  });
+    ], browserCaptures),
+  };
+  let completed;
+  try {
+    completed = await runBenchmarkPhases(phaseOptions);
+  } catch (error) {
+    if (error instanceof BenchmarkPhaseError) error.phases = attachCaptures(error.phases);
+    throw error;
+  }
+  const phases = attachCaptures(completed.phases);
 
   const jsHeapUsed = performanceMetrics.metrics.find(
     (metric) => metric.name === "JSHeapUsedSize",
@@ -734,10 +717,24 @@ async function runWorkload(
   const incompleteEffects = unverifiedEffects.filter(
     (phaseName) => !notApplicablePhases.includes(phaseName),
   );
+  const browserMeasurements = collected.browserMeasurements;
+  const phaseFrames = browserMeasurements.phases.map((phase) => {
+    const status = phases.find((record) => record.name === phase.name).status;
+    const window = attributePhaseFrames(browserMeasurements.frameSamples, { ...phase, status });
+    const intervals = summarizeFrames(window.intervalIndexes.map((index) => collected.frames[index]));
+    return {
+      name: phase.name, status, startTimeMs: phase.startTimeMs, endTimeMs: phase.endTimeMs,
+      ...window,
+      deliveredFps: window.deliveredFps === null ? null : round(window.deliveredFps),
+      frameIntervalMs: status === "not-applicable" ? null : intervals.frameIntervalMs,
+      framesOver16_7ms: status === "not-applicable" ? null : intervals.framesOver16_7ms,
+      framesOver33_3ms: status === "not-applicable" ? null : intervals.framesOver33_3ms,
+    };
+  });
 
   return {
     status:
-      incompleteEffects.length > 0
+      incompleteEffects.length > 0 || browserMeasurements.gpuStatus === "partial"
         ? "incomplete"
         : notApplicablePhases.length > 0
           ? "completed-with-not-applicable"
@@ -780,6 +777,18 @@ async function runWorkload(
     frames: {
       rawIntervalsMs: collected.frames.map((value) => round(value)),
       summary: summarizeFrames(collected.frames),
+      rawSamples: browserMeasurements.frameSamples,
+      phases: phaseFrames,
+      phaseAttribution:
+        "Phase FPS counts callback deliveries in the half-open browser-clock window. Interval statistics include entire intervals whose callback span intersects the window, including boundary stalls; adjacent phases may share an interval. Phase summaries are not additive and do not replace the unchanged whole-run score.",
+    },
+    browserMeasurements: {
+      ...browserMeasurements,
+      frameSamples: undefined,
+      inputLimitation:
+        "Observed DOM delivery counts, not renderer-handler invocations or input-to-paint latency. Compare counts and camera trajectories between variants; do not assume a fixed event count or no browser coalescing.",
+      bufferLimitation:
+        "Observed API calls and submitted byte ranges, not GPU execution time, buffer ownership, texture transfers, resident memory, or verified GL success. specifiedStorageBytes sums requested bufferData storage, including replacements; unknown byte ranges and JavaScript throws are explicit.",
     },
     inputToNextPaint: summarizeEvents(collected.events),
     memory: {
