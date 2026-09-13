@@ -34,7 +34,7 @@ export class WebGlRenderer implements Renderer {
   readonly kind = "webgl" as const;
   readonly #host: HTMLElement;
   readonly #app = new Application();
-  readonly #viewport = new Container();
+  readonly #viewport = new Container({ isRenderGroup: true });
   readonly #edges = new Graphics();
   readonly #nodes = new Container();
   readonly #displayNodes = new Map<string, DisplayNode>();
@@ -415,6 +415,7 @@ export class WebGlRenderer implements Renderer {
           : null,
       resolution: this.#app.renderer.resolution,
       edgeGeometryUpdates: this.#edgeGeometryUpdates,
+      cameraRenderGroup: this.#viewport.isRenderGroup,
     };
   }
 }
