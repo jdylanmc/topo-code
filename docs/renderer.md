@@ -117,6 +117,20 @@ transition, and WebGL finishes on the exact persisted route coordinates.
 The diagnostic `graphicsInfo().edgeGeometryUpdates` counter covers geometry
 updates, not total GPU draws.
 
+WebGL uses one Pixi render group for the entire camera viewport. Camera
+translation and scale are then applied on the GPU instead of propagating
+through every child and repacking its vertex attributes. Individual nodes are
+not separate render groups. This is not raster caching, level-of-detail
+reduction, or relationship culling: all scene geometry, labels, provenance,
+interaction state, and layout transitions remain live.
+
+`graphicsInfo().cameraRenderGroup` exposes this mode. A browser regression
+intercepts native vertex/index buffer writes: camera-only zoom and recentering
+perform no geometry-buffer uploads, while a focus/content update still
+uploads geometry. Uniform updates are not counted as geometry uploads.
+The checks also require changed painted pixels and correct pointer selection
+after pan and zoom, rather than relying on camera metadata alone.
+
 ## Automated browser coverage
 
 ```sh
@@ -141,6 +155,8 @@ rather than depending on leftover benchmark output. It verifies:
 - keyboard navigation remains usable after its focused directory disappears;
 - fitted large-map zoom preserves direction, bounded steps, pointer anchoring,
   and camera/range continuity across all input paths, resize, and renderer swaps;
+- WebGL camera movement avoids geometry-buffer uploads while painted output,
+  content updates, and transformed pointer hit testing remain functional;
 - external filtering updates the map;
 - malformed envelopes show an error and render no graph.
 
