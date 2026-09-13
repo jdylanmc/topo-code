@@ -22,6 +22,7 @@ import {
   defaultRenderers,
   defaultScopes,
   parseChoiceValues,
+  parseModuleNames,
 } from "./benchmark-options.mjs";
 import {
   BenchmarkPhaseError,
@@ -135,6 +136,7 @@ const scopeNames = parseChoiceValues({
 });
 const fixtureOptions = {
   curated,
+  modules: parseModuleNames(argumentValues("--module")),
   mermaidGraph: argumentValue("--mermaid-graph"),
   mermaidProvenance: argumentValue("--mermaid-provenance"),
   vscodeGraph: argumentValue("--vscode-graph"),
@@ -403,9 +405,16 @@ async function runWorkload(
           if (curated && curatedViewId !== benchmarkCuratedViewId(scope)) {
             throw new Error(`Expected curated view "${benchmarkCuratedViewId(scope)}"; received "${curatedViewId}".`);
           }
+          const availableModules = await page.locator('[data-module-status="available"]').evaluateAll(
+            (elements) => elements.map((element) => element.dataset.moduleId),
+          );
+          if (fixtureOptions.modules.some((id) => !availableModules.includes(id))) {
+            throw new Error(`Configured modules did not render compatible views: ${fixtureOptions.modules.join(", ")}`);
+          }
           return {
             ...compactSceneObservation(snapshot),
             ...(curatedViewId ? { curatedViewId } : {}),
+            ...(fixtureOptions.modules.length ? { availableModules } : {}),
           };
         },
       },
@@ -848,6 +857,7 @@ async function main() {
     selectedFixtures: fixtureNames,
     selectedRenderers: rendererNames,
     selectedScopes: scopeNames,
+    ...(fixtureOptions.modules.length ? { selectedModules: fixtureOptions.modules } : {}),
     ...(curated ? { curatedViews: "all-repository-paths" } : {}),
     preparationTimeoutMilliseconds,
     fixtureTimeoutMilliseconds,

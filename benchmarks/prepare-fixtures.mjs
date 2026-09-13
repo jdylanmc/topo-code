@@ -23,6 +23,8 @@ import {
   layoutGraphWithArchitecture,
 } from "../packages/graph/dist/index.js";
 import { createBenchmarkCuratedViews } from "./curated-fixture.mjs";
+import { composeModules } from "../packages/modules/dist/index.js";
+import { parseModuleNames } from "./benchmark-options.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 export const generatedRoot = path.join(root, "benchmarks", ".generated");
@@ -188,12 +190,16 @@ async function loadRealFixture(graphPath, provenancePath) {
 
 async function writeFixture(
   name,
-  graph,
+  inputGraph,
   fixtureKind,
   options = {},
   evidence,
   parseMilliseconds = 0,
 ) {
+  const moduleStarted = performance.now();
+  const moduleIds = options.modules ?? [];
+  const graph = moduleIds.length ? composeModules(inputGraph, moduleIds) : inputGraph;
+  const moduleMilliseconds = performance.now() - moduleStarted;
   const deriveStarted = performance.now();
   const architecture = deriveArchitecture(graph);
   const deriveMilliseconds = performance.now() - deriveStarted;
@@ -241,9 +247,11 @@ async function writeFixture(
       parseMilliseconds,
       deriveMilliseconds,
       layoutMilliseconds,
+      ...(moduleIds.length ? { moduleMilliseconds } : {}),
       ...(curatedViews ? { curatedMilliseconds } : {}),
       totalMilliseconds:
-        parseMilliseconds + deriveMilliseconds + layoutMilliseconds + (curatedViews ? curatedMilliseconds : 0),
+        parseMilliseconds + deriveMilliseconds + layoutMilliseconds + (curatedViews ? curatedMilliseconds : 0) +
+        (moduleIds.length ? moduleMilliseconds : 0),
     },
     ...(evidence === undefined ? {} : { evidence }),
   };
@@ -351,6 +359,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const fixtures = await prepareFixtures({
     fixtureNames,
     curated: process.argv.includes("--curated"),
+    modules: parseModuleNames(process.argv.flatMap((value, index, args) => value === "--module" ? [args[index + 1]] : [])),
     mermaidGraph: argumentValue("--mermaid-graph"),
     mermaidProvenance: argumentValue("--mermaid-provenance"),
     vscodeGraph: argumentValue("--vscode-graph"),

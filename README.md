@@ -16,7 +16,7 @@ claim the tool makes about a codebase is backed by evidence you can follow, and
 everything a human adds is recorded as such.
 
 > **Status: Local preview.** The scan-to-site workflow, deterministic reports,
-> stable layouts, human-authored views and WebGL renderer are implemented. WebGL is the sole supported
+> stable layouts, human-authored views, static analysis modules and WebGL renderer are implemented. WebGL is the sole supported
 > renderer, with a 30 FPS acceptable floor and no frame-rate cap; see the
 > [renderer decision and measurements](./docs/renderer.md). This is not yet a published npm CLI.
 
@@ -43,6 +43,11 @@ pins. Save definitions locally and review source-change deltas against an
 explicit baseline; rescanning never rewrites authored intent. Exported sites
 can select and export saved views but cannot edit them. See
 [human-authored views](./docs/curated-views.md).
+
+Optional degree and cycle modules add derived inspector views without changing
+source identity. Enable them through `.topo/config.json`; compiled-view support
+and generated-data support are checked independently. See
+[static module composition](./docs/modules.md).
 
 After building, one command also works **from the target repository**:
 
@@ -89,7 +94,7 @@ MIT. See [LICENSE](./LICENSE).
 
 ## Development
 
-Topocode is a private Yarn workspace during Phase 1. Packages live at
+Topocode remains a private Yarn workspace. Packages live at
 `packages/<name>` and use the local `@topo/<name>` convention; no registry
 publication is configured while public namespace availability remains
 unverified.

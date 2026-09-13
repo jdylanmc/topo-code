@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -41,6 +41,11 @@ async function fixture() {
 }
 async function cli(...args: string[]) {
   return execute(process.execPath, [entry, ...args]);
+}
+async function setModules(root: string, modules: readonly string[]) {
+  const path = join(root, ".topo/config.json");
+  const config = JSON.parse(await readFile(path, "utf8"));
+  await writeFile(path, `${JSON.stringify({ ...config, modules }, null, 2)}\n`);
 }
 afterEach(async () => { for (const root of directories.splice(0)) await rm(root, { recursive: true }); });
 
@@ -143,6 +148,36 @@ describe("documented CLI workflow", () => {
     await expect(cli("scan", root, "--allow-partial")).rejects.toMatchObject({ code: 2, stdout: expect.stringContaining("PARTIAL PREVIEW") });
     const data = JSON.parse(await readFile(join(root, ".topo/cache/site/data.json"), "utf8"));
     expect(data.graph.extensions["dev.topo.scanner"].authoritative).toBe(false);
+  });
+
+  it.each([
+    {
+      label: "unknown",
+      modules: ["@topo/unknown"],
+      error: "Unknown configured modules: @topo/unknown",
+    },
+    {
+      label: "duplicate",
+      modules: ["@topo/module-degree", "@topo/module-degree"],
+      error: "Workspace modules must be distinct nonempty strings",
+    },
+  ])("rejects $label modules before scanning or replacing generated artifacts", async ({ modules, error }) => {
+    const root = await fixture();
+    await cli("init", root);
+    const graph = '{"sentinel":"graph"}\n';
+    const data = '{"sentinel":"data"}\n';
+    await writeFile(join(root, ".topo/graph/graph.json"), graph);
+    await mkdir(join(root, ".topo/cache/site"));
+    await writeFile(join(root, ".topo/cache/site/data.json"), data);
+    await setModules(root, modules);
+    await writeFile(join(root, "main.ts"), 'import "./missing.js";\n');
+
+    await expect(cli("scan", root)).rejects.toMatchObject({
+      code: 1,
+      stderr: expect.stringContaining(error),
+    });
+    expect(await readFile(join(root, ".topo/graph/graph.json"), "utf8")).toBe(graph);
+    expect(await readFile(join(root, ".topo/cache/site/data.json"), "utf8")).toBe(data);
   });
 
   it("rejects unknown commands and misplaced options", async () => {

@@ -67,6 +67,13 @@ fixture payloads and workloads retain their normal defaults.
 Real partial fixtures are independently selectable and require their matching
 graph and provenance files:
 
+Use repeatable/comma-separated `--module` values to generate built-in optional
+attributes, for example `--module @topo/module-degree,@topo/module-cycles`.
+The default is no optional modules. Preparation includes composition in its
+bounded worker and records its duration; readiness requires each requested
+module's compatible inspector view to be present in the actual compiled site.
+This flag combines with `--curated` without changing inputs or frame scoring.
+
 ```sh
 corepack yarn node benchmarks/renderer-bakeoff.mjs \
   --fixture mermaid \

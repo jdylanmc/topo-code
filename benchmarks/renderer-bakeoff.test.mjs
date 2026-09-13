@@ -16,6 +16,7 @@ import { fileURLToPath } from "node:url";
 import { generatedRoot } from "./prepare-fixtures.mjs";
 import { createBenchmarkCuratedViews } from "./curated-fixture.mjs";
 import { evaluateCuratedView, parseCuratedViewsSnapshot } from "../packages/views/dist/index.js";
+import { validateModuleContributions } from "../packages/modules/dist/index.js";
 import {
   DeadlineError,
   atomicWriteJson,
@@ -119,6 +120,8 @@ test("preparation deadline terminates CPU-bound work and preserves checkpoints",
   const successRun = await runRenderer([
     "--prepare-only",
     "--curated",
+    "--module",
+    "@topo/module-degree,@topo/module-cycles",
     "--fixture",
     "small",
     "--preparation-timeout-ms",
@@ -151,6 +154,10 @@ test("preparation deadline terminates CPU-bound work and preserves checkpoints",
   );
   const envelope = JSON.parse(await readFile(path.join(generatedRoot, "small", "data.json"), "utf8"));
   const snapshot = parseCuratedViewsSnapshot(envelope.curatedViews);
+  validateModuleContributions(envelope.graph);
+  assert.deepEqual(successReport.selectedModules, ["@topo/module-degree", "@topo/module-cycles"]);
+  assert.equal(envelope.graph.attributes.filter((entry) =>
+    successReport.selectedModules.includes(entry.provenance.moduleId)).length, envelope.graph.nodes.length * 3);
   assert.equal(successReport.curatedViews, "all-repository-paths");
   assert.deepEqual(snapshot, createBenchmarkCuratedViews(envelope.graph, envelope.architecture));
   assert.deepEqual(snapshot.views.map((record) => record.definition.id),
@@ -264,7 +271,7 @@ test("renderer and scope selectors support WebGL-only defaults, repeats, and com
   );
 });
 
-test("invalid renderer and scope arguments fail before browser launch", async () => {
+test("invalid renderer, scope, and module arguments fail before browser launch", async () => {
   const temporaryDirectory = await mkdtemp(
     path.join(os.tmpdir(), "topo-renderer-selection-"),
   );
@@ -304,6 +311,12 @@ test("invalid renderer and scope arguments fail before browser launch", async ()
   const missingScope = await runRenderer(["--prepare-only", "--scope"]);
   assert.equal(missingScope.code, 1);
   assert.match(missingScope.stderr, /--scope requires a value/);
+  const missingModule = await runRenderer(["--prepare-only", "--module"]);
+  assert.equal(missingModule.code, 1);
+  assert.match(missingModule.stderr, /--module requires a value/);
+  const unknownModule = await runRenderer(["--prepare-only", "--module", "unknown"]);
+  assert.equal(unknownModule.code, 1);
+  assert.match(unknownModule.stderr, /Unsupported --module value "unknown"/);
 });
 
 test("phase failures retain completed phases and browser errors", async () => {

@@ -4,6 +4,7 @@ import { dirname, resolve } from "node:path";
 import { readFile, readdir } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs, promisify } from "node:util";
+import { BUILTIN_MODULE_MANIFESTS, validateModuleCatalog } from "@topo/modules";
 import { scanRepository } from "@topo/scanner";
 import { initializeWorkspace, isMissing, workspacePath } from "@topo/workspace";
 import { generateArtifacts, ingestReports } from "./pipeline.js";
@@ -40,8 +41,15 @@ async function siteAssets(): Promise<string> {
   return assets;
 }
 
-function assertCoreModules(modules: string[]): void {
-  if (modules.length) throw new Error(`Optional modules are not yet supported by this CLI: ${modules.join(", ")}`);
+export function validateConfiguredModules(modules: readonly string[]): void {
+  validateModuleCatalog(BUILTIN_MODULE_MANIFESTS);
+  const duplicates = modules.filter((id, index) => modules.indexOf(id) !== index);
+  if (duplicates.length) {
+    throw new Error(`Duplicate configured modules: ${[...new Set(duplicates)].join(", ")}`);
+  }
+  const builtins = new Set<string>(BUILTIN_MODULE_MANIFESTS.map((manifest) => manifest.id));
+  const unknown = modules.filter((id) => !builtins.has(id));
+  if (unknown.length) throw new Error(`Unknown configured modules: ${unknown.join(", ")}`);
 }
 
 export async function runCli(args: string[]): Promise<number> {
@@ -83,7 +91,7 @@ export async function runCli(args: string[]): Promise<number> {
     return 0;
   }
   const { config } = await initializeWorkspace(root);
-  assertCoreModules(config.modules);
+  validateConfiguredModules(config.modules);
   const assets = await siteAssets();
   const state = await sourceState(root);
   if (command === "ingest") {

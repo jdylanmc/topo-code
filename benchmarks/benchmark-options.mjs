@@ -1,5 +1,16 @@
+import { BUILTIN_MODULE_MANIFESTS } from "../packages/modules/dist/index.js";
+
 export const defaultRenderers = ["webgl"];
 export const defaultScopes = ["directory", "expanded"];
+
+export function parseModuleNames(values = []) {
+  return parseChoiceValues({
+    argumentName: "--module",
+    values,
+    supported: BUILTIN_MODULE_MANIFESTS.map((manifest) => manifest.id),
+    defaults: [],
+  });
+}
 
 export function parseChoiceValues({
   argumentName,

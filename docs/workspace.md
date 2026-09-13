@@ -36,9 +36,12 @@ artifacts they share.
 ```
 
 The repository ID is initialized from the directory name. Set it explicitly
-before sharing a workspace between differently named clones. `modules` reserves
-the composition boundary; the initial CLI only supports the deterministic core
-and rejects nonempty module selections rather than pretending to load plugins.
+before sharing a workspace between differently named clones. `modules` selects
+statically registered optional producers: `@topo/module-degree` and
+`@topo/module-cycles`. Either can run independently; an empty list keeps the
+core-only workflow. Scan and ingest compose the same enabled set before
+generating artifacts. Unknown IDs fail rather than loading arbitrary packages.
+See [module composition](./modules.md) for build-time versus generate-time support.
 Public package-scope ownership and third-party module loading are not established
 by the private local `@topo/*` workspace names.
 
