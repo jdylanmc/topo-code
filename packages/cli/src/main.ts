@@ -7,6 +7,7 @@ import { parseArgs, promisify } from "node:util";
 import { BUILTIN_MODULE_MANIFESTS, validateModuleCatalog } from "@topo/modules";
 import { scanRepository } from "@topo/scanner";
 import { initializeWorkspace, isMissing, workspacePath } from "@topo/workspace";
+import { runEnrichment } from "./enrichment.js";
 import { generateArtifacts, ingestReports } from "./pipeline.js";
 import { serveSite } from "./server.js";
 
@@ -16,6 +17,7 @@ const HELP = `Topocode: local, deterministic repository maps
   topo init [repository]
   topo scan [repository] [--allow-partial]
   topo ingest <repository> <report.json> [more.json ...]
+  topo enrich [repository]
   topo serve [repository] [--port 4173]
 
 Requires a Git repository and Node.js 22 or newer.
@@ -67,7 +69,7 @@ export async function runCli(args: string[]): Promise<number> {
     console.log(HELP);
     return 0;
   }
-  if (!["init", "scan", "ingest", "serve"].includes(command)) throw new Error(`Unknown command: ${command}`);
+  if (!["init", "scan", "ingest", "enrich", "serve"].includes(command)) throw new Error(`Unknown command: ${command}`);
   if (values.port !== undefined && command !== "serve") throw new Error("--port is only valid with serve");
   if (values["allow-partial"] !== undefined && command !== "scan") throw new Error("--allow-partial is only valid with scan");
   if (command !== "ingest" && positionals.length > 2) throw new Error(`Too many arguments for ${command}`);
@@ -90,6 +92,20 @@ export async function runCli(args: string[]): Promise<number> {
     process.once("SIGTERM", stop);
     return 0;
   }
+  if (command === "enrich") {
+    const controller = new AbortController();
+    const abort = () => controller.abort();
+    process.once("SIGINT", abort);
+    process.once("SIGTERM", abort);
+    try {
+      const result = await runEnrichment(root, { signal: controller.signal });
+      console.log(`Enriched analysis ${result.analysisHash}; ${result.comments} comments`);
+      return 0;
+    } finally {
+      process.removeListener("SIGINT", abort);
+      process.removeListener("SIGTERM", abort);
+    }
+  }
   const { config } = await initializeWorkspace(root);
   validateConfiguredModules(config.modules);
   const assets = await siteAssets();
@@ -98,7 +114,8 @@ export async function runCli(args: string[]): Promise<number> {
     if (positionals.length < 3) throw new Error("ingest requires a repository and at least one report file");
     if (state.dirty) throw new Error("Report ingestion requires clean source files at the scanned revision; .topo artifacts are excluded.");
     const result = await ingestReports(root, positionals.slice(2).map((path) => resolve(path)), assets, state.revision);
-    console.log(`Ingested ${result.inputs.length} reports; ${result.metrics.length} metrics, ${result.findings.length} findings`);
+    for (const warning of result.warnings) console.warn(warning);
+    console.log(`Ingested ${result.dashboard.inputs.length} reports; ${result.dashboard.metrics.length} metrics, ${result.dashboard.findings.length} findings`);
     return 0;
   }
   if (state.dirty) {
@@ -116,6 +133,7 @@ export async function runCli(args: string[]): Promise<number> {
   const artifacts = await generateArtifacts(root, result.graph, assets);
   for (const diagnostic of result.diagnostics) console.warn(`${diagnostic.severity}: ${diagnostic.code}: ${diagnostic.message}`);
   for (const warning of artifacts.layout.warnings) console.warn(`layout: ${warning.code}: ${warning.message}`);
+  for (const warning of artifacts.warnings) console.warn(warning);
   console.log(`${result.authoritative ? "Scanned" : "PARTIAL PREVIEW:"} ${result.metrics.sourceFileCount} files, ${result.graph.edges.length} edges, ${result.metrics.linesOfCode} lines in ${((performance.now() - start) / 1000).toFixed(2)}s`);
   console.log(`Site generated in ${root}/.topo/cache/site; run topo serve "${root}"`);
   return result.authoritative ? 0 : 2;

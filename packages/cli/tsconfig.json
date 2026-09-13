@@ -7,7 +7,7 @@
     "types": ["node"]
   },
   "references": [
-    {"path": "../schema"}, {"path": "../workspace"}, {"path": "../reports"}, {"path": "../graph"}, {"path": "../scanner"}, {"path": "../views"}, {"path": "../modules"}
+    {"path": "../schema"}, {"path": "../workspace"}, {"path": "../reports"}, {"path": "../graph"}, {"path": "../scanner"}, {"path": "../views"}, {"path": "../modules"}, {"path": "../enrichment"}
   ],
   "include": ["src/**/*.ts"],
   "exclude": ["src/**/*.test.ts"]

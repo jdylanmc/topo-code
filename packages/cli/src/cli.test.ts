@@ -5,6 +5,9 @@ import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
+import { createGraphDocument, createPathNodeId } from "@topo/schema";
+import { initializeWorkspace } from "@topo/workspace";
+import { generateArtifacts } from "./pipeline.js";
 
 const execute = promisify(execFile);
 const entry = fileURLToPath(new URL("../dist/main.js", import.meta.url));
@@ -148,6 +151,48 @@ describe("documented CLI workflow", () => {
     await expect(cli("scan", root, "--allow-partial")).rejects.toMatchObject({ code: 2, stdout: expect.stringContaining("PARTIAL PREVIEW") });
     const data = JSON.parse(await readFile(join(root, ".topo/cache/site/data.json"), "utf8"));
     expect(data.graph.extensions["dev.topo.scanner"].authoritative).toBe(false);
+  });
+
+  it("runs enrichment only through the explicit CLI command", async () => {
+    const root = await temp();
+    const assets = await temp();
+    await writeFile(join(assets, "index.html"), "<!doctype html><title>Topocode</title>");
+    const { config } = await initializeWorkspace(root);
+    const graph = createGraphDocument({
+      graphId: "test",
+      repository: { id: config.repositoryId, label: "Fixture", revision: "abc123" },
+      modules: [{ id: "@topo/scanner", version: "0.0.0", schemaVersion: "1.0" }],
+      nodes: [{
+        id: createPathNodeId("main.ts"),
+        kind: "file",
+        label: "main.ts",
+        identity: { kind: "path", value: "main.ts" },
+        fingerprint: "sha256:abc",
+      }],
+      edges: [],
+    });
+    await generateArtifacts(root, graph, assets);
+    expect(JSON.parse(await readFile(join(root, ".topo/cache/site/data.json"), "utf8")).enrichment).toBeUndefined();
+    const provider = join(root, "provider.mjs");
+    await writeFile(provider, `
+      import { readFileSync, writeFileSync } from "node:fs";
+      const input = JSON.parse(readFileSync(process.env.TOPO_INPUT_PATH, "utf8"));
+      writeFileSync(process.env.TOPO_OUTPUT_PATH, JSON.stringify({
+        schemaVersion: "1.0", analysisHash: input.analysisHash, provenance: "inferred", comments: []
+      }));
+    `);
+    const configPath = join(root, ".topo/config.json");
+    const authoredConfig = JSON.parse(await readFile(configPath, "utf8"));
+    await writeFile(configPath, `${JSON.stringify({
+      ...authoredConfig,
+      enrichment: { command: [process.execPath, provider] },
+    }, null, 2)}\n`);
+
+    expect((await cli("enrich", root)).stdout).toContain("Enriched analysis");
+    expect(JSON.parse(await readFile(join(root, ".topo/cache/site/data.json"), "utf8")).enrichment).toMatchObject({
+      provenance: "inferred",
+      comments: [],
+    });
   });
 
   it.each([

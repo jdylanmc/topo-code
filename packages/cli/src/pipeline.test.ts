@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, readFile, readdir, rm, unlink, writeFile } from "node:f
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
+import { hashAnalysis, serializeEnrichmentDocument } from "@topo/enrichment";
 import { BUILTIN_MODULE_MANIFESTS } from "@topo/modules";
 import {
   createGraphDocument,
@@ -9,7 +10,7 @@ import {
   serializeGraphDocument,
   type GraphDocument,
 } from "@topo/schema";
-import { initializeWorkspace, withWorkspaceLock } from "@topo/workspace";
+import { initializeWorkspace, withWorkspaceLock, writeGenerated } from "@topo/workspace";
 import {
   reviewCuratedView,
   serializeCuratedView,
@@ -265,6 +266,53 @@ describe("scan-to-dashboard artifact integration", () => {
     await generateArtifacts(root, graph, assets);
     await expect(readFile(join(root, ".topo/cache/site/retired.js"))).rejects.toMatchObject({ code: "ENOENT" });
     expect(await readFile(join(root, ".topo/cache/site/image.png"))).toEqual(image);
+  });
+
+  it("retains fresh enrichment and normally drops it after graph or dashboard changes", async () => {
+    const { root, assets, graph } = await fixture();
+    await generateArtifacts(root, graph, assets);
+    const enrichment = {
+      schemaVersion: "1.0" as const,
+      analysisHash: await hashAnalysis(graph, null),
+      provenance: "inferred" as const,
+      comments: [{
+        text: "Fresh commentary",
+        nodeIds: [graph.nodes[0]!.id],
+        evidenceIds: [],
+      }],
+    };
+    await writeGenerated(root, "reports/outputs/enrichment.json", serializeEnrichmentDocument(enrichment));
+    expect((await generateArtifacts(root, graph, assets)).warnings).toEqual([]);
+    expect(JSON.parse(await readFile(join(root, ".topo/cache/site/data.json"), "utf8")).enrichment).toEqual(enrichment);
+
+    const changed = structuredClone(graph);
+    changed.nodes = changed.nodes.slice(1);
+    changed.edges = [];
+    expect((await generateArtifacts(root, changed, assets)).warnings).toEqual([]);
+    expect(JSON.parse(await readFile(join(root, ".topo/cache/site/data.json"), "utf8")).enrichment).toBeUndefined();
+    expect(await readFile(join(root, ".topo/reports/outputs/enrichment.json"), "utf8")).toBe(
+      serializeEnrichmentDocument(enrichment),
+    );
+
+    await generateArtifacts(root, graph, assets);
+    const input = join(await temp(), "report.json");
+    await writeFile(input, JSON.stringify(report(graph)));
+    expect((await ingestReports(root, [input], assets)).warnings).toEqual([]);
+    expect(JSON.parse(await readFile(join(root, ".topo/cache/site/data.json"), "utf8")).enrichment).toBeUndefined();
+  });
+
+  it("warns and omits malformed optional enrichment without changing valid static outputs", async () => {
+    const { root, assets, graph } = await fixture();
+    await writeGenerated(root, "reports/outputs/enrichment.json", "{");
+    const generated = await generateArtifacts(root, graph, assets);
+    expect(generated.warnings).toEqual([
+      expect.stringContaining("Ignoring invalid generated enrichment"),
+    ]);
+    const data = JSON.parse(await readFile(join(root, ".topo/cache/site/data.json"), "utf8"));
+    expect(data.graph).toEqual(graph);
+    expect(data.dashboard).toBeNull();
+    expect(data.enrichment).toBeUndefined();
+    expect(await readFile(join(root, ".topo/reports/outputs/enrichment.json"), "utf8")).toBe("{");
   });
 
   it("serializes writers and releases locks after failures", async () => {

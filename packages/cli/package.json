@@ -18,6 +18,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@topo/enrichment": "workspace:*",
     "@topo/graph": "workspace:*",
     "@topo/modules": "workspace:*",
     "@topo/reports": "workspace:*",

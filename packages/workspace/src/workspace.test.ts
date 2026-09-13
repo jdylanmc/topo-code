@@ -2,7 +2,17 @@ import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promis
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { cacheKey, initializeWorkspace, loadConfig, readOptionalArtifact, workspacePath, writeAuthoredAtomic, writeGenerated } from "./index.js";
+import {
+  DEFAULT_ENRICHMENT_TIMEOUT_MS,
+  cacheKey,
+  initializeWorkspace,
+  loadConfig,
+  parseConfig,
+  readOptionalArtifact,
+  workspacePath,
+  writeAuthoredAtomic,
+  writeGenerated,
+} from "./index.js";
 
 const directories: string[] = [];
 async function fixture() {
@@ -32,6 +42,38 @@ describe("workspace lifecycle", () => {
       await writeFile(join(root, ".topo/config.json"), content);
       await expect(initializeWorkspace(root)).rejects.toThrow();
       expect(await readFile(join(root, ".topo/config.json"), "utf8")).toBe(content);
+    }
+  });
+
+  it("parses an optional argv-based enrichment command without provider policy", () => {
+    expect(parseConfig({
+      schemaVersion: "1.0",
+      repositoryId: "fixture",
+      modules: [],
+      enrichment: {
+        command: ["copilot", "-p", "{prompt}"],
+        promptFile: "topo-prompt.md",
+        timeoutMs: DEFAULT_ENRICHMENT_TIMEOUT_MS,
+      },
+    }).enrichment).toEqual({
+      command: ["copilot", "-p", "{prompt}"],
+      promptFile: "topo-prompt.md",
+      timeoutMs: DEFAULT_ENRICHMENT_TIMEOUT_MS,
+    });
+    for (const enrichment of [
+      {},
+      { command: [] },
+      { command: ["node"], promptFile: "" },
+      { command: ["node"], timeoutMs: 0 },
+      { command: ["node"], timeoutMs: 2_147_483_648 },
+      { command: ["node"], approval: true },
+    ]) {
+      expect(() => parseConfig({
+        schemaVersion: "1.0",
+        repositoryId: "fixture",
+        modules: [],
+        enrichment,
+      })).toThrow();
     }
   });
 

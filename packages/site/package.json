@@ -17,6 +17,7 @@
     "benchmark": "node ../../benchmarks/renderer-bakeoff.mjs"
   },
   "dependencies": {
+    "@topo/enrichment": "workspace:*",
     "@topo/graph": "workspace:*",
     "@topo/modules": "workspace:*",
     "@topo/schema": "workspace:*",

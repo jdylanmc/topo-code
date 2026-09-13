@@ -61,6 +61,7 @@ interface SiteDataEnvelope {
   architecture?: ArchitectureDocument | null;
   dashboard: DashboardDocument | null;
   curatedViews?: CuratedViewsSnapshot;
+  enrichment?: EnrichmentDocument;
 }
 ```
 
@@ -70,6 +71,11 @@ editing capability in the data response header; static exports remain read-only.
 See [curated views](./curated-views.md). Startup still uses one data fetch; explicit
 local saves use the separate, capability-gated `POST /__topo/views` endpoint.
 
+Optional enrichment supplies secondary, inferred commentary without changing
+source labels or geometry. Stale commentary is hidden; malformed commentary
+produces a separate visible error without blocking valid core data. See the
+[snapshot commentary contract](./enrichment-contract.md).
+
 `graph` and `layout` are required and validated before rendering. Layout is
 validated against the graph, including derived geometry source primitives.
 Missing or null `architecture` is deterministically derived in the browser.
@@ -77,7 +83,7 @@ Malformed supplied architecture is an error, not a fallback. `dashboard: null`
 means unavailable; an empty dashboard object is shown as empty rather than
 unavailable.
 
-Malformed, incompatible, or cross-graph artifacts are not rendered.
+Malformed, incompatible, or cross-graph core artifacts are not rendered.
 Compatible graphs containing unknown or unsupported module contributions remain
 visible with a persistent **Non-authoritative graph** warning.
 The warning region is keyboard-focusable, scrollable, and capped at 24% of the

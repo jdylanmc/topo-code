@@ -19,6 +19,7 @@ import { FIT_PADDING, fitScale, ZoomLimits } from "./zoom.js";
 import { CurationController } from "./curation.js";
 import { requiredElement } from "./dom.js";
 import { ModuleViewsController } from "./module-views.js";
+import { EnrichmentController } from "./enrichment-view.js";
 
 function compareText(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
@@ -67,6 +68,7 @@ class TopoApp {
   #keyboardNavigation = false;
   #curation: CurationController | undefined;
   #modules: ModuleViewsController | undefined;
+  #enrichment: EnrichmentController | undefined;
   #activeView: CuratedViewDefinition | undefined;
   #viewMemberIds: Set<string> | undefined;
   #repositoryState: ViewState;
@@ -164,6 +166,7 @@ class TopoApp {
             <section data-details="cycles"></section>
             <section data-details="selection"></section>
             <section data-details="modules"></section>
+            <section data-details="enrichment" aria-label="AI commentary"></section>
           </aside>
         </section>
       </main>
@@ -178,6 +181,9 @@ class TopoApp {
       const artifacts = this.#model.artifacts;
       this.#modules = new ModuleViewsController(
         requiredElement(this.#root, '[data-details="modules"]'), artifacts.graph,
+      );
+      this.#enrichment = new EnrichmentController(
+        requiredElement(this.#root, '[data-details="enrichment"]'), artifacts,
       );
       this.#curation = new CurationController(this.#root, {
         graph: artifacts.graph,
@@ -195,6 +201,17 @@ class TopoApp {
           .filter((container) => this.#model.state.expandedContainerIds.has(container.id))
           .map((container) => container.path || ".")
           .sort(compareText),
+      });
+      this.#curation.attachInventoryDrop(requiredElement(this.#root, ".map-host"), (clientX, clientY) => {
+        const bounds = requiredElement(this.#root, ".renderer-layer").getBoundingClientRect();
+        const transform = this.#renderer?.getTransform();
+        if (!transform || !Number.isFinite(transform.scale) || transform.scale <= 0) {
+          throw new Error("The map camera is not ready for placement.");
+        }
+        return {
+          x: Math.round((clientX - bounds.left - transform.x) / transform.scale),
+          y: Math.round((clientY - bounds.top - transform.y) / transform.scale),
+        };
       });
       this.#refresh(false);
       // Populated status controls determine the map's available height.
@@ -530,6 +547,7 @@ class TopoApp {
     const selected = this.#model.layoutResult.projection.visibleEntities.find(
       (entity) => entity.id === this.#model.state.selectedEntityId,
     );
+    this.#enrichment?.updateSelection(selected);
     if (!selected) return;
     const details = getEntityDetails(this.#model.artifacts.graph, selected);
     const heading = document.createElement("h3");

@@ -54,6 +54,7 @@ const outputPath = path.resolve(
 const headed = process.argv.includes("--headed");
 const prepareOnly = process.argv.includes("--prepare-only");
 const curated = process.argv.includes("--curated");
+const enriched = process.argv.includes("--enriched");
 function argumentValue(name) {
   const index = process.argv.indexOf(name);
   return index < 0 ? undefined : process.argv[index + 1];
@@ -136,6 +137,7 @@ const scopeNames = parseChoiceValues({
 });
 const fixtureOptions = {
   curated,
+  enriched,
   modules: parseModuleNames(argumentValues("--module")),
   mermaidGraph: argumentValue("--mermaid-graph"),
   mermaidProvenance: argumentValue("--mermaid-provenance"),
@@ -411,10 +413,20 @@ async function runWorkload(
           if (fixtureOptions.modules.some((id) => !availableModules.includes(id))) {
             throw new Error(`Configured modules did not render compatible views: ${fixtureOptions.modules.join(", ")}`);
           }
+          let enrichmentObservation;
+          if (enriched) {
+            const comments = await page.locator("[data-enrichment-comment]").count();
+            const errors = await page.locator("[data-enrichment-error]").count();
+            if (comments !== Math.min(50, fixture.enrichmentComments) || errors !== 0) {
+              throw new Error(`Enrichment did not load: ${comments} rendered comments and ${errors} errors.`);
+            }
+            enrichmentObservation = { fixtureComments: fixture.enrichmentComments, renderedComments: comments };
+          }
           return {
             ...compactSceneObservation(snapshot),
             ...(curatedViewId ? { curatedViewId } : {}),
             ...(fixtureOptions.modules.length ? { availableModules } : {}),
+            ...(enrichmentObservation ? { enrichment: enrichmentObservation } : {}),
           };
         },
       },
@@ -859,6 +871,7 @@ async function main() {
     selectedScopes: scopeNames,
     ...(fixtureOptions.modules.length ? { selectedModules: fixtureOptions.modules } : {}),
     ...(curated ? { curatedViews: "all-repository-paths" } : {}),
+    ...(enriched ? { enrichment: "one-fixture-comment-per-node" } : {}),
     preparationTimeoutMilliseconds,
     fixtureTimeoutMilliseconds,
     totalTimeoutMilliseconds,

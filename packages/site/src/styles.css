@@ -243,6 +243,38 @@ button:disabled {
   gap: 8px;
 }
 
+.view-inventory {
+  max-height: 320px;
+  overflow: auto;
+  border: 1px solid #30363d;
+  border-radius: 4px;
+}
+
+.view-inventory-row {
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  border-bottom: 1px solid #21262d;
+}
+
+.view-inventory-row:last-child {
+  border-bottom: 0;
+}
+
+.view-inventory-row[draggable="true"] {
+  cursor: grab;
+}
+
+.view-inventory-row button {
+  text-align: left;
+}
+
+.view-rule-suggestion {
+  margin: 10px 0;
+  padding: 8px;
+  border: 1px solid #f778ba;
+}
+
 .view-error {
   color: #ffb4aa;
   border: 1px solid #ff7b72;

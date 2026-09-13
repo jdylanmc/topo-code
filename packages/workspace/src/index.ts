@@ -4,11 +4,19 @@ import { basename, dirname, isAbsolute, relative, resolve, sep } from "node:path
 import { serializeJson, type JsonValue } from "@topo/schema";
 
 export const WORKSPACE_VERSION = "1.0";
+export const DEFAULT_ENRICHMENT_TIMEOUT_MS = 10 * 60 * 1000;
+
+export interface WorkspaceEnrichmentConfig {
+  command: string[];
+  promptFile?: string;
+  timeoutMs?: number;
+}
 
 export interface WorkspaceConfig {
   schemaVersion: "1.0";
   repositoryId: string;
   modules: string[];
+  enrichment?: WorkspaceEnrichmentConfig;
 }
 
 export function isMissing(error: unknown): boolean {
@@ -35,9 +43,50 @@ export function parseConfig(input: unknown): WorkspaceConfig {
       new Set(value.modules).size !== value.modules.length) {
     throw new Error("Workspace modules must be distinct nonempty strings");
   }
-  const unknown = Object.keys(value).filter((key) => !["schemaVersion", "repositoryId", "modules"].includes(key));
+  let enrichment: WorkspaceEnrichmentConfig | undefined;
+  if (value.enrichment !== undefined) {
+    if (typeof value.enrichment !== "object" || value.enrichment === null || Array.isArray(value.enrichment)) {
+      throw new Error("Workspace enrichment must be an object");
+    }
+    const configured = value.enrichment as Record<string, unknown>;
+    if (!Array.isArray(configured.command) ||
+        configured.command.length === 0 ||
+        !configured.command.every((item): item is string => typeof item === "string" && item.length > 0)) {
+      throw new Error("Workspace enrichment command must be a nonempty argv array");
+    }
+    if (configured.promptFile !== undefined &&
+        (typeof configured.promptFile !== "string" || configured.promptFile.length === 0)) {
+      throw new Error("Workspace enrichment promptFile must be a nonempty string");
+    }
+    if (configured.timeoutMs !== undefined &&
+        (typeof configured.timeoutMs !== "number" ||
+         !Number.isSafeInteger(configured.timeoutMs) ||
+         configured.timeoutMs <= 0 ||
+         configured.timeoutMs > 2_147_483_647)) {
+      throw new Error("Workspace enrichment timeoutMs must be a positive safe timer integer");
+    }
+    const enrichmentUnknown = Object.keys(configured).filter(
+      (key) => !["command", "promptFile", "timeoutMs"].includes(key),
+    );
+    if (enrichmentUnknown.length) {
+      throw new Error(`Unknown workspace enrichment keys: ${enrichmentUnknown.join(", ")}`);
+    }
+    enrichment = {
+      command: [...configured.command],
+      ...(configured.promptFile === undefined ? {} : { promptFile: configured.promptFile }),
+      ...(configured.timeoutMs === undefined ? {} : { timeoutMs: configured.timeoutMs }),
+    };
+  }
+  const unknown = Object.keys(value).filter(
+    (key) => !["schemaVersion", "repositoryId", "modules", "enrichment"].includes(key),
+  );
   if (unknown.length) throw new Error(`Unknown workspace config keys: ${unknown.join(", ")}`);
-  return { schemaVersion: WORKSPACE_VERSION, repositoryId: value.repositoryId, modules: [...value.modules] };
+  return {
+    schemaVersion: WORKSPACE_VERSION,
+    repositoryId: value.repositoryId,
+    modules: [...value.modules],
+    ...(enrichment === undefined ? {} : { enrichment }),
+  };
 }
 
 export async function workspacePath(root: string, name: string): Promise<string> {

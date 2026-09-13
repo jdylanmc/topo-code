@@ -2,6 +2,12 @@ import { createHash } from "node:crypto";
 import { readFile, readdir, rmdir, stat, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
+  hashAnalysis,
+  parseEnrichmentDocument,
+  validateEnrichmentReferences,
+  type EnrichmentDocument,
+} from "@topo/enrichment";
+import {
   assertGraphDocument,
   serializeGraphDocument,
   type GraphDocument,
@@ -11,7 +17,6 @@ import {
   layoutGraphWithArchitecture,
   serializeArchitecture,
   serializeLayoutDeterministic,
-  type ArchitectureDocument,
   type LayoutResult,
 } from "@topo/graph";
 import {
@@ -35,12 +40,12 @@ import {
   workspacePath,
   writeGenerated,
 } from "@topo/workspace";
-import type { CuratedViewsSnapshot } from "@topo/views";
 import {
   buildCuratedViews,
   serializeCuratedViewDeltas,
   serializeCuratedViewsSnapshot,
 } from "./views.js";
+import { serializeSiteBundle } from "./site-bundle.js";
 
 async function storedReports(root: string): Promise<unknown[]> {
   const directory = await workspacePath(root, "reports/inputs");
@@ -86,16 +91,6 @@ async function copySite(root: string, assets: string): Promise<void> {
   await prune("");
 }
 
-function bundle(
-  graph: GraphDocument,
-  architecture: ArchitectureDocument,
-  layout: LayoutResult,
-  dashboard: DashboardDocument | null,
-  curatedViews: CuratedViewsSnapshot,
-): string {
-  return `{"schemaVersion":"1.0","graph":${serializeGraphDocument(graph).trim()},"layout":${serializeLayoutDeterministic(layout.layout).trim()},"architecture":${serializeArchitecture(architecture).trim()},"dashboard":${dashboard === null ? "null" : serializeDashboard(dashboard).trim()},"curatedViews":${serializeCuratedViewsSnapshot(curatedViews).trim()}}\n`;
-}
-
 function composeConfiguredGraph(graph: GraphDocument, enabledModuleIds: readonly string[]): GraphDocument {
   validateModuleCatalog(BUILTIN_MODULE_MANIFESTS);
   const composed = composeModules(graph, enabledModuleIds);
@@ -103,11 +98,43 @@ function composeConfiguredGraph(graph: GraphDocument, enabledModuleIds: readonly
   return composed;
 }
 
+async function freshStoredEnrichment(
+  root: string,
+  graph: GraphDocument,
+  dashboard: DashboardDocument | null,
+): Promise<{ enrichment?: EnrichmentDocument; warnings: string[] }> {
+  let stored: unknown;
+  try {
+    stored = await readOptionalArtifact(root, "reports/outputs/enrichment.json");
+  } catch (error) {
+    return {
+      warnings: [`Ignoring invalid generated enrichment: ${error instanceof Error ? error.message : String(error)}`],
+    };
+  }
+  if (stored === undefined) return { warnings: [] };
+  try {
+    const enrichment = parseEnrichmentDocument(stored);
+    if (enrichment.analysisHash !== await hashAnalysis(graph, dashboard)) return { warnings: [] };
+    validateEnrichmentReferences(enrichment, graph);
+    return { enrichment, warnings: [] };
+  } catch (error) {
+    return {
+      warnings: [`Ignoring invalid generated enrichment: ${error instanceof Error ? error.message : String(error)}`],
+    };
+  }
+}
+
+export interface ArtifactGenerationResult {
+  layout: LayoutResult;
+  dashboard: DashboardDocument | null;
+  warnings: string[];
+}
+
 export async function generateArtifacts(
   root: string,
   graph: GraphDocument,
   siteAssets: string,
-): Promise<{ layout: LayoutResult; dashboard: DashboardDocument | null }> {
+): Promise<ArtifactGenerationResult> {
   assertGraphDocument(graph);
   return withWorkspaceLock(root, async () => {
     const config = await loadConfig(root);
@@ -120,7 +147,16 @@ export async function generateArtifacts(
     const reports = await storedReports(root);
     const dashboard = reports.length ? normalizeReports(reports, composedGraph) : null;
     const curatedViews = await buildCuratedViews(root, composedGraph);
-    const data = bundle(composedGraph, architecture, layout, dashboard, curatedViews.snapshot);
+    const enrichment = await freshStoredEnrichment(root, composedGraph, dashboard);
+    const data = serializeSiteBundle({
+      schemaVersion: "1.0",
+      graph: composedGraph,
+      layout: layout.layout,
+      architecture,
+      dashboard,
+      curatedViews: curatedViews.snapshot,
+      ...(enrichment.enrichment === undefined ? {} : { enrichment: enrichment.enrichment }),
+    });
     await copySite(root, siteAssets);
     await writeGenerated(root, "graph/graph.json", serializeGraphDocument(composedGraph));
     await writeGenerated(root, "graph/layout.json", serializeLayoutDeterministic(layout.layout));
@@ -130,11 +166,21 @@ export async function generateArtifacts(
     await writeGenerated(root, "reports/outputs/curated-views.json", serializeCuratedViewsSnapshot(curatedViews.snapshot));
     await writeGenerated(root, "reports/outputs/curated-view-deltas.json", serializeCuratedViewDeltas(curatedViews));
     await writeGenerated(root, "cache/site/data.json", data);
-    return { layout, dashboard };
+    return { layout, dashboard, warnings: enrichment.warnings };
   });
 }
 
-export async function ingestReports(root: string, inputPaths: string[], siteAssets: string, expectedRevision?: string): Promise<DashboardDocument> {
+export interface ReportIngestionResult {
+  dashboard: DashboardDocument;
+  warnings: string[];
+}
+
+export async function ingestReports(
+  root: string,
+  inputPaths: string[],
+  siteAssets: string,
+  expectedRevision?: string,
+): Promise<ReportIngestionResult> {
   if (!inputPaths.length) throw new Error("At least one report file is required");
   await initializeWorkspace(root);
   return withWorkspaceLock(root, async () => {
@@ -154,7 +200,16 @@ export async function ingestReports(root: string, inputPaths: string[], siteAsse
     const architecture = deriveArchitecture(composedGraph);
     const layout = layoutGraphWithArchitecture(composedGraph, architecture, { previous, pins });
     const curatedViews = await buildCuratedViews(root, composedGraph);
-    const data = bundle(composedGraph, architecture, layout, dashboard, curatedViews.snapshot);
+    const enrichment = await freshStoredEnrichment(root, composedGraph, dashboard);
+    const data = serializeSiteBundle({
+      schemaVersion: "1.0",
+      graph: composedGraph,
+      layout: layout.layout,
+      architecture,
+      dashboard,
+      curatedViews: curatedViews.snapshot,
+      ...(enrichment.enrichment === undefined ? {} : { enrichment: enrichment.enrichment }),
+    });
     for (const report of incoming) {
       const serialized = serializeReport(report);
       const fingerprint = createHash("sha256").update(serialized).digest("hex");
@@ -176,6 +231,6 @@ export async function ingestReports(root: string, inputPaths: string[], siteAsse
     await writeGenerated(root, "reports/outputs/curated-views.json", serializeCuratedViewsSnapshot(curatedViews.snapshot));
     await writeGenerated(root, "reports/outputs/curated-view-deltas.json", serializeCuratedViewDeltas(curatedViews));
     await writeGenerated(root, "cache/site/data.json", data);
-    return dashboard;
+    return { dashboard, warnings: enrichment.warnings };
   });
 }

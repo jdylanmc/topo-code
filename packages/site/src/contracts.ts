@@ -6,6 +6,7 @@ import type {
   LayoutPin,
 } from "@topo/graph";
 import type { CuratedViewsSnapshot } from "@topo/views";
+import type { EnrichmentDocument } from "@topo/enrichment";
 import type {
   GraphDocument,
   LayoutDocument,
@@ -28,6 +29,8 @@ export interface LoadedArtifacts {
   dashboard: DashboardArtifact;
   curatedViews?: CuratedViewsSnapshot;
   viewEditingToken?: string;
+  enrichment?: EnrichmentDocument;
+  enrichmentError?: string;
   quality: {
     authoritative: boolean;
     scannerStatus: string;
