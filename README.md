@@ -178,6 +178,13 @@ evidence for the WebGL-only, uncapped **30 whole-workload delivered FPS** floor;
 ordinary regression success is not a new performance measurement or a worst-frame
 guarantee.
 
+A [source-bound generated scale smoke](./benchmarks/results/mvp-scan-to-map.json)
+at `33da32c5` observed **1.530 s** from scan launch through interactive WebGL
+mapping for **100,802 code lines, 202 files and 400 authoritative imports**.
+This was one deliberately regular generated fixture on the recorded Apple M5 Pro,
+64 GiB machine (Node 24.20.0, headless Chrome 153), not an ordinary regression
+test, FPS result, real-repository benchmark or universal performance guarantee.
+
 ### Package and licence checks
 
 The root check requires every landed package to define `build`, `typecheck`, and
