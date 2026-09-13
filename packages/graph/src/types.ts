@@ -144,6 +144,7 @@ export interface CollapsedEdgeAccounting {
 
 export interface ProjectionOptions {
   viewId?: string;
+  memberNodeIds?: readonly EntityId[];
   expandedContainerIds?: readonly EntityId[];
   collapsedTangleIds?: readonly EntityId[];
   includeExternal?: boolean;

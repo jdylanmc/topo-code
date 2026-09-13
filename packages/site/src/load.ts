@@ -13,6 +13,7 @@ import type {
   DashboardArtifact,
   LoadedArtifacts,
 } from "./contracts.js";
+import { parseCuratedViewsSnapshot } from "@topo/views";
 
 const SUPPORTED_MODULES = {
   "@topo/scanner-typescript": {
@@ -44,9 +45,10 @@ interface SiteDataEnvelope {
   layout: unknown;
   architecture?: unknown;
   dashboard: unknown | null;
+  curatedViews?: unknown;
 }
 
-async function fetchRequiredJson(path: string, label: string): Promise<unknown> {
+async function fetchRequiredJson(path: string, label: string): Promise<{ value: unknown; editingToken?: string }> {
   let response: Response;
   try {
     response = await fetch(path, { cache: "no-store" });
@@ -57,7 +59,9 @@ async function fetchRequiredJson(path: string, label: string): Promise<unknown> 
     throw new ArtifactLoadError(label, `HTTP ${response.status}`);
   }
   try {
-    return await response.json();
+    const value: unknown = await response.json();
+    const token = response.headers.get("X-Topo-Views-Token");
+    return { value, ...(token ? { editingToken: token } : {}) };
   } catch (error) {
     throw new ArtifactLoadError(label, error);
   }
@@ -187,9 +191,8 @@ function validateLayout(value: unknown, graph: GraphDocument): LayoutDocument {
 }
 
 export async function loadArtifacts(): Promise<LoadedArtifacts> {
-  const envelope = validateEnvelope(
-    await fetchRequiredJson("./data.json", "data.json"),
-  );
+  const response = await fetchRequiredJson("./data.json", "data.json");
+  const envelope = validateEnvelope(response.value);
   let parsedGraph: ReturnType<typeof parseGraphDocument>;
   try {
     parsedGraph = parseGraphDocument(
@@ -208,6 +211,14 @@ export async function loadArtifacts(): Promise<LoadedArtifacts> {
     ? validateArchitecture(envelope.architecture, parsedGraph.document)
     : deriveArchitecture(parsedGraph.document);
   const scanner = scannerQuality(parsedGraph.document);
+  let curatedViews: LoadedArtifacts["curatedViews"];
+  if (envelope.curatedViews !== undefined) {
+    try {
+      curatedViews = parseCuratedViewsSnapshot(envelope.curatedViews);
+    } catch (error) {
+      throw new ArtifactLoadError("data.json curatedViews", error);
+    }
+  }
 
   let dashboard: DashboardArtifact;
   if (envelope.dashboard === null) {
@@ -228,6 +239,8 @@ export async function loadArtifacts(): Promise<LoadedArtifacts> {
     architecture,
     architectureSource: hasArchitecture ? "artifact" : "derived",
     dashboard,
+    ...(curatedViews === undefined ? {} : { curatedViews }),
+    ...(curatedViews && response.editingToken ? { viewEditingToken: response.editingToken } : {}),
     quality: {
       authoritative:
         parsedGraph.compatibility.authoritative && scanner.authoritative,

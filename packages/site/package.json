@@ -19,6 +19,7 @@
   "dependencies": {
     "@topo/graph": "workspace:*",
     "@topo/schema": "workspace:*",
+    "@topo/views": "workspace:*",
     "pixi.js": "^8.13.2"
   },
   "devDependencies": {

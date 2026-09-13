@@ -340,6 +340,7 @@ ignore@7.0.8
 License: MIT
 Required by:
 - @topo/scanner -> ignore
+- @topo/views -> ignore
 
 ----- BEGIN LICENSE-MIT -----
 Copyright (c) 2013 Kael Zhang <i@kael.me>, contributors

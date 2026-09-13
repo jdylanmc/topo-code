@@ -7,6 +7,7 @@ import {
 import { deriveArchitecture, layoutGraph } from "@topo/graph";
 import { getEntityDetails } from "./details.js";
 import { ArtifactLoadError, loadArtifacts } from "./load.js";
+import type { CuratedViewsSnapshot } from "@topo/views";
 
 function fixture(): GraphDocument {
   return createGraphDocument({
@@ -80,6 +81,43 @@ afterEach(() => {
 });
 
 describe("site data contract", () => {
+  it.each([true, false])("loads curated snapshots with local editing capability: %s", async (editable) => {
+    const curatedViews: CuratedViewsSnapshot = {
+      schemaVersion: "1.0", graphHash: "a".repeat(64), views: [{
+        revision: "b".repeat(64),
+        definition: {
+          schemaVersion: "1.0", id: "frontend", name: "Frontend", provenance: "human",
+          pathRules: ["src/**"], includes: [], excludes: [], pins: [], expandedPaths: ["src"],
+        },
+      }],
+    };
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(
+      JSON.stringify({ ...envelope(fixture()), curatedViews }),
+      { headers: editable ? { "X-Topo-Views-Token": "local-test-capability" } : {} },
+    )));
+    const artifacts = await loadArtifacts();
+    expect(artifacts.curatedViews).toEqual(curatedViews);
+    expect(artifacts.viewEditingToken).toBe(editable ? "local-test-capability" : undefined);
+  });
+
+  it("does not enable editing on legacy data even when a capability header exists", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(envelope(fixture())), {
+      headers: { "X-Topo-Views-Token": "ignored-capability" },
+    })));
+    const artifacts = await loadArtifacts();
+    expect(artifacts.curatedViews).toBeUndefined();
+    expect(artifacts.viewEditingToken).toBeUndefined();
+  });
+
+  it.each([null, {}, { schemaVersion: "2.0", graphHash: "a".repeat(64), views: [] }])(
+    "rejects invalid curated data instead of dropping authored intent: %j", async (curatedViews) => {
+      vi.stubGlobal("fetch", vi.fn(async () => new Response(
+        JSON.stringify({ ...envelope(fixture()), curatedViews }),
+      )));
+      await expect(loadArtifacts()).rejects.toThrow("data.json curatedViews");
+    },
+  );
+
   it("loads one atomic envelope and distinguishes unavailable dashboard data", async () => {
     const graph = fixture();
     const fetchMock = vi.fn(async () =>

@@ -1,5 +1,7 @@
 import "./styles.css";
 import { createLayoutSession, type LayoutSession } from "@topo/graph";
+import type { LayoutDocument } from "@topo/schema";
+import { evaluateCuratedView, resolveViewPins, type CuratedViewDefinition, type CuratedViewEvaluation } from "@topo/views";
 import type {
   AppModel,
   BenchmarkApi,
@@ -14,18 +16,19 @@ import { createLayout, createScene } from "./scene.js";
 import { accessibleLabel } from "./renderers/renderer.js";
 import { WebGlInitializationError, WebGlRenderer } from "./renderers/webgl.js";
 import { FIT_PADDING, fitScale, ZoomLimits } from "./zoom.js";
+import { CurationController } from "./curation.js";
+import { requiredElement } from "./dom.js";
 
 function compareText(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
 }
 
-function requiredElement<T extends Element>(
-  root: ParentNode,
-  selector: string,
-): T {
-  const element = root.querySelector<T>(selector);
-  if (!element) throw new Error(`Missing required element "${selector}".`);
-  return element;
+function copyViewState(state: ViewState): ViewState {
+  return {
+    ...state,
+    expandedContainerIds: new Set(state.expandedContainerIds),
+    collapsedTangleIds: new Set(state.collapsedTangleIds),
+  };
 }
 
 function renderError(error: unknown): void {
@@ -61,6 +64,12 @@ class TopoApp {
   readonly #accessibilityButtons = new Map<string, HTMLButtonElement>();
   readonly #resizeObserver = new ResizeObserver(() => this.#renderer?.resize());
   #keyboardNavigation = false;
+  #curation: CurationController | undefined;
+  #activeView: CuratedViewDefinition | undefined;
+  #viewMemberIds: Set<string> | undefined;
+  #repositoryState: ViewState;
+  #lastLayoutState: ViewState;
+  readonly #viewLayouts = new Map<string, LayoutDocument>();
 
   private constructor(
     root: HTMLElement,
@@ -70,6 +79,8 @@ class TopoApp {
     this.#root = root;
     this.#model = model;
     this.#layoutSession = layoutSession;
+    this.#repositoryState = copyViewState(model.state);
+    this.#lastLayoutState = copyViewState(model.state);
     this.#cyclicNodeIds = new Set(
       model.artifacts.architecture.stronglyConnectedComponents.flatMap(
         (component) => component.memberNodeIds,
@@ -114,6 +125,8 @@ class TopoApp {
       <main class="app-shell" data-high-contrast="false">
         <section class="authority-banner" role="status" tabindex="0" aria-label="Scan completeness warnings" hidden></section>
         <header class="toolbar" aria-label="Map controls">
+          <label class="toolbar-group control">View <select id="view-select" aria-label="Curated view"></select></label>
+          <button id="view-new" type="button">New view</button>
           <label class="toolbar-group control">
             <input id="external-toggle" type="checkbox" checked />
             External packages
@@ -134,6 +147,7 @@ class TopoApp {
               <span data-status="counts"></span>
               <span data-status="dashboard"></span>
               <span data-status="architecture"></span>
+              <span data-status="view" class="view-status" hidden></span>
             </div>
             <div class="map-host" tabindex="0" aria-label="Architecture map. Use arrow keys to move, Enter to expand, plus and minus to zoom.">
               <div class="renderer-layer"></div>
@@ -143,6 +157,7 @@ class TopoApp {
           <aside class="details" aria-label="Selection details">
             <h2>Architecture map</h2>
             <p>Select a file, directory, external package, or tangle to inspect dependencies.</p>
+            <section data-details="views"></section>
             <section data-details="expanded"></section>
             <section data-details="cycles"></section>
             <section data-details="selection"></section>
@@ -157,9 +172,29 @@ class TopoApp {
         requiredElement(this.#root, ".renderer-layer"),
         this.#zoomLimits,
       );
+      const artifacts = this.#model.artifacts;
+      this.#curation = new CurationController(this.#root, {
+        graph: artifacts.graph,
+        architecture: artifacts.architecture,
+        ...(artifacts.curatedViews ? { snapshot: artifacts.curatedViews } : {}),
+        ...(artifacts.viewEditingToken ? { token: artifacts.viewEditingToken } : {}),
+        activate: (definition) => this.#applyCuratedView(definition),
+        updateSnapshot: (snapshot) => { artifacts.curatedViews = snapshot; },
+        selection: () => {
+          const id = this.#model.state.selectedEntityId;
+          const item = this.#model.layoutResult.layout.items.find((candidate) => candidate.subject.id === id);
+          return item ? { id: item.subject.id, x: item.x, y: item.y } : undefined;
+        },
+        expandedPaths: () => this.#model.artifacts.architecture.directoryContainers
+          .filter((container) => this.#model.state.expandedContainerIds.has(container.id))
+          .map((container) => container.path || ".")
+          .sort(compareText),
+      });
       this.#refresh(false);
       // Populated status controls determine the map's available height.
       this.resetView();
+      const initialView = new URLSearchParams(window.location.search).get("view");
+      if (initialView) this.#curation.selectInitialView(initialView);
       this.#resizeObserver.observe(requiredElement(this.#root, ".map-host"));
     } catch (error) {
       this.#resizeObserver.disconnect();
@@ -238,14 +273,73 @@ class TopoApp {
   #relayout(): void {
     const started = performance.now();
     const previous = this.#model.layoutResult.layout;
-    this.#model.layoutResult = createLayout(
-      this.#layoutSession,
-      this.#model.state,
-      previous,
-    );
+    let next: AppModel["layoutResult"];
+    try {
+      next = createLayout(this.#layoutSession, this.#model.state, previous);
+    } catch (error) {
+      const failedState = this.#model.state;
+      this.#model.state = copyViewState(this.#lastLayoutState);
+      this.#model.state.highContrast = failedState.highContrast;
+      if (failedState.selectedEntityId) this.#model.state.selectedEntityId = failedState.selectedEntityId;
+      if (failedState.focusedEntityId) this.#model.state.focusedEntityId = failedState.focusedEntityId;
+      requiredElement<HTMLInputElement>(this.#root, "#external-toggle").checked = this.#model.state.includeExternal;
+      if (!this.#curation) throw error;
+      this.#curation.showError(error);
+      this.#refreshInteraction();
+      return;
+    }
+    this.#model.layoutResult = next;
     this.#lastLayoutComputationMs = performance.now() - started;
     this.#refresh(true);
+    this.#curation?.updateExpansion();
     this.#lastTransitionDispatchMs = performance.now() - started;
+  }
+
+  #applyCuratedView(definition?: CuratedViewDefinition): CuratedViewEvaluation | undefined {
+    const oldState = this.#model.state;
+    const oldKey = oldState.viewId ?? "directory";
+    const key = definition ? `curated:${definition.id}` : "directory";
+    const evaluation = definition ? evaluateCuratedView(this.#model.artifacts.graph, definition) : undefined;
+    const state = definition ? copyViewState(oldState) : copyViewState(this.#repositoryState);
+    state.highContrast = oldState.highContrast;
+    if (definition && evaluation) {
+      state.viewId = key;
+      state.memberNodeIds = evaluation.nodeIds;
+      state.pins = resolveViewPins(this.#model.artifacts.graph, this.#model.artifacts.architecture, definition);
+      const expanded = new Set(definition.expandedPaths);
+      state.expandedContainerIds = new Set(this.#model.artifacts.architecture.directoryContainers
+        .filter((container) => expanded.has(container.path || ".")).map((container) => container.id));
+      state.expandedContainerIds.add(this.#model.artifacts.architecture.rootContainerId);
+      state.collapsedTangleIds = oldKey === key ? new Set(oldState.collapsedTangleIds) : new Set();
+      state.includeExternal = false;
+    }
+    const previous = oldKey === key
+      ? this.#model.layoutResult.layout
+      : this.#viewLayouts.get(key) ?? { ...this.#model.layoutResult.layout, viewId: key };
+    const layout = createLayout(this.#layoutSession, state, previous);
+    const visible = new Set(layout.projection.visibleEntities.map((entity) => entity.id));
+    if (state.selectedEntityId && !visible.has(state.selectedEntityId)) delete state.selectedEntityId;
+    if (state.focusedEntityId && !visible.has(state.focusedEntityId)) delete state.focusedEntityId;
+    if (!this.#activeView && definition) this.#repositoryState = copyViewState(oldState);
+    this.#viewLayouts.delete(oldKey);
+    this.#viewLayouts.set(oldKey, this.#model.layoutResult.layout);
+    // Unpinned session layouts are a bounded convenience, not authored metadata.
+    while (this.#viewLayouts.size > 4) this.#viewLayouts.delete(this.#viewLayouts.keys().next().value!);
+    this.#activeView = definition;
+    this.#viewMemberIds = evaluation ? new Set(evaluation.nodeIds) : undefined;
+    this.#model.state = state;
+    this.#model.layoutResult = layout;
+    const external = requiredElement<HTMLInputElement>(this.#root, "#external-toggle");
+    external.checked = state.includeExternal;
+    external.disabled = Boolean(definition);
+    external.title = definition ? "Curated path views contain repository files and directories only" : "";
+    this.#refresh(oldKey === key);
+    if (oldKey !== key) this.resetView();
+    const url = new URL(window.location.href);
+    if (definition) url.searchParams.set("view", definition.id);
+    else url.searchParams.delete("view");
+    window.history.replaceState(null, "", url);
+    return evaluation;
   }
 
   #refresh(animate: boolean): void {
@@ -279,6 +373,13 @@ class TopoApp {
     this.#renderExpanded();
     this.#renderCycles();
     this.#renderSelection();
+    const viewStatus = requiredElement<HTMLElement>(this.#root, '[data-status="view"]');
+    viewStatus.hidden = !this.#activeView;
+    viewStatus.textContent = this.#activeView
+      ? `Human-authored view: ${this.#activeView.name}${scene.nodes.length === 0 ? " · No matching members" : ""}`
+      : "";
+    this.#lastLayoutState = copyViewState(this.#model.state);
+    this.#curation?.updateSelection();
     if (hadMapFocus && !active.isConnected) mapHost.focus({ preventScroll: true });
   }
 
@@ -357,6 +458,9 @@ class TopoApp {
     const list = document.createElement("div");
     list.className = "expanded-list";
     const rootId = this.#model.artifacts.architecture.rootContainerId;
+    const visibleContainers = this.#activeView
+      ? new Set(this.#model.layoutResult.projection.visibleContainers.map((container) => container.id))
+      : undefined;
     const containers = new Map(
       this.#model.artifacts.architecture.directoryContainers.map((container) => [
         container.id,
@@ -367,6 +471,7 @@ class TopoApp {
       compareText,
     )) {
       if (id === rootId) continue;
+      if (visibleContainers && !visibleContainers.has(id)) continue;
       const button = document.createElement("button");
       button.type = "button";
       button.textContent = `Collapse ${containers.get(id)?.label ?? id}`;
@@ -395,6 +500,7 @@ class TopoApp {
     list.className = "cycle-list";
     for (const component of this.#model.artifacts.architecture
       .stronglyConnectedComponents) {
+      if (this.#viewMemberIds && !component.memberNodeIds.some((id) => this.#viewMemberIds!.has(id))) continue;
       const collapsed = this.#model.state.collapsedTangleIds.has(component.id);
       const button = document.createElement("button");
       button.type = "button";
@@ -477,6 +583,7 @@ class TopoApp {
       this.#model.state.focusedEntityId,
     );
     this.#renderSelection();
+    this.#curation?.updateSelection();
   }
 
   #activate(entityId: string): void {
@@ -603,6 +710,7 @@ class TopoApp {
         if (!this.#renderer) throw new Error("Renderer is not ready.");
         return {
           renderer: this.#renderer.kind,
+          ...(this.#activeView ? { curatedViewId: this.#activeView.id } : {}),
           graphId: this.#model.artifacts.graph.graphId,
           visibleNodes:
             this.#model.layoutResult.projection.visibleEntities.length,

@@ -60,8 +60,15 @@ interface SiteDataEnvelope {
   layout: LayoutDocument;
   architecture?: ArchitectureDocument | null;
   dashboard: DashboardDocument | null;
+  curatedViews?: CuratedViewsSnapshot;
 }
 ```
+
+An optional curated-view snapshot supplies named, path-based human-authored
+views. Local `topo serve` overlays current authored definitions and supplies an
+editing capability in the data response header; static exports remain read-only.
+See [curated views](./curated-views.md). Startup still uses one data fetch; explicit
+local saves use the separate, capability-gated `POST /__topo/views` endpoint.
 
 `graph` and `layout` are required and validated before rendering. Layout is
 validated against the graph, including derived geometry source primitives.

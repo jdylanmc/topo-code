@@ -48,7 +48,11 @@ function validateOptions(value: unknown): ProjectionOptions {
     ]);
   }
   const issues: { path: string; message: string }[] = [];
-  for (const key of ["expandedContainerIds", "collapsedTangleIds"] as const) {
+  for (const key of [
+    "memberNodeIds",
+    "expandedContainerIds",
+    "collapsedTangleIds",
+  ] as const) {
     const child = value[key];
     if (
       child !== undefined &&
@@ -58,6 +62,11 @@ function validateOptions(value: unknown): ProjectionOptions {
       issues.push({
         path: `$.${key}`,
         message: "Expected an array of non-empty identifiers.",
+      });
+    } else if (child !== undefined && new Set(child).size !== child.length) {
+      issues.push({
+        path: `$.${key}`,
+        message: "Identifiers must be unique.",
       });
     }
   }
@@ -165,6 +174,22 @@ function projectIndexedGraph(
     spineEdgeIds,
   } = index;
   const options = validateOptions(optionsValue);
+  const memberNodeIds =
+    options.memberNodeIds === undefined
+      ? undefined
+      : new Set(options.memberNodeIds);
+  if (memberNodeIds) {
+    for (const nodeId of memberNodeIds) {
+      if (!nodeById.has(nodeId)) {
+        throw new GraphEngineValidationError([
+          {
+            path: "$.memberNodeIds",
+            message: `Unknown node identifier "${nodeId}".`,
+          },
+        ]);
+      }
+    }
+  }
   const expanded = new Set(
     options.expandedContainerIds ?? [architecture.rootContainerId],
   );
@@ -190,6 +215,7 @@ function projectIndexedGraph(
   const representativeByNodeId = new Map<string, string>();
   const hiddenExternalNodeIds: string[] = [];
   for (const node of graph.nodes) {
+    if (memberNodeIds && !memberNodeIds.has(node.id)) continue;
     if (node.identity.kind === "external" && !includeExternal) {
       hiddenExternalNodeIds.push(node.id);
       continue;
@@ -255,6 +281,15 @@ function projectIndexedGraph(
     collapsedGroups.set(source, members);
   }
 
+  const relevantContainerIds =
+    memberNodeIds === undefined
+      ? undefined
+      : new Set(
+          [...representativeByNodeId.keys()].flatMap(
+            (nodeId) => ancestorsByNodeId.get(nodeId) ?? [],
+          ),
+        );
+
   return {
     graphId: graph.graphId,
     viewId: options.viewId ?? "directory",
@@ -262,8 +297,10 @@ function projectIndexedGraph(
     visibleContainers: architecture.directoryContainers
       .filter(
         (container) =>
-          expanded.has(container.id) ||
-          memberIdsByRepresentative.has(container.id),
+          (relevantContainerIds === undefined ||
+            relevantContainerIds.has(container.id)) &&
+          (expanded.has(container.id) ||
+            memberIdsByRepresentative.has(container.id)),
       )
       .map((container) => ({
         id: container.id,
@@ -272,10 +309,19 @@ function projectIndexedGraph(
           ? {}
           : { parentId: container.parentId }),
         collapsed: !expanded.has(container.id),
-        childIds: sorted([
-          ...container.childContainerIds,
-          ...container.memberNodeIds,
-        ]),
+        childIds: sorted(
+          new Set([
+            ...container.childContainerIds.filter(
+              (id) =>
+                relevantContainerIds === undefined ||
+                relevantContainerIds.has(id),
+            ),
+            ...container.memberNodeIds.flatMap((id) => {
+              const representative = representativeByNodeId.get(id);
+              return representative === undefined ? [] : [representative];
+            }),
+          ]),
+        ),
       }))
       .sort((left, right) => compareText(left.id, right.id)),
     edges,

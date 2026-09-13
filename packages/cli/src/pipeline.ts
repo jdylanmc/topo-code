@@ -30,6 +30,12 @@ import {
   workspacePath,
   writeGenerated,
 } from "@topo/workspace";
+import type { CuratedViewsSnapshot } from "@topo/views";
+import {
+  buildCuratedViews,
+  serializeCuratedViewDeltas,
+  serializeCuratedViewsSnapshot,
+} from "./views.js";
 
 async function storedReports(root: string): Promise<unknown[]> {
   const directory = await workspacePath(root, "reports/inputs");
@@ -75,8 +81,14 @@ async function copySite(root: string, assets: string): Promise<void> {
   await prune("");
 }
 
-function bundle(graph: GraphDocument, architecture: ArchitectureDocument, layout: LayoutResult, dashboard: DashboardDocument | null): string {
-  return `{"schemaVersion":"1.0","graph":${serializeGraphDocument(graph).trim()},"layout":${serializeLayoutDeterministic(layout.layout).trim()},"architecture":${serializeArchitecture(architecture).trim()},"dashboard":${dashboard === null ? "null" : serializeDashboard(dashboard).trim()}}\n`;
+function bundle(
+  graph: GraphDocument,
+  architecture: ArchitectureDocument,
+  layout: LayoutResult,
+  dashboard: DashboardDocument | null,
+  curatedViews: CuratedViewsSnapshot,
+): string {
+  return `{"schemaVersion":"1.0","graph":${serializeGraphDocument(graph).trim()},"layout":${serializeLayoutDeterministic(layout.layout).trim()},"architecture":${serializeArchitecture(architecture).trim()},"dashboard":${dashboard === null ? "null" : serializeDashboard(dashboard).trim()},"curatedViews":${serializeCuratedViewsSnapshot(curatedViews).trim()}}\n`;
 }
 
 export async function generateArtifacts(
@@ -94,13 +106,16 @@ export async function generateArtifacts(
     const layout = layoutGraphWithArchitecture(graph, architecture, { previous, pins });
     const reports = await storedReports(root);
     const dashboard = reports.length ? normalizeReports(reports, graph) : null;
-    const data = bundle(graph, architecture, layout, dashboard);
+    const curatedViews = await buildCuratedViews(root, graph);
+    const data = bundle(graph, architecture, layout, dashboard, curatedViews.snapshot);
     await copySite(root, siteAssets);
     await writeGenerated(root, "graph/graph.json", serializeGraphDocument(graph));
     await writeGenerated(root, "graph/layout.json", serializeLayoutDeterministic(layout.layout));
     await writeGenerated(root, "graph/architecture.json", serializeArchitecture(architecture));
     await writeGenerated(root, "reports/outputs/layout-delta.json", `${JSON.stringify({ delta: layout.delta, warnings: layout.warnings }, null, 2)}\n`);
     await writeGenerated(root, "reports/outputs/dashboard.json", dashboard === null ? "null\n" : serializeDashboard(dashboard));
+    await writeGenerated(root, "reports/outputs/curated-views.json", serializeCuratedViewsSnapshot(curatedViews.snapshot));
+    await writeGenerated(root, "reports/outputs/curated-view-deltas.json", serializeCuratedViewDeltas(curatedViews));
     await writeGenerated(root, "cache/site/data.json", data);
     return { layout, dashboard };
   });
@@ -124,7 +139,8 @@ export async function ingestReports(root: string, inputPaths: string[], siteAsse
     const pins = await readOptionalArtifact(root, "metadata/pins.json");
     const architecture = deriveArchitecture(graph);
     const layout = layoutGraphWithArchitecture(graph, architecture, { previous, pins });
-    const data = bundle(graph, architecture, layout, dashboard);
+    const curatedViews = await buildCuratedViews(root, graph);
+    const data = bundle(graph, architecture, layout, dashboard, curatedViews.snapshot);
     for (const report of incoming) {
       const serialized = serializeReport(report);
       const fingerprint = createHash("sha256").update(serialized).digest("hex");
@@ -139,6 +155,8 @@ export async function ingestReports(root: string, inputPaths: string[], siteAsse
     }
     await copySite(root, siteAssets);
     await writeGenerated(root, "reports/outputs/dashboard.json", serializeDashboard(dashboard));
+    await writeGenerated(root, "reports/outputs/curated-views.json", serializeCuratedViewsSnapshot(curatedViews.snapshot));
+    await writeGenerated(root, "reports/outputs/curated-view-deltas.json", serializeCuratedViewDeltas(curatedViews));
     await writeGenerated(root, "cache/site/data.json", data);
     return dashboard;
   });

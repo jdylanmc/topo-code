@@ -13,7 +13,9 @@ export function createLayout(
   previous?: unknown,
 ): LayoutResult {
   return session.layout({
-    viewId: "directory",
+    viewId: state.viewId ?? "directory",
+    ...(state.memberNodeIds === undefined ? {} : { memberNodeIds: state.memberNodeIds }),
+    ...(state.pins === undefined ? {} : { pins: state.pins }),
     includeExternal: state.includeExternal,
     expandedContainerIds: [...state.expandedContainerIds],
     collapsedTangleIds: [...state.collapsedTangleIds],

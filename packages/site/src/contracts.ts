@@ -3,7 +3,9 @@ import type {
   GraphProjection,
   LayoutResult,
   VisibleEntity,
+  LayoutPin,
 } from "@topo/graph";
+import type { CuratedViewsSnapshot } from "@topo/views";
 import type {
   GraphDocument,
   LayoutDocument,
@@ -24,6 +26,8 @@ export interface LoadedArtifacts {
   architecture: ArchitectureDocument;
   architectureSource: "artifact" | "derived";
   dashboard: DashboardArtifact;
+  curatedViews?: CuratedViewsSnapshot;
+  viewEditingToken?: string;
   quality: {
     authoritative: boolean;
     scannerStatus: string;
@@ -32,6 +36,9 @@ export interface LoadedArtifacts {
 }
 
 export interface ViewState {
+  viewId?: string;
+  memberNodeIds?: string[];
+  pins?: LayoutPin[];
   includeExternal: boolean;
   highContrast: boolean;
   expandedContainerIds: Set<string>;
@@ -98,6 +105,7 @@ export interface ViewTransform {
 
 export interface AppSnapshot {
   renderer: "webgl";
+  curatedViewId?: string;
   graphId: string;
   visibleNodes: number;
   visibleEdges: number;

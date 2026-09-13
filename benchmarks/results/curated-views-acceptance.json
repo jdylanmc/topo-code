@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "1.0",
+  "sourceCommit": "4da921d9b8d94ab470f7d0c8c5ab0fb89a8f376f",
+  "sourceTree": "8fce57dd7a6aee4bc23b620b1cb03efad5aff69c",
+  "acceptedFloorFps": 30,
+  "metric": "Unchanged whole-workload delivered FPS; uncapped; long frames retained.",
+  "acceptance": {
+    "observations": 16,
+    "allCompleted": true,
+    "allInteractionEffectsVerified": true,
+    "allMeetFloor": true,
+    "minimumDeliveredFps": 49.897,
+    "rawFrameSummariesRecalculated": true
+  },
+  "note": "Curated definitions select all repository paths, excluding external/synthetic nodes. Scores are not equal-membership speedup comparisons. All attempted captures are retained.",
+  "fixtures": [
+    {
+      "name": "mermaid-full",
+      "sha256": "8f78a3633451bf137620258e8546edad555559d3c454d7902352cf60df6779a1"
+    },
+    {
+      "name": "vscode-src",
+      "sha256": "48c16618a1dc37c47738fc1811b1645cc48f329f3936c0cf2aee4483361ec9de"
+    }
+  ],
+  "captures": [
+    {
+      "name": "repository-headless",
+      "report": "benchmarks/results/curated-views-repository-headless.json",
+      "exitCode": 0
+    },
+    {
+      "name": "paths-headless",
+      "report": "benchmarks/results/curated-views-paths-headless.json",
+      "exitCode": 0
+    },
+    {
+      "name": "repository-headed",
+      "report": "benchmarks/results/curated-views-repository-headed.json",
+      "exitCode": 0
+    },
+    {
+      "name": "paths-headed",
+      "report": "benchmarks/results/curated-views-paths-headed.json",
+      "exitCode": 0
+    }
+  ]
+}

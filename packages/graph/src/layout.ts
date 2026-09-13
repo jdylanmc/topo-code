@@ -459,7 +459,12 @@ function layoutProjection(
               id,
             })),
           };
-    return { subject, ...position, ...size };
+    return {
+      subject,
+      x: position.x,
+      y: position.y,
+      ...size,
+    };
   };
 
   for (const [subjectId, pin] of [...pinBySubject.entries()].sort(
@@ -540,6 +545,9 @@ function layoutProjection(
         sparseEdgesOnly: options.sparseEdgesOnly ?? false,
         expandedContainerIds: projection.expandedContainerIds,
         collapsedTangleIds: projection.collapsedTangleIds,
+        ...(options.memberNodeIds === undefined
+          ? {}
+          : { memberNodeIds: [...options.memberNodeIds].sort(compareText) }),
       },
     },
     items,

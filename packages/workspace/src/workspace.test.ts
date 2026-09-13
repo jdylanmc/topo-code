@@ -2,7 +2,7 @@ import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promis
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { cacheKey, initializeWorkspace, loadConfig, readOptionalArtifact, workspacePath, writeGenerated } from "./index.js";
+import { cacheKey, initializeWorkspace, loadConfig, readOptionalArtifact, workspacePath, writeAuthoredAtomic, writeGenerated } from "./index.js";
 
 const directories: string[] = [];
 async function fixture() {
@@ -49,6 +49,18 @@ describe("workspace lifecycle", () => {
     const other = await fixture();
     await symlink(outside, join(other, ".topo"));
     await expect(initializeWorkspace(other)).rejects.toThrow("symlink");
+  });
+
+  it("atomically writes explicitly authored files without weakening path confinement", async () => {
+    const root = await fixture();
+    await initializeWorkspace(root);
+    await writeAuthoredAtomic(root, "metadata/views/example.json", '{"name":"first"}\n');
+    await writeAuthoredAtomic(root, "metadata/views/example.json", '{"name":"second"}\n');
+    expect(await readFile(join(root, ".topo/metadata/views/example.json"), "utf8")).toBe('{"name":"second"}\n');
+    await expect(writeAuthoredAtomic(root, "../outside.json", "{}")).rejects.toThrow("Invalid");
+    const outside = await fixture();
+    await symlink(outside, join(root, ".topo/metadata/linked"));
+    await expect(writeAuthoredAtomic(root, "metadata/linked/example.json", "{}")).rejects.toThrow("symlink");
   });
 
   it("distinguishes missing artifacts from broken artifacts", async () => {
