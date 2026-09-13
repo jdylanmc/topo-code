@@ -201,6 +201,15 @@ export interface LayoutResult {
   warnings: LayoutWarning[];
 }
 
+export interface ProjectionSession {
+  readonly graphRef: Readonly<LayoutDocument["graphRef"]>;
+  readonly project: (options?: unknown) => GraphProjection;
+}
+
+export interface LayoutSession {
+  readonly layout: (options?: unknown) => LayoutResult;
+}
+
 export interface GraphEngineValidationIssue {
   path: string;
   message: string;

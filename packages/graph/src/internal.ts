@@ -8,12 +8,16 @@ export function sorted(values: Iterable<string>): string[] {
 
 export function stableId(kind: string, values: readonly string[]): string {
   const input = `${kind}\0${values.join("\0")}`;
-  let hash = 0xcbf29ce484222325n;
+  let high = 0xcbf29ce4;
+  let low = 0x84222325;
   for (let index = 0; index < input.length; index += 1) {
-    hash ^= BigInt(input.charCodeAt(index));
-    hash = BigInt.asUintN(64, hash * 0x100000001b3n);
+    low = (low ^ input.charCodeAt(index)) >>> 0;
+    // FNV's prime is 2^40 + 435. The low-word product fits exactly in a Number.
+    const product = low * 435;
+    high = (Math.imul(high, 435) + Math.floor(product / 0x100000000) + (low << 8)) >>> 0;
+    low = product >>> 0;
   }
-  return `derived:${kind}:${hash.toString(16).padStart(16, "0")}`;
+  return `derived:${kind}:${high.toString(16).padStart(8, "0")}${low.toString(16).padStart(8, "0")}`;
 }
 
 export function logScale(

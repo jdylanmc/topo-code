@@ -10,8 +10,35 @@ import {
   type ArchitectureDocument,
   type GraphProjection,
   type ProjectionOptions,
+  type ProjectionSession,
   type VisibleEntity,
 } from "./types.js";
+
+type ProjectionGraph = Pick<
+  GraphDocument,
+  "graphId" | "schemaVersion" | "repository" | "nodes"
+> & {
+  edges: Array<Pick<
+    GraphDocument["edges"][number],
+    "id" | "sourceId" | "targetId" | "type"
+  >>;
+};
+
+type ProjectionArchitecture = Pick<
+  ArchitectureDocument,
+  "version" | "graphId" | "rootContainerId" | "scalePolicy"
+> & {
+  directoryContainers: Array<Pick<
+    ArchitectureDocument["directoryContainers"][number],
+    "id" | "label" | "parentId" | "childContainerIds" | "memberNodeIds"
+  >>;
+  stronglyConnectedComponents: Array<{
+    id: string;
+    memberNodeIds: string[];
+    collapsed: { id: string; label: string };
+  }>;
+  spineFindings: Array<{ edgeId: string }>;
+};
 
 function validateOptions(value: unknown): ProjectionOptions {
   if (value === undefined) return {};
@@ -50,16 +77,14 @@ function nodeLabel(node: GraphNode): string {
   return node.label.length > 0 ? node.label : node.id;
 }
 
-export function projectGraph(
-  graph: unknown,
-  architecture: ArchitectureDocument,
-  optionsValue?: unknown,
-): GraphProjection {
-  assertGraphDocument(graph);
+function validateArchitecture(
+  graphId: string,
+  architecture: ProjectionArchitecture,
+): void {
   if (
     !isRecord(architecture) ||
     architecture.version !== "1.0" ||
-    architecture.graphId !== graph.graphId
+    architecture.graphId !== graphId
   ) {
     throw new GraphEngineValidationError([
       {
@@ -68,13 +93,13 @@ export function projectGraph(
       },
     ]);
   }
-  const options = validateOptions(optionsValue);
-  const expanded = new Set(
-    options.expandedContainerIds ?? [architecture.rootContainerId],
-  );
-  expanded.add(architecture.rootContainerId);
-  const collapsedTangles = new Set(options.collapsedTangleIds ?? []);
-  const includeExternal = options.includeExternal ?? true;
+}
+
+function indexGraph(
+  graph: ProjectionGraph,
+  architecture: ProjectionArchitecture,
+) {
+  validateArchitecture(graph.graphId, architecture);
   const containers = new Map(
     architecture.directoryContainers.map((container) => [container.id, container]),
   );
@@ -84,23 +109,16 @@ export function projectGraph(
       component,
     ]),
   );
-  const nodeById = new Map(graph.nodes.map((node) => [node.id, node]));
-  const tangleByNodeId = new Map<string, string>();
-  for (const tangleId of collapsedTangles) {
-    const component = tangles.get(tangleId);
-    if (!component) {
-      throw new GraphEngineValidationError([
-        {
-          path: "$.collapsedTangleIds",
-          message: `Unknown tangle identifier "${tangleId}".`,
-        },
-      ]);
-    }
-    for (const nodeId of component.memberNodeIds) {
-      tangleByNodeId.set(nodeId, component.collapsed.id);
+  const tangleByCollapsedId = new Map<
+    string,
+    ProjectionArchitecture["stronglyConnectedComponents"][number]
+  >();
+  for (const component of tangles.values()) {
+    if (!tangleByCollapsedId.has(component.collapsed.id)) {
+      tangleByCollapsedId.set(component.collapsed.id, component);
     }
   }
-
+  const nodeById = new Map(graph.nodes.map((node) => [node.id, node]));
   const ancestorsByNodeId = new Map<string, string[]>();
   for (const container of architecture.directoryContainers) {
     for (const nodeId of container.memberNodeIds) {
@@ -114,6 +132,58 @@ export function projectGraph(
             : containers.get(current.parentId);
       }
       ancestorsByNodeId.set(nodeId, ancestors.reverse());
+    }
+  }
+  const spineEdgeIds = new Set(
+    architecture.spineFindings.map((finding) => finding.edgeId),
+  );
+
+  return {
+    graph,
+    architecture,
+    containers,
+    tangles,
+    tangleByCollapsedId,
+    nodeById,
+    ancestorsByNodeId,
+    spineEdgeIds,
+  };
+}
+
+function projectIndexedGraph(
+  index: ReturnType<typeof indexGraph>,
+  optionsValue?: unknown,
+): GraphProjection {
+  const {
+    graph,
+    architecture,
+    containers,
+    tangles,
+    tangleByCollapsedId,
+    nodeById,
+    ancestorsByNodeId,
+    spineEdgeIds,
+  } = index;
+  const options = validateOptions(optionsValue);
+  const expanded = new Set(
+    options.expandedContainerIds ?? [architecture.rootContainerId],
+  );
+  expanded.add(architecture.rootContainerId);
+  const collapsedTangles = new Set(options.collapsedTangleIds ?? []);
+  const includeExternal = options.includeExternal ?? true;
+  const tangleByNodeId = new Map<string, string>();
+  for (const tangleId of collapsedTangles) {
+    const component = tangles.get(tangleId);
+    if (!component) {
+      throw new GraphEngineValidationError([
+        {
+          path: "$.collapsedTangleIds",
+          message: `Unknown tangle identifier "${tangleId}".`,
+        },
+      ]);
+    }
+    for (const nodeId of component.memberNodeIds) {
+      tangleByNodeId.set(nodeId, component.collapsed.id);
     }
   }
 
@@ -150,9 +220,7 @@ export function projectGraph(
   for (const [id, memberNodeIds] of memberIdsByRepresentative) {
     memberNodeIds.sort(compareText);
     const container = containers.get(id);
-    const tangle = [...tangles.values()].find(
-      (component) => component.collapsed.id === id,
-    );
+    const tangle = tangleByCollapsedId.get(id);
     const node = nodeById.get(id);
     visibleEntities.push({
       id,
@@ -171,9 +239,6 @@ export function projectGraph(
   }
   visibleEntities.sort((left, right) => compareText(left.id, right.id));
 
-  const spineEdgeIds = new Set(
-    architecture.spineFindings.map((finding) => finding.edgeId),
-  );
   const edges = aggregateDirectedEdges(
     graph.edges,
     representativeByNodeId,
@@ -251,6 +316,79 @@ export function projectGraph(
     expandedContainerIds: sorted(expanded),
     collapsedTangleIds: sorted(collapsedTangles),
   };
+}
+
+export function projectGraph(
+  graph: unknown,
+  architecture: ArchitectureDocument,
+  optionsValue?: unknown,
+): GraphProjection {
+  assertGraphDocument(graph);
+  return projectIndexedGraph(indexGraph(graph, architecture), optionsValue);
+}
+
+export function createProjectionSession(
+  graph: unknown,
+  architecture: ArchitectureDocument,
+): ProjectionSession {
+  assertGraphDocument(graph);
+  validateArchitecture(graph.graphId, architecture);
+  const snapshot: {
+    graph: ProjectionGraph;
+    architecture: ProjectionArchitecture;
+  } = {
+    graph: {
+      graphId: graph.graphId,
+      schemaVersion: graph.schemaVersion,
+      repository: { ...graph.repository },
+      nodes: graph.nodes.map((node) => ({
+        ...node,
+        identity: { ...node.identity },
+      })),
+      edges: graph.edges.map(({ id, sourceId, targetId, type }) => ({
+        id,
+        sourceId,
+        targetId,
+        type,
+      })),
+    },
+    architecture: {
+      version: architecture.version,
+      graphId: architecture.graphId,
+      rootContainerId: architecture.rootContainerId,
+      scalePolicy: { ...architecture.scalePolicy },
+      directoryContainers: architecture.directoryContainers.map((container) => ({
+        id: container.id,
+        label: container.label,
+        ...(container.parentId === undefined
+          ? {}
+          : { parentId: container.parentId }),
+        childContainerIds: [...container.childContainerIds],
+        memberNodeIds: [...container.memberNodeIds],
+      })),
+      stronglyConnectedComponents: architecture.stronglyConnectedComponents.map(
+        (component) => ({
+          id: component.id,
+          memberNodeIds: [...component.memberNodeIds],
+          collapsed: {
+            id: component.collapsed.id,
+            label: component.collapsed.label,
+          },
+        }),
+      ),
+      spineFindings: architecture.spineFindings.map(({ edgeId }) => ({ edgeId })),
+    },
+  };
+  const index = indexGraph(snapshot.graph, snapshot.architecture);
+  const project = (options?: unknown) => projectIndexedGraph(index, options);
+  const graphRef = Object.freeze({
+    graphId: snapshot.graph.graphId,
+    schemaVersion: snapshot.graph.schemaVersion,
+    ...(snapshot.graph.repository.revision === undefined
+      ? {}
+      : { revision: snapshot.graph.repository.revision }),
+  });
+  return Object.freeze({ graphRef, project });
 }
 
 export function projectArchitecture(
