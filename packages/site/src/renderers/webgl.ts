@@ -16,6 +16,7 @@ import type {
   ViewTransform,
 } from "../contracts.js";
 import { accessibleLabel, COLORS, nodeColor } from "./renderer.js";
+import { sameNodeAppearance, sameSceneEdges, SceneInteraction } from "./render-state.js";
 
 interface DisplayNode {
   container: Container;
@@ -25,6 +26,7 @@ interface DisplayNode {
   targetY: number;
   startX: number;
   startY: number;
+  node: SceneNode;
 }
 
 export class WebGlRenderer implements Renderer {
@@ -35,7 +37,11 @@ export class WebGlRenderer implements Renderer {
   readonly #edges = new Graphics();
   readonly #nodes = new Container();
   readonly #displayNodes = new Map<string, DisplayNode>();
-  #scene?: RenderScene;
+  readonly #movingNodes = new Set<DisplayNode>();
+  readonly #interaction = new SceneInteraction();
+  #edgesMoving = false;
+  #edgeGeometryUpdates = 0;
+  #scene: RenderScene | undefined;
   #callbacks?: RendererCallbacks;
   #transform: ViewTransform = { x: 24, y: 24, scale: 1 };
   #animationStart = 0;
@@ -133,14 +139,18 @@ export class WebGlRenderer implements Renderer {
       (performance.now() - this.#animationStart) / this.#animationDuration,
     );
     const eased = 1 - (1 - progress) ** 3;
-    for (const display of this.#displayNodes.values()) {
+    for (const display of this.#movingNodes) {
       display.container.x =
         display.startX + (display.targetX - display.startX) * eased;
       display.container.y =
         display.startY + (display.targetY - display.startY) * eased;
     }
-    this.#drawEdges();
     if (progress >= 1) this.#animationDuration = 0;
+    if (this.#edgesMoving) this.#drawEdges();
+    if (progress >= 1) {
+      this.#movingNodes.clear();
+      this.#edgesMoving = false;
+    }
   };
 
   render(
@@ -148,8 +158,12 @@ export class WebGlRenderer implements Renderer {
     callbacks: RendererCallbacks,
     animate: boolean,
   ): void {
+    const edgesChanged = !this.#scene || !sameSceneEdges(this.#scene.edges, scene.edges);
+    const hadMovingEdges = this.#edgesMoving && this.#animationDuration > 0;
     this.#scene = scene;
     this.#callbacks = callbacks;
+    this.#movingNodes.clear();
+    const movingIds = new Set<string>();
     const nextIds = new Set(scene.nodes.map((node) => node.entity.id));
     for (const [id, display] of this.#displayNodes) {
       if (nextIds.has(id)) continue;
@@ -159,6 +173,7 @@ export class WebGlRenderer implements Renderer {
 
     for (const node of scene.nodes) {
       let display = this.#displayNodes.get(node.entity.id);
+      const appearanceChanged = !display || !sameNodeAppearance(display.node, node);
       if (!display) {
         const container = new Container();
         const graphics = new Graphics();
@@ -176,10 +191,10 @@ export class WebGlRenderer implements Renderer {
         container.eventMode = "static";
         container.cursor = "pointer";
         container.on("pointertap", (event: FederatedPointerEvent) => {
-          if (event.detail >= 2) callbacks.activate(node.entity.id);
-          else callbacks.select(node.entity.id);
+          if (event.detail >= 2) this.#callbacks?.activate(node.entity.id);
+          else this.#callbacks?.select(node.entity.id);
         });
-        container.on("pointerover", () => callbacks.focus(node.entity.id));
+        container.on("pointerover", () => this.#callbacks?.focus(node.entity.id));
         this.#nodes.addChild(container);
         display = {
           container,
@@ -189,6 +204,7 @@ export class WebGlRenderer implements Renderer {
           targetY: node.y,
           startX: node.x,
           startY: node.y,
+          node,
         };
         this.#displayNodes.set(node.entity.id, display);
       }
@@ -196,16 +212,33 @@ export class WebGlRenderer implements Renderer {
       display.startY = display.container.y;
       display.targetX = node.x;
       display.targetY = node.y;
-      display.text.text = node.entity.label;
-      this.#drawNode(display.graphics, node);
+      if (appearanceChanged) {
+        display.text.text = node.entity.label;
+        this.#drawNode(display.graphics, node);
+      }
+      display.node = node;
       if (!animate) {
         display.container.x = node.x;
         display.container.y = node.y;
+      } else if (display.startX !== node.x || display.startY !== node.y) {
+        this.#movingNodes.add(display);
+        movingIds.add(node.entity.id);
       }
     }
     this.#animationStart = performance.now();
-    this.#animationDuration = animate ? 300 : 0;
-    this.#drawEdges();
+    this.#animationDuration = this.#movingNodes.size > 0 ? 300 : 0;
+    this.#edgesMoving = scene.edges.some(
+      (edge) => movingIds.has(edge.sourceId) || movingIds.has(edge.targetId),
+    );
+    if (edgesChanged || hadMovingEdges || this.#edgesMoving) this.#drawEdges();
+    this.#interaction.reset(scene.nodes);
+  }
+
+  setInteraction(selectedId?: string, focusedId?: string): void {
+    for (const node of this.#interaction.update(selectedId, focusedId)) {
+      const display = this.#displayNodes.get(node.entity.id);
+      if (display) this.#drawNode(display.graphics, node);
+    }
   }
 
   #drawNode(graphics: Graphics, node: SceneNode): void {
@@ -236,6 +269,7 @@ export class WebGlRenderer implements Renderer {
   }
 
   #drawEdges(): void {
+    this.#edgeGeometryUpdates += 1;
     this.#edges.clear();
     if (!this.#scene) return;
     const positions = new Map(
@@ -253,13 +287,9 @@ export class WebGlRenderer implements Renderer {
       const sourceNode = sceneNodes.get(edge.sourceId);
       const targetNode = sceneNodes.get(edge.targetId);
       if (!source || !target || !sourceNode || !targetNode) continue;
-      const points = this.#translatedRoute(
-        edge,
-        source,
-        target,
-        sourceNode,
-        targetNode,
-      );
+      const points = this.#animationDuration > 0
+        ? this.#translatedRoute(edge, source, target, sourceNode, targetNode)
+        : edge.points;
       this.#edges.moveTo(points[0]!.x, points[0]!.y);
       for (const point of points.slice(1)) {
         this.#edges.lineTo(point.x, point.y);
@@ -285,21 +315,13 @@ export class WebGlRenderer implements Renderer {
     sourceNode: SceneNode,
     targetNode: SceneNode,
   ): Array<{ x: number; y: number }> {
-    const start = {
-      x: source.x + sourceNode.width,
-      y: source.y + sourceNode.height / 2,
-    };
-    const end = {
-      x: target.x,
-      y: target.y + targetNode.height / 2,
-    };
-    const middleX = (start.x + end.x) / 2;
-    return [
-      start,
-      { x: middleX, y: start.y },
-      { x: middleX, y: end.y },
-      end,
-    ];
+    return edge.points.map((point, index) => ({
+      x: point.x + (index === 0 ? source.x - sourceNode.x :
+        index === edge.points.length - 1 ? target.x - targetNode.x :
+          (source.x - sourceNode.x + target.x - targetNode.x) / 2),
+      y: point.y + (index < edge.points.length / 2
+        ? source.y - sourceNode.y : target.y - targetNode.y),
+    }));
   }
 
   setTransform(transform: ViewTransform): void {
@@ -345,6 +367,10 @@ export class WebGlRenderer implements Renderer {
     this.#app.destroy({ removeView: true }, { children: true });
     this.#host.replaceChildren();
     this.#initialized = false;
+    this.#displayNodes.clear();
+    this.#movingNodes.clear();
+    this.#interaction.reset([]);
+    this.#scene = undefined;
   }
 
   getGraphicsInfo(): Record<string, string | number | boolean | null> {
@@ -363,6 +389,7 @@ export class WebGlRenderer implements Renderer {
           ? String(context.getParameter(debug.UNMASKED_RENDERER_WEBGL))
           : null,
       resolution: this.#app.renderer.resolution,
+      edgeGeometryUpdates: this.#edgeGeometryUpdates,
     };
   }
 }

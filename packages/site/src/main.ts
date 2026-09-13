@@ -77,6 +77,9 @@ class TopoApp {
   #renderToken = 0;
   #lastLayoutComputationMs = 0;
   #lastTransitionDispatchMs = 0;
+  readonly #accessibilityButtons = new Map<string, HTMLButtonElement>();
+  readonly #resizeObserver = new ResizeObserver(() => this.#renderer?.resize());
+  #keyboardNavigation = false;
 
   private constructor(root: HTMLElement, model: AppModel) {
     this.#root = root;
@@ -125,7 +128,7 @@ class TopoApp {
   async #initialize(): Promise<void> {
     this.#root.innerHTML = `
       <main class="app-shell" data-high-contrast="false">
-        <section class="authority-banner" role="status" hidden></section>
+        <section class="authority-banner" role="status" tabindex="0" aria-label="Scan completeness warnings" hidden></section>
         <header class="toolbar" aria-label="Map controls">
           <div class="toolbar-group" role="group" aria-label="Renderer">
             <span class="toolbar-label">Renderer</span>
@@ -173,7 +176,7 @@ class TopoApp {
     await this.#replaceRenderer(this.#model.state.renderer);
     this.resetView();
     this.#refresh(false);
-    window.addEventListener("resize", this.#onResize);
+    this.#resizeObserver.observe(requiredElement(this.#root, ".map-host"));
   }
 
   #bindControls(): void {
@@ -218,6 +221,15 @@ class TopoApp {
       () => this.resetView(),
     );
     const mapHost = requiredElement<HTMLElement>(this.#root, ".map-host");
+    mapHost.addEventListener("keydown", () => {
+      this.#keyboardNavigation = true;
+    }, { capture: true });
+    mapHost.addEventListener("pointermove", () => {
+      this.#keyboardNavigation = false;
+    }, { capture: true });
+    mapHost.addEventListener("pointerdown", () => {
+      this.#keyboardNavigation = false;
+    }, { capture: true });
     mapHost.addEventListener("keydown", (event) => this.#onMapKeyDown(event));
   }
 
@@ -336,6 +348,9 @@ class TopoApp {
   #refresh(animate: boolean): void {
     const renderer = this.#renderer;
     if (!renderer) return;
+    const mapHost = requiredElement<HTMLElement>(this.#root, ".map-host");
+    const active = document.activeElement;
+    const hadMapFocus = active !== null && mapHost.contains(active);
     const scene = this.#createScene();
     renderer.render(scene, this.#rendererCallbacks(), animate);
     requiredElement<HTMLElement>(
@@ -361,6 +376,7 @@ class TopoApp {
     this.#renderExpanded();
     this.#renderCycles();
     this.#renderSelection();
+    if (hadMapFocus && !active.isConnected) mapHost.focus({ preventScroll: true });
   }
 
   #createScene(): ReturnType<typeof createScene> {
@@ -377,8 +393,14 @@ class TopoApp {
       select: (entityId) => this.#select(entityId),
       activate: (entityId) => this.#activate(entityId),
       focus: (entityId) => {
+        // Pixi can emit pointerover after geometry moves beneath a stationary pointer.
+        if (this.#keyboardNavigation && this.#renderer?.kind === "webgl") return;
+        if (this.#model.state.focusedEntityId === entityId) return;
         this.#model.state.focusedEntityId = entityId;
-        this.#refresh(false);
+        this.#renderer?.setInteraction(
+          this.#model.state.selectedEntityId,
+          entityId,
+        );
       },
     };
   }
@@ -390,18 +412,33 @@ class TopoApp {
       this.#root,
       ".webgl-a11y",
     );
-    navigation.replaceChildren();
+    const visible = new Set(nodes.map((node) => node.entity.id));
+    for (const [id, button] of this.#accessibilityButtons) {
+      if (visible.has(id)) continue;
+      button.remove();
+      this.#accessibilityButtons.delete(id);
+    }
+    let next = navigation.firstChild;
     for (const node of nodes) {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.dataset.entityId = node.entity.id;
-      button.textContent = accessibleLabel(node);
-      button.addEventListener("focus", () => {
-        this.#model.state.focusedEntityId = node.entity.id;
-        this.#renderer?.focus(node.entity.id);
-      });
-      button.addEventListener("click", () => this.#activate(node.entity.id));
-      navigation.append(button);
+      const id = node.entity.id;
+      let button = this.#accessibilityButtons.get(id);
+      if (!button) {
+        button = document.createElement("button");
+        button.type = "button";
+        button.dataset.entityId = id;
+        button.addEventListener("focus", () => {
+          this.#keyboardNavigation = true;
+          this.#model.state.focusedEntityId = id;
+          this.#renderer?.setInteraction(this.#model.state.selectedEntityId, id);
+          this.#renderer?.focus(id);
+        });
+        button.addEventListener("click", () => this.#activate(id));
+        this.#accessibilityButtons.set(id, button);
+      }
+      const label = accessibleLabel(node);
+      if (button.textContent !== label) button.textContent = label;
+      if (button !== next) navigation.insertBefore(button, next);
+      next = button.nextSibling;
     }
   }
 
@@ -528,7 +565,15 @@ class TopoApp {
   #select(entityId: string): void {
     this.#model.state.selectedEntityId = entityId;
     this.#model.state.focusedEntityId = entityId;
-    this.#refresh(false);
+    this.#refreshInteraction();
+  }
+
+  #refreshInteraction(): void {
+    this.#renderer?.setInteraction(
+      this.#model.state.selectedEntityId,
+      this.#model.state.focusedEntityId,
+    );
+    this.#renderSelection();
   }
 
   #activate(entityId: string): void {
@@ -536,7 +581,8 @@ class TopoApp {
       (candidate) => candidate.id === entityId,
     );
     if (!entity) return;
-    this.#select(entityId);
+    this.#model.state.selectedEntityId = entityId;
+    this.#model.state.focusedEntityId = entityId;
     if (entity.kind === "container") {
       this.#model.state.expandedContainerIds.add(entity.id);
       this.#relayout();
@@ -547,8 +593,12 @@ class TopoApp {
         .stronglyConnectedComponents.find(
           (candidate) => candidate.collapsed.id === entity.id,
         );
-      if (component) this.#toggleTangle(component.id);
+      if (component) {
+        this.#toggleTangle(component.id);
+        return;
+      }
     }
+    this.#refreshInteraction();
   }
 
   #toggleTangle(componentId: string): void {
@@ -611,8 +661,12 @@ class TopoApp {
     const id = ids[nextIndex]!;
     this.#model.state.focusedEntityId = id;
     this.#model.state.selectedEntityId = id;
-    this.#renderer?.focus(id);
-    this.#refresh(false);
+    if (this.#renderer?.kind === "webgl") {
+      this.#accessibilityButtons.get(id)?.focus({ preventScroll: true });
+    } else {
+      this.#renderer?.focus(id);
+    }
+    this.#refreshInteraction();
   }
 
   #zoomBy(factor: number): void {
@@ -660,34 +714,40 @@ class TopoApp {
 
   benchmarkApi(): BenchmarkApi {
     return {
-      snapshot: () => ({
-        renderer: this.#model.state.renderer,
-        graphId: this.#model.artifacts.graph.graphId,
-        visibleNodes:
-          this.#model.layoutResult.projection.visibleEntities.length,
-        visibleEdges: this.#model.layoutResult.projection.edges.length,
-        ...(this.#model.state.selectedEntityId === undefined
-          ? {}
-          : { selectedEntityId: this.#model.state.selectedEntityId }),
-        expandedContainerIds: [
-          ...this.#model.state.expandedContainerIds,
-        ].sort(compareText),
-        collapsedTangleIds: [...this.#model.state.collapsedTangleIds].sort(
-          compareText,
-        ),
-        lastLayoutComputationMs: this.#lastLayoutComputationMs,
-        lastTransitionDispatchMs: this.#lastTransitionDispatchMs,
-      }),
+      snapshot: () => {
+        if (!this.#renderer) throw new Error("Renderer is not ready.");
+        return {
+          renderer: this.#model.state.renderer,
+          graphId: this.#model.artifacts.graph.graphId,
+          visibleNodes:
+            this.#model.layoutResult.projection.visibleEntities.length,
+          visibleEdges: this.#model.layoutResult.projection.edges.length,
+          visibleEntityIds: this.#model.layoutResult.projection.visibleEntities.map(
+            (entity) => entity.id,
+          ),
+          viewTransform: this.#renderer.getTransform(),
+          ...(this.#model.state.focusedEntityId === undefined
+            ? {}
+            : { focusedEntityId: this.#model.state.focusedEntityId }),
+          ...(this.#model.state.selectedEntityId === undefined
+            ? {}
+            : { selectedEntityId: this.#model.state.selectedEntityId }),
+          expandedContainerIds: [
+            ...this.#model.state.expandedContainerIds,
+          ].sort(compareText),
+          collapsedTangleIds: [...this.#model.state.collapsedTangleIds].sort(
+            compareText,
+          ),
+          lastLayoutComputationMs: this.#lastLayoutComputationMs,
+          lastTransitionDispatchMs: this.#lastTransitionDispatchMs,
+        };
+      },
       setRenderer: (kind) => this.setRenderer(kind),
       resetView: () => this.resetView(),
       activateFirstExpandable: () => this.activateFirstExpandable(),
       graphicsInfo: () => this.#renderer?.getGraphicsInfo() ?? {},
     };
   }
-
-  #onResize = (): void => {
-    this.#renderer?.resize();
-  };
 }
 
 async function start(): Promise<void> {

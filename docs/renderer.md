@@ -1,6 +1,6 @@
 # Renderer bake-off
 
-Status: **real headless measurements recorded; renderer decision still open**.
+Status: **visible-interaction evidence corrected; renderer decision still open**.
 
 `@topo/site` contains two browser implementations over one projection, layout,
 interaction state, visual vocabulary, and artifact envelope:
@@ -62,6 +62,11 @@ unavailable.
 Malformed, incompatible, or cross-graph artifacts are not rendered.
 Compatible graphs containing unknown or unsupported module contributions remain
 visible with a persistent **Non-authoritative graph** warning.
+The warning region is keyboard-focusable, scrollable, and capped at 24% of the
+viewport height. All diagnostics remain available; a large partial scan cannot
+push the map offscreen. Explicit grid rows preserve map space when the warning
+is hidden. A resize observer tracks the map host, including status-text reflow,
+rather than relying only on window resize events.
 
 ## Shared interaction and semantics
 
@@ -84,6 +89,20 @@ canvas geometry is not exposed to assistive technology. This preserves keyboard
 and screen-reader access, but SVG retains the stronger native relationship
 between accessible elements and visible geometry.
 
+Selection and focus update only the old and new active entities, not every
+relationship or sidebar control. Accessibility buttons retain their DOM
+identity; if expansion removes the focused control, focus returns to the map.
+Keyboard focus is not overwritten by Pixi pointer-over events caused by
+geometry moving beneath a stationary pointer. Actual pointer movement restores
+pointer navigation.
+
+Both renderers reuse unchanged edge geometry. SVG updates only changed paths
+and node appearances; WebGL rebuilds its edge buffer only when routes change
+or connected nodes actually animate. Moving geometry retains the 300 ms
+transition, and WebGL finishes on the exact persisted route coordinates.
+The diagnostic `graphicsInfo().edgeGeometryUpdates` counter covers geometry
+updates, not total GPU draws.
+
 ## Automated browser coverage
 
 ```sh
@@ -102,6 +121,10 @@ rather than depending on leftover benchmark output. It verifies:
 - a failed asynchronous renderer initialization leaves the active SVG scene
   visible and selected while showing a renderer error;
 - the WebGL accessibility surface supports keyboard selection;
+- selection preserves focused controls and does not rebuild edge geometry;
+- equal-count directory transitions preserve stationary relationships;
+- long partial-scan warnings leave a usable map with observable pan and zoom;
+- keyboard navigation remains usable after its focused directory disappears;
 - external filtering updates the map;
 - malformed envelopes show an error and render no graph.
 
@@ -130,6 +153,11 @@ directory-collapse transition, and keyboard selection.
 
 The harness records:
 
+- positive, onscreen renderer bounds before any frame sampling;
+- camera changes from pan and zoom, exact membership changes from expansion,
+  and the identity selected by keyboard activation;
+- navigation, readiness, and interaction phases as controller wall time,
+  distinct from browser input-to-paint latency;
 - every `requestAnimationFrame` interval during the workload;
 - delivered frames per second and frame interval distribution;
 - trusted-input `PerformanceEventTiming.duration`, which spans input start to a
@@ -149,9 +177,13 @@ data, PixiJS GPU buffers/textures, driver allocations, and browser process
 overhead. Headless results do not establish visible-browser or cross-platform
 performance.
 
-## Recorded headless run
+## Corrected real headless run
 
-Raw data: `benchmarks/results/phase-one-headless.json`.
+Raw data:
+[`real-visible-interactions-headless.json`](../benchmarks/results/real-visible-interactions-headless.json).
+All eight workloads completed in **82.024 seconds**, each with a fully visible
+920 x 523 map inside the 1280 x 800 viewport and verified pan, zoom, layout,
+and keyboard effects. No page errors occurred and every owned resource closed.
 
 Environment:
 
@@ -162,83 +194,67 @@ Environment:
 - no GPU-disabling flags;
 - PixiJS reported WebGL 2 through ANGLE Metal on Apple M5 Pro.
 
-Fixtures:
+| Fixture | Nodes | Edges | Source LOC |
+|---|---:|---:|---:|
+| Mermaid partial | 1,225 | 4,136 | 202,090 |
+| Visual Studio Code partial | 9,376 | 105,549 | 2,993,413 |
 
-| Fixture | Source | Nodes | Edges | Tangles |
-|---|---|---:|---:|---:|
-| small | real `topo-code` schema fixture | 3 | 1 | 0 |
-| medium | synthetic stress fixture | 549, including 20 externals | 2,108 | one 93-node tangle |
-| large | synthetic stress fixture | 2,580, including 80 externals | 12,000 | one 150-node tangle |
-
-Optimized results:
-
-| Fixture | Scope | Renderer | delivered FPS | worst frame ms | layout ms |
-|---|---|---|---:|---:|---:|
-| medium | directory | SVG | 59.532 | 33.330 | 9.785 |
-| medium | directory | WebGL | 59.019 | 83.330 | 10.535 |
-| medium | expanded | SVG | 59.769 | 33.330 | 6.915 |
-| medium | expanded | WebGL | 59.756 | 33.330 | 7.195 |
-| large | directory | SVG | 57.037 | 183.325 | 40.000 |
-| large | directory | WebGL | 57.383 | 166.665 | 40.665 |
-| large | expanded | SVG | 56.447 | 166.660 | 40.030 |
-| large | expanded | WebGL | 47.924 | 983.295 | 41.375 |
-
-Before architecture reuse and spatial indexing, the same expanded large
-workload delivered 31.541 FPS / 3,716.525 ms worst frame for SVG and 26.340 FPS
-/ 4,466.490 ms for WebGL. The optimized SVG run exceeds 50 delivered FPS on
-this synthetic workload. Expanded WebGL remains below the Phase 1 target.
-Raw frame intervals and Event Timing samples are retained in the JSON.
-
-## Real-fixture measurements
-
-Raw data:
-[`real-repositories-headless.json`](../benchmarks/results/real-repositories-headless.json).
-All eight workloads completed in **54.889 seconds** using the same headless
-Chrome, hardware, viewport, and interaction script described above. No page
-errors occurred; keyboard selection succeeded in every case. Every browser
-context, the owned browser process, and the fixture server closed successfully.
-
-| Fixture | Nodes | Edges | Source LOC | Fixture preparation |
-|---|---:|---:|---:|---:|
-| Mermaid partial | 1,225 | 4,136 | 202,090 | 170 ms |
-| Visual Studio Code partial | 9,376 | 105,549 | 2,993,413 | 2,491 ms |
-
-Preparation here includes fixture materialization, not just graph derivation.
 Both scans remain explicitly **partial and non-authoritative**. Full source
 scope, upstream revisions, and license provenance are retained with the
 fixtures; these are not synthetic graphs.
 
-| Fixture | Scope | Renderer | Delivered FPS | Worst frame ms | Last layout ms | JS heap MiB |
-|---|---|---|---:|---:|---:|---:|
-| Mermaid | directory | SVG | 59.736 | 33.330 | 16.215 | 41.5 |
-| Mermaid | directory | WebGL | 59.467 | 33.335 | 20.370 | 33.0 |
-| Mermaid | expanded | SVG | 58.726 | 66.660 | 22.610 | 45.8 |
-| Mermaid | expanded | WebGL | 58.192 | 66.665 | 31.070 | 103.6 |
-| Visual Studio Code | directory | SVG | 56.019 | 266.655 | 222.595 | 664.9 |
-| Visual Studio Code | directory | WebGL | 54.901 | 283.320 | 229.430 | 741.2 |
-| Visual Studio Code | expanded | SVG | 33.129 | 1,649.935 | 693.240 | 774.2 |
-| Visual Studio Code | expanded | WebGL | 42.366 | 1,316.615 | 748.005 | 1,750.4 |
+| Fixture | Scope | Renderer | Delivered FPS | Worst frame ms | Last layout ms |
+|---|---|---|---:|---:|---:|
+| Mermaid | directory | SVG | 59.768 | 33.330 | 14.455 |
+| Mermaid | directory | WebGL | 59.811 | 33.330 | 12.800 |
+| Mermaid | expanded | SVG | 59.543 | 33.335 | 20.890 |
+| Mermaid | expanded | WebGL | 58.718 | 116.665 | 23.205 |
+| Visual Studio Code | directory | SVG | 52.299 | 333.320 | 286.705 |
+| Visual Studio Code | directory | WebGL | 53.848 | 333.325 | 279.970 |
+| Visual Studio Code | expanded | SVG | 20.033 | 1,016.625 | 542.195 |
+| Visual Studio Code | expanded | WebGL | 45.504 | 883.300 | 569.020 |
 
 Heap is the post-workload JavaScript heap, not peak or total renderer memory.
 Raw frame intervals, Event Timing input-to-paint samples, final scene state,
-and accessibility counts remain in the report. These are single runs, not
-statistical or cross-platform guarantees.
+heap bytes, accessibility counts, and before/after effect evidence remain in
+the report. These are single runs, not statistical or cross-platform guarantees.
+Completion and an average over 50 FPS do not guarantee smooth worst-case frames.
 
-The original ten-minute interruption remains recorded as incomplete in
-`real-headless.incomplete.json`. The subsequent bounded pre-fix Visual Studio
-Code run is retained in
-[`real-vscode-before-validation-index.json`](../benchmarks/results/real-vscode-before-validation-index.json):
-all four workloads timed out at approximately 30 seconds, with successful
-cleanup and a nonzero exit. Profiling identified repeated graph-wide index
-construction during layout validation, independently of preparation.
-The [performance notes](./graph-performance.md) explain both fixes.
+The record binds application and harness code to an exact commit. Graph input
+paths are normalized to `frozen-fixtures/`; the large graph JSON inputs are not
+duplicated into Git. Reproduce with `--fixture mermaid,vscode`, explicit
+graph/provenance paths, `--preparation-timeout-ms 30000`,
+`--run-timeout-ms 45000`, `--fixture-timeout-ms 180000`,
+`--total-timeout-ms 240000`, and `--cleanup-timeout-ms 3000`.
 
-Both new reports bind the measured application to source hashes. Their graph
-input paths are normalized to `frozen-fixtures/`; the underlying large JSON
-graphs are not duplicated into Git. Reproduce with the bounded harness's
-`--fixture mermaid,vscode`, explicit graph/provenance paths, a 30-second
-preparation/workload budget, a 120-second per-fixture budget, and a 180-second
-total budget.
+## Historical evidence correction
+
+**The real FPS comparisons published with PR #18 are not valid interaction
+evidence.** The earlier harness verified neither viewport geometry nor camera
+effects. Reproducing the old warning layout on the frozen Visual Studio Code
+graph found a 99,948-character warning banner, 12,387 pixels tall, with a
+zero-height map at `y=12472`. Pointer inputs could miss the canvas while
+animation frames continued to be counted. Directory expansion also used a
+forced pointer click on clipped accessibility controls, which could do nothing.
+
+`real-repositories-headless.json` retains its original measurements with an
+explicit disqualification note. Its 54.889-second result establishes bounded
+execution, not successful visible interaction or comparative renderer speed.
+Earlier synthetic results in `phase-one-headless.json` also lack the new effect
+checks and are historical only. Do not use them as a before/after performance
+baseline or as Phase 1 acceptance.
+
+`real-visible-focus-regression.json` retains a later, source-pinned failed
+visible run: WebGL keyboard activation expanded the requested tangle, but a
+geometry-driven pointer-over event replaced keyboard focus. The final run
+above includes the fix and verifies all eight cases. Failed records have not
+been replaced with invented successful samples.
+
+The original ten-minute interruption and bounded startup timeouts remain in
+`real-headless.incomplete.json` and `real-vscode-before-validation-index.json`.
+Node-only graph derivation measurements in the
+[performance notes](./graph-performance.md) are independent of this browser
+measurement flaw and remain valid.
 
 ## Qualitative comparison
 
@@ -248,18 +264,17 @@ total budget.
 | keyboard/screen reader | native focusable graph elements | synchronized hidden DOM controls |
 | high contrast | CSS and forced-colours can affect geometry | application palette changes; canvas is opaque to forced-colours |
 | edge fidelity | native paths, dashes, vector scaling | efficient batched lines; dashed semantics require custom drawing |
-| implementation | 227 renderer lines | 371 renderer lines |
-| minified combined site | shared bundle is 521.9 KB / 154.4 KB gzip | same bundle and data |
+| implementation | DOM/D3 joins and incremental style/path updates | retained graphics, animation lifecycle, accessibility mirror |
 | maintenance | browser DOM and D3 lifecycle | Pixi lifecycle, GPU resources, DOM accessibility mirror |
 
 ## Decision
 
 No renderer is selected yet.
 
-The results do not support assuming WebGL is universally faster. Both backends
-exceed 50 delivered FPS on real Mermaid and directory-level Visual Studio Code
-in this headless run. Both miss the criterion on expanded Visual Studio Code;
-WebGL also has substantially higher measured JavaScript heap there.
+The corrected results do not support assuming WebGL is universally faster.
+Both backends exceed 50 average delivered FPS on real Mermaid and
+directory-level Visual Studio Code in this headless run. Both still miss the
+criterion on expanded Visual Studio Code.
 Large-scene improvements, visible-browser measurements, and visual/accessibility
 review remain before recording a production choice.
 

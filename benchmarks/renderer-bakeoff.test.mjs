@@ -21,6 +21,21 @@ import {
   withDeadline,
 } from "./lifecycle.mjs";
 import { prepareFixtureWithDeadline } from "./preparation-runner.mjs";
+import {
+  defaultRenderers,
+  defaultScopes,
+  parseChoiceValues,
+} from "./benchmark-options.mjs";
+import {
+  BenchmarkPhaseError,
+  runBenchmarkPhases,
+} from "./benchmark-phases.mjs";
+import {
+  collapsedDirectoryCandidates,
+  visibleTangleCandidates,
+  verifyLayoutTransition,
+  verifyViewportPreflight,
+} from "./benchmark-evidence.mjs";
 
 const benchmarkDirectory = path.dirname(fileURLToPath(import.meta.url));
 const rendererPath = path.join(benchmarkDirectory, "renderer-bakeoff.mjs");
@@ -108,6 +123,10 @@ test("preparation deadline terminates CPU-bound work and preserves checkpoints",
     "30000",
     "--total-timeout-ms",
     "60000",
+    "--renderer",
+    "webgl",
+    "--scope",
+    "expanded",
     "--output",
     successReportPath,
   ]);
@@ -116,10 +135,13 @@ test("preparation deadline terminates CPU-bound work and preserves checkpoints",
   assert.equal(successRun.code, 0, successRun.stderr);
   const successReport = JSON.parse(await readFile(successReportPath, "utf8"));
   assert.equal(successReport.status, "completed");
+  assert.deepEqual(successReport.selectedRenderers, ["webgl"]);
+  assert.deepEqual(successReport.selectedScopes, ["expanded"]);
   assert.equal(successReport.fixturePreparation[0].status, "completed");
   assert.equal(successReport.fixtures[0].name, "small");
   assert.equal(successReport.fixtures[0].nodes, 3);
   assert.equal(successReport.fixtures[0].edges, 1);
+  assert.ok(successReport.currentStage.elapsedMilliseconds > 0);
   assert.ok(
     (await stat(path.join(generatedRoot, "small", "data.json"))).isFile(),
   );
@@ -170,6 +192,278 @@ test("checkpoints atomically replace the destination", async (context) => {
     currentStage: { type: "browser-workload", status: "running" },
   });
   assert.deepEqual(await readdir(directory), ["report.json"]);
+});
+
+test("renderer and scope selectors support defaults, repeats, and commas", () => {
+  assert.deepEqual(
+    parseChoiceValues({
+      argumentName: "--renderer",
+      values: [],
+      supported: defaultRenderers,
+      defaults: defaultRenderers,
+    }),
+    ["svg", "webgl"],
+  );
+  assert.deepEqual(
+    parseChoiceValues({
+      argumentName: "--renderer",
+      values: ["webgl,svg", "webgl"],
+      supported: defaultRenderers,
+      defaults: defaultRenderers,
+    }),
+    ["webgl", "svg"],
+  );
+  assert.deepEqual(
+    parseChoiceValues({
+      argumentName: "--scope",
+      values: ["expanded"],
+      supported: defaultScopes,
+      defaults: defaultScopes,
+    }),
+    ["expanded"],
+  );
+  assert.throws(
+    () =>
+      parseChoiceValues({
+        argumentName: "--scope",
+        values: ["overview"],
+        supported: defaultScopes,
+        defaults: defaultScopes,
+      }),
+    /Unsupported --scope value "overview". Expected one of: directory, expanded/,
+  );
+  assert.throws(
+    () =>
+      parseChoiceValues({
+        argumentName: "--renderer",
+        values: [undefined],
+        supported: defaultRenderers,
+        defaults: defaultRenderers,
+      }),
+    /--renderer requires a value/,
+  );
+});
+
+test("invalid renderer and scope arguments fail before browser launch", async () => {
+  const invalidRenderer = await runRenderer([
+    "--prepare-only",
+    "--renderer",
+    "canvas",
+  ]);
+  assert.equal(invalidRenderer.code, 1);
+  assert.match(
+    invalidRenderer.stderr,
+    /Unsupported --renderer value "canvas". Expected one of: svg, webgl/,
+  );
+
+  const missingScope = await runRenderer(["--prepare-only", "--scope"]);
+  assert.equal(missingScope.code, 1);
+  assert.match(missingScope.stderr, /--scope requires a value/);
+});
+
+test("phase failures retain completed phases and browser errors", async () => {
+  let captured;
+  try {
+    await runBenchmarkPhases({
+      remainingMilliseconds: () => 1000,
+      browserErrors: () => ["page exploded"],
+      definitions: [
+        {
+          name: "navigation",
+          run: async () => ({ httpStatus: 200 }),
+        },
+        {
+          name: "layout-transition",
+          run: async () => {
+            throw new Error("scene did not change");
+          },
+        },
+        {
+          name: "metrics",
+          run: async () => {
+            throw new Error("must not run");
+          },
+        },
+      ],
+    });
+  } catch (error) {
+    captured = error;
+  }
+
+  assert.ok(captured instanceof BenchmarkPhaseError);
+  assert.equal(captured.phase, "layout-transition");
+  assert.deepEqual(captured.browserErrors, ["page exploded"]);
+  assert.deepEqual(
+    captured.phases.map(({ name, status }) => ({ name, status })),
+    [
+      { name: "navigation", status: "completed" },
+      { name: "layout-transition", status: "failed" },
+    ],
+  );
+  assert.equal(captured.phases[0].timing.source, "controller-wall-clock");
+});
+
+test("phase deadlines identify the timed-out phase", async () => {
+  await assert.rejects(
+    runBenchmarkPhases({
+      remainingMilliseconds: () => 20,
+      definitions: [
+        {
+          name: "zoom",
+          run: async () => new Promise(() => {}),
+        },
+      ],
+    }),
+    (error) => {
+      assert.ok(error instanceof BenchmarkPhaseError);
+      assert.equal(error.phase, "zoom");
+      assert.equal(error.timedOut, true);
+      assert.equal(error.phases[0].status, "timed-out");
+      return true;
+    },
+  );
+});
+
+test("layout verification accepts equal counts with changed membership", () => {
+  const verification = verifyLayoutTransition(
+    {
+      expandedContainerIds: ["directory:."],
+      visibleEntityIds: ["path:src/only.ts", "external:npm:test"],
+      visibleNodes: 2,
+      visibleEdges: 1,
+    },
+    {
+      expandedContainerIds: ["directory:.", "directory:src"],
+      visibleEntityIds: ["directory:src", "external:npm:test"],
+      visibleNodes: 2,
+      visibleEdges: 1,
+    },
+  );
+
+  assert.equal(verification.status, "verified");
+  assert.equal(verification.expansionStateChanged, true);
+  assert.equal(verification.visibleMembershipChanged, true);
+  assert.deepEqual(verification.visibleEntityDelta.addedIds, [
+    "directory:src",
+  ]);
+  assert.deepEqual(verification.visibleEntityDelta.removedIds, [
+    "path:src/only.ts",
+  ]);
+  assert.equal(verification.visibleEntityDelta.beforeCount, 2);
+  assert.equal(verification.visibleEntityDelta.afterCount, 2);
+});
+
+test("layout phase records genuine unsupported fixtures as not applicable", async () => {
+  const snapshot = {
+    expandedContainerIds: ["directory:."],
+    visibleEntityIds: ["path:src/a.ts", "path:src/b.ts"],
+  };
+  assert.deepEqual(collapsedDirectoryCandidates(snapshot), []);
+  assert.deepEqual(visibleTangleCandidates(snapshot), []);
+  assert.deepEqual(visibleTangleCandidates({
+    ...snapshot,
+    visibleEntityIds: ["path:a.ts", "derived:tangle:cycle:collapsed"],
+  }), ["derived:tangle:cycle:collapsed"]);
+
+  const { phases } = await runBenchmarkPhases({
+    remainingMilliseconds: () => 1000,
+    definitions: [
+      {
+        name: "layout-transition",
+        run: async () => ({
+          phaseStatus: "not-applicable",
+          reason:
+            "Fixture projection has no non-root expandable directory or tangle.",
+          effectVerification: { status: "not-applicable" },
+        }),
+      },
+    ],
+  });
+
+  assert.equal(phases[0].status, "not-applicable");
+  assert.equal(
+    phases[0].observation.effectVerification.status,
+    "not-applicable",
+  );
+  assert.match(phases[0].observation.reason, /no non-root expandable/);
+});
+
+test("layout verification rejects expansion without membership change", () => {
+  const verification = verifyLayoutTransition(
+    {
+      expandedContainerIds: ["directory:."],
+      visibleEntityIds: ["path:src/only.ts"],
+    },
+    {
+      expandedContainerIds: ["directory:.", "directory:src"],
+      visibleEntityIds: ["path:src/only.ts"],
+    },
+  );
+
+  assert.equal(verification.status, "failed");
+  assert.equal(verification.expansionStateChanged, true);
+  assert.equal(verification.visibleMembershipChanged, false);
+});
+
+test("layout evidence stores deltas instead of unchanged projection IDs", () => {
+  const unchanged = Array.from(
+    { length: 10_000 },
+    (_, index) => `path:src/file-${index}.ts`,
+  );
+  const verification = verifyLayoutTransition(
+    {
+      expandedContainerIds: ["directory:."],
+      collapsedTangleIds: [],
+      visibleEntityIds: [...unchanged, "path:src/removed.ts"],
+    },
+    {
+      expandedContainerIds: ["directory:.", "directory:src"],
+      collapsedTangleIds: [],
+      visibleEntityIds: [...unchanged, "directory:src"],
+    },
+  );
+  const serialized = JSON.stringify(verification);
+
+  assert.equal(verification.status, "verified");
+  assert.deepEqual(verification.visibleEntityDelta.addedIds, [
+    "directory:src",
+  ]);
+  assert.deepEqual(verification.visibleEntityDelta.removedIds, [
+    "path:src/removed.ts",
+  ]);
+  assert.ok(serialized.length < 2_000);
+  assert.equal(serialized.includes("path:src/file-5000.ts"), false);
+});
+
+test("viewport preflight rejects zero-size and offscreen render targets", () => {
+  assert.equal(
+    verifyViewportPreflight(
+      { x: 0, y: 0, width: 1280, height: 0 },
+      { width: 1280, height: 800 },
+    ).status,
+    "failed",
+  );
+  const offscreen = verifyViewportPreflight(
+    { x: 0, y: 12472, width: 1280, height: 720 },
+    { width: 1280, height: 800 },
+  );
+  assert.equal(offscreen.status, "failed");
+  assert.match(offscreen.reason, /does not intersect/);
+});
+
+test("viewport preflight uses the visible intersection for interactions", () => {
+  const verification = verifyViewportPreflight(
+    { x: -100, y: 700, width: 500, height: 300 },
+    { width: 1280, height: 800 },
+  );
+  assert.equal(verification.status, "verified");
+  assert.deepEqual(verification.intersection, {
+    x: 0,
+    y: 700,
+    width: 400,
+    height: 100,
+  });
+  assert.deepEqual(verification.interactionPoint, { x: 200, y: 750 });
 });
 
 test("cleanup force-stops an owned browser and still releases the server port", async () => {

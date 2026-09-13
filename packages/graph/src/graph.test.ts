@@ -400,6 +400,62 @@ describe("@topo/graph", () => {
     ).toBe(serializeLayoutDeterministic(layoutGraph(fixture, options).layout));
   });
 
+  it("validates persisted positions without scanning every prior rectangle", () => {
+    const fixture = graph(Array.from({ length: 300 }, (_, index) => node(`src/n${index}.ts`)), []);
+    const options = { expandedContainerIds: ["directory:.", "directory:src"] };
+    const first = layoutGraph(fixture, options);
+    let positionReads = 0;
+    for (const item of first.layout.items) {
+      const x = item.x;
+      Object.defineProperty(item, "x", {
+        enumerable: true,
+        get() { positionReads += 1; return x; },
+      });
+    }
+    const second = layoutGraph(fixture, { ...options, previous: first.layout });
+    expect(positionReads).toBeLessThan(30_000);
+    expect(second.warnings).toEqual([]);
+    expect(serializeLayoutDeterministic(second.layout)).toBe(serializeLayoutDeterministic(first.layout));
+  });
+
+  it("retains subject-ID replacement semantics while checking cached rectangles", () => {
+    const fixture = graph([node("src/a.ts"), node("src/b.ts")], []);
+    const options = { expandedContainerIds: ["directory:.", "directory:src"] };
+    const first = layoutGraph(fixture, options);
+    const a = first.layout.items[0]!;
+    const b = first.layout.items[1]!;
+    first.layout.items = [
+      { ...a, subject: { kind: "derived", id: a.subject.id }, x: 0 },
+      { ...a, x: 400 },
+      { ...b, x: 0 },
+    ];
+    const result = layoutGraph(fixture, { ...options, previous: first.layout });
+    expect(result.warnings).toEqual([]);
+    expect(result.layout.items.map((item) => item.x)).toEqual([400, 0]);
+  });
+
+  it("bounds spatial indexing for oversized rectangles and extreme finite pins", () => {
+    const fixture = graph([node("src/a.ts"), node("src/b.ts")], []);
+    const options = { expandedContainerIds: ["directory:.", "directory:src"] };
+    const first = layoutGraph(fixture, options);
+    first.layout.items[0]!.width = 1e10;
+    first.layout.items[1]!.x = 1e10 + 32;
+    const large = layoutGraph(fixture, { ...options, previous: first.layout });
+    expect(large.warnings).toEqual([]);
+    expect(large.layout.items[0]!.width).toBe(1e10);
+    first.layout.items[1]!.x = 100;
+    expect(layoutGraph(fixture, { ...options, previous: first.layout }).warnings)
+      .toContainEqual(expect.objectContaining({ code: "invalid-previous-layout" }));
+    const pinned = layoutGraph(fixture, {
+      ...options,
+      pins: [
+        { id: "a", subject: { kind: "node", id: "path:src/a.ts" }, anchor: { path: "src/a.ts" }, position: { x: 1e30, y: 0 } },
+        { id: "b", subject: { kind: "node", id: "path:src/b.ts" }, anchor: { path: "src/b.ts" }, position: { x: -1e30, y: 0 } },
+      ],
+    });
+    expect(pinned.layout.items.map((item) => item.x)).toEqual([1e30, -1e30]);
+  });
+
   it("validates pins, forbids line anchors, and never overwrites authored data", () => {
     const fixture = graph([node("src/a.ts")], []);
     const pin = {

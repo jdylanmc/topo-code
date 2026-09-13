@@ -71,8 +71,11 @@ diagnostics after graph mutation.
 After this fix, all eight real Mermaid/Visual Studio Code browser workloads
 completed in 54.889 seconds total, with no page errors and successful cleanup.
 The results record source hashes for both graph derivation and layout
-validation. This is an execution result, **not** a frame-rate acceptance pass:
-expanded Visual Studio Code remains below 50 FPS in both renderers.
+validation. This is an execution result, **not** valid interaction or frame-rate
+acceptance evidence: a later viewport check found that long warning text could
+push the map offscreen. The corrected visible-interaction results and historical
+disqualification are documented in [renderer.md](./renderer.md). The Node
+derivation measurements above do not depend on browser visibility.
 
 ## Reproduction and remaining work
 

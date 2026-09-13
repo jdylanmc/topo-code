@@ -73,8 +73,12 @@ input:focus-visible,
 }
 
 .authority-banner {
+  grid-row: 1;
   background: #4d2d00;
   color: #fff8c5;
+  max-height: 24vh;
+  overflow: auto;
+  overflow-wrap: anywhere;
 }
 
 .error-banner {
@@ -83,6 +87,7 @@ input:focus-visible,
 }
 
 .toolbar {
+  grid-row: 2;
   display: flex;
   flex-wrap: wrap;
   gap: 8px 16px;
@@ -112,6 +117,7 @@ input:focus-visible,
 }
 
 .workspace {
+  grid-row: 3;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
   min-height: 0;
