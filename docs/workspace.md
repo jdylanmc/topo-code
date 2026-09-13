@@ -15,9 +15,11 @@ JSON and unsupported options are errors, not invitations to reset a workspace.
 | `reports/outputs/layout-delta.json` | Comparison against the previous layout | Optional; inspect removed subjects and orphaned pins |
 | `reports/outputs/curated-views.json` | Generated authored-view snapshot | Optional; regenerate from metadata |
 | `reports/outputs/curated-view-deltas.json` | Comparison against explicitly reviewed membership | Optional; pending changes persist across scans |
+| `reports/outputs/enrichment.json` | Generated, inferred commentary tied to graph/report inputs | Optional; not authored metadata or verified facts |
 | `metadata/` | Human-authored notes and pins | Commit and review; never overwritten by generation |
 | `metadata/views/<id>.json` | Named path view, overrides, pins, review baseline | Commit and review; explicit local saves only |
 | `cache/site/` | Compiled site assets and atomic data snapshot | Ignore; regenerate |
+| `cache/enrichment-runs/` | Temporary command input, prompt and staged output | Ignore; owned run directories are cleaned after execution |
 | `cache/write.lock` | Ephemeral single-writer lock | Ignore |
 
 The generated `.topo/.gitignore` ignores **only `/cache/`**. Do not blanket-ignore
@@ -45,6 +47,13 @@ See [module composition](./modules.md) for build-time versus generate-time suppo
 Public package-scope ownership and third-party module loading are not established
 by the private local `@topo/*` workspace names.
 
+Optional `enrichment` configuration selects an argv command and repository
+prompt file for explicit `topo enrich`. It is not run by scanning or ingestion,
+and there is no extra trust/approval store. See the [runner guide](./enrichment.md)
+and [commentary contract](./enrichment-contract.md). A repository command can use
+its provider's network/account and its normal user permissions; it is not
+sandboxed by Topocode.
+
 ## Layout and authored pins
 
 Generated positions live in `graph/layout.json`; the global default view is
@@ -71,6 +80,11 @@ regeneration and ingestion validate but never rewrite them.
 Generation and ingestion acquire an exclusive per-workspace lock. A second
 writer fails explicitly. A lock left by an interrupted process must be removed
 manually **only after checking that the recorded process is no longer running**.
+Enrichment holds this lock only while capturing inputs and publishing output,
+not during the provider command. Publication rechecks the current analysis
+hash, so a concurrent scan cannot be overwritten by an old enrichment result.
+Changed graph/report analysis omits old commentary from the site; unchanged
+analysis preserves it. View and layout edits alone do not invalidate it.
 
 Generated files use temporary siblings followed by rename. The website reads
 one atomically replaced `cache/site/data.json`, not graph and layout files
@@ -87,7 +101,9 @@ future scanner cache must include adapter version, schema version, configuration
 and source fingerprints. Do not share `cache/` between machines. Stable graph
 and report artifacts contain no local absolute paths or live generation times.
 
-The tool refuses symlinked `.topo` paths and path traversal. It does not modify
+The static pipeline refuses symlinked `.topo` paths and path traversal. It does not modify
 source files, install dependencies in scanned repositories, stage files, or
 resolve Git merge conflicts. If two branches change the same generated graph,
 merge the authored configuration and report inputs first, then regenerate.
+Those guarantees do not sandbox a repository command explicitly invoked through
+`topo enrich`; its behavior remains the operator's responsibility.

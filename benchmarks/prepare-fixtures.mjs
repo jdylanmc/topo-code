@@ -25,6 +25,7 @@ import {
 import { createBenchmarkCuratedViews } from "./curated-fixture.mjs";
 import { composeModules } from "../packages/modules/dist/index.js";
 import { parseModuleNames } from "./benchmark-options.mjs";
+import { createBenchmarkEnrichment } from "./enrichment-fixture.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 export const generatedRoot = path.join(root, "benchmarks", ".generated");
@@ -215,6 +216,10 @@ async function writeFixture(
   const curatedStarted = performance.now();
   const curatedViews = options.curated ? createBenchmarkCuratedViews(graph, architecture) : undefined;
   const curatedMilliseconds = performance.now() - curatedStarted;
+  const dashboard = { schemaVersion: "1.0", fixtureKind, metrics: [] };
+  const enrichmentStarted = performance.now();
+  const enrichment = options.enriched ? await createBenchmarkEnrichment(graph, dashboard) : undefined;
+  const enrichmentMilliseconds = performance.now() - enrichmentStarted;
   const destination = path.join(generatedRoot, name);
   await mkdir(destination, { recursive: true });
   await cp(siteDist, destination, { recursive: true });
@@ -223,12 +228,9 @@ async function writeFixture(
     graph,
     layout: result.layout,
     architecture,
-    dashboard: {
-      schemaVersion: "1.0",
-      fixtureKind,
-      metrics: [],
-    },
+    dashboard,
     ...(curatedViews ? { curatedViews } : {}),
+    ...(enrichment ? { enrichment } : {}),
   };
   await writeFile(
     path.join(destination, "data.json"),
@@ -243,15 +245,17 @@ async function writeFixture(
     edges: graph.edges.length,
     tangles: architecture.stronglyConnectedComponents.length,
     urlPath: `/${name}/index.html`,
+    ...(enrichment ? { enrichmentComments: enrichment.comments.length } : {}),
     preparation: {
       parseMilliseconds,
       deriveMilliseconds,
       layoutMilliseconds,
       ...(moduleIds.length ? { moduleMilliseconds } : {}),
       ...(curatedViews ? { curatedMilliseconds } : {}),
+      ...(enrichment ? { enrichmentMilliseconds } : {}),
       totalMilliseconds:
         parseMilliseconds + deriveMilliseconds + layoutMilliseconds + (curatedViews ? curatedMilliseconds : 0) +
-        (moduleIds.length ? moduleMilliseconds : 0),
+        (moduleIds.length ? moduleMilliseconds : 0) + (enrichment ? enrichmentMilliseconds : 0),
     },
     ...(evidence === undefined ? {} : { evidence }),
   };
@@ -359,6 +363,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const fixtures = await prepareFixtures({
     fixtureNames,
     curated: process.argv.includes("--curated"),
+    enriched: process.argv.includes("--enriched"),
     modules: parseModuleNames(process.argv.flatMap((value, index, args) => value === "--module" ? [args[index + 1]] : [])),
     mermaidGraph: argumentValue("--mermaid-graph"),
     mermaidProvenance: argumentValue("--mermaid-provenance"),

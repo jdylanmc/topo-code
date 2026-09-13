@@ -9,8 +9,12 @@ provenance. The ordinary **Repository map** remains available.
 1. Run `topo scan <repository>`, then `topo serve <repository>`.
 2. Choose **New view**. Set its ID, display name, and positive path rules, one
    per line. Choose **Apply rules** to preview membership.
-3. Add explicit file/directory includes or exclusions. Select a map entity to
-   **Hide selected** or **Pin selected position** at integer X/Y coordinates.
+3. Search the bounded repository inventory, then drag a file or directory onto
+   the map to add its exact include and pin it at the drop position. The
+   **Include and pin** action provides the keyboard equivalent and uses the map
+   center. Exact directory includes automatically retain current and future
+   descendants. Add exclusions separately, or select a map entity to **Hide
+   selected** or **Pin selected position** at integer X/Y coordinates.
 4. Choose **Save definition** to persist the view without accepting source
    changes, or **Save and mark reviewed** to also capture its current members
    as the review baseline.
@@ -34,6 +38,14 @@ when its response arrives.
 Membership is **positive path rules plus includes plus existing pinned targets,
 minus exclusions**. Exclusions always win, including over an explicit include
 or pin. Remove the exclusion explicitly to show that target again.
+
+Hold Shift while dropping an inventory item to stage an editable broader
+positive path-rule suggestion, such as `src/**` for `src/a.ts`. The suggestion
+does not change membership until **Apply suggested rule** is chosen. The
+inventory's **Suggest broader rule** action is the keyboard-accessible
+equivalent. Suggestions quote whitespace and glob metacharacters using positive
+gitignore matching syntax, and are cleared when the selected view or entity
+changes. Normal drops never alter path rules or remove exclusions.
 
 - Rules use case-sensitive gitignore-style matching: `src/**`, `**/*.test.ts`,
   or `packages/site/`. Negated rules (`!…`) and comments are rejected; use the
@@ -113,7 +125,7 @@ Normal saves preserve the server's baseline; explicit review captures live
 membership. Browser requests omit the potentially large baseline.
 
 This slice is flat named views, not view composition, arbitrary plugin loading,
-drag-and-drop layout authoring, AI inference, or a new graph-producing module.
+AI inference, or a new graph-producing module.
 Views inherit the current graph's enabled producers. See the
 [core contract](./curated-views-core.md) and [workspace lifecycle](./workspace.md).
 

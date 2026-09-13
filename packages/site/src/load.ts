@@ -16,6 +16,7 @@ import type {
 import { parseCuratedViewsSnapshot } from "@topo/views";
 import { validateModuleContributions, type StaticModuleManifest } from "@topo/modules";
 import { COMPILED_MODULE_MANIFESTS, supportedSiteModules } from "./compiled-modules.js";
+import { hashAnalysis, parseEnrichmentDocument, validateEnrichmentReferences } from "@topo/enrichment";
 
 export class ArtifactLoadError extends Error {
   readonly artifact: string;
@@ -37,6 +38,7 @@ interface SiteDataEnvelope {
   architecture?: unknown;
   dashboard: unknown | null;
   curatedViews?: unknown;
+  enrichment?: unknown;
 }
 
 async function fetchRequiredJson(path: string, label: string): Promise<{ value: unknown; editingToken?: string }> {
@@ -230,6 +232,20 @@ export async function loadArtifacts(
     };
   }
 
+  let enrichment: LoadedArtifacts["enrichment"];
+  let enrichmentError: string | undefined;
+  if (envelope.enrichment !== undefined) {
+    try {
+      const document = parseEnrichmentDocument(envelope.enrichment);
+      if (document.analysisHash === await hashAnalysis(parsedGraph.document, envelope.dashboard)) {
+        validateEnrichmentReferences(document, parsedGraph.document);
+        enrichment = document;
+      }
+    } catch (error) {
+      enrichmentError = new ArtifactLoadError("AI commentary", error).message;
+    }
+  }
+
   return {
     graph: parsedGraph.document,
     compatibility: parsedGraph.compatibility,
@@ -237,6 +253,8 @@ export async function loadArtifacts(
     architecture,
     architectureSource: hasArchitecture ? "artifact" : "derived",
     dashboard,
+    ...(enrichment === undefined ? {} : { enrichment }),
+    ...(enrichmentError === undefined ? {} : { enrichmentError }),
     ...(curatedViews === undefined ? {} : { curatedViews }),
     ...(curatedViews && response.editingToken ? { viewEditingToken: response.editingToken } : {}),
     quality: {

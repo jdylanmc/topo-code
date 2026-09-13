@@ -157,6 +157,153 @@ test("authors membership and pins, reloads them, and restores the repository map
   expect(errors).toEqual([]);
 });
 
+test("searches bounded inventory and explicitly applies broader rule suggestions", async ({ page, localUrl }) => {
+  await ready(page, `${localUrl}/?scope=all`);
+  await createView(page);
+  await expect(page.locator("[data-view-inventory-count]")).toHaveText("6 total · 6 matched · showing 6");
+  const search = page.getByLabel("Search inventory", { exact: true });
+  await search.fill("other/c");
+  await expect(page.locator("[data-view-inventory-count]")).toHaveText("6 total · 1 matched · showing 1");
+  const map = page.locator(".map-host");
+  const sourceBounds = await page.locator('[data-inventory-entity-id="path:other/c.ts"]').boundingBox();
+  const mapBounds = await map.boundingBox();
+  expect(sourceBounds).not.toBeNull();
+  expect(mapBounds).not.toBeNull();
+  const dataTransfer = await page.evaluateHandle(() => new DataTransfer());
+  await page.locator('[data-inventory-entity-id="path:other/c.ts"]').dispatchEvent("dragstart", {
+    dataTransfer,
+    shiftKey: true,
+    clientX: sourceBounds!.x + sourceBounds!.width / 2,
+    clientY: sourceBounds!.y + sourceBounds!.height / 2,
+  });
+  await map.dispatchEvent("drop", {
+    dataTransfer,
+    shiftKey: true,
+    clientX: mapBounds!.x + 120,
+    clientY: mapBounds!.y + 140,
+  });
+  const suggestion = page.getByLabel("Suggested positive path rule", { exact: true });
+  await expect(suggestion).toHaveValue("other/**");
+  await expect(page.getByLabel("Path rules", { exact: true })).toHaveValue("src/**");
+  expect(await members(page)).toEqual(["path:src/a.ts", "path:src/b.ts"]);
+  await selectFile(page, "src/a.ts");
+  await expect(page.locator("[data-view-rule-suggestion]")).toBeHidden();
+  await page.getByRole("button", { name: "Suggest broader rule for other/c.ts", exact: true }).click();
+  await suggestion.fill("other/c.ts");
+  await page.getByRole("button", { name: "Apply suggested rule", exact: true }).click();
+  await expect(page.getByLabel("Path rules", { exact: true })).toHaveValue("src/**\nother/c.ts");
+  expect(await members(page)).toEqual(["path:other/c.ts", "path:src/a.ts", "path:src/b.ts"]);
+
+  await page.getByLabel("Override kind", { exact: true }).selectOption("node");
+  await page.getByLabel("Repository-relative path", { exact: true }).fill("other/c.ts");
+  await page.getByRole("button", { name: "Exclude path", exact: true }).click();
+  await search.fill("other/c");
+  await page.getByRole("button", { name: "Suggest broader rule for other/c.ts", exact: true }).click();
+  await page.getByRole("button", { name: "Apply suggested rule", exact: true }).click();
+  expect(await members(page)).toEqual(["path:src/a.ts", "path:src/b.ts"]);
+  await expect(page.getByRole("button", { name: "Remove exclude: node other/c.ts", exact: true })).toBeVisible();
+
+  await search.fill("not-present");
+  await expect(page.locator("[data-view-inventory-count]")).toHaveText("6 total · 0 matched · showing 0");
+  await expect(page.locator("[data-view-inventory-empty]")).toBeVisible();
+});
+
+test("includes and pins exact inventory targets with native drag and keyboard placement", async ({
+  page, repository, localUrl,
+}) => {
+  await ready(page, `${localUrl}/?scope=all`);
+  await createView(page);
+  await page.getByLabel("Path rules", { exact: true }).fill("");
+  await page.getByRole("button", { name: "Apply rules", exact: true }).click();
+  expect(await members(page)).toEqual([]);
+
+  const map = page.locator(".map-host");
+  const bounds = await map.boundingBox();
+  expect(bounds).not.toBeNull();
+  const malformed = await page.evaluateHandle(() => {
+    const transfer = new DataTransfer();
+    transfer.setData("application/vnd.topo.inventory+json", "{");
+    return transfer;
+  });
+  await map.dispatchEvent("drop", { dataTransfer: malformed, clientX: bounds!.x + 20, clientY: bounds!.y + 20 });
+  await expect(page.locator("[data-view-error]")).toContainText("malformed");
+  expect(await members(page)).toEqual([]);
+  const arbitrary = await page.evaluateHandle(() => {
+    const transfer = new DataTransfer();
+    transfer.setData("text/plain", "other/c.ts");
+    return transfer;
+  });
+  await map.dispatchEvent("drop", { dataTransfer: arbitrary, clientX: bounds!.x + 20, clientY: bounds!.y + 20 });
+  expect(await members(page)).toEqual([]);
+
+  await page.mouse.move(bounds!.x + bounds!.width / 2, bounds!.y + bounds!.height / 2);
+  await page.mouse.wheel(0, -320);
+  await page.mouse.down();
+  await page.mouse.move(bounds!.x + bounds!.width / 2 + 70, bounds!.y + bounds!.height / 2 + 45);
+  await page.mouse.up();
+  const transform = await page.evaluate(() => window.__TOPO_BENCHMARK__!.snapshot().viewTransform);
+
+  const search = page.getByLabel("Search inventory", { exact: true });
+  await search.fill("other/c.ts");
+  await page.getByLabel("Override kind", { exact: true }).selectOption("node");
+  await page.getByLabel("Repository-relative path", { exact: true }).fill("other/c.ts");
+  await page.getByRole("button", { name: "Exclude path", exact: true }).click();
+  await search.fill("other/c.ts");
+  await page.getByRole("button", { name: "Include and pin other/c.ts", exact: true }).click();
+  await expect(page.locator("[data-view-error]")).toContainText("remains excluded");
+  expect(await members(page)).toEqual([]);
+  await expect(page.getByRole("button", { name: "Remove exclude: node other/c.ts", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Remove exclude: node other/c.ts", exact: true }).click();
+  await search.fill("other/c.ts");
+  await page.getByRole("button", { name: "Include and pin other/c.ts", exact: true }).click();
+  const center = {
+    x: Math.round((bounds!.width / 2 - transform.x) / transform.scale),
+    y: Math.round((bounds!.height / 2 - transform.y) / transform.scale),
+  };
+  expect(await members(page)).toEqual(["path:other/c.ts"]);
+  await expect(page.getByLabel("Path rules", { exact: true })).toHaveValue("");
+
+  await search.fill("src/a.ts");
+  await page.getByRole("button", { name: "Include and pin src/a.ts", exact: true }).click();
+  await expect(page.locator("[data-view-error]")).toContainText(/overlap/i);
+  expect(await members(page)).toEqual(["path:other/c.ts"]);
+  await expect(page.getByRole("button", { name: "Remove include: node src/a.ts", exact: true })).toHaveCount(0);
+  await search.fill("src");
+  const target = { x: 110, y: 125 };
+  await page.locator('[data-inventory-entity-id="directory:src"]').dragTo(map, {
+    targetPosition: target,
+  });
+  const directoryPosition = {
+    x: Math.round((target.x - transform.x) / transform.scale),
+    y: Math.round((target.y - transform.y) / transform.scale),
+  };
+  expect(await members(page)).toEqual(["path:other/c.ts", "path:src/a.ts", "path:src/b.ts"]);
+  await expect(page.getByLabel("Path rules", { exact: true })).toHaveValue("");
+  await expect(page.locator("[data-view-error]")).toBeHidden();
+
+  await save(page);
+  expect(await definition(repository)).toMatchObject({
+    includes: [
+      { kind: "node", path: "other/c.ts" },
+      { kind: "directory", path: "src" },
+    ],
+    pins: [
+      { anchor: { kind: "node", path: "other/c.ts" }, position: center },
+      { anchor: { kind: "directory", path: "src" }, position: directoryPosition },
+    ],
+  });
+
+  await page.reload();
+  await page.evaluate(() => window.__TOPO_READY__);
+  expect(await members(page)).toEqual(["path:other/c.ts", "path:src/a.ts", "path:src/b.ts"]);
+  await expect(page.getByRole("button", {
+    name: `Unpin other/c.ts (${center.x}, ${center.y})`, exact: true,
+  })).toBeVisible();
+  await expect(page.getByRole("button", {
+    name: `Unpin src (${directoryPosition.x}, ${directoryPosition.y})`, exact: true,
+  })).toBeVisible();
+});
+
 test("directory anchors retain descendants and expansion edits survive in-flight saves", async ({ page, repository, localUrl }) => {
   await ready(page, `${localUrl}/?scope=all`);
   await createView(page);
@@ -197,6 +344,9 @@ test("directory anchors retain descendants and expansion edits survive in-flight
   const response = page.waitForResponse((item) => item.url().endsWith("/__topo/views"));
   await page.getByRole("button", { name: "Save definition", exact: true }).click();
   await expect(page.getByRole("button", { name: "Save definition", exact: true })).toBeDisabled();
+  await expect(page.getByLabel("Search inventory", { exact: true })).toBeDisabled();
+  expect(await page.locator('[data-inventory-entity-id="path:src/a.ts"]').evaluate((element) =>
+    (element as HTMLElement).draggable)).toBe(false);
   try {
     await page.getByRole("button", { name: "Collapse src", exact: true }).click();
     expect(await members(page)).toEqual(["directory:src"]);
@@ -316,6 +466,11 @@ test("static snapshots load and export curated views without edit capability", a
       expect(await members(page)).toEqual(["path:src/a.ts", "path:src/b.ts"]);
       await expect(page.getByRole("button", { name: "New view", exact: true })).toBeDisabled();
       await expect(page.getByRole("button", { name: "Save definition", exact: true })).toBeDisabled();
+      await expect(page.getByLabel("Search inventory", { exact: true })).toBeDisabled();
+      expect(await page.locator('[data-inventory-entity-id="path:src/a.ts"]').evaluate((element) =>
+        (element as HTMLElement).draggable)).toBe(false);
+      await expect(page.getByRole("button", { name: "Suggest broader rule for src/a.ts", exact: true }))
+        .toBeDisabled();
       await expect(page.locator("[data-view-readonly]")).toBeVisible();
       expect(await downloadJson<CuratedViewDefinition>(page, "Export definition")).toEqual(await definition(repository));
       await page.getByLabel("Curated view", { exact: true }).selectOption("");

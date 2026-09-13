@@ -179,6 +179,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@topo/cli@workspace:packages/cli"
   dependencies:
+    "@topo/enrichment": "workspace:*"
     "@topo/graph": "workspace:*"
     "@topo/modules": "workspace:*"
     "@topo/reports": "workspace:*"
@@ -193,6 +194,17 @@ __metadata:
     vitest: "npm:^5.0.0"
   bin:
     topo: ./dist/main.js
+  languageName: unknown
+  linkType: soft
+
+"@topo/enrichment@workspace:*, @topo/enrichment@workspace:packages/enrichment":
+  version: 0.0.0-use.local
+  resolution: "@topo/enrichment@workspace:packages/enrichment"
+  dependencies:
+    "@topo/schema": "workspace:*"
+    typescript: "npm:^7.0.2"
+    vite: "npm:8.2.2"
+    vitest: "npm:^5.0.0"
   languageName: unknown
   linkType: soft
 
@@ -263,6 +275,7 @@ __metadata:
   resolution: "@topo/site@workspace:packages/site"
   dependencies:
     "@playwright/test": "npm:^1.55.0"
+    "@topo/enrichment": "workspace:*"
     "@topo/graph": "workspace:*"
     "@topo/modules": "workspace:*"
     "@topo/schema": "workspace:*"

@@ -17,6 +17,7 @@ import { generatedRoot } from "./prepare-fixtures.mjs";
 import { createBenchmarkCuratedViews } from "./curated-fixture.mjs";
 import { evaluateCuratedView, parseCuratedViewsSnapshot } from "../packages/views/dist/index.js";
 import { validateModuleContributions } from "../packages/modules/dist/index.js";
+import { hashAnalysis, parseEnrichmentDocument, validateEnrichmentReferences } from "../packages/enrichment/dist/index.js";
 import {
   DeadlineError,
   atomicWriteJson,
@@ -120,6 +121,7 @@ test("preparation deadline terminates CPU-bound work and preserves checkpoints",
   const successRun = await runRenderer([
     "--prepare-only",
     "--curated",
+    "--enriched",
     "--module",
     "@topo/module-degree,@topo/module-cycles",
     "--fixture",
@@ -155,6 +157,11 @@ test("preparation deadline terminates CPU-bound work and preserves checkpoints",
   const envelope = JSON.parse(await readFile(path.join(generatedRoot, "small", "data.json"), "utf8"));
   const snapshot = parseCuratedViewsSnapshot(envelope.curatedViews);
   validateModuleContributions(envelope.graph);
+  const enrichment = parseEnrichmentDocument(envelope.enrichment);
+  validateEnrichmentReferences(enrichment, envelope.graph);
+  assert.equal(enrichment.analysisHash, await hashAnalysis(envelope.graph, envelope.dashboard));
+  assert.equal(enrichment.comments.length, envelope.graph.nodes.length);
+  assert.equal(successReport.enrichment, "one-fixture-comment-per-node");
   assert.deepEqual(successReport.selectedModules, ["@topo/module-degree", "@topo/module-cycles"]);
   assert.equal(envelope.graph.attributes.filter((entry) =>
     successReport.selectedModules.includes(entry.provenance.moduleId)).length, envelope.graph.nodes.length * 3);

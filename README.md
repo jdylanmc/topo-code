@@ -16,7 +16,7 @@ claim the tool makes about a codebase is backed by evidence you can follow, and
 everything a human adds is recorded as such.
 
 > **Status: Local preview.** The scan-to-site workflow, deterministic reports,
-> stable layouts, human-authored views, static analysis modules and WebGL renderer are implemented. WebGL is the sole supported
+> stable layouts, human-authored views, static analysis modules, optional AI commentary and WebGL renderer are implemented. WebGL is the sole supported
 > renderer, with a 30 FPS acceptable floor and no frame-rate cap; see the
 > [renderer decision and measurements](./docs/renderer.md). This is not yet a published npm CLI.
 
@@ -34,7 +34,7 @@ corepack yarn topo serve /absolute/path/to/a/typescript-repository
 Open the printed `http://127.0.0.1:4173` address. Expand directories, inspect file
 dependencies, toggle externals, and navigate the WebGL map with pointer or keyboard.
 The site is compiled once; rescanning replaces its data without rebuilding it.
-Nothing is uploaded or installed in the scanned repository.
+These static commands upload nothing and install nothing in the scanned repository.
 WebGL support is required. If initialization fails, the site shows an actionable
 error; it does not switch to another renderer.
 
@@ -48,6 +48,14 @@ Optional degree and cycle modules add derived inspector views without changing
 source identity. Enable them through `.topo/config.json`; compiled-view support
 and generated-data support are checked independently. See
 [static module composition](./docs/modules.md).
+
+Run an explicitly configured repository command with `topo enrich` to add
+secondary, inferred commentary. Topocode supplies the static-analysis snapshot
+and instructions; your script chooses Copilot, Claude, or another provider.
+That command may use its provider's account and network access.
+Structural validation does **not** verify the truth of AI interpretations.
+Scanning never starts an AI command, and changed analysis removes old commentary
+from the site until enrichment runs again. See [repository enrichment](./docs/enrichment.md).
 
 After building, one command also works **from the target repository**:
 
@@ -95,9 +103,8 @@ MIT. See [LICENSE](./LICENSE).
 ## Development
 
 Topocode remains a private Yarn workspace. Packages live at
-`packages/<name>` and use the local `@topo/<name>` convention; no registry
-publication is configured while public namespace availability remains
-unverified.
+`packages/<name>` and use the local `@topo/<name>` convention. Public npm
+publication is deferred; local package names do not establish namespace ownership.
 
 Requirements:
 

@@ -1,5 +1,12 @@
 # WebGL benchmark harness
 
+`--enriched` adds one deterministic commentary fixture per graph node, using the
+same snapshot hash and validation contract as `topo enrich`. It does not run a
+model or claim real AI analysis. Browser readiness verifies the commentary
+loads, without validation errors, in the bounded first page. Hashing and fixture
+creation remain inside the bounded preparation worker. It combines with
+`--curated` and `--module` without changing the measured interaction workload.
+
 The WebGL benchmark keeps fixture preparation outside the controlling Node.js
 event loop. Each selected fixture is parsed, projected, laid out, and
 materialized by a dedicated worker thread. The parent process can therefore
