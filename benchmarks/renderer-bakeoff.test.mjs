@@ -21,6 +21,15 @@ import {
   withDeadline,
 } from "./lifecycle.mjs";
 import { prepareFixtureWithDeadline } from "./preparation-runner.mjs";
+import {
+  defaultRenderers,
+  defaultScopes,
+  parseChoiceValues,
+} from "./benchmark-options.mjs";
+import {
+  BenchmarkPhaseError,
+  runBenchmarkPhases,
+} from "./benchmark-phases.mjs";
 
 const benchmarkDirectory = path.dirname(fileURLToPath(import.meta.url));
 const rendererPath = path.join(benchmarkDirectory, "renderer-bakeoff.mjs");
@@ -108,6 +117,10 @@ test("preparation deadline terminates CPU-bound work and preserves checkpoints",
     "30000",
     "--total-timeout-ms",
     "60000",
+    "--renderer",
+    "webgl",
+    "--scope",
+    "expanded",
     "--output",
     successReportPath,
   ]);
@@ -116,6 +129,8 @@ test("preparation deadline terminates CPU-bound work and preserves checkpoints",
   assert.equal(successRun.code, 0, successRun.stderr);
   const successReport = JSON.parse(await readFile(successReportPath, "utf8"));
   assert.equal(successReport.status, "completed");
+  assert.deepEqual(successReport.selectedRenderers, ["webgl"]);
+  assert.deepEqual(successReport.selectedScopes, ["expanded"]);
   assert.equal(successReport.fixturePreparation[0].status, "completed");
   assert.equal(successReport.fixtures[0].name, "small");
   assert.equal(successReport.fixtures[0].nodes, 3);
@@ -170,6 +185,136 @@ test("checkpoints atomically replace the destination", async (context) => {
     currentStage: { type: "browser-workload", status: "running" },
   });
   assert.deepEqual(await readdir(directory), ["report.json"]);
+});
+
+test("renderer and scope selectors support defaults, repeats, and commas", () => {
+  assert.deepEqual(
+    parseChoiceValues({
+      argumentName: "--renderer",
+      values: [],
+      supported: defaultRenderers,
+      defaults: defaultRenderers,
+    }),
+    ["svg", "webgl"],
+  );
+  assert.deepEqual(
+    parseChoiceValues({
+      argumentName: "--renderer",
+      values: ["webgl,svg", "webgl"],
+      supported: defaultRenderers,
+      defaults: defaultRenderers,
+    }),
+    ["webgl", "svg"],
+  );
+  assert.deepEqual(
+    parseChoiceValues({
+      argumentName: "--scope",
+      values: ["expanded"],
+      supported: defaultScopes,
+      defaults: defaultScopes,
+    }),
+    ["expanded"],
+  );
+  assert.throws(
+    () =>
+      parseChoiceValues({
+        argumentName: "--scope",
+        values: ["overview"],
+        supported: defaultScopes,
+        defaults: defaultScopes,
+      }),
+    /Unsupported --scope value "overview". Expected one of: directory, expanded/,
+  );
+  assert.throws(
+    () =>
+      parseChoiceValues({
+        argumentName: "--renderer",
+        values: [undefined],
+        supported: defaultRenderers,
+        defaults: defaultRenderers,
+      }),
+    /--renderer requires a value/,
+  );
+});
+
+test("invalid renderer and scope arguments fail before browser launch", async () => {
+  const invalidRenderer = await runRenderer([
+    "--prepare-only",
+    "--renderer",
+    "canvas",
+  ]);
+  assert.equal(invalidRenderer.code, 1);
+  assert.match(
+    invalidRenderer.stderr,
+    /Unsupported --renderer value "canvas". Expected one of: svg, webgl/,
+  );
+
+  const missingScope = await runRenderer(["--prepare-only", "--scope"]);
+  assert.equal(missingScope.code, 1);
+  assert.match(missingScope.stderr, /--scope requires a value/);
+});
+
+test("phase failures retain completed phases and browser errors", async () => {
+  let captured;
+  try {
+    await runBenchmarkPhases({
+      remainingMilliseconds: () => 1000,
+      browserErrors: () => ["page exploded"],
+      definitions: [
+        {
+          name: "navigation",
+          run: async () => ({ httpStatus: 200 }),
+        },
+        {
+          name: "layout-transition",
+          run: async () => {
+            throw new Error("scene did not change");
+          },
+        },
+        {
+          name: "metrics",
+          run: async () => {
+            throw new Error("must not run");
+          },
+        },
+      ],
+    });
+  } catch (error) {
+    captured = error;
+  }
+
+  assert.ok(captured instanceof BenchmarkPhaseError);
+  assert.equal(captured.phase, "layout-transition");
+  assert.deepEqual(captured.browserErrors, ["page exploded"]);
+  assert.deepEqual(
+    captured.phases.map(({ name, status }) => ({ name, status })),
+    [
+      { name: "navigation", status: "completed" },
+      { name: "layout-transition", status: "failed" },
+    ],
+  );
+  assert.equal(captured.phases[0].timing.source, "controller-wall-clock");
+});
+
+test("phase deadlines identify the timed-out phase", async () => {
+  await assert.rejects(
+    runBenchmarkPhases({
+      remainingMilliseconds: () => 20,
+      definitions: [
+        {
+          name: "zoom",
+          run: async () => new Promise(() => {}),
+        },
+      ],
+    }),
+    (error) => {
+      assert.ok(error instanceof BenchmarkPhaseError);
+      assert.equal(error.phase, "zoom");
+      assert.equal(error.timedOut, true);
+      assert.equal(error.phases[0].status, "timed-out");
+      return true;
+    },
+  );
 });
 
 test("cleanup force-stops an owned browser and still releases the server port", async () => {

@@ -18,6 +18,15 @@ import {
   cleanupOwnedResources,
   withDeadline,
 } from "./lifecycle.mjs";
+import {
+  defaultRenderers,
+  defaultScopes,
+  parseChoiceValues,
+} from "./benchmark-options.mjs";
+import {
+  BenchmarkPhaseError,
+  runBenchmarkPhases,
+} from "./benchmark-phases.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const chromePath =
@@ -99,6 +108,18 @@ if (
   );
 }
 const fixtureNames = parseFixtureNames(argumentValues("--fixture"));
+const rendererNames = parseChoiceValues({
+  argumentName: "--renderer",
+  values: argumentValues("--renderer"),
+  supported: defaultRenderers,
+  defaults: defaultRenderers,
+});
+const scopeNames = parseChoiceValues({
+  argumentName: "--scope",
+  values: argumentValues("--scope"),
+  supported: defaultScopes,
+  defaults: defaultScopes,
+});
 const fixtureOptions = {
   mermaidGraph: argumentValue("--mermaid-graph"),
   mermaidProvenance: argumentValue("--mermaid-provenance"),
@@ -166,9 +187,12 @@ function summarizeEvents(events) {
   };
 }
 
-function failedResult(fixture, renderer, scope, error, timing) {
+function failedResult(fixture, renderer, scope, error, timing, phase) {
+  const timedOut =
+    error instanceof DeadlineError ||
+    (error instanceof BenchmarkPhaseError && error.timedOut);
   return {
-    status: error instanceof DeadlineError ? "timed-out" : "failed",
+    status: timedOut ? "timed-out" : "failed",
     fixture: fixture.name,
     fixtureKind: fixture.fixtureKind,
     renderer,
@@ -179,122 +203,348 @@ function failedResult(fixture, renderer, scope, error, timing) {
       tangles: fixture.tangles,
     },
     timing,
-    errorKind:
-      error instanceof DeadlineError ? "deadline-exceeded" : "error",
+    errorKind: timedOut ? "deadline-exceeded" : "error",
     error: error instanceof Error ? error.message : String(error),
+    ...(phase === undefined ? {} : { failedPhase: phase }),
+    ...(error instanceof BenchmarkPhaseError
+      ? {
+          failedPhase: error.phase,
+          phases: error.phases,
+          browserErrors: error.browserErrors,
+        }
+      : {}),
   };
 }
 
-async function runWorkload(page, fixture, renderer, scope) {
+function cameraEffectVerification(before, after) {
+  if (!before.viewTransform || !after.viewTransform) {
+    return {
+      status: "unavailable",
+      requiredBenchmarkApiField: "snapshot().viewTransform",
+      reason:
+        "The benchmark API does not expose the renderer camera transform, so controller input cannot be verified from state.",
+    };
+  }
+  const changed =
+    before.viewTransform.x !== after.viewTransform.x ||
+    before.viewTransform.y !== after.viewTransform.y ||
+    before.viewTransform.scale !== after.viewTransform.scale;
+  return {
+    status: changed ? "verified" : "failed",
+    before: before.viewTransform,
+    after: after.viewTransform,
+  };
+}
+
+function sceneObservation(snapshot) {
+  return {
+    visibleNodes: snapshot.visibleNodes,
+    visibleEdges: snapshot.visibleEdges,
+    expandedContainerIds: snapshot.expandedContainerIds,
+    collapsedTangleIds: snapshot.collapsedTangleIds,
+    selectedEntityId: snapshot.selectedEntityId ?? null,
+    ...(snapshot.viewTransform === undefined
+      ? {}
+      : { viewTransform: snapshot.viewTransform }),
+  };
+}
+
+async function runWorkload(
+  page,
+  fixture,
+  renderer,
+  scope,
+  remainingMilliseconds,
+) {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto(
-    `http://127.0.0.1:4181/${fixture.name}/index.html?renderer=${renderer}${scope === "expanded" ? "&scope=all" : ""}`,
-    { waitUntil: "networkidle", timeout: 120_000 },
-  );
-  await page.evaluate(() => window.__TOPO_READY__);
-  await page.evaluate(() => {
-    window.__TOPO_FRAME_INTERVALS__ = [];
-    window.__TOPO_EVENT_TIMINGS__ = [];
-    window.__TOPO_FRAME_ACTIVE__ = true;
-    let previous;
-    const sample = (timestamp) => {
-      if (previous !== undefined) {
-        window.__TOPO_FRAME_INTERVALS__.push(timestamp - previous);
-      }
-      previous = timestamp;
-      if (window.__TOPO_FRAME_ACTIVE__) requestAnimationFrame(sample);
-    };
-    requestAnimationFrame(sample);
-    if ("PerformanceObserver" in window) {
-      try {
-        const observer = new PerformanceObserver((list) => {
-          for (const entry of list.getEntries()) {
-            window.__TOPO_EVENT_TIMINGS__.push({
-              name: entry.name,
-              duration: entry.duration,
-              startTime: entry.startTime,
-            });
+  let bounds;
+  let collected;
+  let performanceMetrics;
+  const { phases } = await runBenchmarkPhases({
+    remainingMilliseconds,
+    browserErrors: () => errors,
+    definitions: [
+      {
+        name: "navigation",
+        run: async () => {
+          const response = await page.goto(
+            `http://127.0.0.1:4181/${fixture.name}/index.html?renderer=${renderer}${scope === "expanded" ? "&scope=all" : ""}`,
+            {
+              waitUntil: "domcontentloaded",
+              timeout: remainingMilliseconds(),
+            },
+          );
+          if (!response || !response.ok()) {
+            throw new Error(
+              `Navigation returned HTTP ${response?.status() ?? "unknown"}.`,
+            );
           }
-        });
-        observer.observe({
-          type: "event",
-          buffered: true,
-          durationThreshold: 16,
-        });
-        window.__TOPO_EVENT_OBSERVER__ = observer;
-      } catch {
-        // Availability is reported explicitly in the result.
-      }
-    }
+          return {
+            url: page.url(),
+            httpStatus: response?.status() ?? null,
+          };
+        },
+      },
+      {
+        name: "app-readiness",
+        run: async () => {
+          await page.evaluate(() => window.__TOPO_READY__);
+          return sceneObservation(
+            await page.evaluate(() => window.__TOPO_BENCHMARK__.snapshot()),
+          );
+        },
+      },
+      {
+        name: "sampling-setup",
+        run: async () => {
+          bounds = await page.locator(".map-host").boundingBox();
+          if (!bounds) throw new Error("Map host has no browser bounds.");
+          return page.evaluate(() => {
+            window.__TOPO_FRAME_INTERVALS__ = [];
+            window.__TOPO_EVENT_TIMINGS__ = [];
+            window.__TOPO_FRAME_ACTIVE__ = true;
+            let previous;
+            const sample = (timestamp) => {
+              if (previous !== undefined) {
+                window.__TOPO_FRAME_INTERVALS__.push(timestamp - previous);
+              }
+              previous = timestamp;
+              if (window.__TOPO_FRAME_ACTIVE__) requestAnimationFrame(sample);
+            };
+            requestAnimationFrame(sample);
+            let eventTimingAvailable = false;
+            if ("PerformanceObserver" in window) {
+              try {
+                const observer = new PerformanceObserver((list) => {
+                  for (const entry of list.getEntries()) {
+                    window.__TOPO_EVENT_TIMINGS__.push({
+                      name: entry.name,
+                      duration: entry.duration,
+                      startTime: entry.startTime,
+                    });
+                  }
+                });
+                observer.observe({
+                  type: "event",
+                  buffered: true,
+                  durationThreshold: 16,
+                });
+                window.__TOPO_EVENT_OBSERVER__ = observer;
+                eventTimingAvailable = true;
+              } catch {
+                // Availability is returned explicitly.
+              }
+            }
+            return { eventTimingAvailable };
+          });
+        },
+      },
+      {
+        name: "pan",
+        run: async () => {
+          const before = await page.evaluate(() =>
+            window.__TOPO_BENCHMARK__.snapshot(),
+          );
+          const centerX = bounds.x + bounds.width / 2;
+          const centerY = bounds.y + bounds.height / 2;
+          await page.mouse.move(centerX, centerY);
+          await page.mouse.down();
+          for (let index = 0; index < 80; index += 1) {
+            await page.mouse.move(
+              centerX + Math.sin(index / 8) * 180,
+              centerY + Math.cos(index / 10) * 100,
+            );
+          }
+          await page.mouse.up();
+          const after = await page.evaluate(() =>
+            window.__TOPO_BENCHMARK__.snapshot(),
+          );
+          return {
+            pointerMoves: 80,
+            before: sceneObservation(before),
+            after: sceneObservation(after),
+            effectVerification: cameraEffectVerification(before, after),
+          };
+        },
+      },
+      {
+        name: "zoom",
+        run: async () => {
+          const before = await page.evaluate(() =>
+            window.__TOPO_BENCHMARK__.snapshot(),
+          );
+          for (let index = 0; index < 30; index += 1) {
+            await page.mouse.wheel(0, -18);
+          }
+          const midpoint = await page.evaluate(() =>
+            window.__TOPO_BENCHMARK__.snapshot(),
+          );
+          for (let index = 0; index < 30; index += 1) {
+            await page.mouse.wheel(0, 18);
+          }
+          const after = await page.evaluate(() =>
+            window.__TOPO_BENCHMARK__.snapshot(),
+          );
+          return {
+            wheelEvents: 60,
+            before: sceneObservation(before),
+            midpoint: sceneObservation(midpoint),
+            after: sceneObservation(after),
+            effectVerification: cameraEffectVerification(before, midpoint),
+          };
+        },
+      },
+      {
+        name: "layout-transition",
+        run: async () => {
+          const before = await page.evaluate(() =>
+            window.__TOPO_BENCHMARK__.snapshot(),
+          );
+          let control;
+          if (scope === "expanded") {
+            control = page.locator(".expanded-list button").first();
+          } else {
+            const candidates = page.locator(
+              '.webgl-a11y button[data-entity-id^="directory:"]',
+            );
+            const candidateIds = await candidates.evaluateAll((elements) =>
+              elements.map((element) => element.dataset.entityId ?? null),
+            );
+            const candidateIndex = candidateIds.findIndex(
+              (id) => id && !before.expandedContainerIds.includes(id),
+            );
+            if (candidateIndex >= 0) control = candidates.nth(candidateIndex);
+          }
+          if (!control) {
+            throw new Error("No collapsed directory was available to expand.");
+          }
+          if ((await control.count()) === 0) {
+            throw new Error(
+              `No ${scope === "expanded" ? "collapse" : "expand"} control was available.`,
+            );
+          }
+          const controlLabel = await control.textContent();
+          await control.click(scope === "expanded" ? {} : { force: true });
+          await page.waitForTimeout(600);
+          const after = await page.evaluate(() =>
+            window.__TOPO_BENCHMARK__.snapshot(),
+          );
+          const expansionChanged =
+            JSON.stringify(before.expandedContainerIds) !==
+            JSON.stringify(after.expandedContainerIds);
+          const sceneChanged =
+            before.visibleNodes !== after.visibleNodes ||
+            before.visibleEdges !== after.visibleEdges;
+          if (!expansionChanged || !sceneChanged) {
+            throw new Error(
+              `The ${scope === "expanded" ? "collapse" : "expand"} action did not change expansion and scene state.`,
+            );
+          }
+          return {
+            action: scope === "expanded" ? "collapse" : "expand",
+            controlLabel,
+            before: sceneObservation(before),
+            after: sceneObservation(after),
+            effectVerification: {
+              status: "verified",
+              expansionChanged,
+              sceneChanged,
+            },
+          };
+        },
+      },
+      {
+        name: "keyboard-activation",
+        run: async () => {
+          const before = await page.evaluate(() =>
+            window.__TOPO_BENCHMARK__.snapshot(),
+          );
+          const accessibleEntity = page
+            .locator(".webgl-a11y button, .topo-svg [data-entity-id]")
+            .first();
+          if ((await accessibleEntity.count()) === 0) {
+            throw new Error("No accessible entity was available.");
+          }
+          const targetEntityId =
+            await accessibleEntity.getAttribute("data-entity-id");
+          if (!targetEntityId) {
+            throw new Error("Accessible entity had no data-entity-id.");
+          }
+          await accessibleEntity.focus();
+          await page.keyboard.press("Enter");
+          await page.waitForTimeout(200);
+          const after = await page.evaluate(() =>
+            window.__TOPO_BENCHMARK__.snapshot(),
+          );
+          if (after.selectedEntityId !== targetEntityId) {
+            throw new Error(
+              `Keyboard activation selected "${after.selectedEntityId ?? "nothing"}" instead of "${targetEntityId}".`,
+            );
+          }
+          return {
+            targetEntityId,
+            before: sceneObservation(before),
+            after: sceneObservation(after),
+            effectVerification: {
+              status: "verified",
+              selectedTarget: true,
+              selectionChanged:
+                before.selectedEntityId !== after.selectedEntityId,
+            },
+          };
+        },
+      },
+      {
+        name: "metrics",
+        run: async () => {
+          collected = await page.evaluate(() => {
+            window.__TOPO_FRAME_ACTIVE__ = false;
+            window.__TOPO_EVENT_OBSERVER__?.disconnect();
+            return {
+              frames: window.__TOPO_FRAME_INTERVALS__,
+              events: window.__TOPO_EVENT_TIMINGS__,
+              snapshot: window.__TOPO_BENCHMARK__.snapshot(),
+              graphics: window.__TOPO_BENCHMARK__.graphicsInfo(),
+              accessibilityNodes: document.querySelectorAll(
+                ".webgl-a11y [data-entity-id]",
+              ).length,
+              svgLabels: document.querySelectorAll(".topo-svg .node-label")
+                .length,
+              highContrastControl:
+                document.querySelector("#contrast-toggle") instanceof
+                HTMLInputElement,
+            };
+          });
+          const session = await page.context().newCDPSession(page);
+          await session.send("Performance.enable");
+          performanceMetrics = await session.send("Performance.getMetrics");
+          return {
+            frameSamples: collected.frames.length,
+            eventTimingSamples: collected.events.length,
+            finalScene: sceneObservation(collected.snapshot),
+          };
+        },
+      },
+    ],
   });
 
-  const map = page.locator(".map-host");
-  const bounds = await map.boundingBox();
-  if (!bounds) throw new Error("Map host has no browser bounds.");
-  const centerX = bounds.x + bounds.width / 2;
-  const centerY = bounds.y + bounds.height / 2;
-
-  await page.mouse.move(centerX, centerY);
-  await page.mouse.down();
-  for (let index = 0; index < 80; index += 1) {
-    await page.mouse.move(
-      centerX + Math.sin(index / 8) * 180,
-      centerY + Math.cos(index / 10) * 100,
-    );
-  }
-  await page.mouse.up();
-  for (let index = 0; index < 60; index += 1) {
-    await page.mouse.wheel(0, index < 30 ? -18 : 18);
-  }
-
-  if (scope === "expanded") {
-    const collapseButton = page.locator(".expanded-list button").first();
-    if (await collapseButton.count()) await collapseButton.click();
-  } else {
-    const expandButton = page
-      .locator('.webgl-a11y button[data-entity-id^="directory:"]')
-      .first();
-    if (await expandButton.count()) await expandButton.click({ force: true });
-  }
-  await page.waitForTimeout(600);
-
-  const accessibleEntity = page
-    .locator(".webgl-a11y button, .topo-svg [data-entity-id]")
-    .first();
-  await accessibleEntity.focus();
-  await page.keyboard.press("Enter");
-  await page.waitForTimeout(200);
-
-  const collected = await page.evaluate(() => {
-    window.__TOPO_FRAME_ACTIVE__ = false;
-    window.__TOPO_EVENT_OBSERVER__?.disconnect();
-    return {
-      frames: window.__TOPO_FRAME_INTERVALS__,
-      events: window.__TOPO_EVENT_TIMINGS__,
-      snapshot: window.__TOPO_BENCHMARK__.snapshot(),
-      graphics: window.__TOPO_BENCHMARK__.graphicsInfo(),
-      accessibilityNodes: document.querySelectorAll(
-        ".webgl-a11y [data-entity-id]",
-      ).length,
-      svgLabels: document.querySelectorAll(".topo-svg .node-label").length,
-      highContrastControl:
-        document.querySelector("#contrast-toggle") instanceof HTMLInputElement,
-    };
-  });
-
-  const session = await page.context().newCDPSession(page);
-  await session.send("Performance.enable");
-  const performanceMetrics = await session.send("Performance.getMetrics");
   const jsHeapUsed = performanceMetrics.metrics.find(
     (metric) => metric.name === "JSHeapUsedSize",
   )?.value;
   const jsHeapTotal = performanceMetrics.metrics.find(
     (metric) => metric.name === "JSHeapTotalSize",
   )?.value;
+  const unverifiedEffects = phases
+    .filter(
+      (phase) =>
+        phase.observation?.effectVerification?.status !== undefined &&
+        phase.observation.effectVerification.status !== "verified",
+    )
+    .map((phase) => phase.name);
 
   return {
-    status: "completed",
+    status: unverifiedEffects.length === 0 ? "completed" : "incomplete",
     fixture: fixture.name,
     fixtureKind: fixture.fixtureKind,
     renderer,
@@ -313,6 +563,16 @@ async function runWorkload(page, fixture, renderer, scope) {
           ? "collapse first expanded directory; 300ms renderer transition"
           : "expand first visible directory; 300ms renderer transition",
       selectionInput: "keyboard Enter on first accessible entity",
+    },
+    phaseTiming: {
+      source: "controller-wall-clock",
+      limitation:
+        "Automation wall time includes Playwright dispatch and waits. It is reported separately from browser Event Timing and frame intervals.",
+      phases,
+    },
+    effectVerification: {
+      status: unverifiedEffects.length === 0 ? "verified" : "incomplete",
+      unverifiedPhases: unverifiedEffects,
     },
     frames: {
       rawIntervalsMs: collected.frames.map((value) => round(value)),
@@ -364,6 +624,8 @@ async function main() {
         "No GPU-disabling flags supplied. Headless Chrome compositor/GPU behavior may differ from a visible browser.",
     },
     selectedFixtures: fixtureNames,
+    selectedRenderers: rendererNames,
+    selectedScopes: scopeNames,
     preparationTimeoutMilliseconds,
     fixtureTimeoutMilliseconds,
     totalTimeoutMilliseconds,
@@ -514,8 +776,8 @@ async function main() {
           fixtureTimeoutMilliseconds,
           remainingTotalMilliseconds(),
         );
-      for (const scope of ["directory", "expanded"]) {
-        for (const renderer of ["svg", "webgl"]) {
+      for (const scope of scopeNames) {
+        for (const renderer of rendererNames) {
           const startedAt = Date.now();
           const fixtureRemainingMilliseconds = Math.max(
             0,
@@ -626,26 +888,44 @@ async function main() {
               () => context.newPage(),
             );
             phase = "measurement";
-            results.push(
-              await withDeadline(
-                "Browser workload",
-                remainingWorkloadMilliseconds(),
-                () => runWorkload(page, fixture, renderer, scope),
-              ),
+            const result = await runWorkload(
+              page,
+              fixture,
+              renderer,
+              scope,
+              remainingWorkloadMilliseconds,
             );
-            report.currentStage.status = "completed";
+            results.push(result);
+            if (result.status === "completed") {
+              report.currentStage.status = "completed";
+            } else {
+              failed = true;
+              report.currentStage.status = "incomplete";
+              report.currentStage.error =
+                "One or more interaction effects could not be verified.";
+            }
           } catch (error) {
             failed = true;
+            const timedOut =
+              error instanceof DeadlineError ||
+              (error instanceof BenchmarkPhaseError && error.timedOut);
             report.currentStage.status =
-              error instanceof DeadlineError ? "timed-out" : "failed";
+              timedOut ? "timed-out" : "failed";
             report.currentStage.phase = phase;
             report.currentStage.error =
               error instanceof Error ? error.message : String(error);
             results.push(
-              failedResult(fixture, renderer, scope, error, {
-                elapsedMilliseconds: Date.now() - startedAt,
-                deadlineMilliseconds: effectiveDeadlineMilliseconds,
-              }),
+              failedResult(
+                fixture,
+                renderer,
+                scope,
+                error,
+                {
+                  elapsedMilliseconds: Date.now() - startedAt,
+                  deadlineMilliseconds: effectiveDeadlineMilliseconds,
+                },
+                phase,
+              ),
             );
             if (
               error instanceof DeadlineError &&

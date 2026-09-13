@@ -16,7 +16,7 @@ corepack yarn build
 Run the compatible synthetic fixture set (`small`, `medium`, and `large`):
 
 ```sh
-node benchmarks/renderer-bakeoff.mjs \
+corepack yarn node benchmarks/renderer-bakeoff.mjs \
   --output benchmarks/results/latest.json \
   --preparation-timeout-ms 90000 \
   --fixture-timeout-ms 240000 \
@@ -29,20 +29,35 @@ Select one or more fixtures independently with repeatable or comma-separated
 `--fixture` values:
 
 ```sh
-node benchmarks/renderer-bakeoff.mjs \
+corepack yarn node benchmarks/renderer-bakeoff.mjs \
   --fixture small \
   --output benchmarks/results/small.json
 
-node benchmarks/renderer-bakeoff.mjs \
+corepack yarn node benchmarks/renderer-bakeoff.mjs \
   --fixture small,medium \
   --output benchmarks/results/small-medium.json
 ```
+
+Select renderer and scope independently with the same repeatable or
+comma-separated semantics. Omitting either option preserves the full
+SVG/WebGL by directory/expanded matrix:
+
+```sh
+corepack yarn node benchmarks/renderer-bakeoff.mjs \
+  --fixture small \
+  --renderer webgl \
+  --scope expanded \
+  --output benchmarks/results/small-webgl-expanded.json
+```
+
+Allowed values are `svg,webgl` for `--renderer` and `directory,expanded` for
+`--scope`. Unsupported or missing values fail before browser launch.
 
 Real partial fixtures are independently selectable and require their matching
 graph and provenance files:
 
 ```sh
-node benchmarks/renderer-bakeoff.mjs \
+corepack yarn node benchmarks/renderer-bakeoff.mjs \
   --fixture mermaid \
   --mermaid-graph /path/to/mermaid.graph.json \
   --mermaid-provenance /path/to/mermaid.provenance.json \
@@ -59,15 +74,33 @@ past those limits. Context cleanup has a separately recorded five-second
 default slack so cleanup cannot consume an unbounded workload budget.
 
 The output file is a live checkpoint, atomically replaced through a sibling
-temporary file before each fixture preparation
-and browser workload, before browser launch, and after each stage completes or
-fails. `currentStage` and `fixturePreparation` include fixture identity, status,
-elapsed time, effective/configured deadlines, and error text. A timed-out
-fixture is `timed-out`, not a zero-valued measurement. Workloads not started
-because a fixture or total budget expired are `incomplete`, not zero-valued
-measurements. Completed earlier fixtures and workloads remain in the report.
-Any timeout, incomplete stage, or other failure sets a nonzero process exit
-code.
+temporary file before each fixture preparation and browser workload, before
+browser launch, and after each stage completes or fails. `currentStage` and
+`fixturePreparation` include fixture identity, status, elapsed time,
+effective/configured deadlines, and error text. A timed-out fixture is
+`timed-out`, not a zero-valued measurement. Workloads not started because a
+fixture or total budget expired are `incomplete`, not zero-valued measurements.
+Completed earlier fixtures and workloads remain in the report. Any timeout,
+incomplete stage, or other failure sets a nonzero process exit code.
+
+Each workload records navigation and application readiness before frame
+sampling begins. Sampled work is divided into `pan`, `zoom`,
+`layout-transition`, `keyboard-activation`, and `metrics` phases. Phase timing
+is explicitly labeled `controller-wall-clock`; it includes automation dispatch
+and waits and is not input-to-paint latency. Raw `requestAnimationFrame`
+intervals and browser `PerformanceEventTiming` entries remain the rendering and
+input responsiveness evidence.
+
+Layout transitions retain before/after scene and expansion snapshots and fail
+if the requested expand/collapse action does not change both. Keyboard
+activation retains before/after selection state and fails unless the requested
+entity becomes selected. Pan and zoom similarly look for
+`snapshot().viewTransform`. Until the site benchmark API exposes that read-only
+field, those phases are explicitly `unavailable` and the workload is
+`incomplete`, rather than silently reporting a successful interaction.
+The required site-owned extension is
+`AppSnapshot.viewTransform: ViewTransform`, populated read-only from
+`this.#renderer?.getTransform()` in `benchmarkApi().snapshot()`.
 
 Worker termination is awaited. Browser contexts, the browser instance, and the
 fixture server are closed by the parent with bounded cleanup. The browser is
