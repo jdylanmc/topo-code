@@ -1,0 +1,418 @@
+{
+  "schemaVersion": "1.0",
+  "baselineApplicationCommit": "62e80e9a15e0f4baa24a8d559d70917227b1815d",
+  "candidateApplicationCommit": "9f0c8352fb6682c2b36ced1ed5363e3f4de38277",
+  "ownership": {
+    "applicationCommit": "62e80e9a15e0f4baa24a8d559d70917227b1815d",
+    "method": "Diagnostic-only native ARRAY_BUFFER submissions of at least 1 MiB; JavaScript call stacks mapped through the exact baseline bundle source maps. Startup, first-directory collapse, keyboard re-expansion; not an acceptance-timing workload.",
+    "graphics": {
+      "backend": "PixiJS WebGL",
+      "renderer": "c_",
+      "webglVersion": 2,
+      "gpuVendor": "Google Inc. (Apple)",
+      "gpuRenderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Pro, Unspecified Version)",
+      "resolution": 1,
+      "edgeGeometryUpdates": 1,
+      "cameraRenderGroup": true
+    },
+    "records": [
+      {
+        "phase": "startup",
+        "method": "bufferData",
+        "bytes": 20073456,
+        "calls": 1,
+        "dataType": "Float32Array",
+        "sourceFrames": [
+          {
+            "source": "node_modules/pixi.js/lib/rendering/renderers/gl/buffer/GlBufferSystem.mjs",
+            "line": 154,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/rendering/renderers/gl/geometry/GlGeometrySystem.mjs",
+            "line": 89,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/rendering/renderers/gl/geometry/GlGeometrySystem.mjs",
+            "line": 77,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/scene/graphics/gl/GlGraphicsAdaptor.mjs",
+            "line": 50,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/scene/graphics/shared/GraphicsPipe.mjs",
+            "line": 81,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/scene/container/utils/executeInstructions.mjs",
+            "line": 7,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/scene/container/RenderGroupPipe.mjs",
+            "line": 79,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/scene/container/RenderGroupPipe.mjs",
+            "line": 24,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/scene/container/utils/executeInstructions.mjs",
+            "line": 7,
+            "name": null
+          }
+        ]
+      },
+      {
+        "phase": "startup",
+        "method": "bufferData",
+        "bytes": 34915872,
+        "calls": 1,
+        "dataType": "Float32Array",
+        "sourceFrames": [
+          {
+            "source": "node_modules/pixi.js/lib/rendering/renderers/gl/buffer/GlBufferSystem.mjs",
+            "line": 154,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/rendering/renderers/gl/geometry/GlGeometrySystem.mjs",
+            "line": 89,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/rendering/renderers/gl/geometry/GlGeometrySystem.mjs",
+            "line": 77,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/rendering/batcher/gl/GlBatchAdaptor.mjs",
+            "line": 30,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/rendering/batcher/shared/BatcherPipe.mjs",
+            "line": 74,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/scene/container/utils/executeInstructions.mjs",
+            "line": 7,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/scene/container/RenderGroupPipe.mjs",
+            "line": 79,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/scene/container/RenderGroupPipe.mjs",
+            "line": 24,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/scene/container/utils/executeInstructions.mjs",
+            "line": 7,
+            "name": null
+          }
+        ]
+      },
+      {
+        "phase": "collapse",
+        "method": "bufferSubData",
+        "bytes": 34886496,
+        "calls": 13,
+        "dataType": "Float32Array",
+        "sourceFrames": [
+          {
+            "source": "node_modules/pixi.js/lib/rendering/renderers/gl/buffer/GlBufferSystem.mjs",
+            "line": 145,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/rendering/renderers/gl/geometry/GlGeometrySystem.mjs",
+            "line": 89,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/rendering/renderers/gl/geometry/GlGeometrySystem.mjs",
+            "line": 77,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/rendering/batcher/gl/GlBatchAdaptor.mjs",
+            "line": 30,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/rendering/batcher/shared/BatcherPipe.mjs",
+            "line": 74,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/scene/container/utils/executeInstructions.mjs",
+            "line": 7,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/scene/container/RenderGroupPipe.mjs",
+            "line": 79,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/scene/container/RenderGroupPipe.mjs",
+            "line": 24,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/scene/container/utils/executeInstructions.mjs",
+            "line": 7,
+            "name": null
+          }
+        ]
+      },
+      {
+        "phase": "expand",
+        "method": "bufferSubData",
+        "bytes": 34886496,
+        "calls": 1,
+        "dataType": "Float32Array",
+        "sourceFrames": [
+          {
+            "source": "node_modules/pixi.js/lib/rendering/renderers/gl/buffer/GlBufferSystem.mjs",
+            "line": 145,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/rendering/renderers/gl/geometry/GlGeometrySystem.mjs",
+            "line": 89,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/rendering/renderers/gl/geometry/GlGeometrySystem.mjs",
+            "line": 77,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/rendering/batcher/gl/GlBatchAdaptor.mjs",
+            "line": 30,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/rendering/batcher/shared/BatcherPipe.mjs",
+            "line": 74,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/scene/container/utils/executeInstructions.mjs",
+            "line": 7,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/scene/container/RenderGroupPipe.mjs",
+            "line": 79,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/scene/container/RenderGroupPipe.mjs",
+            "line": 24,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/scene/container/utils/executeInstructions.mjs",
+            "line": 7,
+            "name": null
+          }
+        ]
+      },
+      {
+        "phase": "expand",
+        "method": "bufferSubData",
+        "bytes": 34915872,
+        "calls": 13,
+        "dataType": "Float32Array",
+        "sourceFrames": [
+          {
+            "source": "node_modules/pixi.js/lib/rendering/renderers/gl/buffer/GlBufferSystem.mjs",
+            "line": 145,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/rendering/renderers/gl/geometry/GlGeometrySystem.mjs",
+            "line": 89,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/rendering/renderers/gl/geometry/GlGeometrySystem.mjs",
+            "line": 77,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/rendering/batcher/gl/GlBatchAdaptor.mjs",
+            "line": 30,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/rendering/batcher/shared/BatcherPipe.mjs",
+            "line": 74,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/scene/container/utils/executeInstructions.mjs",
+            "line": 7,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/scene/container/RenderGroupPipe.mjs",
+            "line": 79,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/scene/container/RenderGroupPipe.mjs",
+            "line": 24,
+            "name": null
+          },
+          {
+            "source": "node_modules/pixi.js/lib/scene/container/utils/executeInstructions.mjs",
+            "line": 7,
+            "name": null
+          }
+        ]
+      }
+    ]
+  },
+  "scene": {
+    "method": "Node-only exact-scene comparison, two warmups per implementation, six measured calls per implementation, forced GC before each timed call. Not a browser acceptance score.",
+    "nodeVersion": "v24.20.0",
+    "graphId": "repo:microsoft/vscode",
+    "nodes": 9376,
+    "edges": 105549,
+    "sceneSha256": "938da89a6355c05d7c72f064dd8f40e56b6316d21523cca089ebf41d9f48f5a9",
+    "runs": [
+      {
+        "variant": "baseline",
+        "elapsedMilliseconds": 90.06554099999994
+      },
+      {
+        "variant": "candidate",
+        "elapsedMilliseconds": 57.99087499999996
+      },
+      {
+        "variant": "candidate",
+        "elapsedMilliseconds": 73.30774999999994
+      },
+      {
+        "variant": "baseline",
+        "elapsedMilliseconds": 101.91724999999997
+      },
+      {
+        "variant": "baseline",
+        "elapsedMilliseconds": 89.00362499999983
+      },
+      {
+        "variant": "candidate",
+        "elapsedMilliseconds": 64.29649999999992
+      },
+      {
+        "variant": "candidate",
+        "elapsedMilliseconds": 55.828708000000006
+      },
+      {
+        "variant": "baseline",
+        "elapsedMilliseconds": 85.24120799999992
+      },
+      {
+        "variant": "baseline",
+        "elapsedMilliseconds": 87.66629200000034
+      },
+      {
+        "variant": "candidate",
+        "elapsedMilliseconds": 64.7147500000001
+      },
+      {
+        "variant": "candidate",
+        "elapsedMilliseconds": 53.24329200000011
+      },
+      {
+        "variant": "baseline",
+        "elapsedMilliseconds": 85.73179100000016
+      }
+    ],
+    "sourceFiles": {
+      "baselineSha256": "4f6544211734dff77dc0913595e272e46d8632fecc7769218746d802710c5157",
+      "candidateSha256": "e6eca224085ce92dfe8fcccfd1f41445b9b38b38c7760b79e7ecc1d0e527d4d2"
+    }
+  },
+  "paint": {
+    "method": "Two fresh owned headless Chrome processes at 1280x800, synthetic-medium fixture. Exact PNG-byte and stable-app-snapshot comparisons after initial paint, focus, zoom, collapse and keyboard re-expansion. Single-platform proof, not a general visual/accessibility review.",
+    "records": [
+      {
+        "variant": "baseline",
+        "step": "initial",
+        "sha256": "be99579c935193031b8b5bb11c42a83f3db1a9d78070dc47e88c76f9ca5a5c0f",
+        "identicalPngBytes": true
+      },
+      {
+        "variant": "baseline",
+        "step": "focused",
+        "sha256": "1fa18823e9803b91c5b142aae31ead991096f1c0ba4192854579e69fffa4640b",
+        "identicalPngBytes": true
+      },
+      {
+        "variant": "baseline",
+        "step": "zoomed",
+        "sha256": "02a5f9810f6b7fe1ffde5d76f1034f20f556e6d9446ff551a30a8f7cc7a2650e",
+        "identicalPngBytes": true
+      },
+      {
+        "variant": "baseline",
+        "step": "collapsed",
+        "sha256": "db4283f043c518b43fbf89b0b84a4f39ee7d9c524d3e2668cb6431f139c0f74a",
+        "identicalPngBytes": true
+      },
+      {
+        "variant": "baseline",
+        "step": "expanded",
+        "sha256": "080aa903013a2b9ff85401ca3dc1ebf0c97c54f11c8ffc8bbbda1a1c787ad9b5",
+        "identicalPngBytes": true
+      },
+      {
+        "variant": "candidate",
+        "step": "initial",
+        "sha256": "be99579c935193031b8b5bb11c42a83f3db1a9d78070dc47e88c76f9ca5a5c0f",
+        "identicalPngBytes": true
+      },
+      {
+        "variant": "candidate",
+        "step": "focused",
+        "sha256": "1fa18823e9803b91c5b142aae31ead991096f1c0ba4192854579e69fffa4640b",
+        "identicalPngBytes": true
+      },
+      {
+        "variant": "candidate",
+        "step": "zoomed",
+        "sha256": "02a5f9810f6b7fe1ffde5d76f1034f20f556e6d9446ff551a30a8f7cc7a2650e",
+        "identicalPngBytes": true
+      },
+      {
+        "variant": "candidate",
+        "step": "collapsed",
+        "sha256": "db4283f043c518b43fbf89b0b84a4f39ee7d9c524d3e2668cb6431f139c0f74a",
+        "identicalPngBytes": true
+      },
+      {
+        "variant": "candidate",
+        "step": "expanded",
+        "sha256": "080aa903013a2b9ff85401ca3dc1ebf0c97c54f11c8ffc8bbbda1a1c787ad9b5",
+        "identicalPngBytes": true
+      }
+    ]
+  }
+}

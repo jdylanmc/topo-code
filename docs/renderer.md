@@ -396,7 +396,7 @@ The twelve earlier, uninstrumented camera-group and nested-node-group trials
 are preserved in
 [`real-render-groups-intermediate.json`](../benchmarks/results/real-render-groups-intermediate.json).
 Neither established an overall FPS win. The unsupported nested node group was
-reverted; only the camera viewport group remains.
+reverted; at that commit, only the camera viewport group remained.
 
 The complete instrumented candidate matrix is in
 [`real-browser-phase-headless.json`](../benchmarks/results/real-browser-phase-headless.json):
@@ -409,6 +409,145 @@ cleanup in **69.842 seconds**.
 | Mermaid | expanded | 59.543 | 59.630 |
 | Visual Studio Code | directory | 57.738 | 57.978 |
 | Visual Studio Code | expanded | 22.843 | 49.093 |
+
+## Bounded node render groups
+
+A source-mapped native-upload trace of the merged camera-group baseline
+identifies the remaining large submissions: the edge graphics adaptor submits
+20,073,456 vertex bytes once at startup, while the ordinary batch adaptor
+submits 34,915,872 bytes initially and approximately 34.9 MB repeatedly during
+collapse/re-expansion. The latter batch contains the node graphics and labels.
+Pixi 8.20.1's `Batcher.updateElement` marks the batch dirty;
+`BatcherPipe.upload` then updates its entire active vertex range, even when
+only one node moved. The unchanged giant edge graphic uses the separate,
+non-batchable graphics path. This is not evidence for edge chunking.
+
+`NodeRenderLayer` now partitions node containers into contiguous, independently
+rendered groups: at least 128 nodes per target capacity, approximately 16 active
+groups after sizing, and no more than 32 allocated groups. Small edits keep surviving nodes
+in their existing groups and append new nodes in the same painter order as
+before. Empty groups are disabled and reused; large growth, large shrinkage, or accumulated
+fragmentation triggers ordered regrouping. Regrouping preserves live node
+objects, positions, event handlers, graphics and labels. It snapshots order
+before removing children because Pixi's removal return order is reversed.
+The stable pool also bounds Pixi's batcher cache, which retains entries keyed by
+instruction-set ID until renderer disposal. Destroying and recreating groups
+would bound the visible count but not that cache. Group buffers can retain
+their peak capacity until the renderer is disposed.
+
+The whole-camera render group and monolithic, unchanged edge graphic remain.
+The additional node groups trade bounded render-instruction/draw-call overhead
+for smaller dirty vertex ranges; no labels, relationships, animation frames,
+camera inputs, waits, or quality settings are removed. Native source-view limits,
+multi-group pointer picking after camera movement, and growth/shrinkage/order
+regressions cover this behavior. Headless timing alone still does not select a
+production renderer.
+
+Scene construction also builds its lookup maps without temporary entry arrays
+and classifies provenance in one pass, without per-edge arrays and sets.
+Missing primitive IDs, homogeneous/mixed provenance, route order and reference
+identity remain unchanged. Lookups are rebuilt from the current graph on each
+call: there is no persistent cache or changed mutation contract.
+
+### Intermediate measurements and output proof
+
+The baseline is merged commit `62e80e9a15e0f4baa24a8d559d70917227b1815d`.
+The group-only candidate is `1d156318bb9ca2ea84d15e583111619ba55e0ee8`;
+the combined candidate is `9f0c8352fb6682c2b36ced1ed5363e3f4de38277`.
+Each comparison uses six fresh browsers in A-B-B-A-A-B order, with identical
+frozen inputs, harness and lockfile hashes, 80 delivered drag moves, 60 wheel
+events, exact camera trajectories and final stable snapshots. Bundle manifests
+and every raw sample are retained:
+
+- [`real-node-groups-paired.json`](../benchmarks/results/real-node-groups-paired.json):
+  baseline **48.638-49.514 FPS**, group-only **49.874-50.651 FPS**. The initial
+  **49.851 FPS** pre-commit observation is also retained. Groups alone do not
+  consistently clear 50 FPS.
+- [`real-scene-layer-paired.json`](../benchmarks/results/real-scene-layer-paired.json):
+  baseline **49.065-49.874 FPS**, combined **50.627-51.748 FPS**. Worst frames
+  fall from **516.645-533.310 ms** to **416.650-466.645 ms** in these observations,
+  not to a stall-free frame budget.
+
+In the combined comparison, transition vertex submissions fall from
+**453,524,448 bytes** to **2,222,832-2,226,504 bytes**; keyboard activation falls
+from **453,876,960** to **466,344 bytes**. Both reductions exceed 99%.
+Pan/zoom still submit no buffers, and `edgeGeometryUpdates` remains 1.
+These are native API submission ranges, not resident memory or measured
+physical GPU traffic. Three observations per version are not confidence
+intervals or cross-platform guarantees.
+
+[`renderer-update-proof.json`](../benchmarks/results/renderer-update-proof.json)
+retains the mapped ownership trace, a complete expanded VSCode scene hash
+comparison, and five exact baseline/candidate PNG-byte and stable-snapshot
+comparisons on the medium fixture: initial paint, focus, zoom, collapse and
+keyboard re-expansion. Six warmed Node-only scene-construction calls per
+implementation, with forced garbage collection before timing, have medians
+**88.335 ms** and **61.144 ms**; the complete serialized scenes match at SHA-256
+`938da89a6355c05d7c72f064dd8f40e56b6316d21523cca089ebf41d9f48f5a9`.
+This isolated timing is not a browser acceptance result.
+
+### Intermediate headless and visible-window matrices
+
+The complete candidate matrices retain all eight cases each:
+[`headless`](../benchmarks/results/real-scene-layer-headless.json) completed in
+**69.567 seconds** and [`headed`](../benchmarks/results/real-scene-layer-headed.json)
+in **66.252 seconds**. Both verify effects and owned-resource cleanup, with no
+page errors. They use the existing real-input workload and timeout settings;
+the visible-window launch adds `--headed`.
+
+| Fixture | Scope | Headless SVG FPS | Headless WebGL FPS | Headed SVG FPS | Headed WebGL FPS |
+|---|---|---:|---:|---:|---:|
+| Mermaid | directory | 60.002 | 59.810 | 74.697 | 74.751 |
+| Mermaid | expanded | 59.772 | 59.626 | 74.166 | 74.084 |
+| Visual Studio Code | directory | 57.747 | 57.972 | 71.271 | 71.708 |
+| Visual Studio Code | expanded | 22.267 | 50.759 | 23.179 | 48.315 |
+
+**The visible expanded WebGL case still misses >50 FPS.** This negative result
+is not replaced by the passing headless results. The headed run shows a
+different frame cadence (many approximately 13.34 ms intervals versus
+16.67 ms headless), with expanded pan/zoom phase callback rates of
+56.311/55.539 FPS and transition/activation rates of 36.424/23.072 FPS.
+It delivers the same 80 drag moves and 60 wheel events, with no camera buffer
+submissions, but retains a 533.485 ms worst frame. There is no paired headed
+baseline here, so these matrices do not establish a cross-mode speedup or
+regression. A visible browser launch and automated paint equality are not a
+human visual or screen-reader review.
+
+### Final lifetime-hardened candidate
+
+Commit `d4203026af56425201b5e73c8fdc2431606fadc0` additionally reuses a stable
+group pool, avoiding unbounded Pixi batcher identities across repeated scene
+changes. A regression creates/destroys 4,096 node containers forty times while
+asserting exactly 16 distinct group identities. Final scene-source and five
+paint/snapshot equivalence checks are retained in
+[`renderer-update-lifecycle-proof.json`](../benchmarks/results/renderer-update-lifecycle-proof.json).
+
+The final [six matched runs](../benchmarks/results/real-pooled-layer-paired.json)
+observe **40.043-49.668 FPS** for the baseline and **46.430-51.748 FPS** for the
+candidate. The later samples slow down in **both** variants; their cause was
+not isolated. The earlier passing observations are not substituted for these
+slower results, and **reliable >50 FPS acceptance is not established**.
+All six still verify identical camera trajectories, 80 drag moves, 60 wheel
+events, final stable snapshots, and unchanged logical edge geometry. Candidate
+transition submissions remain **2,222,832-2,226,504 vertex bytes** and keyboard
+submissions **466,344 bytes**, versus hundreds of MiB for the baseline.
+
+Final [headless](../benchmarks/results/real-pooled-layer-headless.json) and
+[headed](../benchmarks/results/real-pooled-layer-headed.json) matrices complete
+all eight cases each in **78.249** and **66.158 seconds**, respectively, with
+verified effects, no page errors, and successful owned-resource cleanup.
+
+| Fixture | Scope | Headless SVG FPS | Headless WebGL FPS | Headed SVG FPS | Headed WebGL FPS |
+|---|---|---:|---:|---:|---:|
+| Mermaid | directory | 59.767 | 59.811 | 74.699 | 74.749 |
+| Mermaid | expanded | 59.318 | 59.625 | 73.907 | 74.067 |
+| Visual Studio Code | directory | 57.512 | 57.111 | 71.471 | 71.285 |
+| Visual Studio Code | expanded | 19.446 | 46.990 | 23.054 | 48.840 |
+
+The submission reduction and output preservation are demonstrated; expanded
+whole-workload performance remains unresolved in both modes. All **51 performance
+workload observations** across this iteration are preserved, including intermediate
+passes, slower reruns, and both visible-window matrices.
 
 ## Historical evidence correction
 
@@ -454,14 +593,14 @@ measurement flaw and remain valid.
 
 No renderer is selected yet.
 
-The corrected and subsequent results do not support assuming WebGL is
-universally faster. Both backends exceed 50 average delivered FPS on real
-Mermaid and directory-level Visual Studio Code in these headless runs. Both
-still miss the whole-workload criterion on expanded Visual Studio Code.
-Browser-clock phase measurements show that pan/zoom callback rates can exceed
-50 while transition and activation stalls keep the whole-workload rate lower.
-Large-scene improvements, visible-browser measurements, and visual/accessibility
-review remain before recording a production choice.
+The results do not support assuming WebGL is universally faster. Both backends
+exceed 50 average delivered FPS on real Mermaid and directory-level Visual
+Studio Code. Some expanded WebGL observations exceed 50, but the final
+headless/visible-window matrix cases remain below the criterion at
+46.990/48.840 FPS. SVG remains below the criterion for expanded Visual Studio
+Code in both modes. Transition/activation stalls, reliable whole-workload
+performance, and human visual/accessibility review remain before recording
+a production choice.
 
 ## Dependencies and licenses
 

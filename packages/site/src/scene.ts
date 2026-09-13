@@ -1,5 +1,5 @@
-import type { LayoutSession, LayoutResult } from "@topo/graph";
-import type { GraphDocument } from "@topo/schema";
+import type { AggregatedEdge, LayoutSession, LayoutResult } from "@topo/graph";
+import type { GraphDocument, ProvenanceKind } from "@topo/schema";
 import type {
   RenderScene,
   SceneEdge,
@@ -30,7 +30,8 @@ export function createScene(
   const entityById = new Map(
     result.projection.visibleEntities.map((entity) => [entity.id, entity]),
   );
-  const edgeByPrimitiveId = new Map(graph.edges.map((edge) => [edge.id, edge]));
+  const provenanceByPrimitiveId = new Map<string, ProvenanceKind>();
+  for (const edge of graph.edges) provenanceByPrimitiveId.set(edge.id, edge.provenance.kind);
   const nodes: SceneNode[] = result.layout.items
     .map((item) => {
       const entity = entityById.get(item.subject.id);
@@ -50,31 +51,33 @@ export function createScene(
     })
     .filter((node): node is SceneNode => node !== undefined);
 
-  const edgeById = new Map(
-    result.projection.edges.map((edge) => [edge.id, edge]),
-  );
-  const edges: SceneEdge[] = result.layout.routes
-    .map((route): SceneEdge | undefined => {
-      const edge = edgeById.get(route.subject.id);
-      if (!edge) return undefined;
-      const kinds = new Set(
-        edge.memberEdgeIds
-          .map((edgeId) => edgeByPrimitiveId.get(edgeId)?.provenance.kind)
-          .filter((kind): kind is NonNullable<typeof kind> => kind !== undefined),
-      );
-      return {
-        id: edge.id,
-        sourceId: edge.sourceId,
-        targetId: edge.targetId,
-        points: route.points,
-        width: edge.visual.thickness,
-        spine: edge.spine,
-        weight: edge.weight,
-        provenance:
-          kinds.size === 1 ? [...kinds][0]! : kinds.size === 0 ? "derived" : "mixed",
-      };
-    })
-    .filter((edge): edge is SceneEdge => edge !== undefined);
+  const edgeById = new Map<string, AggregatedEdge>();
+  for (const edge of result.projection.edges) edgeById.set(edge.id, edge);
+  const edges: SceneEdge[] = [];
+  for (const route of result.layout.routes) {
+    const edge = edgeById.get(route.subject.id);
+    if (!edge) continue;
+    let provenance: SceneEdge["provenance"] | undefined;
+    for (const edgeId of edge.memberEdgeIds) {
+      const kind = provenanceByPrimitiveId.get(edgeId);
+      if (kind === undefined) continue;
+      if (provenance === undefined) provenance = kind;
+      else if (provenance !== kind) {
+        provenance = "mixed";
+        break;
+      }
+    }
+    edges.push({
+      id: edge.id,
+      sourceId: edge.sourceId,
+      targetId: edge.targetId,
+      points: route.points,
+      width: edge.visual.thickness,
+      spine: edge.spine,
+      weight: edge.weight,
+      provenance: provenance ?? "derived",
+    });
+  }
 
   return {
     nodes,

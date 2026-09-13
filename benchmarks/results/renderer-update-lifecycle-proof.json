@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "1.0",
+  "baselineApplicationCommit": "62e80e9a15e0f4baa24a8d559d70917227b1815d",
+  "candidateApplicationCommit": "d4203026af56425201b5e73c8fdc2431606fadc0",
+  "sceneProof": "renderer-update-proof.json",
+  "sceneSourceUnchanged": true,
+  "pool": {
+    "sourceSha256": "5ae4ffa1b2673500d47afc94c3ded805eb9f2d4db1e5c5ea93615dffc51b4dab",
+    "regression": "Six unit cases cover order, fragmentation, growth/shrinkage, inactive groups and disposal. The lifetime case creates/destroys4096nodes forty times and asserts exactly16distinct group identities; production allocation cap32.",
+    "limitation": "Bounds allocation identities, not GPU bytes. Reused batch buffers may retain peak capacity until renderer disposal."
+  },
+  "paint": {
+    "method": "Two fresh owned headless Chrome processes at 1280x800, synthetic-medium fixture. Exact PNG-byte and stable-app-snapshot comparisons after initial paint, focus, zoom, collapse and keyboard re-expansion. Single-platform proof, not a general visual/accessibility review.",
+    "records": [
+      {
+        "variant": "baseline",
+        "step": "initial",
+        "sha256": "be99579c935193031b8b5bb11c42a83f3db1a9d78070dc47e88c76f9ca5a5c0f",
+        "identicalPngBytes": true
+      },
+      {
+        "variant": "baseline",
+        "step": "focused",
+        "sha256": "1fa18823e9803b91c5b142aae31ead991096f1c0ba4192854579e69fffa4640b",
+        "identicalPngBytes": true
+      },
+      {
+        "variant": "baseline",
+        "step": "zoomed",
+        "sha256": "02a5f9810f6b7fe1ffde5d76f1034f20f556e6d9446ff551a30a8f7cc7a2650e",
+        "identicalPngBytes": true
+      },
+      {
+        "variant": "baseline",
+        "step": "collapsed",
+        "sha256": "db4283f043c518b43fbf89b0b84a4f39ee7d9c524d3e2668cb6431f139c0f74a",
+        "identicalPngBytes": true
+      },
+      {
+        "variant": "baseline",
+        "step": "expanded",
+        "sha256": "080aa903013a2b9ff85401ca3dc1ebf0c97c54f11c8ffc8bbbda1a1c787ad9b5",
+        "identicalPngBytes": true
+      },
+      {
+        "variant": "candidate",
+        "step": "initial",
+        "sha256": "be99579c935193031b8b5bb11c42a83f3db1a9d78070dc47e88c76f9ca5a5c0f",
+        "identicalPngBytes": true
+      },
+      {
+        "variant": "candidate",
+        "step": "focused",
+        "sha256": "1fa18823e9803b91c5b142aae31ead991096f1c0ba4192854579e69fffa4640b",
+        "identicalPngBytes": true
+      },
+      {
+        "variant": "candidate",
+        "step": "zoomed",
+        "sha256": "02a5f9810f6b7fe1ffde5d76f1034f20f556e6d9446ff551a30a8f7cc7a2650e",
+        "identicalPngBytes": true
+      },
+      {
+        "variant": "candidate",
+        "step": "collapsed",
+        "sha256": "db4283f043c518b43fbf89b0b84a4f39ee7d9c524d3e2668cb6431f139c0f74a",
+        "identicalPngBytes": true
+      },
+      {
+        "variant": "candidate",
+        "step": "expanded",
+        "sha256": "080aa903013a2b9ff85401ca3dc1ebf0c97c54f11c8ffc8bbbda1a1c787ad9b5",
+        "identicalPngBytes": true
+      }
+    ]
+  }
+}
