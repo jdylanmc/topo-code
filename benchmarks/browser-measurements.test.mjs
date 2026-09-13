@@ -7,7 +7,7 @@ import {
   observeBrowserPhases,
 } from "./browser-measurements.mjs";
 
-function browser(renderer = "webgl") {
+function browser() {
   let now = 0;
   const frames = [];
   const listeners = new Map();
@@ -41,7 +41,7 @@ function browser(renderer = "webgl") {
     },
   };
   context.window = context;
-  vm.runInNewContext(`(${installBrowserMeasurements.toString()})({ renderer: "${renderer}" })`, context);
+  vm.runInNewContext(`(${installBrowserMeasurements.toString()})()`, context);
   return {
     context, original, GL, failure, gl: new GL2(), canvas, listeners,
     observer: context.__TOPO_BROWSER_MEASUREMENTS__,
@@ -94,7 +94,7 @@ test("unknown byte ranges and native exceptions remain explicit without replacin
 });
 
 test("DOM delivery and frame clocks are observed without changing the original interval series", () => {
-  const env = browser("svg");
+  const env = browser();
   env.frame(0, 1);
   env.time(10);
   env.observer.begin("pan");
@@ -116,7 +116,7 @@ test("DOM delivery and frame clocks are observed without changing the original i
   assert.equal(phase.inputs.untrustedEvents, 1);
   env.frame(116, 117);
   const collected = plain(env.observer.collect());
-  assert.equal(collected.gpuStatus, "not-applicable");
+  assert.equal(collected.gpuStatus, "observed");
   assert.deepEqual(plain(env.context.__TOPO_FRAME_INTERVALS__), [16, 100]);
   assert.deepEqual(collected.frameSamples.map((frame) => frame.callbackTimeMs), [1, 17, 117]);
   env.frame(132);

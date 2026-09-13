@@ -1,6 +1,6 @@
-# Renderer benchmark harness
+# WebGL benchmark harness
 
-The renderer benchmark keeps fixture preparation outside the controlling Node.js
+The WebGL benchmark keeps fixture preparation outside the controlling Node.js
 event loop. Each selected fixture is parsed, projected, laid out, and
 materialized by a dedicated worker thread. The parent process can therefore
 enforce `--preparation-timeout-ms` by terminating that worker even when graph
@@ -38,9 +38,9 @@ corepack yarn node benchmarks/renderer-bakeoff.mjs \
   --output benchmarks/results/small-medium.json
 ```
 
-Select renderer and scope independently with the same repeatable or
-comma-separated semantics. Omitting either option preserves the full
-SVG/WebGL by directory/expanded matrix:
+Select scope with the same repeatable or comma-separated semantics. The
+renderer is always WebGL. `--renderer webgl` remains accepted for script
+compatibility:
 
 ```sh
 corepack yarn node benchmarks/renderer-bakeoff.mjs \
@@ -50,8 +50,9 @@ corepack yarn node benchmarks/renderer-bakeoff.mjs \
   --output benchmarks/results/small-webgl-expanded.json
 ```
 
-Allowed values are `svg,webgl` for `--renderer` and `directory,expanded` for
-`--scope`. Unsupported or missing values fail before browser launch.
+The only allowed value for `--renderer` is `webgl`; `svg`, mixed values, other
+values, and missing values fail before fixture preparation or browser launch.
+Allowed values for `--scope` are `directory,expanded`.
 
 Real partial fixtures are independently selectable and require their matching
 graph and provenance files:
@@ -84,7 +85,7 @@ Completed earlier fixtures and workloads remain in the report. Any timeout,
 incomplete stage, or other failure sets a nonzero process exit code.
 
 Each workload records navigation and application readiness before frame
-sampling begins. A viewport preflight then requires the target SVG/canvas to
+sampling begins. A viewport preflight then requires the WebGL canvas to
 have positive size and intersect the actual 1280x800 browser viewport.
 Offscreen or zero-size renderers fail before frame sampling, so their
 non-interactive animation frames cannot be accepted as renderer evidence.
@@ -127,10 +128,12 @@ inventing zero-byte measurements. Native methods and listeners are restored
 when sampling ends. No application API or renderer quality setting is changed.
 
 Phase marks and observer round trips add measurement overhead, but do not alter
-the input sequence, explicit waits, camera path, or threshold. Compare versions
-using the **same instrumented harness**. Completed phase captures (including raw
-frame samples and counters) survive a later phase failure; a missing end mark
-remains incomplete, never an inferred successful window.
+the input sequence, explicit waits, camera path, or quality. The acceptable
+floor is 30 FPS, with no frame-rate cap; the harness does not optimize toward
+50 FPS. Compare versions using the **same instrumented harness**. Completed
+phase captures (including raw frame samples and counters) survive a later phase
+failure; a missing end mark remains incomplete, never an inferred successful
+window.
 
 Layout transitions retain before/after expansion state and
 `visibleEntityIds`. They require expansion-state and visible-membership changes;
@@ -161,8 +164,11 @@ fixture server are closed by the parent with bounded cleanup. The browser is
 launched as an owned Playwright `BrowserServer`; if graceful cleanup exceeds
 its deadline, only that owned process is force-stopped. Every cleanup resource
 is attempted even after an earlier failure. The harness does not use
-process-name kills. SVG and WebGL workloads continue to share the same
-materialized graph, architecture, layout, viewport, and interaction sequence.
+process-name kills.
+
+Historical renderer-comparison results remain unchanged and source-bound. They
+are evidence from their original harness and application revisions, not active
+SVG support or measurements relabeled as WebGL.
 
 The fixture server only serves existing snapshots; it does not prepare or
 replace them. Playwright explicitly prepares `small,medium` before launching

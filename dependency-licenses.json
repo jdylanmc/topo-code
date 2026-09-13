@@ -10,11 +10,6 @@
       "license": "MIT",
       "source": "https://github.com/ajv-validator/ajv-formats/blob/v3.0.1/LICENSE"
     },
-    "d3": {
-      "range": "^7.9.0",
-      "license": "ISC",
-      "source": "https://github.com/d3/d3/blob/v7.9.0/LICENSE"
-    },
     "ignore": {
       "range": "^7.0.0",
       "license": "MIT",

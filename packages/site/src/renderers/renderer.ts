@@ -22,10 +22,6 @@ export function nodeColor(node: SceneNode): number {
   return COLORS.node;
 }
 
-export function hexColor(value: number): string {
-  return `#${value.toString(16).padStart(6, "0")}`;
-}
-
 export function accessibleLabel(node: SceneNode): string {
   const qualifiers = [
     node.entity.kind,

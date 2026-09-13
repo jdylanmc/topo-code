@@ -5,7 +5,6 @@ import type {
   BenchmarkApi,
   Renderer,
   RendererCallbacks,
-  RendererKind,
   TopoWindow,
   ViewState,
 } from "./contracts.js";
@@ -13,8 +12,7 @@ import { getEntityDetails } from "./details.js";
 import { ArtifactLoadError, loadArtifacts } from "./load.js";
 import { createLayout, createScene } from "./scene.js";
 import { accessibleLabel } from "./renderers/renderer.js";
-import { SvgRenderer } from "./renderers/svg.js";
-import { WebGlRenderer } from "./renderers/webgl.js";
+import { WebGlInitializationError, WebGlRenderer } from "./renderers/webgl.js";
 import { FIT_PADDING, fitScale, ZoomLimits } from "./zoom.js";
 
 function compareText(left: string, right: string): number {
@@ -30,28 +28,6 @@ function requiredElement<T extends Element>(
   return element;
 }
 
-function initialRenderer(): RendererKind {
-  return new URLSearchParams(window.location.search).get("renderer") === "webgl"
-    ? "webgl"
-    : "svg";
-}
-
-async function createRenderer(
-  kind: RendererKind,
-  host: HTMLElement,
-  zoomLimits: ZoomLimits,
-): Promise<Renderer> {
-  return kind === "svg"
-    ? new SvgRenderer(host, zoomLimits)
-    : WebGlRenderer.create(host, zoomLimits);
-}
-
-function setQueryRenderer(kind: RendererKind): void {
-  const url = new URL(window.location.href);
-  url.searchParams.set("renderer", kind);
-  window.history.replaceState(null, "", url);
-}
-
 function renderError(error: unknown): void {
   const root = document.querySelector<HTMLElement>("#app");
   if (!root) return;
@@ -64,7 +40,9 @@ function renderError(error: unknown): void {
       <section class="error-banner" role="alert">
         <strong>Topocode could not display this map.</strong>
         <p id="error-message"></p>
-        <p>The artifact was not rendered. Regenerate the atomic <code>data.json</code> bundle and reload.</p>
+        <p>${error instanceof WebGlInitializationError
+          ? "This map requires WebGL. Enable hardware acceleration or use a browser with WebGL support, then reload. No alternate renderer is provided."
+          : "The artifact was not rendered. Regenerate the atomic <code>data.json</code> bundle and reload."}</p>
       </section>
     </main>
   `;
@@ -78,8 +56,6 @@ class TopoApp {
   readonly #zoomLimits = new ZoomLimits();
   readonly #cyclicNodeIds: Set<string>;
   #renderer: Renderer | undefined;
-  #rendererHost: HTMLElement | undefined;
-  #renderToken = 0;
   #lastLayoutComputationMs = 0;
   #lastTransitionDispatchMs = 0;
   readonly #accessibilityButtons = new Map<string, HTMLButtonElement>();
@@ -106,7 +82,6 @@ class TopoApp {
     const fullyExpanded =
       new URLSearchParams(window.location.search).get("scope") === "all";
     const state: ViewState = {
-      renderer: initialRenderer(),
       includeExternal: true,
       highContrast: window.matchMedia("(forced-colors: active)").matches,
       expandedContainerIds: new Set(
@@ -139,11 +114,6 @@ class TopoApp {
       <main class="app-shell" data-high-contrast="false">
         <section class="authority-banner" role="status" tabindex="0" aria-label="Scan completeness warnings" hidden></section>
         <header class="toolbar" aria-label="Map controls">
-          <div class="toolbar-group" role="group" aria-label="Renderer">
-            <span class="toolbar-label">Renderer</span>
-            <button class="renderer-button" data-renderer="svg" aria-pressed="false">D3 / SVG</button>
-            <button class="renderer-button" data-renderer="webgl" aria-pressed="false">PixiJS / WebGL</button>
-          </div>
           <label class="toolbar-group control">
             <input id="external-toggle" type="checkbox" checked />
             External packages
@@ -164,9 +134,9 @@ class TopoApp {
               <span data-status="counts"></span>
               <span data-status="dashboard"></span>
               <span data-status="architecture"></span>
-              <span class="renderer-error" data-status="renderer-error" role="alert" hidden></span>
             </div>
             <div class="map-host" tabindex="0" aria-label="Architecture map. Use arrow keys to move, Enter to expand, plus and minus to zoom.">
+              <div class="renderer-layer"></div>
               <nav class="webgl-a11y visually-hidden" aria-label="WebGL map entities"></nav>
             </div>
           </div>
@@ -182,23 +152,24 @@ class TopoApp {
     `;
     this.#bindControls();
     this.#renderAuthority();
-    await this.#replaceRenderer(this.#model.state.renderer);
-    this.resetView();
-    this.#refresh(false);
-    this.#resizeObserver.observe(requiredElement(this.#root, ".map-host"));
+    try {
+      this.#renderer = await WebGlRenderer.create(
+        requiredElement(this.#root, ".renderer-layer"),
+        this.#zoomLimits,
+      );
+      this.#refresh(false);
+      // Populated status controls determine the map's available height.
+      this.resetView();
+      this.#resizeObserver.observe(requiredElement(this.#root, ".map-host"));
+    } catch (error) {
+      this.#resizeObserver.disconnect();
+      this.#renderer?.destroy();
+      this.#renderer = undefined;
+      throw error;
+    }
   }
 
   #bindControls(): void {
-    this.#root.querySelectorAll<HTMLButtonElement>("[data-renderer]").forEach(
-      (button) => {
-        button.addEventListener("click", () => {
-          const kind = button.dataset.renderer;
-          if (kind === "svg" || kind === "webgl") {
-            void this.#replaceRenderer(kind).catch(() => undefined);
-          }
-        });
-      },
-    );
     requiredElement<HTMLInputElement>(
       this.#root,
       "#external-toggle",
@@ -264,82 +235,6 @@ class TopoApp {
     banner.append(message);
   }
 
-  async #replaceRenderer(kind: RendererKind): Promise<void> {
-    if (this.#renderer?.kind === kind) return;
-    const token = ++this.#renderToken;
-    const mapHost = requiredElement<HTMLElement>(this.#root, ".map-host");
-    const accessibility = requiredElement<HTMLElement>(
-      this.#root,
-      ".webgl-a11y",
-    );
-    const transform = this.#renderer?.getTransform() ?? {
-      x: 24,
-      y: 24,
-      scale: 1,
-    };
-    const candidateHost = document.createElement("div");
-    candidateHost.className = "renderer-layer renderer-layer-pending";
-    candidateHost.setAttribute("aria-hidden", "true");
-    mapHost.insertBefore(candidateHost, accessibility);
-
-    let renderer: Renderer;
-    try {
-      renderer = await createRenderer(kind, candidateHost, this.#zoomLimits);
-      if (token !== this.#renderToken) {
-        renderer.destroy();
-        candidateHost.remove();
-        return;
-      }
-      renderer.setTransform(transform);
-      renderer.render(this.#createScene(), this.#rendererCallbacks(), false);
-    } catch (error) {
-      candidateHost.remove();
-      if (token === this.#renderToken) this.#showRendererError(kind, error);
-      throw error;
-    }
-
-    const previousRenderer = this.#renderer;
-    const previousHost = this.#rendererHost;
-    this.#renderer = renderer;
-    this.#rendererHost = candidateHost;
-    this.#model.state.renderer = kind;
-    candidateHost.classList.remove("renderer-layer-pending");
-    candidateHost.setAttribute("aria-hidden", "false");
-    previousRenderer?.destroy();
-    previousHost?.remove();
-    setQueryRenderer(kind);
-    this.#root.querySelectorAll<HTMLButtonElement>("[data-renderer]").forEach(
-      (button) =>
-        button.setAttribute(
-          "aria-pressed",
-          String(button.dataset.renderer === kind),
-        ),
-    );
-    accessibility.classList.toggle("visually-hidden", kind !== "webgl");
-    this.#clearRendererError();
-    this.#refresh(false);
-  }
-
-  #showRendererError(kind: RendererKind, error: unknown): void {
-    const status = requiredElement<HTMLElement>(
-      this.#root,
-      '[data-status="renderer-error"]',
-    );
-    const label = kind === "webgl" ? "PixiJS / WebGL" : "D3 / SVG";
-    const message = error instanceof Error ? error.message : String(error);
-    status.textContent = `${label} could not start: ${message}`;
-    status.hidden = false;
-  }
-
-  #clearRendererError(): void {
-    const status = requiredElement<HTMLElement>(
-      this.#root,
-      '[data-status="renderer-error"]',
-    );
-    status.hidden = true;
-    status.textContent = "";
-  }
-
   #relayout(): void {
     const started = performance.now();
     const previous = this.#model.layoutResult.layout;
@@ -402,7 +297,7 @@ class TopoApp {
       activate: (entityId) => this.#activate(entityId),
       focus: (entityId) => {
         // Pixi can emit pointerover after geometry moves beneath a stationary pointer.
-        if (this.#keyboardNavigation && this.#renderer?.kind === "webgl") return;
+        if (this.#keyboardNavigation) return;
         if (this.#model.state.focusedEntityId === entityId) return;
         this.#model.state.focusedEntityId = entityId;
         this.#renderer?.setInteraction(
@@ -669,11 +564,7 @@ class TopoApp {
     const id = ids[nextIndex]!;
     this.#model.state.focusedEntityId = id;
     this.#model.state.selectedEntityId = id;
-    if (this.#renderer?.kind === "webgl") {
-      this.#accessibilityButtons.get(id)?.focus({ preventScroll: true });
-    } else {
-      this.#renderer?.focus(id);
-    }
+    this.#accessibilityButtons.get(id)?.focus({ preventScroll: true });
     this.#refreshInteraction();
   }
 
@@ -696,11 +587,6 @@ class TopoApp {
     });
   }
 
-  async setRenderer(kind: RendererKind): Promise<void> {
-    if (this.#model.state.renderer === kind) return;
-    await this.#replaceRenderer(kind);
-  }
-
   activateFirstExpandable(): boolean {
     const entity = this.#model.layoutResult.projection.visibleEntities.find(
       (candidate) =>
@@ -716,7 +602,7 @@ class TopoApp {
       snapshot: () => {
         if (!this.#renderer) throw new Error("Renderer is not ready.");
         return {
-          renderer: this.#model.state.renderer,
+          renderer: this.#renderer.kind,
           graphId: this.#model.artifacts.graph.graphId,
           visibleNodes:
             this.#model.layoutResult.projection.visibleEntities.length,
@@ -741,10 +627,12 @@ class TopoApp {
           lastTransitionDispatchMs: this.#lastTransitionDispatchMs,
         };
       },
-      setRenderer: (kind) => this.setRenderer(kind),
       resetView: () => this.resetView(),
       activateFirstExpandable: () => this.activateFirstExpandable(),
-      graphicsInfo: () => this.#renderer?.getGraphicsInfo() ?? {},
+      graphicsInfo: () => {
+        if (!this.#renderer) throw new Error("Renderer is not ready.");
+        return this.#renderer.getGraphicsInfo();
+      },
     };
   }
 }

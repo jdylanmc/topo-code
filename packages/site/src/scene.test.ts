@@ -22,7 +22,7 @@ function fixture() {
   });
   const architecture = deriveArchitecture(graph);
   const state: ViewState = {
-    renderer: "webgl", includeExternal: false, highContrast: true,
+    includeExternal: false, highContrast: true,
     expandedContainerIds: new Set(architecture.directoryContainers.map((container) => container.id)),
     collapsedTangleIds: new Set(), selectedEntityId: "path:a.ts", focusedEntityId: "path:b.ts",
   };

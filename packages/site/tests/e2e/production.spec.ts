@@ -7,7 +7,7 @@ import { serveSite } from "../../../cli/dist/server.js";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 
-test("both renderers work through the actual production HTTP server", async ({ page }) => {
+test("WebGL works through the actual production HTTP server", async ({ page }) => {
   const repository = await mkdtemp(join(tmpdir(), "topo-production-browser-"));
   const cache = join(repository, ".topo/cache");
   await mkdir(cache, { recursive: true });
@@ -22,12 +22,10 @@ test("both renderers work through the actual production HTTP server", async ({ p
     const response = await page.goto(url);
     expect(response?.headers()["content-security-policy"]).toContain("script-src 'self'");
     expect(response?.headers()["content-security-policy"]).not.toContain("'unsafe-eval'");
-    await expect(page.getByRole("button", { name: "D3 / SVG", exact: true })).toHaveAttribute("aria-pressed", "true");
-    await page.getByRole("button", { name: "PixiJS / WebGL", exact: true }).click();
-    await expect(page.getByRole("button", { name: "PixiJS / WebGL", exact: true })).toHaveAttribute("aria-pressed", "true");
-    await expect(page.locator("canvas")).toBeVisible();
-    await page.getByRole("button", { name: "D3 / SVG", exact: true }).click();
-    await expect(page.locator("svg")).toBeVisible();
+    await page.evaluate(() => window.__TOPO_READY__);
+    await expect(page.locator("canvas.topo-webgl")).toBeVisible();
+    await expect(page.locator("svg, [data-renderer]")).toHaveCount(0);
+    expect(await page.evaluate(() => window.__TOPO_BENCHMARK__!.snapshot().renderer)).toBe("webgl");
     expect(errors).toEqual([]);
     expect(await (await fetch(`${url}/THIRD_PARTY_NOTICES.txt`)).text()).toBe(
       await readFile(join(root, "THIRD_PARTY_NOTICES.txt"), "utf8"),

@@ -2,8 +2,8 @@ import { expect, test } from "@playwright/test";
 import { createGraphDocument } from "@topo/schema";
 import { deriveArchitecture, layoutGraphWithArchitecture } from "@topo/graph";
 
-for (const renderer of ["svg", "webgl"] as const) {
-  test(`${renderer} keeps fitted large-map zoom continuous across input paths and renderer switches`, async ({ page }) => {
+test.describe("WebGL zoom", () => {
+  test("keeps fitted large-map zoom continuous across input paths and resizing", async ({ page }) => {
     const graph = createGraphDocument({
       graphId: "repo:large-layout",
       repository: { id: "large-layout", label: "Large persisted layout" },
@@ -23,7 +23,7 @@ for (const renderer of ["svg", "webgl"] as const) {
     await page.route("**/data.json", (route) => route.fulfill({
       json: { schemaVersion: "1.0", graph, layout, architecture, dashboard: null },
     }));
-    await page.goto(`/small/index.html?renderer=${renderer}`);
+    await page.goto("/small/index.html");
     await page.evaluate(() => window.__TOPO_READY__);
     const snapshot = () => page.evaluate(() => window.__TOPO_BENCHMARK__!.snapshot());
     const scale = async () => (await snapshot()).viewTransform.scale;
@@ -64,18 +64,15 @@ for (const renderer of ["svg", "webgl"] as const) {
 
     await page.locator('[data-action="zoom-in"]').click();
     const viewport = page.viewportSize()!;
+    const beforeResize = await snapshot();
     await page.setViewportSize({ ...viewport, height: viewport.height + 200 });
     await expect.poll(async () => (await page.locator(".topo-canvas").boundingBox())!.height)
       .toBeGreaterThan(bounds!.height);
-    const beforeSwitch = await snapshot();
-    const other = renderer === "svg" ? "webgl" : "svg";
-    await page.locator(`[data-renderer="${other}"]`).click();
-    await expect.poll(async () => (await snapshot()).renderer).toBe(other);
-    expect((await snapshot()).viewTransform).toEqual(beforeSwitch.viewTransform);
+    expect((await snapshot()).viewTransform).toEqual(beforeResize.viewTransform);
     await page.locator('[data-action="zoom-out"]').click();
-    expect(await scale()).toBeLessThan(beforeSwitch.viewTransform.scale);
-    expect(await scale()).toBeCloseTo(beforeSwitch.viewTransform.scale * 0.8, 12);
+    expect(await scale()).toBeLessThan(beforeResize.viewTransform.scale);
+    expect(await scale()).toBeCloseTo(beforeResize.viewTransform.scale * 0.8, 12);
     expect((await snapshot()).visibleEntityIds).toEqual(fitted.visibleEntityIds);
     expect((await snapshot()).visibleEdges).toBe(fitted.visibleEdges);
   });
-}
+});

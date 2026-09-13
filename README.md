@@ -16,9 +16,9 @@ claim the tool makes about a codebase is backed by evidence you can follow, and
 everything a human adds is recorded as such.
 
 > **Status: Phase 1 preview.** The scan-to-site workflow, deterministic reports,
-> stable layouts and two comparative renderers are implemented. Renderer selection
-> and real-workload performance gates remain evidence-driven; see the
-> [renderer measurements](./docs/renderer.md). This is not yet a published npm CLI.
+> stable layouts and WebGL renderer are implemented. WebGL is the sole supported
+> renderer, with a 30 FPS acceptable floor and no frame-rate cap; see the
+> [renderer decision and measurements](./docs/renderer.md). This is not yet a published npm CLI.
 
 ## Run locally
 
@@ -32,9 +32,11 @@ corepack yarn topo serve /absolute/path/to/a/typescript-repository
 ```
 
 Open the printed `http://127.0.0.1:4173` address. Expand directories, inspect file
-dependencies, toggle externals and compare SVG/WebGL using the renderer control.
+dependencies, toggle externals, and navigate the WebGL map with pointer or keyboard.
 The site is compiled once; rescanning replaces its data without rebuilding it.
 Nothing is uploaded or installed in the scanned repository.
+WebGL support is required. If initialization fails, the site shows an actionable
+error; it does not switch to another renderer.
 
 After building, one command also works **from the target repository**:
 

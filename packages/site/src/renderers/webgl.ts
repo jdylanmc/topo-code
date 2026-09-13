@@ -15,7 +15,7 @@ import type {
   SceneNode,
   ViewTransform,
 } from "../contracts.js";
-import { accessibleLabel, COLORS, nodeColor } from "./renderer.js";
+import { COLORS, nodeColor } from "./renderer.js";
 import { sameNodeAppearance, sameSceneEdges, SceneInteraction } from "./render-state.js";
 import { fitScale, ZoomLimits } from "../zoom.js";
 import { NodeRenderLayer } from "./node-render-layer.js";
@@ -29,6 +29,14 @@ interface DisplayNode {
   startX: number;
   startY: number;
   node: SceneNode;
+}
+
+export class WebGlInitializationError extends Error {
+  constructor(cause: unknown) {
+    const detail = cause instanceof Error ? cause.message : String(cause);
+    super(`WebGL could not start: ${detail}`, { cause });
+    this.name = "WebGlInitializationError";
+  }
 }
 
 export class WebGlRenderer implements Renderer {
@@ -64,8 +72,13 @@ export class WebGlRenderer implements Renderer {
     zoomLimits = new ZoomLimits(),
   ): Promise<WebGlRenderer> {
     const renderer = new WebGlRenderer(host, zoomLimits);
-    await renderer.#initialize();
-    return renderer;
+    try {
+      await renderer.#initialize();
+      return renderer;
+    } catch (error) {
+      renderer.destroy();
+      throw new WebGlInitializationError(error);
+    }
   }
 
   async #initialize(): Promise<void> {
@@ -73,7 +86,8 @@ export class WebGlRenderer implements Renderer {
       resizeTo: this.#host,
       backgroundColor: COLORS.background,
       antialias: true,
-      preference: "webgl",
+      // A single-entry preference array disables Pixi's alternative backends.
+      preference: ["webgl"],
       resolution: Math.min(window.devicePixelRatio, 2),
       autoDensity: true,
     });
@@ -422,8 +436,4 @@ export class WebGlRenderer implements Renderer {
       nodeRenderGroupPoolSize: this.#nodes.children.length,
     };
   }
-}
-
-export function webGlAccessibleLabel(node: SceneNode): string {
-  return accessibleLabel(node);
 }
