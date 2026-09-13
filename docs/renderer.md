@@ -117,18 +117,14 @@ transition, and WebGL finishes on the exact persisted route coordinates.
 The diagnostic `graphicsInfo().edgeGeometryUpdates` counter covers geometry
 updates, not total GPU draws.
 
-WebGL uses one Pixi render group for the entire camera viewport and a nested
-group for the node layer. Camera
+WebGL uses one Pixi render group for the entire camera viewport. Camera
 translation and scale are then applied on the GPU instead of propagating
 through every child and repacking its vertex attributes. Individual nodes are
-not separate render groups. The node layer can change membership or appearance
-without repacking unchanged relationship geometry in the parent group.
-This is not raster caching, level-of-detail
+not separate render groups. This is not raster caching, level-of-detail
 reduction, or relationship culling: all scene geometry, labels, provenance,
 interaction state, and layout transitions remain live.
 
-`graphicsInfo().cameraRenderGroup` and `nodeRenderGroup` expose these modes.
-A browser regression
+`graphicsInfo().cameraRenderGroup` exposes this mode. A browser regression
 intercepts native vertex/index buffer writes: camera-only zoom and recentering
 perform no geometry-buffer uploads, while a focus/content update still
 uploads geometry. Uniform updates are not counted as geometry uploads.

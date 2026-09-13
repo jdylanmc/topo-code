@@ -36,7 +36,7 @@ export class WebGlRenderer implements Renderer {
   readonly #app = new Application();
   readonly #viewport = new Container({ isRenderGroup: true });
   readonly #edges = new Graphics();
-  readonly #nodes = new Container({ isRenderGroup: true });
+  readonly #nodes = new Container();
   readonly #displayNodes = new Map<string, DisplayNode>();
   readonly #movingNodes = new Set<DisplayNode>();
   readonly #interaction = new SceneInteraction();
@@ -416,7 +416,6 @@ export class WebGlRenderer implements Renderer {
       resolution: this.#app.renderer.resolution,
       edgeGeometryUpdates: this.#edgeGeometryUpdates,
       cameraRenderGroup: this.#viewport.isRenderGroup,
-      nodeRenderGroup: this.#nodes.isRenderGroup,
     };
   }
 }
