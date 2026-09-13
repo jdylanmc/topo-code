@@ -61,3 +61,38 @@ on every camera frame.
 
 See the [runner guide](./enrichment.md) for explicit repository configuration,
 prompt customization, staged output, failure behavior, and regeneration.
+
+## Source-bound acceptance
+
+The [acceptance manifest](../benchmarks/results/enrichment-authoring-acceptance.json)
+binds all six captures and their raw frame observations to implementation commit
+`76a18bdcb69ea9b8992a4ae212edb54fd1c81444`. The same production bundle was exercised
+with core data, enriched data, and enriched data plus both built-in modules and
+curated paths. Each configuration covers the frozen Mermaid and VSCode graphs,
+directory and expanded scopes, in headless and headed Chrome.
+
+All **24 observations** passed the **30 whole-workload delivered FPS** floor,
+uncapped. The minimum was **44.794 FPS**; long frames remained in the score,
+including the maximum observed **599.975 ms** frame. Interaction effects were
+verified and no page errors were recorded. These are workload observations,
+not a worst-frame guarantee.
+
+| Expanded VSCode configuration | Headless FPS | Headed FPS |
+|---|---:|---:|
+| Core only | 48.031 | 47.971 |
+| Enriched | 44.794 | 49.016 |
+| Enriched + both modules + curated paths | 47.736 | 50.202 |
+
+The enriched fixtures add one explicitly synthetic comment per graph node:
+1,225 for Mermaid and 9,376 for VSCode. Browser readiness requires the bounded
+first page of 50 comments and no commentary error. Fixture enrichment preparation,
+including hashing and synthetic document construction, took 743.044-761.935 ms
+for enriched VSCode and 923.233-934.777 ms for combined VSCode. These Node.js
+preparation costs are outside interaction FPS and are not browser startup or
+model latency.
+
+No real model was invoked: runner coverage uses local fake providers, and these
+fixtures exercise the renderer/data path, not semantic AI quality. Curated
+membership differs intentionally, and easy headed workloads ran at roughly
+120 Hz versus roughly 60 Hz headless. There is no isolated speedup claim across
+these configurations or historical runs. Every captured result is retained.

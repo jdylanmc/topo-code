@@ -1,0 +1,260 @@
+{
+  "schemaVersion": "1.0",
+  "sourceCommit": "76a18bdcb69ea9b8992a4ae212edb54fd1c81444",
+  "sourceTree": "643651b6391f351fccaa3c134d187a9067df0473",
+  "acceptedFloorFps": 30,
+  "metric": "Unchanged whole-workload delivered FPS; uncapped; long frames retained.",
+  "note": "Same production bundle, core versus one synthetic commentary fixture per node, plus combined modules/curated paths. No model runs or semantic AI-quality claims. Curated membership and display cadence differ; no isolated speedup claim. All attempts retained.",
+  "fixtures": [
+    {
+      "name": "mermaid-full",
+      "sha256": "8f78a3633451bf137620258e8546edad555559d3c454d7902352cf60df6779a1"
+    },
+    {
+      "name": "vscode-src",
+      "sha256": "48c16618a1dc37c47738fc1811b1645cc48f329f3936c0cf2aee4483361ec9de"
+    }
+  ],
+  "captures": [
+    {
+      "name": "core-headless",
+      "report": "benchmarks/results/enrichment-authoring-core-headless.json",
+      "exitCode": 0,
+      "accepted": true,
+      "rows": [
+        {
+          "fixture": "mermaid",
+          "scope": "directory",
+          "status": "completed",
+          "fps": 59.811,
+          "maximumFrameMs": 33.32999999999993,
+          "valid": true
+        },
+        {
+          "fixture": "mermaid",
+          "scope": "expanded",
+          "status": "completed",
+          "fps": 59.629,
+          "maximumFrameMs": 50,
+          "valid": true
+        },
+        {
+          "fixture": "vscode",
+          "scope": "directory",
+          "status": "completed",
+          "fps": 57.794,
+          "maximumFrameMs": 116.65999999999985,
+          "valid": true
+        },
+        {
+          "fixture": "vscode",
+          "scope": "expanded",
+          "status": "completed",
+          "fps": 48.031,
+          "maximumFrameMs": 599.9750000000004,
+          "valid": true
+        }
+      ]
+    },
+    {
+      "name": "enriched-headless",
+      "report": "benchmarks/results/enrichment-authoring-enriched-headless.json",
+      "exitCode": 0,
+      "accepted": true,
+      "rows": [
+        {
+          "fixture": "mermaid",
+          "scope": "directory",
+          "status": "completed",
+          "fps": 60.002,
+          "maximumFrameMs": 16.670000000000073,
+          "valid": true
+        },
+        {
+          "fixture": "mermaid",
+          "scope": "expanded",
+          "status": "completed",
+          "fps": 59.626,
+          "maximumFrameMs": 50,
+          "valid": true
+        },
+        {
+          "fixture": "vscode",
+          "scope": "directory",
+          "status": "completed",
+          "fps": 57.965,
+          "maximumFrameMs": 116.66499999999996,
+          "valid": true
+        },
+        {
+          "fixture": "vscode",
+          "scope": "expanded",
+          "status": "completed",
+          "fps": 44.794,
+          "maximumFrameMs": 583.3099999999995,
+          "valid": true
+        }
+      ]
+    },
+    {
+      "name": "combined-headless",
+      "report": "benchmarks/results/enrichment-authoring-combined-headless.json",
+      "exitCode": 0,
+      "accepted": true,
+      "rows": [
+        {
+          "fixture": "mermaid",
+          "scope": "directory",
+          "status": "completed",
+          "fps": 60.002,
+          "maximumFrameMs": 16.670000000000073,
+          "valid": true
+        },
+        {
+          "fixture": "mermaid",
+          "scope": "expanded",
+          "status": "completed",
+          "fps": 59.627,
+          "maximumFrameMs": 33.335000000000036,
+          "valid": true
+        },
+        {
+          "fixture": "vscode",
+          "scope": "directory",
+          "status": "completed",
+          "fps": 58.331,
+          "maximumFrameMs": 99.98999999999978,
+          "valid": true
+        },
+        {
+          "fixture": "vscode",
+          "scope": "expanded",
+          "status": "completed",
+          "fps": 47.736,
+          "maximumFrameMs": 549.9750000000004,
+          "valid": true
+        }
+      ]
+    },
+    {
+      "name": "core-headed",
+      "report": "benchmarks/results/enrichment-authoring-core-headed.json",
+      "exitCode": 0,
+      "accepted": true,
+      "rows": [
+        {
+          "fixture": "mermaid",
+          "scope": "directory",
+          "status": "completed",
+          "fps": 119.999,
+          "maximumFrameMs": 9.335000000000036,
+          "valid": true
+        },
+        {
+          "fixture": "mermaid",
+          "scope": "expanded",
+          "status": "completed",
+          "fps": 118.38,
+          "maximumFrameMs": 34.24000000000024,
+          "valid": true
+        },
+        {
+          "fixture": "vscode",
+          "scope": "directory",
+          "status": "completed",
+          "fps": 112.656,
+          "maximumFrameMs": 115.68499999999949,
+          "valid": true
+        },
+        {
+          "fixture": "vscode",
+          "scope": "expanded",
+          "status": "completed",
+          "fps": 47.971,
+          "maximumFrameMs": 508.3299999999999,
+          "valid": true
+        }
+      ]
+    },
+    {
+      "name": "enriched-headed",
+      "report": "benchmarks/results/enrichment-authoring-enriched-headed.json",
+      "exitCode": 0,
+      "accepted": true,
+      "rows": [
+        {
+          "fixture": "mermaid",
+          "scope": "directory",
+          "status": "completed",
+          "fps": 120.002,
+          "maximumFrameMs": 9.329999999999984,
+          "valid": true
+        },
+        {
+          "fixture": "mermaid",
+          "scope": "expanded",
+          "status": "completed",
+          "fps": 118.443,
+          "maximumFrameMs": 33.32999999999993,
+          "valid": true
+        },
+        {
+          "fixture": "vscode",
+          "scope": "directory",
+          "status": "completed",
+          "fps": 112.865,
+          "maximumFrameMs": 108.32499999999982,
+          "valid": true
+        },
+        {
+          "fixture": "vscode",
+          "scope": "expanded",
+          "status": "completed",
+          "fps": 49.016,
+          "maximumFrameMs": 474.994999999999,
+          "valid": true
+        }
+      ]
+    },
+    {
+      "name": "combined-headed",
+      "report": "benchmarks/results/enrichment-authoring-combined-headed.json",
+      "exitCode": 0,
+      "accepted": true,
+      "rows": [
+        {
+          "fixture": "mermaid",
+          "scope": "directory",
+          "status": "completed",
+          "fps": 120,
+          "maximumFrameMs": 9.330000000000155,
+          "valid": true
+        },
+        {
+          "fixture": "mermaid",
+          "scope": "expanded",
+          "status": "completed",
+          "fps": 118.741,
+          "maximumFrameMs": 25,
+          "valid": true
+        },
+        {
+          "fixture": "vscode",
+          "scope": "directory",
+          "status": "completed",
+          "fps": 114.604,
+          "maximumFrameMs": 99.98999999999978,
+          "valid": true
+        },
+        {
+          "fixture": "vscode",
+          "scope": "expanded",
+          "status": "completed",
+          "fps": 50.202,
+          "maximumFrameMs": 482.4449999999997,
+          "valid": true
+        }
+      ]
+    }
+  ]
+}
