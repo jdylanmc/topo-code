@@ -116,3 +116,33 @@ This slice is flat named views, not view composition, arbitrary plugin loading,
 drag-and-drop layout authoring, AI inference, or a new graph-producing module.
 Views inherit the current graph's enabled producers. See the
 [core contract](./curated-views-core.md) and [workspace lifecycle](./workspace.md).
+
+## Measured workload acceptance
+
+Source `4da921d9b8d94ab470f7d0c8c5ab0fb89a8f376f` completed all 16
+Mermaid/VSCode workload observations above the agreed **30 whole-workload FPS**
+floor. [The manifest](../benchmarks/results/curated-views-acceptance.json) binds
+the source and frozen graph hashes to all four reports, including raw frame
+samples, verified interaction effects, phase observations, and submitted
+buffer ranges. No attempts were omitted and no browser errors were reported.
+
+| Fixture / scope | Repository headless | Curated headless | Repository headed | Curated headed |
+| --- | ---: | ---: | ---: | ---: |
+| Mermaid / directory | 59.813 | 59.841 | 74.746 | 74.717 |
+| Mermaid / expanded | 59.627 | 59.627 | 74.334 | 74.306 |
+| VSCode / directory | 57.814 | 58.341 | 71.916 | 72.571 |
+| VSCode / expanded | 50.520 | 50.868 | 49.897 | 51.774 |
+
+Curated fixtures are reviewed all-path views, not reduced-quality renderings.
+The expanded VSCode view contains 9,252 entities and 102,246 relationships;
+the repository map contains 9,376 and 105,549. External/synthetic exclusions
+make these different memberships, not a controlled speedup comparison.
+Headed samples show approximately 13.33 ms near-vsync intervals versus 16.67 ms
+headless; do not infer renderer gains from cross-mode FPS differences.
+Long frames remain in the score, including a 506.82 ms repository-map frame.
+This is a workload floor, not a worst-frame latency guarantee.
+
+Reproduce with the frozen graph files and their checked-in provenance using
+the [benchmark harness](./benchmark-harness.md): select `--fixture mermaid,vscode`,
+run once with and once without `--curated`, and repeat both with `--headed`.
+Run sequentially, after a root build, without concurrent scans or builds.
