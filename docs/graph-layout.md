@@ -112,6 +112,12 @@ code-unit identifier order. With a compatible previous layout:
 - malformed, overlapping, wrong-graph, or wrong-view prior layouts are ignored
   with an explicit warning and regenerated deterministically.
 
+Persisted-item overlap validation uses the same spatial index as placement,
+with zero padding for the validation pass. Very large rectangles and unsafe
+bucket coordinates fall back to exact comparisons instead of creating
+unbounded bucket ranges. Subject-ID replacement, overlap diagnostics,
+preserved positions, and pin behavior are unchanged.
+
 Authored pins are separate inputs and are never written back or modified. Pins
 override generated positions, must use integer coordinates, and must not
 overlap. Their anchor is `(path, symbol, contentPattern)`, degrading in that

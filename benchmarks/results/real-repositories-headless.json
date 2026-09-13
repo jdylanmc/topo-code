@@ -9238,5 +9238,11 @@
       "packages/schema/src/layout.ts": "e550fbc81e8419e7b5986b18004685473ae6061addb835dc997cf21e596334e7"
     },
     "note": "The listed source hashes identify the uncommitted application changes at measurement time. Other application and harness sources match baseCommit. Absolute graph input paths are normalized to frozen-fixtures/; source provenance and measurements are unchanged."
+  },
+  "interactionAssessment": {
+    "status": "not-qualified-for-interaction-comparison",
+    "reason": "Superseded: viewport visibility and camera effects were not checked. The original warning layout could displace a zero-height canvas offscreen; forced clicks on clipped accessibility controls did not reliably expand directories.",
+    "supersededBy": "real-visible-interactions-headless.json",
+    "measurementsRetained": true
   }
 }

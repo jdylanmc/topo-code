@@ -103,17 +103,21 @@ membership lists, and exact added/removed ID deltas. Full projection-wide ID
 arrays are used in memory only for layout verification and are not repeatedly
 serialized into phase output.
 Missing controls fail when the snapshot says an action should exist. A fixture
-with no eligible non-root directory records the phase as `not-applicable` with
+with no eligible non-root directory or tangle records the phase as `not-applicable` with
 a reason; the workload is `completed-with-not-applicable` and does not claim
-layout-transition acceptance.
+layout-transition acceptance. Directory expansion uses keyboard activation of
+the backend's actual accessible entity, not a forced click on a clipped control.
 
 Keyboard activation retains before/after selection state and fails unless the
-requested entity becomes selected. Pan and zoom similarly look for
-`snapshot().viewTransform`. Until that read-only field is available, those
-phases are explicitly `unavailable` and the workload is `incomplete`, rather
-than silently reporting a successful interaction. The site-owned snapshot
-fields consumed by the harness are `viewTransform: ViewTransform`,
+requested entity becomes selected. Pan and zoom verify changes to the site's
+read-only `snapshot().viewTransform`. Against an older site without that field,
+those phases are explicitly `unavailable` and the workload is `incomplete`,
+rather than silently reporting a successful interaction. The site-owned
+snapshot fields consumed by the harness are `viewTransform: ViewTransform`,
 `visibleEntityIds: string[]`, and optional `focusedEntityId`.
+Page errors fail the workload even if metrics collection otherwise finishes.
+Historical results recorded without these checks are not comparable to the
+new runs; see the [evidence correction](./renderer.md#historical-evidence-correction).
 
 Worker termination is awaited. Browser contexts, the browser instance, and the
 fixture server are closed by the parent with bounded cleanup. The browser is
