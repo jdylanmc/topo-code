@@ -1,17 +1,20 @@
 import { expect, test } from "@playwright/test";
 
-test("loads the atomic bundle and exercises both renderers", async ({ page }) => {
+test("loads the atomic bundle using only WebGL", async ({ page }) => {
   const requests: string[] = [];
   const pageErrors: string[] = [];
   page.on("request", (request) => requests.push(request.url()));
   page.on("pageerror", (error) => pageErrors.push(error.message));
-  const response = await page.goto("/medium/index.html?renderer=svg");
+  const response = await page.goto("/medium/index.html");
   expect(response?.headers()["content-security-policy"]).toBe(
     "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; frame-ancestors 'none'; base-uri 'none'",
   );
   await page.evaluate(() => window.__TOPO_READY__);
 
-  await expect(page.locator(".topo-svg")).toBeVisible();
+  await expect(page.locator("canvas.topo-webgl")).toBeVisible();
+  await expect(page.locator("[data-renderer]")).toHaveCount(0);
+  expect(await page.evaluate(() => window.__TOPO_BENCHMARK__!.snapshot().renderer)).toBe("webgl");
+  expect(await page.evaluate(() => "setRenderer" in window.__TOPO_BENCHMARK__!)).toBe(false);
   await expect(page.locator(".authority-banner")).toBeHidden();
   await expect(page.locator('[data-status="counts"]')).toContainText(
     "visible entities",
@@ -19,8 +22,7 @@ test("loads the atomic bundle and exercises both renderers", async ({ page }) =>
   const before = await page.evaluate(
     () => window.__TOPO_BENCHMARK__?.snapshot().visibleNodes,
   );
-  const directory = page.locator('.topo-svg [data-entity-id^="directory:"]').first();
-  await expect(directory).toBeVisible();
+  const directory = page.locator('.webgl-a11y [data-entity-id^="directory:"]').first();
   await directory.focus();
   await page.keyboard.press("Enter");
   await page.waitForTimeout(350);
@@ -29,8 +31,6 @@ test("loads the atomic bundle and exercises both renderers", async ({ page }) =>
   );
   expect(after).not.toBe(before);
 
-  await page.getByRole("button", { name: "PixiJS / WebGL" }).click();
-  await expect(page.locator("canvas.topo-webgl")).toBeVisible();
   await expect(page.locator(".webgl-a11y button").first()).toHaveAttribute(
     "data-entity-id",
   );
@@ -57,31 +57,36 @@ test("loads the atomic bundle and exercises both renderers", async ({ page }) =>
   expect(pageErrors).toEqual([]);
 });
 
-test("preserves SVG and reports a failed WebGL initialization", async ({
+test("reports unavailable WebGL without an alternate renderer or misleading artifact advice", async ({
   page,
 }) => {
-  await page.goto("/small/index.html?renderer=svg");
-  await page.evaluate(() => window.__TOPO_READY__);
-  await expect(page.locator(".topo-svg")).toBeVisible();
-
-  await page.evaluate(() => {
+  await page.addInitScript(() => {
+    const getContext = HTMLCanvasElement.prototype.getContext;
     Object.defineProperty(HTMLCanvasElement.prototype, "getContext", {
       configurable: true,
-      value: () => {
-        throw new Error("Forced canvas initialization failure.");
+      value: function (this: HTMLCanvasElement, kind: string, ...args: unknown[]): RenderingContext | null {
+        if (["webgl", "webgl2", "experimental-webgl"].includes(kind)) return null;
+        return Reflect.apply(getContext, this, [kind, ...args]);
       },
     });
   });
+  await page.goto("/small/index.html");
+  await expect(page.getByRole("alert")).toContainText("WebGL could not start");
+  await expect(page.getByRole("alert")).toContainText("Enable hardware acceleration");
+  await expect(page.getByRole("alert")).not.toContainText("Regenerate");
+  await expect(page.locator(".topo-canvas")).toHaveCount(0);
+  expect(await page.evaluate(() => window.__TOPO_BENCHMARK__)).toBeUndefined();
+  expect(await page.evaluate(() => window.__TOPO_READY__!.then(
+    () => "unexpected success", (error: unknown) => String(error),
+  ))).toContain("WebGlInitializationError");
+});
 
-  await page.getByRole("button", { name: "PixiJS / WebGL" }).click();
-  await expect(page.locator('[data-status="renderer-error"]')).toBeVisible();
-  await expect(page.locator(".topo-svg")).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "D3 / SVG" }),
-  ).toHaveAttribute("aria-pressed", "true");
-  await expect(
-    page.getByRole("button", { name: "PixiJS / WebGL" }),
-  ).toHaveAttribute("aria-pressed", "false");
+test("legacy renderer query parameters cannot activate another backend", async ({ page }) => {
+  await page.goto("/small/index.html?renderer=svg");
+  await page.evaluate(() => window.__TOPO_READY__);
+  expect(await page.evaluate(() => window.__TOPO_BENCHMARK__!.snapshot().renderer)).toBe("webgl");
+  await expect(page.locator("canvas.topo-webgl")).toBeVisible();
+  await expect(page.locator("svg, [data-renderer]")).toHaveCount(0);
 });
 
 test("keeps partial scanner output visibly non-authoritative", async ({ page }) => {
@@ -107,7 +112,7 @@ test("keeps partial scanner output visibly non-authoritative", async ({ page }) 
   await expect(page.locator(".authority-banner")).toContainText(
     "Scanner output is partial",
   );
-  await expect(page.locator(".topo-svg")).toBeVisible();
+  await expect(page.locator("canvas.topo-webgl")).toBeVisible();
 });
 
 test("refuses malformed data instead of rendering it", async ({ page }) => {
@@ -122,5 +127,5 @@ test("refuses malformed data instead of rendering it", async ({ page }) => {
   await expect(page.getByRole("alert")).toContainText(
     "could not display this map",
   );
-  await expect(page.locator(".topo-svg")).toHaveCount(0);
+  await expect(page.locator(".topo-canvas")).toHaveCount(0);
 });

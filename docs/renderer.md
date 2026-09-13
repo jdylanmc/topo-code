@@ -1,16 +1,27 @@
-# Renderer bake-off
+# WebGL renderer
 
-Status: **visible-interaction evidence corrected; renderer decision still open**.
+Status: **PixiJS WebGL selected as the sole renderer on 2026-09-13**.
 
-`@topo/site` contains two browser implementations over one projection, layout,
-interaction state, visual vocabulary, and artifact envelope:
+The accepted performance floor is **30 whole-workload delivered FPS**, not a
+frame-rate cap or a guarantee that every frame finishes within 33.3 ms. Higher
+throughput is welcome, but further work solely to reach the former >50 FPS
+target is not required. This is a tested-workload target, not a guarantee for
+arbitrarily large graphs or every GPU/browser.
 
-- D3 7 with Scalable Vector Graphics (SVG);
-- PixiJS 8 with Web Graphics Library (WebGL).
+`@topo/site` uses PixiJS with Web Graphics Library (WebGL). The SVG scene
+renderer, D3 runtime/types, backend switch, and benchmark switching API have
+been removed. Legacy `renderer` URL parameters do not select another backend.
+Static SVG assets such as the favicon are not scene renderers and remain.
 
-The renderer switch is available in the site toolbar and through
-`?renderer=svg` or `?renderer=webgl`. Neither implementation is selected as the
-production renderer by this phase.
+There is **no alternate renderer fallback**. A single-entry Pixi preference
+array also prevents automatic WebGPU/Canvas fallback. Unavailable WebGL produces
+a visible error with browser/hardware-acceleration guidance, rejects the
+readiness promise, and does not expose a successful benchmark API. Artifact
+errors retain their separate regeneration guidance.
+
+The historical comparisons below remain attached to their original source
+commits and criteria. Old >50 FPS failures and SVG observations are not
+rewritten to describe the new policy or current supported implementation.
 
 ## Deployment and data contract
 
@@ -68,10 +79,9 @@ push the map offscreen. Explicit grid rows preserve map space when the warning
 is hidden. A resize observer tracks the map host, including status-text reflow,
 rather than relying only on window resize events.
 
-## Shared interaction and semantics
+## Interaction and semantics
 
-Both backends consume the same `GraphProjection` and `LayoutDocument` and
-support:
+The renderer consumes `GraphProjection` and `LayoutDocument` and supports:
 
 - click selection and dependency inspection;
 - incoming, outgoing, and internal edge details with provenance and evidence;
@@ -80,14 +90,14 @@ support:
 - external package visibility toggle;
 - pointer pan, wheel zoom, reset-to-fit, and 300 ms layout transitions;
 - keyboard traversal, activation, zoom, and visible focus;
-- high-contrast toggle and forced-colours support;
+- high-contrast shell controls and forced-colours-aware DOM controls;
 - observed, derived, inferred, human, mixed, and spine visual distinctions.
 
 Zoom limits start at 0.1..8 and widen to include fitted or explicitly transferred
 camera scales. Large persisted maps can fit below 0.1: zooming out at that lower
 limit must stay put, not jump inward to 0.1. Toolbar, keyboard, and wheel input
-share the same limits, which remain reachable through viewport resizing and
-renderer switching. Wheel zoom remains anchored beneath the pointer. This
+share the same limits, which remain reachable through viewport resizing.
+Wheel zoom remains anchored beneath the pointer. This
 changes no scene membership, layout positions, labels, or relationship geometry.
 
 Earlier builds fitted large maps below their hard-coded interactive minimum.
@@ -97,11 +107,13 @@ Frame-rate records from those builds describe that older camera trajectory.
 Measurements after the zoom-limit correction must not be presented as an
 isolated rendering-speed comparison against those records.
 
-SVG entities are native focusable elements with labels and titles. WebGL uses a
-synchronized accessible Document Object Model (DOM) navigation surface because
-canvas geometry is not exposed to assistive technology. This preserves keyboard
-and screen-reader access, but SVG retains the stronger native relationship
-between accessible elements and visible geometry.
+WebGL uses a synchronized accessible Document Object Model (DOM) navigation
+surface because canvas geometry is not exposed to assistive technology.
+The navigation stays visually hidden until focused and exposes entity labels
+and actions to keyboard/assistive-technology users. Automated keyboard and
+focus coverage is not a formal screen-reader conformance assessment. The
+canvas palette does not automatically inherit forced colours; canvas contrast
+and label legibility remain explicit review limitations.
 
 Selection and focus update only the old and new active entities, not every
 relationship or sidebar control. Accessibility buttons retain their DOM
@@ -110,8 +122,7 @@ Keyboard focus is not overwritten by Pixi pointer-over events caused by
 geometry moving beneath a stationary pointer. Actual pointer movement restores
 pointer navigation.
 
-Both renderers reuse unchanged edge geometry. SVG updates only changed paths
-and node appearances; WebGL rebuilds its edge buffer only when routes change
+WebGL reuses unchanged edge geometry and rebuilds its edge buffer only when routes change
 or connected nodes actually animate. Moving geometry retains the 300 ms
 transition, and WebGL finishes on the exact persisted route coordinates.
 The diagnostic `graphicsInfo().edgeGeometryUpdates` counter covers geometry
@@ -144,17 +155,17 @@ rather than depending on leftover benchmark output. It verifies:
 
 - the atomic envelope loads;
 - directory expansion changes the projection;
-- SVG and WebGL switch without changing data;
+- WebGL is the only renderer and no switching UI/API remains;
 - WebGL initializes with `script-src 'self'` and no `unsafe-eval`;
-- a failed asynchronous renderer initialization leaves the active SVG scene
-  visible and selected while showing a renderer error;
+- unavailable WebGL produces an actionable startup error without an alternate
+  backend or misleading artifact-regeneration advice;
 - the WebGL accessibility surface supports keyboard selection;
 - selection preserves focused controls and does not rebuild edge geometry;
 - equal-count directory transitions preserve stationary relationships;
 - long partial-scan warnings leave a usable map with observable pan and zoom;
 - keyboard navigation remains usable after its focused directory disappears;
 - fitted large-map zoom preserves direction, bounded steps, pointer anchoring,
-  and camera/range continuity across all input paths, resize, and renderer swaps;
+  and camera/range continuity across all input paths and resizing;
 - WebGL camera movement avoids geometry-buffer uploads while painted output,
   content updates, and transformed pointer hit testing remain functional;
 - external filtering updates the map;
@@ -169,7 +180,7 @@ focused regression commands are documented in
 ```sh
 corepack yarn build
 node benchmarks/renderer-bakeoff.mjs \
-  --output benchmarks/results/phase-one-headless.json \
+  --output benchmarks/results/local-webgl.json \
   --preparation-timeout-ms 90000 \
   --fixture-timeout-ms 240000 \
   --total-timeout-ms 600000 \
@@ -179,9 +190,11 @@ node benchmarks/renderer-bakeoff.mjs \
 
 `benchmarks/prepare-fixtures.mjs` copies the same production bundle beside each
 fixture's `data.json`. `benchmarks/fixture-server.mjs` serves those directories
-on `127.0.0.1` with cross-origin isolation headers. Both renderers receive the
-same graph, architecture, layout, viewport, pointer path, wheel events,
-directory-collapse transition, and keyboard selection.
+on `127.0.0.1` with cross-origin isolation headers. WebGL receives the graph,
+architecture, layout, viewport, pointer path, wheel events, directory-collapse
+transition, and keyboard selection. `--renderer webgl` remains accepted for
+script compatibility; SVG or mixed renderer requests fail before preparation.
+Use a new output path rather than overwriting historical evidence.
 
 The harness records:
 
@@ -197,21 +210,21 @@ The harness records:
 - trusted-input `PerformanceEventTiming.duration`, which spans input start to a
   presentation opportunity and is not click-handler duration;
 - JavaScript heap from Chrome DevTools Protocol `Performance.getMetrics`;
-- accessible entity and visible SVG label counts;
+- accessible entity counts;
 - renderer/GPU metadata and browser page errors.
 
 Each fixture preparation runs in a terminable worker with an overall timeout.
-Each renderer/scope workload has a separate overall timeout. Both default to 90
+Each fixture/scope workload has a separate overall timeout. Both default to 90
 seconds. The report is rewritten before and after each stage. A timeout is
 retained as a structured failure, previously completed measurements survive,
 and the process exits nonzero.
 
-Memory numbers are JavaScript heap only. They exclude DOM storage, SVG backing
-data, PixiJS GPU buffers/textures, driver allocations, and browser process
+Memory numbers are JavaScript heap only. They exclude DOM storage,
+PixiJS GPU buffers/textures, driver allocations, and browser process
 overhead. Headless results do not establish visible-browser or cross-platform
 performance.
 
-## Corrected real headless run
+## Historical corrected real headless run
 
 Raw data:
 [`real-visible-interactions-headless.json`](../benchmarks/results/real-visible-interactions-headless.json).
@@ -578,38 +591,46 @@ Node-only graph derivation measurements in the
 [performance notes](./graph-performance.md) are independent of this browser
 measurement flaw and remain valid.
 
-## Qualitative comparison
+## Historical qualitative comparison
 
 | Area | D3 / SVG | PixiJS / WebGL |
 |---|---|---|
 | labels | native text, selectable, inspectable | texture-backed text; accessible mirror required |
 | keyboard/screen reader | native focusable graph elements | synchronized hidden DOM controls |
-| high contrast | CSS and forced-colours can affect geometry | application palette changes; canvas is opaque to forced-colours |
+| high contrast | CSS and forced-colours can affect geometry | DOM shell controls adapt; canvas does not inherit forced colours |
 | edge fidelity | native paths, dashes, vector scaling | efficient batched lines; dashed semantics require custom drawing |
 | implementation | DOM/D3 joins and incremental style/path updates | retained graphics, animation lifecycle, accessibility mirror |
 | maintenance | browser DOM and D3 lifecycle | Pixi lifecycle, GPU resources, DOM accessibility mirror |
 
 ## Decision
 
-No renderer is selected yet.
+**Choose PixiJS WebGL only.** The user explicitly approved a 30 FPS minimum and
+then rejected maintaining multiple rendering technologies. Merged #23's final
+expanded Visual Studio Code observations, 46.990 FPS headless and 48.840 FPS
+headed, clear that floor; SVG's 19.446/23.054 FPS observations do not. This does
+not establish universal WebGL superiority or erase the recorded long frames.
 
-The results do not support assuming WebGL is universally faster. Both backends
-exceed 50 average delivered FPS on real Mermaid and directory-level Visual
-Studio Code. Some expanded WebGL observations exceed 50, but the final
-headless/visible-window matrix cases remain below the criterion at
-46.990/48.840 FPS. SVG remains below the criterion for expanded Visual Studio
-Code in both modes. Transition/activation stalls, reliable whole-workload
-performance, and human visual/accessibility review remain before recording
-a production choice.
+Maintaining one implementation removes backend selection, transform transfer,
+transactional switching, SVG-specific tests/styles, and D3 dependencies.
+The installed shipped dependency closure falls from 58 to 20 packages. The
+remaining maintenance surfaces are Pixi lifecycle/GPU resources, live scene
+updates, and the DOM accessibility mirror.
+
+Memory remains a tradeoff: the final pre-selection headed expanded VSCode
+sample reports 719,959,680 bytes of JavaScript heap, excluding GPU/driver/DOM
+storage. Input-to-next-paint observations remain in the raw reports; controller
+duration is not substituted for missing browser event samples. Automated
+geometry, paint, pointer, keyboard and focus checks support fidelity and
+interaction behavior, but do not claim completed human screen-reader or
+forced-colours conformance review. These limitations are recorded rather than
+used to retain a second runtime backend.
 
 ## Dependencies and licenses
 
 | Package | Installed version | Role | License |
 |---|---:|---|---|
-| `d3` | 7.9.0 | SVG selection, transition, pan, zoom | ISC |
 | `pixi.js` | 8.20.1 | WebGL rendering | MIT |
 | `@playwright/test` | 1.63.0 | browser tests and benchmark automation | Apache-2.0 |
-| `@types/d3` | 7.4.3 | D3 types | MIT |
 | `vite` | 8.2.2 | production browser build | MIT |
 | `vitest` | 5.0.0 | unit tests | MIT |
 | `typescript` | 7.0.2 | type checking | Apache-2.0 |

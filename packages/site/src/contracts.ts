@@ -10,8 +10,6 @@ import type {
   SchemaCompatibility,
 } from "@topo/schema";
 
-export type RendererKind = "svg" | "webgl";
-
 export type ArtifactAvailability = "available" | "empty" | "unavailable";
 
 export interface DashboardArtifact {
@@ -34,7 +32,6 @@ export interface LoadedArtifacts {
 }
 
 export interface ViewState {
-  renderer: RendererKind;
   includeExternal: boolean;
   highContrast: boolean;
   expandedContainerIds: Set<string>;
@@ -81,7 +78,7 @@ export interface RendererCallbacks {
 }
 
 export interface Renderer {
-  readonly kind: RendererKind;
+  readonly kind: "webgl";
   render(scene: RenderScene, callbacks: RendererCallbacks, animate: boolean): void;
   setInteraction(selectedId?: string, focusedId?: string): void;
   zoomBy(factor: number): void;
@@ -100,7 +97,7 @@ export interface ViewTransform {
 }
 
 export interface AppSnapshot {
-  renderer: RendererKind;
+  renderer: "webgl";
   graphId: string;
   visibleNodes: number;
   visibleEdges: number;
@@ -116,7 +113,6 @@ export interface AppSnapshot {
 
 export interface BenchmarkApi {
   snapshot(): AppSnapshot;
-  setRenderer(kind: RendererKind): Promise<void>;
   resetView(): void;
   activateFirstExpandable(): boolean;
   graphicsInfo(): Record<string, string | number | boolean | null>;

@@ -390,20 +390,21 @@ async function runWorkload(
         name: "app-readiness",
         run: async () => {
           await page.evaluate(() => window.__TOPO_READY__);
-          return compactSceneObservation(await readCompactSnapshot(page));
+          const snapshot = await readCompactSnapshot(page);
+          if (snapshot.renderer !== "webgl") {
+            throw new Error(
+              `Benchmark API reported renderer "${snapshot.renderer}" instead of "webgl".`,
+            );
+          }
+          return compactSceneObservation(snapshot);
         },
       },
       {
         name: "viewport-preflight",
         run: async () => {
-          const target =
-            renderer === "svg"
-              ? page.locator(".topo-svg").first()
-              : page.locator(".map-host canvas").first();
+          const target = page.locator(".topo-canvas.topo-webgl").first();
           if ((await target.count()) === 0) {
-            throw new Error(
-              `No ${renderer === "svg" ? "SVG" : "WebGL canvas"} renderer target was available.`,
-            );
+            throw new Error("No WebGL canvas renderer target was available.");
           }
           viewportPreflight = verifyViewportPreflight(
             await target.boundingBox(),
@@ -421,7 +422,7 @@ async function runWorkload(
       {
         name: "sampling-setup",
         run: async () => {
-          return page.evaluate(installBrowserMeasurements, { renderer });
+          return page.evaluate(installBrowserMeasurements);
         },
       },
       {
@@ -494,9 +495,9 @@ async function runWorkload(
               );
             }
             if (expectedCandidates.length > 0) {
-              const candidates = page.locator(renderer === "svg"
-                ? '.topo-svg [data-entity-id^="directory:"]'
-                : '.webgl-a11y button[data-entity-id^="directory:"]');
+              const candidates = page.locator(
+                '.webgl-a11y button[data-entity-id^="directory:"]',
+              );
               const candidateIds = await candidates.evaluateAll((elements) =>
                 elements.map((element) => element.dataset.entityId ?? null),
               );
@@ -584,7 +585,7 @@ async function runWorkload(
         run: async () => {
           const before = await readSelectionSnapshot(page);
           const accessibleEntity = page
-            .locator(".webgl-a11y button, .topo-svg [data-entity-id]")
+            .locator(".webgl-a11y button[data-entity-id]")
             .first();
           if ((await accessibleEntity.count()) === 0) {
             throw new Error("No accessible entity was available.");
@@ -667,8 +668,6 @@ async function runWorkload(
               accessibilityNodes: document.querySelectorAll(
                 ".webgl-a11y [data-entity-id]",
               ).length,
-              svgLabels: document.querySelectorAll(".topo-svg .node-label")
-                .length,
               highContrastControl:
                 document.querySelector("#contrast-toggle") instanceof
                 HTMLInputElement,
@@ -796,11 +795,11 @@ async function runWorkload(
       jsHeapUsedBytes: jsHeapUsed ?? null,
       jsHeapTotalBytes: jsHeapTotal ?? null,
       limitation:
-        "JavaScript heap only. It excludes DOM, SVG backing storage, PixiJS GPU buffers/textures, driver memory, and browser process overhead.",
+        "JavaScript heap only. It excludes DOM, PixiJS GPU buffers/textures, driver memory, and browser process overhead.",
     },
     accessibility: {
       accessibleEntityCount: collected.accessibilityNodes,
-      svgLabelCount: collected.svgLabels,
+      svgLabelCount: null,
       keyboardSelectionSucceeded:
         collected.snapshot.selectedEntityId !== undefined,
       highContrastControl: collected.highContrastControl,

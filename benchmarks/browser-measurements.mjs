@@ -1,4 +1,4 @@
-export function installBrowserMeasurements({ renderer }) {
+export function installBrowserMeasurements() {
   const samples = [];
   const phases = [];
   const warnings = [];
@@ -46,76 +46,74 @@ export function installBrowserMeasurements({ renderer }) {
     }
   }
 
-  if (renderer === "webgl") {
-    for (const Constructor of [globalThis.WebGLRenderingContext, globalThis.WebGL2RenderingContext]) {
-      if (!Constructor) continue;
-      for (const operation of ["bufferData", "bufferSubData"]) {
-        let prototype = Constructor.prototype;
-        while (prototype && !Object.hasOwn(prototype, operation)) prototype = Object.getPrototypeOf(prototype);
-        if (!prototype) {
-          warnings.push(`${Constructor.name}.${operation} is unavailable.`);
-          continue;
-        }
-        const observed = patched.get(prototype) ?? new Set();
-        if (observed.has(operation)) continue;
-        const descriptor = Object.getOwnPropertyDescriptor(prototype, operation);
-        const original = prototype[operation];
-        if (typeof original !== "function") {
-          warnings.push(`${Constructor.name}.${operation} is unavailable.`);
-          continue;
-        }
-        const wrapper = function (...args) {
-          const started = performance.now();
-          let threw = false;
-          try {
-            return Reflect.apply(original, this, args);
-          } catch (error) {
-            threw = true;
-            throw error;
-          } finally {
-            const duration = performance.now() - started;
-            const target = typeof args[0] === "number" ? args[0] : null;
-            const key = `${operation}:${target}`;
-            const bucket = current().buffers;
-            let record = bucket.get(key);
-            if (!record) {
-              record = {
-                operation, target, calls: 0, thrownCalls: 0, unknownByteCalls: 0,
-                specifiedStorageBytes: 0, submittedDataBytes: 0,
-                largestSubmissionBytes: 0, synchronousCallMilliseconds: 0,
-              };
-              bucket.set(key, record);
-            }
-            record.calls += 1;
-            record.thrownCalls += Number(threw);
-            record.synchronousCallMilliseconds += duration;
-            const range = byteRange(operation, args);
-            if (range === null) record.unknownByteCalls += 1;
-            else {
-              record.specifiedStorageBytes += range.storageBytes;
-              record.submittedDataBytes += range.submittedBytes;
-              record.largestSubmissionBytes = Math.max(record.largestSubmissionBytes, range.submittedBytes);
-            }
-          }
-        };
-        try {
-          Object.defineProperty(prototype, operation, {
-            ...descriptor, value: wrapper,
-          });
-          observed.add(operation);
-          patched.set(prototype, observed);
-          bufferHookCount += 1;
-          restorers.push(() => {
-            if (prototype[operation] !== wrapper) {
-              warnings.push(`${Constructor.name}.${operation} changed while observed; not overwritten.`);
-            } else if (descriptor) Object.defineProperty(prototype, operation, descriptor);
-            else delete prototype[operation];
-          });
-        } catch (error) {
-          warnings.push(`Could not observe ${Constructor.name}.${operation}: ${String(error)}`);
-        }
-        if (bufferHookCount === 0) warnings.push("No WebGL buffer methods could be observed.");
+  for (const Constructor of [globalThis.WebGLRenderingContext, globalThis.WebGL2RenderingContext]) {
+    if (!Constructor) continue;
+    for (const operation of ["bufferData", "bufferSubData"]) {
+      let prototype = Constructor.prototype;
+      while (prototype && !Object.hasOwn(prototype, operation)) prototype = Object.getPrototypeOf(prototype);
+      if (!prototype) {
+        warnings.push(`${Constructor.name}.${operation} is unavailable.`);
+        continue;
       }
+      const observed = patched.get(prototype) ?? new Set();
+      if (observed.has(operation)) continue;
+      const descriptor = Object.getOwnPropertyDescriptor(prototype, operation);
+      const original = prototype[operation];
+      if (typeof original !== "function") {
+        warnings.push(`${Constructor.name}.${operation} is unavailable.`);
+        continue;
+      }
+      const wrapper = function (...args) {
+        const started = performance.now();
+        let threw = false;
+        try {
+          return Reflect.apply(original, this, args);
+        } catch (error) {
+          threw = true;
+          throw error;
+        } finally {
+          const duration = performance.now() - started;
+          const target = typeof args[0] === "number" ? args[0] : null;
+          const key = `${operation}:${target}`;
+          const bucket = current().buffers;
+          let record = bucket.get(key);
+          if (!record) {
+            record = {
+              operation, target, calls: 0, thrownCalls: 0, unknownByteCalls: 0,
+              specifiedStorageBytes: 0, submittedDataBytes: 0,
+              largestSubmissionBytes: 0, synchronousCallMilliseconds: 0,
+            };
+            bucket.set(key, record);
+          }
+          record.calls += 1;
+          record.thrownCalls += Number(threw);
+          record.synchronousCallMilliseconds += duration;
+          const range = byteRange(operation, args);
+          if (range === null) record.unknownByteCalls += 1;
+          else {
+            record.specifiedStorageBytes += range.storageBytes;
+            record.submittedDataBytes += range.submittedBytes;
+            record.largestSubmissionBytes = Math.max(record.largestSubmissionBytes, range.submittedBytes);
+          }
+        }
+      };
+      try {
+        Object.defineProperty(prototype, operation, {
+          ...descriptor, value: wrapper,
+        });
+        observed.add(operation);
+        patched.set(prototype, observed);
+        bufferHookCount += 1;
+        restorers.push(() => {
+          if (prototype[operation] !== wrapper) {
+            warnings.push(`${Constructor.name}.${operation} changed while observed; not overwritten.`);
+          } else if (descriptor) Object.defineProperty(prototype, operation, descriptor);
+          else delete prototype[operation];
+        });
+      } catch (error) {
+        warnings.push(`Could not observe ${Constructor.name}.${operation}: ${String(error)}`);
+      }
+      if (bufferHookCount === 0) warnings.push("No WebGL buffer methods could be observed.");
     }
   }
 
@@ -218,16 +216,14 @@ export function installBrowserMeasurements({ renderer }) {
         clock: "browser-performance", timeOriginMs: performance.timeOrigin,
         capturedAtMs: performance.now(), frameSamples: samples.slice(),
         phases: phases.map(snapshot), unscoped: snapshot(unscoped),
-        gpuStatus: renderer === "webgl"
-          ? (warnings.length || [...phases, unscoped].some((phase) =>
-              [...phase.buffers.values()].some((record) => record.unknownByteCalls > 0),
-            ) ? "partial" : "observed")
-          : "not-applicable",
+        gpuStatus: warnings.length || [...phases, unscoped].some((phase) =>
+          [...phase.buffers.values()].some((record) => record.unknownByteCalls > 0),
+        ) ? "partial" : "observed",
         warnings: [...warnings],
       };
     },
   };
-  return { eventTimingAvailable, bufferObservation: renderer === "webgl", warnings: [...warnings] };
+  return { eventTimingAvailable, bufferObservation: true, warnings: [...warnings] };
 }
 
 function beginBrowserPhase(name) {

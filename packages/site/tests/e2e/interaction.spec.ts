@@ -2,8 +2,8 @@ import { expect, test } from "@playwright/test";
 import { createGraphDocument, type GraphDocument } from "@topo/schema";
 import { deriveArchitecture, layoutGraphWithArchitecture } from "@topo/graph";
 
-for (const renderer of ["svg", "webgl"] as const) {
-  test(`${renderer} reuses stationary relationships across an equal-count directory transition`, async ({ page }) => {
+test.describe("WebGL interactions", () => {
+  test("reuses stationary relationships across an equal-count directory transition", async ({ page }) => {
     const graph = createGraphDocument({
       graphId: "repo:isolated-directory",
       repository: { id: "isolated-directory", label: "Isolated directory" },
@@ -25,7 +25,7 @@ for (const renderer of ["svg", "webgl"] as const) {
     await page.route("**/data.json", (route) => route.fulfill({
       json: { schemaVersion: "1.0", graph, layout, architecture, dashboard: null },
     }));
-    await page.goto(`/small/index.html?renderer=${renderer}&scope=all`);
+    await page.goto("/small/index.html?scope=all");
     await page.evaluate(() => window.__TOPO_READY__);
     const before = await page.evaluate(() => ({
       scene: window.__TOPO_BENCHMARK__!.snapshot(),
@@ -46,7 +46,7 @@ for (const renderer of ["svg", "webgl"] as const) {
     expect(after.edgeUpdates).toBe(before.edgeUpdates);
   });
 
-  test(`${renderer} keeps a heavily partial map onscreen and responds to pan and zoom`, async ({ page }) => {
+  test("keeps a heavily partial map onscreen and responds to pan and zoom", async ({ page }) => {
     await page.route("**/data.json", async (route) => {
       const response = await route.fetch();
       const value: { graph: GraphDocument; [key: string]: unknown } = await response.json();
@@ -60,7 +60,7 @@ for (const renderer of ["svg", "webgl"] as const) {
       };
       await route.fulfill({ response, json: value });
     });
-    await page.goto(`/medium/index.html?renderer=${renderer}`);
+    await page.goto("/medium/index.html");
     await page.evaluate(() => window.__TOPO_READY__);
     await expect(page.locator(".authority-banner")).toContainText("Warning 799:");
     await expect(page.locator(".topo-canvas")).toBeInViewport({ ratio: 0.99 });
@@ -80,17 +80,15 @@ for (const renderer of ["svg", "webgl"] as const) {
     await expect.poll(() => page.evaluate(() => window.__TOPO_BENCHMARK__!.snapshot().viewTransform.scale)).not.toBe(scale);
   });
 
-  test(`${renderer} preserves navigation and edge buffers during selection`, async ({ page }) => {
-    await page.goto(`/medium/index.html?renderer=${renderer}&scope=all`);
+  test("preserves navigation and edge buffers during selection", async ({ page }) => {
+    await page.goto("/medium/index.html?scope=all");
     await page.evaluate(() => window.__TOPO_READY__);
     const before = await page.evaluate(() => window.__TOPO_BENCHMARK__!.graphicsInfo().edgeGeometryUpdates);
     const navigation = page.locator('.webgl-a11y button[data-entity-id^="path:"]').first();
     const id = await navigation.getAttribute("data-entity-id");
     expect(id).toBeTruthy();
     const control = await navigation.elementHandle();
-    const entity = renderer === "svg"
-      ? page.locator(`.topo-svg [data-entity-id="${id}"]`)
-      : navigation;
+    const entity = navigation;
     await entity.focus();
     await page.keyboard.press("Enter");
     await expect(entity).toBeFocused();
@@ -105,11 +103,10 @@ for (const renderer of ["svg", "webgl"] as const) {
     expect(await page.evaluate(() => document.activeElement?.closest(".map-host") !== null)).toBe(true);
   });
 
-  test(`${renderer} keeps keyboard navigation usable after expanding a focused directory`, async ({ page }) => {
-    await page.goto(`/medium/index.html?renderer=${renderer}`);
+  test("keeps keyboard navigation usable after expanding a focused directory", async ({ page }) => {
+    await page.goto("/medium/index.html");
     await page.evaluate(() => window.__TOPO_READY__);
-    const selector = renderer === "svg" ? ".topo-svg" : ".webgl-a11y";
-    const directory = page.locator(`${selector} [data-entity-id^="directory:"]`).first();
+    const directory = page.locator('.webgl-a11y [data-entity-id^="directory:"]').first();
     const id = await directory.getAttribute("data-entity-id");
     const bounds = await page.locator(".topo-canvas").boundingBox();
     await page.mouse.move(bounds!.x + bounds!.width / 2, bounds!.y + bounds!.height / 2);
@@ -122,4 +119,4 @@ for (const renderer of ["svg", "webgl"] as const) {
     await page.keyboard.press("ArrowRight");
     expect(await page.evaluate(() => window.__TOPO_BENCHMARK__!.snapshot().selectedEntityId)).not.toBe(before);
   });
-}
+});

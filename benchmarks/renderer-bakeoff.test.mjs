@@ -99,6 +99,7 @@ test("preparation deadline terminates CPU-bound work and preserves checkpoints",
   assert.equal(timeoutReport.fixtures.length, 0);
   assert.equal(timeoutReport.results.length, 0);
   assert.deepEqual(timeoutReport.selectedFixtures, ["small"]);
+  assert.deepEqual(timeoutReport.selectedRenderers, ["webgl"]);
   assert.equal(timeoutReport.fixturePreparation.length, 1);
   assert.equal(timeoutReport.fixturePreparation[0].fixture.name, "small");
   assert.equal(timeoutReport.fixturePreparation[0].status, "timed-out");
@@ -194,7 +195,7 @@ test("checkpoints atomically replace the destination", async (context) => {
   assert.deepEqual(await readdir(directory), ["report.json"]);
 });
 
-test("renderer and scope selectors support defaults, repeats, and commas", () => {
+test("renderer and scope selectors support WebGL-only defaults, repeats, and commas", () => {
   assert.deepEqual(
     parseChoiceValues({
       argumentName: "--renderer",
@@ -202,16 +203,16 @@ test("renderer and scope selectors support defaults, repeats, and commas", () =>
       supported: defaultRenderers,
       defaults: defaultRenderers,
     }),
-    ["svg", "webgl"],
+    ["webgl"],
   );
   assert.deepEqual(
     parseChoiceValues({
       argumentName: "--renderer",
-      values: ["webgl,svg", "webgl"],
+      values: ["webgl", "webgl"],
       supported: defaultRenderers,
       defaults: defaultRenderers,
     }),
-    ["webgl", "svg"],
+    ["webgl"],
   );
   assert.deepEqual(
     parseChoiceValues({
@@ -245,16 +246,41 @@ test("renderer and scope selectors support defaults, repeats, and commas", () =>
 });
 
 test("invalid renderer and scope arguments fail before browser launch", async () => {
-  const invalidRenderer = await runRenderer([
-    "--prepare-only",
-    "--renderer",
-    "canvas",
-  ]);
-  assert.equal(invalidRenderer.code, 1);
-  assert.match(
-    invalidRenderer.stderr,
-    /Unsupported --renderer value "canvas". Expected one of: svg, webgl/,
+  const temporaryDirectory = await mkdtemp(
+    path.join(os.tmpdir(), "topo-renderer-selection-"),
   );
+  try {
+    for (const [value, fileName] of [
+      ["svg", "svg.json"],
+      ["webgl,svg", "mixed.json"],
+      ["canvas", "canvas.json"],
+    ]) {
+      const output = path.join(temporaryDirectory, fileName);
+      const invalidRenderer = await runRenderer([
+        "--prepare-only",
+        "--fixture",
+        "small",
+        "--renderer",
+        value,
+        "--output",
+        output,
+      ]);
+      assert.equal(invalidRenderer.code, 1);
+      assert.match(
+        invalidRenderer.stderr,
+        new RegExp(
+          `Unsupported --renderer value "${value === "webgl,svg" ? "svg" : value}". Expected one of: webgl`,
+        ),
+      );
+      await assert.rejects(stat(output), { code: "ENOENT" });
+    }
+  } finally {
+    await rm(temporaryDirectory, { recursive: true, force: true });
+  }
+
+  const missingRenderer = await runRenderer(["--prepare-only", "--renderer"]);
+  assert.equal(missingRenderer.code, 1);
+  assert.match(missingRenderer.stderr, /--renderer requires a value/);
 
   const missingScope = await runRenderer(["--prepare-only", "--scope"]);
   assert.equal(missingScope.code, 1);

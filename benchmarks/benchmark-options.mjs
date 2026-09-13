@@ -1,4 +1,4 @@
-export const defaultRenderers = ["svg", "webgl"];
+export const defaultRenderers = ["webgl"];
 export const defaultScopes = ["directory", "expanded"];
 
 export function parseChoiceValues({
