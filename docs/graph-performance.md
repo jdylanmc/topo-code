@@ -3,8 +3,8 @@
 This iteration improves graph derivation without changing its output or
 substituting a smaller fixture. It also removes a separate browser-startup
 bottleneck in graph-aware layout validation. The real headless measurements
-are recorded in [renderer.md](./renderer.md); no production renderer has been
-selected.
+are recorded in [renderer.md](./renderer.md), alongside the subsequent
+WebGL-only decision and current 30 FPS whole-workload floor.
 
 ## Measured bottlenecks
 
@@ -141,7 +141,8 @@ from those computation timings. Neither this heap delta nor the browser's
 post-workload heap measures total or peak memory.
 
 The source-pinned [browser results](./renderer.md#projection-session-browser-runs)
-show cheaper layout work but do not establish the expanded-scene >50 FPS gate.
+show cheaper layout work but did not establish the then-current expanded-scene
+>50 FPS gate. That historical outcome is unchanged by the later 30 FPS policy.
 
 ## Reproduction and remaining work
 

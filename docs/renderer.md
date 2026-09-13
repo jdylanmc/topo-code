@@ -195,6 +195,8 @@ architecture, layout, viewport, pointer path, wheel events, directory-collapse
 transition, and keyboard selection. `--renderer webgl` remains accepted for
 script compatibility; SVG or mixed renderer requests fail before preparation.
 Use a new output path rather than overwriting historical evidence.
+The report's `decision: "webgl-only"` records the selected technology, not
+performance acceptance; completion alone does not assert the 30 FPS floor.
 
 The harness records:
 
@@ -624,6 +626,35 @@ geometry, paint, pointer, keyboard and focus checks support fidelity and
 interaction behavior, but do not claim completed human screen-reader or
 forced-colours conformance review. These limitations are recorded rather than
 used to retain a second runtime backend.
+
+### Sole-renderer acceptance observations
+
+[`webgl-only-acceptance.json`](../benchmarks/results/webgl-only-acceptance.json)
+preserves sixteen workload observations: initial and final four-case matrices
+in headless and headed Chrome. The application sources are identical across
+the two captures; the intervening harness-only change corrects the legacy
+decision label. Source commits, harness hashes, the shipped bundle manifest,
+raw frame/event samples, memory observations, and cleanup evidence are included.
+
+The final producer is `9b342cd38965e70549c4734b05af81846de3f1e7`. Its headless
+matrix completes in 35.142 seconds and its headed matrix in 30.835 seconds.
+All sixteen observations meet the 30 whole-workload FPS floor, with verified
+camera/membership/keyboard effects, no page errors, and successful cleanup.
+
+| Fixture | Scope | Final headless FPS | Final headed FPS | Headed JS heap MiB | Headed event-to-next-paint p95 ms |
+|---|---|---:|---:|---:|---:|
+| Mermaid | directory | 59.812 | 74.749 | 23.8 | 64 |
+| Mermaid | expanded | 59.626 | 74.527 | 55.3 | 80 |
+| Visual Studio Code | directory | 57.965 | 71.920 | 754.9 | 144 |
+| Visual Studio Code | expanded | 46.733 | 49.035 | 678.7 | 488 |
+
+Heap values are post-workload samples, not peak or process memory. The latency
+column uses native, duration-quantized `PerformanceEventTiming.duration`, not
+controller wall time. Expanded VSCode still has long frames (599.980 ms
+headless, 548.130 ms headed) and input delay; meeting the aggregate floor does
+not claim a 33.3 ms worst-frame budget or completed accessibility conformance.
+Different display cadences and the removal of interleaved SVG cases mean these
+matrices are not an isolated before/after speedup comparison.
 
 ## Dependencies and licenses
 
