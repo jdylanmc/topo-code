@@ -846,9 +846,7 @@ async function main() {
     fixtures: [],
     results,
     cleanup: [],
-    decision: fixtureNames.some((name) => name === "mermaid" || name === "vscode")
-      ? "pending-visible-browser-validation"
-      : "pending-real-fixtures",
+    decision: "webgl-only",
     currentStage: {
       type: "initialization",
       status: "completed",
