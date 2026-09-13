@@ -109,13 +109,74 @@ publication is deferred; local package names do not establish namespace ownershi
 Requirements:
 
 - Node.js 22 or newer
-- Yarn 4.18.0, activated through Corepack
+- Corepack and the pinned Yarn 4.18.0
+- Git on `PATH` (the regression suite creates local fixture repositories)
+- A Chromium-capable environment with WebGL and permission to bind local test
+  servers; the browser suite reserves port 4178 and must not run concurrently
+  against the same checkout
 
-Run `corepack yarn install --immutable`, then `corepack yarn check`. The root command requires every landed
-package to define `build`, `typecheck`, and `test` scripts. An empty workspace is
-allowed only while the initial package branches have not landed; once a package
-manifest exists, a missing script or failed package command fails the root
-check.
+### Regression testing
+
+From a fresh checkout:
+
+```sh
+corepack yarn install --immutable
+corepack yarn workspace @topo/site exec playwright install --with-deps chromium
+corepack yarn test:regression
+```
+
+Installation needs network access. The Playwright setup downloads a real browser
+and installs Linux system libraries when needed (which may require administrator
+privileges). Repeat browser setup after a Playwright version change. On macOS,
+the current browser configuration prefers installed Google Chrome when available;
+otherwise it uses Playwright's Chromium.
+
+If the registry proxy configured in `.yarnrc.yml` is unavailable, set
+`YARN_NPM_REGISTRY_SERVER=https://registry.npmjs.org` for the immutable install.
+For example, in a POSIX shell:
+
+```sh
+YARN_NPM_REGISTRY_SERVER=https://registry.npmjs.org corepack yarn install --immutable
+```
+
+**`corepack yarn test:regression` is the authoritative local and CI gate.** It runs:
+
+1. `yarn check`: all workspace typechecks, the root build, root and workspace
+   unit/integration tests, and both licence checks.
+2. `yarn workspace @topo/site test:browser`: the entire production Playwright
+   suite, including newly added tests selected by its existing configuration.
+
+The root build verifies and copies shipped third-party notices and the project
+licence into the built site **before CLI and browser tests**. No publication,
+credentials, real model, external frozen repository, or benchmark hardware is
+needed. Browser fixtures are prepared automatically from repository-contained
+inputs. Keep renderer benchmark runs separate from this ordinary regression run.
+
+Successful runs show the Node/Vitest and Playwright results and exit **0**.
+Missing tools/scripts/browser binaries, failed builds, assertions, or licence
+checks exit **nonzero**; the first failed gate stops later gates. Browser startup
+or port conflicts are failures, not skips. Fix the reported cause and rerun the
+same command. CI installs dependencies immutably and a real browser before
+invoking this identical gate.
+
+For a faster non-browser iteration, use `corepack yarn check`; it is **not** the
+complete regression gate. To check orchestration alone, use
+`corepack yarn node --test scripts/test-regression.test.mjs`. Those focused tests
+execute the real Yarn script chain in dependency-free local fixtures with
+controlled gate exits. They protect ordering and failure propagation, not
+application correctness; the full command still runs the real suites.
+
+Fake enrichment providers and synthetic fixture commentary establish the
+runner/data/rendering contract, **not AI semantic quality or real-model latency**.
+The hardware-dependent [renderer measurements](./docs/renderer.md) remain separate
+evidence for the WebGL-only, uncapped **30 whole-workload delivered FPS** floor;
+ordinary regression success is not a new performance measurement or a worst-frame
+guarantee.
+
+### Package and licence checks
+
+The root check requires every landed package to define `build`, `typecheck`, and
+`test` scripts. A missing script or failed package command fails the check.
 
 Every shipped third-party dependency must have an exact range, SPDX licence
 identifier, and evidence URL in `dependency-licenses.json`. Production dependency attribution includes the actual installed transitive
