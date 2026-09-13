@@ -227,6 +227,55 @@ graph/provenance paths, `--preparation-timeout-ms 30000`,
 `--run-timeout-ms 45000`, `--fixture-timeout-ms 180000`,
 `--total-timeout-ms 240000`, and `--cleanup-timeout-ms 3000`.
 
+## Projection-session browser runs
+
+The next iteration reuses isolated topology snapshots and optimizes aggregation;
+it changes neither renderer geometry nor the interaction workload. Capture,
+memory cost, identity parity, and Node-only measurements are documented in
+[graph-performance.md](./graph-performance.md#interactive-projection-sessions).
+
+The complete candidate matrix at commit
+`b182d3836b028ac7fa76763e345b55555f4124f7` is retained in
+[`real-projection-sessions-headless.json`](../benchmarks/results/real-projection-sessions-headless.json).
+All eight workloads completed in **78.164 seconds**, with verified viewport,
+camera, layout membership, and keyboard effects, no page errors, and successful
+owned-resource cleanup. Input hashes, browser, hardware, viewport, and workload
+match the corrected baseline above.
+
+| Fixture | Scope | Renderer | Delivered FPS | Worst frame ms | Last layout ms |
+|---|---|---|---:|---:|---:|
+| Mermaid | directory | SVG | 59.765 | 33.335 | 5.920 |
+| Mermaid | directory | WebGL | 59.811 | 33.330 | 6.835 |
+| Mermaid | expanded | SVG | 59.543 | 33.335 | 15.820 |
+| Mermaid | expanded | WebGL | 59.626 | 50.000 | 14.725 |
+| Visual Studio Code | directory | SVG | 57.738 | 116.660 | 89.065 |
+| Visual Studio Code | directory | WebGL | 57.780 | 116.665 | 83.055 |
+| Visual Studio Code | expanded | SVG | 20.142 | 966.625 | 433.060 |
+| Visual Studio Code | expanded | WebGL | 40.726 | 699.970 | 462.320 |
+
+**The expanded WebGL observation was slower than the earlier 45.504 FPS
+baseline. It has not been discarded or replaced.** To investigate, the merged
+baseline was rebuilt from its exact commit and compared with the candidate in
+baseline-candidate-candidate-baseline order, using a fresh browser per focused
+expanded WebGL run, without concurrent builds, tests, or profiling.
+
+Full records:
+[`real-projection-sessions-paired-webgl.json`](../benchmarks/results/real-projection-sessions-paired-webgl.json).
+
+| Order | Version | Delivered FPS | Worst frame ms | Last layout ms |
+|---|---|---:|---:|---:|
+| 1 | merged baseline | 45.112 | 849.965 | 559.285 |
+| 2 | candidate | 46.391 | 566.645 | 353.725 |
+| 3 | candidate | 46.617 | 616.640 | 391.800 |
+| 4 | merged baseline | 45.838 | 816.635 | 568.290 |
+
+All four focused runs verified the same effects. They did not reproduce the
+full-matrix FPS regression, but two samples per version cannot establish a
+statistical guarantee or explain away the slower observation. They support
+cheaper layout work, **not** a claim that expanded rendering now meets >50 FPS.
+The old baseline, slower full-matrix candidate, matched reruns, raw frame
+intervals, Event Timing samples, and heap readings all remain available.
+
 ## Historical evidence correction
 
 **The real FPS comparisons published with PR #18 are not valid interaction
@@ -271,10 +320,11 @@ measurement flaw and remain valid.
 
 No renderer is selected yet.
 
-The corrected results do not support assuming WebGL is universally faster.
-Both backends exceed 50 average delivered FPS on real Mermaid and
-directory-level Visual Studio Code in this headless run. Both still miss the
-criterion on expanded Visual Studio Code.
+The corrected and subsequent results do not support assuming WebGL is
+universally faster. Both backends exceed 50 average delivered FPS on real
+Mermaid and directory-level Visual Studio Code in these headless runs. Both
+still miss the criterion on expanded Visual Studio Code, including the matched
+projection-session reruns.
 Large-scene improvements, visible-browser measurements, and visual/accessibility
 review remain before recording a production choice.
 

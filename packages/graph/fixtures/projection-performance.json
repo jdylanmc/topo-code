@@ -1,0 +1,130 @@
+{
+  "schemaVersion": "1.0",
+  "environment": {
+    "platform": "darwin",
+    "architecture": "arm64",
+    "cpu": "Apple M5 Pro",
+    "nodeVersion": "v24.20.0"
+  },
+  "method": "Three warm validation/aggregation/collapse/re-expansion iterations in one fresh, 30-second-bounded Node worker per implementation, with Inspector enabled. Fully expanded VSCode graph; collapse directory:typings and re-expand using previous layout. Complete final projection/layout serialized and hashed.",
+  "limitations": "Node timings are not browser FPS. Warm iterations are not independent samples. Heap measurements below are a separate forced-GC experiment with original graph/architecture retained; not total or peak memory.",
+  "baseline": {
+    "sourceCommit": "1d9ca95ad487a2ea9adebcb98cae2ca9b3eb7207",
+    "mode": "live",
+    "nodeVersion": "v24.20.0",
+    "graphId": "repo:microsoft/vscode",
+    "nodes": 9376,
+    "edges": 105549,
+    "inputSha256": "48c16618a1dc37c47738fc1811b1645cc48f329f3936c0cf2aee4483361ec9de",
+    "projectionSha256": "e2b4ba1a3bd7bee27b0f80da45e6651c46605d6cab00ca0699f140ae77fb4a9c",
+    "layoutSha256": "e0b409fac0603946d80176fb1dd166271aeebe89a79d8a2e9137583465d4db0f",
+    "internalSourceSha256": "643f4bb4c02423ebfd5a61b13460ccec8a8e0bf37779316c9e47c46a03c52ef6",
+    "collapseId": "directory:typings",
+    "runs": [
+      {
+        "validationMs": 180.13016700000003,
+        "aggregationMs": 261.32175000000007,
+        "collapseMs": 608.369166,
+        "expandMs": 693.0612920000003
+      },
+      {
+        "validationMs": 198.49775,
+        "aggregationMs": 296.2383329999998,
+        "collapseMs": 581.2615419999997,
+        "expandMs": 614.4633329999997
+      },
+      {
+        "validationMs": 177.86725000000024,
+        "aggregationMs": 287.7459170000002,
+        "collapseMs": 686.8030420000005,
+        "expandMs": 710.7441250000002
+      }
+    ]
+  },
+  "candidate": {
+    "sourceCommit": "b182d3836b028ac7fa76763e345b55555f4124f7",
+    "nodeVersion": "v24.20.0",
+    "graphId": "repo:microsoft/vscode",
+    "nodes": 9376,
+    "edges": 105549,
+    "inputSha256": "48c16618a1dc37c47738fc1811b1645cc48f329f3936c0cf2aee4483361ec9de",
+    "projectionSha256": "e2b4ba1a3bd7bee27b0f80da45e6651c46605d6cab00ca0699f140ae77fb4a9c",
+    "layoutSha256": "e0b409fac0603946d80176fb1dd166271aeebe89a79d8a2e9137583465d4db0f",
+    "internalSourceSha256": "d6008f24aa0d9879b2a5a294d59ace847330ff054f27113d8e7ad1601b7df55b",
+    "collapseId": "directory:typings",
+    "mode": "session",
+    "sessionCreationMs": 189.07558400000005,
+    "runs": [
+      {
+        "validationMs": 221.73304200000007,
+        "aggregationMs": 284.629584,
+        "collapseMs": 349.4115839999997,
+        "expandMs": 364.0592080000001
+      },
+      {
+        "validationMs": 196.93637500000023,
+        "aggregationMs": 241.60462499999994,
+        "collapseMs": 439.6750830000001,
+        "expandMs": 318.82662500000015
+      },
+      {
+        "validationMs": 186.74762499999997,
+        "aggregationMs": 200.34929199999988,
+        "collapseMs": 303.6085830000002,
+        "expandMs": 307.15983400000005
+      }
+    ]
+  },
+  "medians": {
+    "validationMs": {
+      "baseline": 180.13016700000003,
+      "candidate": 196.93637500000023,
+      "speedup": 0.9146617378328398
+    },
+    "aggregationMs": {
+      "baseline": 287.7459170000002,
+      "candidate": 241.60462499999994,
+      "speedup": 1.1909785129320278
+    },
+    "collapseMs": {
+      "baseline": 608.369166,
+      "candidate": 349.4115839999997,
+      "speedup": 1.7411247762180673
+    },
+    "expandMs": {
+      "baseline": 693.0612920000003,
+      "candidate": 318.82662500000015,
+      "speedup": 2.1737873742508174
+    }
+  },
+  "startupAndMemory": {
+    "sourceCommit": "b182d3836b028ac7fa76763e345b55555f4124f7",
+    "nodeVersion": "v24.20.0",
+    "method": "Independent workers, forced GC, original graph and architecture retained in both cases. JS heap only; no browser, GPU, or DOM memory.",
+    "results": [
+      {
+        "mode": "live",
+        "beforeHeapBytes": 366635544,
+        "capturedHeapBytes": 366738696,
+        "snapshotHeapDeltaBytes": 103152,
+        "afterLayoutHeapBytes": 470315128,
+        "sessionCreationMs": 0,
+        "firstLayoutMs": 455.4716669999999,
+        "combinedCreationAndLayoutMs": 455.4716669999999,
+        "layoutSha256": "e0b409fac0603946d80176fb1dd166271aeebe89a79d8a2e9137583465d4db0f"
+      },
+      {
+        "mode": "session",
+        "beforeHeapBytes": 366626176,
+        "capturedHeapBytes": 377906952,
+        "snapshotHeapDeltaBytes": 11280776,
+        "afterLayoutHeapBytes": 481647272,
+        "sessionCreationMs": 185.8196250000001,
+        "firstLayoutMs": 276.9044170000002,
+        "combinedCreationAndLayoutMs": 462.7240420000003,
+        "layoutSha256": "e0b409fac0603946d80176fb1dd166271aeebe89a79d8a2e9137583465d4db0f"
+      }
+    ],
+    "comparison": "Both modes use the same optimized commit; only the isolated session changes. Includes session creation plus first expanded layout, excludes artificial GC pauses."
+  }
+}

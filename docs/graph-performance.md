@@ -3,7 +3,8 @@
 This iteration improves graph derivation without changing its output or
 substituting a smaller fixture. It also removes a separate browser-startup
 bottleneck in graph-aware layout validation. The real headless measurements
-are recorded in [renderer.md](./renderer.md); issue #5 remains open.
+are recorded in [renderer.md](./renderer.md); no production renderer has been
+selected.
 
 ## Measured bottlenecks
 
@@ -76,6 +77,71 @@ acceptance evidence: a later viewport check found that long warning text could
 push the map offscreen. The corrected visible-interaction results and historical
 disqualification are documented in [renderer.md](./renderer.md). The Node
 derivation measurements above do not depend on browser visibility.
+
+## Interactive projection sessions
+
+The next profile found repeated full-graph validation, aggregate construction,
+and tangle lookup during expand/collapse. The live APIs still validate every
+call. The site's new [snapshot session](./graph-layout.md) validates once and
+copies only topology needed by projection, then reuses its private indexes.
+Caller mutation cannot stale the captured topology; reloads require a new
+session. Options, pins, and prior layouts remain per-call inputs.
+
+Other exact-output optimizations apply to both live and session APIs:
+
+- Stable IDs use two 32-bit words instead of per-character BigInt arithmetic.
+  The existing 64-bit FNV calculation, UTF-16 code units, separators, and hex
+  output are unchanged; exhaustive single-code-unit and mixed-string tests
+  compare against the original implementation.
+- Single-member edge aggregates avoid unnecessary grouping structures.
+  Thickness is reused per weight, and already ordered memberships are not
+  sorted again. Maximum weight is accumulated without a function-argument
+  spread, including the 140,000-group regression fixture.
+- Collapsed tangle lookup is indexed once instead of repeatedly scanning
+  the entire tangle population.
+
+Evidence:
+[`projection-performance.json`](../packages/graph/fixtures/projection-performance.json).
+The baseline is merged PR #19, commit
+`1d9ca95ad487a2ea9adebcb98cae2ca9b3eb7207`; the candidate is
+`b182d3836b028ac7fa76763e345b55555f4124f7`.
+
+| VSCode operation | Baseline median | Candidate median | Speedup |
+| --- | ---: | ---: | ---: |
+| edge aggregation | 287.746 ms | 241.605 ms | 1.19x |
+| collapse `directory:typings` | 608.369 ms | 349.412 ms | 1.74x |
+| re-expand with previous layout | 693.061 ms | 318.827 ms | 2.17x |
+
+These are three warm iterations within one fresh, 30-second-bounded Node worker
+per implementation, with Inspector enabled, on the same frozen VSCode input.
+They are not independent statistical samples or browser FPS. The isolated
+full-graph validation call did **not** improve: 180.130 ms versus 196.936 ms.
+Sessions avoid repeating it rather than weakening it.
+
+Complete serialized projection and layout hashes match the baseline:
+
+```text
+projection e2b4ba1a3bd7bee27b0f80da45e6651c46605d6cab00ca0699f140ae77fb4a9c
+layout     e0b409fac0603946d80176fb1dd166271aeebe89a79d8a2e9137583465d4db0f
+```
+
+### Capture cost and retained memory
+
+A separate fresh-worker experiment compares the candidate's live and session
+APIs, retaining the original graph and architecture in both workers and forcing
+garbage collection before heap readings. The session added **11,280,776 bytes
+(about 10.8 MiB)** of retained JavaScript heap. This is topology/index storage,
+not a second full scan copy; evidence and attributes remain in the site's
+original artifacts.
+
+Session creation took 185.820 ms and its first expanded layout 276.904 ms:
+462.724 ms combined, versus 455.472 ms for the live API's first layout. Thus
+this sample shows **no startup speedup**. Artificial GC pauses are excluded
+from those computation timings. Neither this heap delta nor the browser's
+post-workload heap measures total or peak memory.
+
+The source-pinned [browser results](./renderer.md#projection-session-browser-runs)
+show cheaper layout work but do not establish the expanded-scene >50 FPS gate.
 
 ## Reproduction and remaining work
 
