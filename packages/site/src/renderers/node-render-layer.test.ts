@@ -51,7 +51,8 @@ describe("NodeRenderLayer", () => {
     layer.prepare(4096);
     addNodes(layer, 4096);
     for (let iteration = 0; iteration < 3; iteration += 1) {
-      const survivors = layer.children.map((group) => group.children[0]!);
+      const survivors = layer.children.filter((group) => group.children.length > 0)
+        .map((group) => group.children[0]!);
       const survivorSet = new Set(survivors);
       for (const node of orderedNodes(layer)) {
         if (!survivorSet.has(node)) node.destroy();
@@ -67,21 +68,23 @@ describe("NodeRenderLayer", () => {
     layer.destroy({ children: true });
   });
 
-  it("resizes after a large collapse and releases empty groups", () => {
+  it("resizes after a large collapse and disables empty groups", () => {
     const layer = new NodeRenderLayer();
     layer.prepare(9376);
     const nodes = addNodes(layer, 9376);
     const survivors = [nodes[0]!, nodes[5000]!];
     for (const node of nodes) if (!survivors.includes(node)) node.destroy();
     layer.prepare(2);
-    expect(layer.children).toHaveLength(1);
+    expect(layer.activeGroupCount).toBe(1);
+    expect(layer.children.filter((group) => group.renderable)).toHaveLength(1);
     expect(orderedNodes(layer).map((node) => node.uid)).toEqual(survivors.map((node) => node.uid));
     for (const node of survivors) node.destroy();
     layer.prepare(0);
-    expect(layer.children).toHaveLength(0);
+    expect(layer.activeGroupCount).toBe(0);
+    expect(layer.children.every((group) => !group.renderable)).toBe(true);
     layer.prepare(1);
     addNodes(layer, 1);
-    expect(layer.children).toHaveLength(1);
+    expect(layer.activeGroupCount).toBe(1);
     layer.destroy({ children: true });
   });
 
@@ -96,6 +99,22 @@ describe("NodeRenderLayer", () => {
       [...existing, ...added].map((node) => node.uid),
     );
     expect(existing.every((node, index) => node.x === index && node.y === -index)).toBe(true);
+    layer.destroy({ children: true });
+  });
+
+  it("bounds allocated group identities across repeated collapse and re-expansion", () => {
+    const layer = new NodeRenderLayer();
+    const allocated = new Set<number>();
+    for (let iteration = 0; iteration < 40; iteration += 1) {
+      layer.prepare(4096);
+      addNodes(layer, 4096);
+      for (const group of layer.children) allocated.add(group.uid);
+      for (const node of orderedNodes(layer)) node.destroy();
+      layer.prepare(0);
+      expect(layer.activeGroupCount).toBe(0);
+    }
+    expect(allocated.size).toBe(16);
+    expect(layer.children).toHaveLength(16);
     layer.destroy({ children: true });
   });
 });

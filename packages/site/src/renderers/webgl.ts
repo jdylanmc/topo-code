@@ -418,7 +418,8 @@ export class WebGlRenderer implements Renderer {
       resolution: this.#app.renderer.resolution,
       edgeGeometryUpdates: this.#edgeGeometryUpdates,
       cameraRenderGroup: this.#viewport.isRenderGroup,
-      nodeRenderGroupCount: this.#nodes.children.length,
+      nodeRenderGroupCount: this.#nodes.activeGroupCount,
+      nodeRenderGroupPoolSize: this.#nodes.children.length,
     };
   }
 }
