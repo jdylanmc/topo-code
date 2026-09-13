@@ -30,6 +30,11 @@ import {
   BenchmarkPhaseError,
   runBenchmarkPhases,
 } from "./benchmark-phases.mjs";
+import {
+  collapsedDirectoryCandidates,
+  visibleTangleCandidates,
+  verifyLayoutTransition,
+} from "./benchmark-evidence.mjs";
 
 const benchmarkDirectory = path.dirname(fileURLToPath(import.meta.url));
 const rendererPath = path.join(benchmarkDirectory, "renderer-bakeoff.mjs");
@@ -135,6 +140,7 @@ test("preparation deadline terminates CPU-bound work and preserves checkpoints",
   assert.equal(successReport.fixtures[0].name, "small");
   assert.equal(successReport.fixtures[0].nodes, 3);
   assert.equal(successReport.fixtures[0].edges, 1);
+  assert.ok(successReport.currentStage.elapsedMilliseconds > 0);
   assert.ok(
     (await stat(path.join(generatedRoot, "small", "data.json"))).isFile(),
   );
@@ -315,6 +321,77 @@ test("phase deadlines identify the timed-out phase", async () => {
       return true;
     },
   );
+});
+
+test("layout verification accepts equal counts with changed membership", () => {
+  const verification = verifyLayoutTransition(
+    {
+      expandedContainerIds: ["directory:."],
+      visibleEntityIds: ["path:src/only.ts", "external:npm:test"],
+      visibleNodes: 2,
+      visibleEdges: 1,
+    },
+    {
+      expandedContainerIds: ["directory:.", "directory:src"],
+      visibleEntityIds: ["directory:src", "external:npm:test"],
+      visibleNodes: 2,
+      visibleEdges: 1,
+    },
+  );
+
+  assert.deepEqual(verification, {
+    status: "verified",
+    expansionStateChanged: true,
+    visibleMembershipChanged: true,
+  });
+});
+
+test("layout phase records genuine unsupported fixtures as not applicable", async () => {
+  const snapshot = {
+    expandedContainerIds: ["directory:."],
+    visibleEntityIds: ["path:src/a.ts", "path:src/b.ts"],
+  };
+  assert.deepEqual(collapsedDirectoryCandidates(snapshot), []);
+  assert.deepEqual(visibleTangleCandidates(snapshot), []);
+
+  const { phases } = await runBenchmarkPhases({
+    remainingMilliseconds: () => 1000,
+    definitions: [
+      {
+        name: "layout-transition",
+        run: async () => ({
+          phaseStatus: "not-applicable",
+          reason:
+            "Fixture projection has no non-root expandable directory or tangle.",
+          effectVerification: { status: "not-applicable" },
+        }),
+      },
+    ],
+  });
+
+  assert.equal(phases[0].status, "not-applicable");
+  assert.equal(
+    phases[0].observation.effectVerification.status,
+    "not-applicable",
+  );
+  assert.match(phases[0].observation.reason, /no non-root expandable/);
+});
+
+test("layout verification rejects expansion without membership change", () => {
+  const verification = verifyLayoutTransition(
+    {
+      expandedContainerIds: ["directory:."],
+      visibleEntityIds: ["path:src/only.ts"],
+    },
+    {
+      expandedContainerIds: ["directory:.", "directory:src"],
+      visibleEntityIds: ["path:src/only.ts"],
+    },
+  );
+
+  assert.equal(verification.status, "failed");
+  assert.equal(verification.expansionStateChanged, true);
+  assert.equal(verification.visibleMembershipChanged, false);
 });
 
 test("cleanup force-stops an owned browser and still releases the server port", async () => {

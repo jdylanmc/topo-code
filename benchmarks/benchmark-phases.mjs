@@ -31,18 +31,29 @@ export async function runBenchmarkPhases({
         deadlineMilliseconds,
         () => definition.run(observations),
       );
+      const phaseStatus = observation?.phaseStatus ?? "completed";
+      const recordedObservation =
+        observation?.phaseStatus === undefined
+          ? observation
+          : Object.fromEntries(
+              Object.entries(observation).filter(
+                ([key]) => key !== "phaseStatus",
+              ),
+            );
       const phase = {
         name: definition.name,
-        status: "completed",
+        status: phaseStatus,
         timing: {
           source: "controller-wall-clock",
           durationMilliseconds: performance.now() - startedAt,
           deadlineMilliseconds,
         },
-        ...(observation === undefined ? {} : { observation }),
+        ...(recordedObservation === undefined
+          ? {}
+          : { observation: recordedObservation }),
       };
       phases.push(phase);
-      observations[definition.name] = observation;
+      observations[definition.name] = recordedObservation;
     } catch (error) {
       phases.push({
         name: definition.name,

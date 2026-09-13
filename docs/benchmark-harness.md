@@ -91,16 +91,21 @@ and waits and is not input-to-paint latency. Raw `requestAnimationFrame`
 intervals and browser `PerformanceEventTiming` entries remain the rendering and
 input responsiveness evidence.
 
-Layout transitions retain before/after scene and expansion snapshots and fail
-if the requested expand/collapse action does not change both. Keyboard
-activation retains before/after selection state and fails unless the requested
-entity becomes selected. Pan and zoom similarly look for
-`snapshot().viewTransform`. Until the site benchmark API exposes that read-only
-field, those phases are explicitly `unavailable` and the workload is
-`incomplete`, rather than silently reporting a successful interaction.
-The required site-owned extension is
-`AppSnapshot.viewTransform: ViewTransform`, populated read-only from
-`this.#renderer?.getTransform()` in `benchmarkApi().snapshot()`.
+Layout transitions retain before/after expansion state and
+`visibleEntityIds`. They require expansion-state and visible-membership changes;
+equal node/edge counts are valid when one visible member replaces another.
+Missing controls fail when the snapshot says an action should exist. A fixture
+with no eligible non-root directory records the phase as `not-applicable` with
+a reason; the workload is `completed-with-not-applicable` and does not claim
+layout-transition acceptance.
+
+Keyboard activation retains before/after selection state and fails unless the
+requested entity becomes selected. Pan and zoom similarly look for
+`snapshot().viewTransform`. Until that read-only field is available, those
+phases are explicitly `unavailable` and the workload is `incomplete`, rather
+than silently reporting a successful interaction. The site-owned snapshot
+fields consumed by the harness are `viewTransform: ViewTransform`,
+`visibleEntityIds: string[]`, and optional `focusedEntityId`.
 
 Worker termination is awaited. Browser contexts, the browser instance, and the
 fixture server are closed by the parent with bounded cleanup. The browser is

@@ -27,6 +27,11 @@ import {
   BenchmarkPhaseError,
   runBenchmarkPhases,
 } from "./benchmark-phases.mjs";
+import {
+  collapsedDirectoryCandidates,
+  visibleTangleCandidates,
+  verifyLayoutTransition,
+} from "./benchmark-evidence.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const chromePath =
@@ -242,6 +247,10 @@ function sceneObservation(snapshot) {
     visibleEdges: snapshot.visibleEdges,
     expandedContainerIds: snapshot.expandedContainerIds,
     collapsedTangleIds: snapshot.collapsedTangleIds,
+    focusedEntityId: snapshot.focusedEntityId ?? null,
+    ...(snapshot.visibleEntityIds === undefined
+      ? {}
+      : { visibleEntityIds: snapshot.visibleEntityIds }),
     selectedEntityId: snapshot.selectedEntityId ?? null,
     ...(snapshot.viewTransform === undefined
       ? {}
@@ -402,22 +411,77 @@ async function runWorkload(
             window.__TOPO_BENCHMARK__.snapshot(),
           );
           let control;
+          let action;
           if (scope === "expanded") {
-            control = page.locator(".expanded-list button").first();
+            const nonRootExpanded = before.expandedContainerIds.filter(
+              (id) => id !== "directory:.",
+            );
+            if (nonRootExpanded.length > 0) {
+              control = page.locator(".expanded-list button").first();
+              action = "collapse-directory";
+            } else {
+              const tangleCandidates = visibleTangleCandidates(before);
+              if (tangleCandidates === undefined) {
+                throw new Error(
+                  "Cannot distinguish an unsupported fixture from a missing tangle control without snapshot().visibleEntityIds.",
+                );
+              }
+              if (tangleCandidates.length > 0) {
+                control = page.locator(".cycle-list button").first();
+                action = "toggle-tangle";
+              }
+            }
           } else {
-            const candidates = page.locator(
-              '.webgl-a11y button[data-entity-id^="directory:"]',
-            );
-            const candidateIds = await candidates.evaluateAll((elements) =>
-              elements.map((element) => element.dataset.entityId ?? null),
-            );
-            const candidateIndex = candidateIds.findIndex(
-              (id) => id && !before.expandedContainerIds.includes(id),
-            );
-            if (candidateIndex >= 0) control = candidates.nth(candidateIndex);
+            const expectedCandidates = collapsedDirectoryCandidates(before);
+            if (expectedCandidates === undefined) {
+              throw new Error(
+                "Cannot distinguish an unsupported fixture from a missing expand control without snapshot().visibleEntityIds.",
+              );
+            }
+            if (expectedCandidates.length > 0) {
+              const candidates = page.locator(
+                '.webgl-a11y button[data-entity-id^="directory:"]',
+              );
+              const candidateIds = await candidates.evaluateAll((elements) =>
+                elements.map((element) => element.dataset.entityId ?? null),
+              );
+              const candidateIndex = candidateIds.findIndex(
+                (id) => id && !before.expandedContainerIds.includes(id),
+              );
+              if (candidateIndex >= 0) {
+                control = candidates.nth(candidateIndex);
+                action = "expand-directory";
+              }
+            } else {
+              const tangleCandidates = visibleTangleCandidates(before);
+              if (tangleCandidates.length > 0) {
+                control = page.locator(".cycle-list button").first();
+                action = "toggle-tangle";
+              }
+            }
           }
           if (!control) {
-            throw new Error("No collapsed directory was available to expand.");
+            const expectedDirectory =
+              scope === "expanded"
+                ? before.expandedContainerIds.some(
+                    (id) => id !== "directory:.",
+                  )
+                : collapsedDirectoryCandidates(before).length > 0;
+            const expectedTangle =
+              visibleTangleCandidates(before)?.length > 0;
+            if (expectedDirectory || expectedTangle) {
+              throw new Error(
+                "Snapshot reported an expandable directory/tangle, but no matching control was available.",
+              );
+            }
+            return {
+              phaseStatus: "not-applicable",
+              action: null,
+              reason:
+                "Fixture projection has no non-root expandable directory or tangle.",
+              before: sceneObservation(before),
+              effectVerification: { status: "not-applicable" },
+            };
           }
           if ((await control.count()) === 0) {
             throw new Error(
@@ -430,27 +494,18 @@ async function runWorkload(
           const after = await page.evaluate(() =>
             window.__TOPO_BENCHMARK__.snapshot(),
           );
-          const expansionChanged =
-            JSON.stringify(before.expandedContainerIds) !==
-            JSON.stringify(after.expandedContainerIds);
-          const sceneChanged =
-            before.visibleNodes !== after.visibleNodes ||
-            before.visibleEdges !== after.visibleEdges;
-          if (!expansionChanged || !sceneChanged) {
+          const effectVerification = verifyLayoutTransition(before, after);
+          if (effectVerification.status === "failed") {
             throw new Error(
-              `The ${scope === "expanded" ? "collapse" : "expand"} action did not change expansion and scene state.`,
+              `The ${scope === "expanded" ? "collapse" : "expand"} action was not verified: ${effectVerification.reason}`,
             );
           }
           return {
-            action: scope === "expanded" ? "collapse" : "expand",
+            action,
             controlLabel,
             before: sceneObservation(before),
             after: sceneObservation(after),
-            effectVerification: {
-              status: "verified",
-              expansionChanged,
-              sceneChanged,
-            },
+            effectVerification,
           };
         },
       },
@@ -482,6 +537,14 @@ async function runWorkload(
               `Keyboard activation selected "${after.selectedEntityId ?? "nothing"}" instead of "${targetEntityId}".`,
             );
           }
+          if (
+            after.focusedEntityId !== undefined &&
+            after.focusedEntityId !== targetEntityId
+          ) {
+            throw new Error(
+              `Keyboard activation focused "${after.focusedEntityId ?? "nothing"}" instead of "${targetEntityId}".`,
+            );
+          }
           return {
             targetEntityId,
             before: sceneObservation(before),
@@ -491,6 +554,10 @@ async function runWorkload(
               selectedTarget: true,
               selectionChanged:
                 before.selectedEntityId !== after.selectedEntityId,
+              focusedTarget:
+                after.focusedEntityId === undefined
+                  ? "unavailable"
+                  : after.focusedEntityId === targetEntityId,
             },
           };
         },
@@ -542,9 +609,20 @@ async function runWorkload(
         phase.observation.effectVerification.status !== "verified",
     )
     .map((phase) => phase.name);
+  const notApplicablePhases = phases
+    .filter((phase) => phase.status === "not-applicable")
+    .map((phase) => phase.name);
+  const incompleteEffects = unverifiedEffects.filter(
+    (phaseName) => !notApplicablePhases.includes(phaseName),
+  );
 
   return {
-    status: unverifiedEffects.length === 0 ? "completed" : "incomplete",
+    status:
+      incompleteEffects.length > 0
+        ? "incomplete"
+        : notApplicablePhases.length > 0
+          ? "completed-with-not-applicable"
+          : "completed",
     fixture: fixture.name,
     fixtureKind: fixture.fixtureKind,
     renderer,
@@ -571,8 +649,14 @@ async function runWorkload(
       phases,
     },
     effectVerification: {
-      status: unverifiedEffects.length === 0 ? "verified" : "incomplete",
-      unverifiedPhases: unverifiedEffects,
+      status:
+        incompleteEffects.length > 0
+          ? "incomplete"
+          : notApplicablePhases.length > 0
+            ? "verified-with-not-applicable"
+            : "verified",
+      unverifiedPhases: incompleteEffects,
+      notApplicablePhases,
     },
     frames: {
       rawIntervalsMs: collected.frames.map((value) => round(value)),
@@ -714,7 +798,7 @@ async function main() {
     report.currentStage = {
       type: "finished",
       status: report.status,
-      elapsedMilliseconds: 0,
+      elapsedMilliseconds: Date.now() - runStartedAt,
     };
     await writeCheckpoint();
     process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
@@ -896,7 +980,10 @@ async function main() {
               remainingWorkloadMilliseconds,
             );
             results.push(result);
-            if (result.status === "completed") {
+            if (
+              result.status === "completed" ||
+              result.status === "completed-with-not-applicable"
+            ) {
               report.currentStage.status = "completed";
             } else {
               failed = true;
