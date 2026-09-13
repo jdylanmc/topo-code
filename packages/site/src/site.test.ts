@@ -8,6 +8,7 @@ import { deriveArchitecture, layoutGraph } from "@topo/graph";
 import { getEntityDetails } from "./details.js";
 import { ArtifactLoadError, loadArtifacts } from "./load.js";
 import type { CuratedViewsSnapshot } from "@topo/views";
+import { BUILTIN_MODULE_MANIFESTS, composeModules } from "@topo/modules";
 
 function fixture(): GraphDocument {
   return createGraphDocument({
@@ -81,6 +82,29 @@ afterEach(() => {
 });
 
 describe("site data contract", () => {
+  it("renders understood modules while a missing compiled module stays non-authoritative", async () => {
+    const graph = composeModules(fixture(), ["@topo/module-degree", "@topo/module-cycles"]);
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(envelope(graph)))));
+    const artifacts = await loadArtifacts(BUILTIN_MODULE_MANIFESTS.filter((entry) => entry.id === "@topo/module-degree"));
+    expect(artifacts.graph).toEqual(graph);
+    expect(artifacts.quality.authoritative).toBe(false);
+    expect(artifacts.quality.warnings.join(" ")).toContain("@topo/module-cycles");
+    const full = await loadArtifacts();
+    expect(full.quality.authoritative).toBe(true);
+  });
+
+  it("keeps unknown versions opaque but rejects malformed compatible module values", async () => {
+    const graph = composeModules(fixture(), ["@topo/module-degree"]);
+    const attribute = graph.attributes.find((entry) => entry.provenance.moduleId === "@topo/module-degree")!;
+    attribute.value = "not a count";
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(envelope(graph)))));
+    await expect(loadArtifacts()).rejects.toThrow("module contributions");
+    graph.modules.find((entry) => entry.id === "@topo/module-degree")!.version = "999.0.0";
+    const artifacts = await loadArtifacts();
+    expect(artifacts.quality.authoritative).toBe(false);
+    expect(artifacts.graph.attributes.find((entry) => entry.id === attribute.id)?.value).toBe("not a count");
+  });
+
   it.each([true, false])("loads curated snapshots with local editing capability: %s", async (editable) => {
     const curatedViews: CuratedViewsSnapshot = {
       schemaVersion: "1.0", graphHash: "a".repeat(64), views: [{

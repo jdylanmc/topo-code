@@ -1,8 +1,12 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
+import { selectSiteModules } from "./module-build.js";
 
 export default defineConfig({
   base: "./",
+  define: {
+    __TOPO_SITE_MODULE_MANIFESTS__: JSON.stringify(selectSiteModules(process.env.TOPO_SITE_MODULES)),
+  },
   resolve: {
     alias: {
       "ajv/dist/runtime/equal.js": fileURLToPath(

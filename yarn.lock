@@ -180,6 +180,7 @@ __metadata:
   resolution: "@topo/cli@workspace:packages/cli"
   dependencies:
     "@topo/graph": "workspace:*"
+    "@topo/modules": "workspace:*"
     "@topo/reports": "workspace:*"
     "@topo/scanner": "workspace:*"
     "@topo/schema": "workspace:*"
@@ -199,6 +200,18 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@topo/graph@workspace:packages/graph"
   dependencies:
+    "@topo/schema": "workspace:*"
+    typescript: "npm:^7.0.2"
+    vite: "npm:8.2.2"
+    vitest: "npm:^5.0.0"
+  languageName: unknown
+  linkType: soft
+
+"@topo/modules@workspace:*, @topo/modules@workspace:packages/modules":
+  version: 0.0.0-use.local
+  resolution: "@topo/modules@workspace:packages/modules"
+  dependencies:
+    "@topo/graph": "workspace:*"
     "@topo/schema": "workspace:*"
     typescript: "npm:^7.0.2"
     vite: "npm:8.2.2"
@@ -251,6 +264,7 @@ __metadata:
   dependencies:
     "@playwright/test": "npm:^1.55.0"
     "@topo/graph": "workspace:*"
+    "@topo/modules": "workspace:*"
     "@topo/schema": "workspace:*"
     "@topo/views": "workspace:*"
     "@types/node": "npm:^22.18.0"

@@ -101,5 +101,5 @@ from that exact commit and has SHA-256
 
 The generated file contains package/version ordering, alias information, and
 dependency-chain provenance, but never local absolute paths or credentials.
-The current integrated runtime closure contains 58 dependencies, including
+The WebGL-only integrated runtime closure contains 20 dependencies, including
 `ignore@7.0.8`.

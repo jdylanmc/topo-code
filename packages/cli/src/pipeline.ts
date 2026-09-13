@@ -15,6 +15,11 @@ import {
   type LayoutResult,
 } from "@topo/graph";
 import {
+  BUILTIN_MODULE_MANIFESTS,
+  composeModules,
+  validateModuleCatalog,
+} from "@topo/modules";
+import {
   normalizeReports,
   parseReport,
   serializeDashboard,
@@ -91,6 +96,13 @@ function bundle(
   return `{"schemaVersion":"1.0","graph":${serializeGraphDocument(graph).trim()},"layout":${serializeLayoutDeterministic(layout.layout).trim()},"architecture":${serializeArchitecture(architecture).trim()},"dashboard":${dashboard === null ? "null" : serializeDashboard(dashboard).trim()},"curatedViews":${serializeCuratedViewsSnapshot(curatedViews).trim()}}\n`;
 }
 
+function composeConfiguredGraph(graph: GraphDocument, enabledModuleIds: readonly string[]): GraphDocument {
+  validateModuleCatalog(BUILTIN_MODULE_MANIFESTS);
+  const composed = composeModules(graph, enabledModuleIds);
+  assertGraphDocument(composed);
+  return composed;
+}
+
 export async function generateArtifacts(
   root: string,
   graph: GraphDocument,
@@ -100,16 +112,17 @@ export async function generateArtifacts(
   return withWorkspaceLock(root, async () => {
     const config = await loadConfig(root);
     if (config.repositoryId !== graph.repository.id) throw new Error("Graph repository identity differs from .topo/config.json");
+    const composedGraph = composeConfiguredGraph(graph, config.modules);
     const previous = await readOptionalArtifact(root, "graph/layout.json");
     const pins = await readOptionalArtifact(root, "metadata/pins.json");
-    const architecture = deriveArchitecture(graph);
-    const layout = layoutGraphWithArchitecture(graph, architecture, { previous, pins });
+    const architecture = deriveArchitecture(composedGraph);
+    const layout = layoutGraphWithArchitecture(composedGraph, architecture, { previous, pins });
     const reports = await storedReports(root);
-    const dashboard = reports.length ? normalizeReports(reports, graph) : null;
-    const curatedViews = await buildCuratedViews(root, graph);
-    const data = bundle(graph, architecture, layout, dashboard, curatedViews.snapshot);
+    const dashboard = reports.length ? normalizeReports(reports, composedGraph) : null;
+    const curatedViews = await buildCuratedViews(root, composedGraph);
+    const data = bundle(composedGraph, architecture, layout, dashboard, curatedViews.snapshot);
     await copySite(root, siteAssets);
-    await writeGenerated(root, "graph/graph.json", serializeGraphDocument(graph));
+    await writeGenerated(root, "graph/graph.json", serializeGraphDocument(composedGraph));
     await writeGenerated(root, "graph/layout.json", serializeLayoutDeterministic(layout.layout));
     await writeGenerated(root, "graph/architecture.json", serializeArchitecture(architecture));
     await writeGenerated(root, "reports/outputs/layout-delta.json", `${JSON.stringify({ delta: layout.delta, warnings: layout.warnings }, null, 2)}\n`);
@@ -132,15 +145,16 @@ export async function ingestReports(root: string, inputPaths: string[], siteAsse
     }
     const config = await loadConfig(root);
     if (config.repositoryId !== graph.repository.id) throw new Error("Graph repository identity differs from .topo/config.json");
+    const composedGraph = composeConfiguredGraph(graph, config.modules);
     const incoming = await Promise.all(inputPaths.map(async (path) => parseReport(JSON.parse(await readFile(path, "utf8")) as unknown)));
     const existing = await storedReports(root);
-    const dashboard = normalizeReports([...existing, ...incoming], graph);
+    const dashboard = normalizeReports([...existing, ...incoming], composedGraph);
     const previous = await readArtifact(root, "graph/layout.json");
     const pins = await readOptionalArtifact(root, "metadata/pins.json");
-    const architecture = deriveArchitecture(graph);
-    const layout = layoutGraphWithArchitecture(graph, architecture, { previous, pins });
-    const curatedViews = await buildCuratedViews(root, graph);
-    const data = bundle(graph, architecture, layout, dashboard, curatedViews.snapshot);
+    const architecture = deriveArchitecture(composedGraph);
+    const layout = layoutGraphWithArchitecture(composedGraph, architecture, { previous, pins });
+    const curatedViews = await buildCuratedViews(root, composedGraph);
+    const data = bundle(composedGraph, architecture, layout, dashboard, curatedViews.snapshot);
     for (const report of incoming) {
       const serialized = serializeReport(report);
       const fingerprint = createHash("sha256").update(serialized).digest("hex");
@@ -154,6 +168,10 @@ export async function ingestReports(root: string, inputPaths: string[], siteAsse
       }
     }
     await copySite(root, siteAssets);
+    await writeGenerated(root, "graph/graph.json", serializeGraphDocument(composedGraph));
+    await writeGenerated(root, "graph/layout.json", serializeLayoutDeterministic(layout.layout));
+    await writeGenerated(root, "graph/architecture.json", serializeArchitecture(architecture));
+    await writeGenerated(root, "reports/outputs/layout-delta.json", `${JSON.stringify({ delta: layout.delta, warnings: layout.warnings }, null, 2)}\n`);
     await writeGenerated(root, "reports/outputs/dashboard.json", serializeDashboard(dashboard));
     await writeGenerated(root, "reports/outputs/curated-views.json", serializeCuratedViewsSnapshot(curatedViews.snapshot));
     await writeGenerated(root, "reports/outputs/curated-view-deltas.json", serializeCuratedViewDeltas(curatedViews));

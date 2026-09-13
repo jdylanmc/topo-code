@@ -18,6 +18,7 @@ import { WebGlInitializationError, WebGlRenderer } from "./renderers/webgl.js";
 import { FIT_PADDING, fitScale, ZoomLimits } from "./zoom.js";
 import { CurationController } from "./curation.js";
 import { requiredElement } from "./dom.js";
+import { ModuleViewsController } from "./module-views.js";
 
 function compareText(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
@@ -65,6 +66,7 @@ class TopoApp {
   readonly #resizeObserver = new ResizeObserver(() => this.#renderer?.resize());
   #keyboardNavigation = false;
   #curation: CurationController | undefined;
+  #modules: ModuleViewsController | undefined;
   #activeView: CuratedViewDefinition | undefined;
   #viewMemberIds: Set<string> | undefined;
   #repositoryState: ViewState;
@@ -161,6 +163,7 @@ class TopoApp {
             <section data-details="expanded"></section>
             <section data-details="cycles"></section>
             <section data-details="selection"></section>
+            <section data-details="modules"></section>
           </aside>
         </section>
       </main>
@@ -173,6 +176,9 @@ class TopoApp {
         this.#zoomLimits,
       );
       const artifacts = this.#model.artifacts;
+      this.#modules = new ModuleViewsController(
+        requiredElement(this.#root, '[data-details="modules"]'), artifacts.graph,
+      );
       this.#curation = new CurationController(this.#root, {
         graph: artifacts.graph,
         architecture: artifacts.architecture,
@@ -380,6 +386,7 @@ class TopoApp {
       : "";
     this.#lastLayoutState = copyViewState(this.#model.state);
     this.#curation?.updateSelection();
+    this.#modules?.updateSelection(this.#model.state.selectedEntityId);
     if (hadMapFocus && !active.isConnected) mapHost.focus({ preventScroll: true });
   }
 
@@ -584,6 +591,7 @@ class TopoApp {
     );
     this.#renderSelection();
     this.#curation?.updateSelection();
+    this.#modules?.updateSelection(this.#model.state.selectedEntityId);
   }
 
   #activate(entityId: string): void {

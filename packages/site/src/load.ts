@@ -14,17 +14,8 @@ import type {
   LoadedArtifacts,
 } from "./contracts.js";
 import { parseCuratedViewsSnapshot } from "@topo/views";
-
-const SUPPORTED_MODULES = {
-  "@topo/scanner-typescript": {
-    version: "0.0.0",
-    schemaVersion: "1.0",
-  },
-  "@topo/test": {
-    version: "1.0.0",
-    schemaVersion: "1.0",
-  },
-} as const;
+import { validateModuleContributions, type StaticModuleManifest } from "@topo/modules";
+import { COMPILED_MODULE_MANIFESTS, supportedSiteModules } from "./compiled-modules.js";
 
 export class ArtifactLoadError extends Error {
   readonly artifact: string;
@@ -190,17 +181,24 @@ function validateLayout(value: unknown, graph: GraphDocument): LayoutDocument {
   return layout;
 }
 
-export async function loadArtifacts(): Promise<LoadedArtifacts> {
+export async function loadArtifacts(
+  compiledModules: readonly StaticModuleManifest[] = COMPILED_MODULE_MANIFESTS,
+): Promise<LoadedArtifacts> {
   const response = await fetchRequiredJson("./data.json", "data.json");
   const envelope = validateEnvelope(response.value);
   let parsedGraph: ReturnType<typeof parseGraphDocument>;
   try {
     parsedGraph = parseGraphDocument(
       JSON.stringify(envelope.graph),
-      SUPPORTED_MODULES,
+      supportedSiteModules(compiledModules),
     );
   } catch (error) {
     throw new ArtifactLoadError("data.json graph", error);
+  }
+  try {
+    validateModuleContributions(parsedGraph.document, compiledModules);
+  } catch (error) {
+    throw new ArtifactLoadError("data.json module contributions", error);
   }
 
   const layout = validateLayout(envelope.layout, parsedGraph.document);

@@ -1,0 +1,260 @@
+{
+  "schemaVersion": "1.0",
+  "sourceCommit": "df8bf5157623ba3c07d4d80165bc62e933e34044",
+  "sourceTree": "4a90b288636de9ca250ce94fb791a2fce3118f4f",
+  "acceptedFloorFps": 30,
+  "metric": "Unchanged whole-workload delivered FPS; uncapped; long frames retained.",
+  "note": "Same production bundle, no modules versus both built-ins, with and without curated path filtering. Curated membership and browser display cadence differ; no isolated speedup claim. All attempts retained.",
+  "fixtures": [
+    {
+      "name": "mermaid-full",
+      "sha256": "8f78a3633451bf137620258e8546edad555559d3c454d7902352cf60df6779a1"
+    },
+    {
+      "name": "vscode-src",
+      "sha256": "48c16618a1dc37c47738fc1811b1645cc48f329f3936c0cf2aee4483361ec9de"
+    }
+  ],
+  "captures": [
+    {
+      "name": "core-headless",
+      "report": "benchmarks/results/module-composition-core-headless.json",
+      "exitCode": 0,
+      "accepted": true,
+      "rows": [
+        {
+          "fixture": "mermaid",
+          "scope": "directory",
+          "status": "completed",
+          "fps": 59.811,
+          "maximumFrameMs": 33.335000000000036,
+          "valid": true
+        },
+        {
+          "fixture": "mermaid",
+          "scope": "expanded",
+          "status": "completed",
+          "fps": 59.257,
+          "maximumFrameMs": 66.66499999999996,
+          "valid": true
+        },
+        {
+          "fixture": "vscode",
+          "scope": "directory",
+          "status": "completed",
+          "fps": 57.794,
+          "maximumFrameMs": 116.66499999999996,
+          "valid": true
+        },
+        {
+          "fixture": "vscode",
+          "scope": "expanded",
+          "status": "completed",
+          "fps": 46.365,
+          "maximumFrameMs": 566.6450000000004,
+          "valid": true
+        }
+      ]
+    },
+    {
+      "name": "enabled-headless",
+      "report": "benchmarks/results/module-composition-enabled-headless.json",
+      "exitCode": 0,
+      "accepted": true,
+      "rows": [
+        {
+          "fixture": "mermaid",
+          "scope": "directory",
+          "status": "completed",
+          "fps": 59.813,
+          "maximumFrameMs": 33.32999999999993,
+          "valid": true
+        },
+        {
+          "fixture": "mermaid",
+          "scope": "expanded",
+          "status": "completed",
+          "fps": 59.447,
+          "maximumFrameMs": 50,
+          "valid": true
+        },
+        {
+          "fixture": "vscode",
+          "scope": "directory",
+          "status": "completed",
+          "fps": 57.984,
+          "maximumFrameMs": 116.65999999999985,
+          "valid": true
+        },
+        {
+          "fixture": "vscode",
+          "scope": "expanded",
+          "status": "completed",
+          "fps": 47.679,
+          "maximumFrameMs": 483.3150000000005,
+          "valid": true
+        }
+      ]
+    },
+    {
+      "name": "curated-headless",
+      "report": "benchmarks/results/module-composition-curated-headless.json",
+      "exitCode": 0,
+      "accepted": true,
+      "rows": [
+        {
+          "fixture": "mermaid",
+          "scope": "directory",
+          "status": "completed",
+          "fps": 59.841,
+          "maximumFrameMs": 33.32500000000073,
+          "valid": true
+        },
+        {
+          "fixture": "mermaid",
+          "scope": "expanded",
+          "status": "completed",
+          "fps": 59.814,
+          "maximumFrameMs": 33.335000000000036,
+          "valid": true
+        },
+        {
+          "fixture": "vscode",
+          "scope": "directory",
+          "status": "completed",
+          "fps": 58.507,
+          "maximumFrameMs": 83.33499999999913,
+          "valid": true
+        },
+        {
+          "fixture": "vscode",
+          "scope": "expanded",
+          "status": "completed",
+          "fps": 49.396,
+          "maximumFrameMs": 483.3150000000005,
+          "valid": true
+        }
+      ]
+    },
+    {
+      "name": "core-headed",
+      "report": "benchmarks/results/module-composition-core-headed.json",
+      "exitCode": 0,
+      "accepted": true,
+      "rows": [
+        {
+          "fixture": "mermaid",
+          "scope": "directory",
+          "status": "completed",
+          "fps": 142.158,
+          "maximumFrameMs": 27.855000000000018,
+          "valid": true
+        },
+        {
+          "fixture": "mermaid",
+          "scope": "expanded",
+          "status": "completed",
+          "fps": 140.149,
+          "maximumFrameMs": 55.554999999999836,
+          "valid": true
+        },
+        {
+          "fixture": "vscode",
+          "scope": "directory",
+          "status": "completed",
+          "fps": 131.34,
+          "maximumFrameMs": 117.71500000000015,
+          "valid": true
+        },
+        {
+          "fixture": "vscode",
+          "scope": "expanded",
+          "status": "completed",
+          "fps": 48.344,
+          "maximumFrameMs": 597.2250000000004,
+          "valid": true
+        }
+      ]
+    },
+    {
+      "name": "enabled-headed",
+      "report": "benchmarks/results/module-composition-enabled-headed.json",
+      "exitCode": 0,
+      "accepted": true,
+      "rows": [
+        {
+          "fixture": "mermaid",
+          "scope": "directory",
+          "status": "completed",
+          "fps": 142.159,
+          "maximumFrameMs": 27.480000000000018,
+          "valid": true
+        },
+        {
+          "fixture": "mermaid",
+          "scope": "expanded",
+          "status": "completed",
+          "fps": 139.781,
+          "maximumFrameMs": 62.57499999999982,
+          "valid": true
+        },
+        {
+          "fixture": "vscode",
+          "scope": "directory",
+          "status": "completed",
+          "fps": 131.949,
+          "maximumFrameMs": 125,
+          "valid": true
+        },
+        {
+          "fixture": "vscode",
+          "scope": "expanded",
+          "status": "completed",
+          "fps": 48.542,
+          "maximumFrameMs": 506.9500000000007,
+          "valid": true
+        }
+      ]
+    },
+    {
+      "name": "curated-headed",
+      "report": "benchmarks/results/module-composition-curated-headed.json",
+      "exitCode": 0,
+      "accepted": true,
+      "rows": [
+        {
+          "fixture": "mermaid",
+          "scope": "directory",
+          "status": "completed",
+          "fps": 142.568,
+          "maximumFrameMs": 34.445000000000164,
+          "valid": true
+        },
+        {
+          "fixture": "mermaid",
+          "scope": "expanded",
+          "status": "completed",
+          "fps": 141.109,
+          "maximumFrameMs": 41.67000000000007,
+          "valid": true
+        },
+        {
+          "fixture": "vscode",
+          "scope": "directory",
+          "status": "completed",
+          "fps": 134.991,
+          "maximumFrameMs": 104.33999999999924,
+          "valid": true
+        },
+        {
+          "fixture": "vscode",
+          "scope": "expanded",
+          "status": "completed",
+          "fps": 50.664,
+          "maximumFrameMs": 500.0049999999992,
+          "valid": true
+        }
+      ]
+    }
+  ]
+}
