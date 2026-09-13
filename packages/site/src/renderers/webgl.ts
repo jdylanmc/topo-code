@@ -18,6 +18,7 @@ import type {
 import { accessibleLabel, COLORS, nodeColor } from "./renderer.js";
 import { sameNodeAppearance, sameSceneEdges, SceneInteraction } from "./render-state.js";
 import { fitScale, ZoomLimits } from "../zoom.js";
+import { NodeRenderLayer } from "./node-render-layer.js";
 
 interface DisplayNode {
   container: Container;
@@ -36,7 +37,7 @@ export class WebGlRenderer implements Renderer {
   readonly #app = new Application();
   readonly #viewport = new Container({ isRenderGroup: true });
   readonly #edges = new Graphics();
-  readonly #nodes = new Container();
+  readonly #nodes = new NodeRenderLayer();
   readonly #displayNodes = new Map<string, DisplayNode>();
   readonly #movingNodes = new Set<DisplayNode>();
   readonly #interaction = new SceneInteraction();
@@ -177,6 +178,7 @@ export class WebGlRenderer implements Renderer {
       display.container.destroy({ children: true });
       this.#displayNodes.delete(id);
     }
+    this.#nodes.prepare(scene.nodes.length);
 
     for (const node of scene.nodes) {
       let display = this.#displayNodes.get(node.entity.id);
@@ -202,7 +204,7 @@ export class WebGlRenderer implements Renderer {
           else this.#callbacks?.select(node.entity.id);
         });
         container.on("pointerover", () => this.#callbacks?.focus(node.entity.id));
-        this.#nodes.addChild(container);
+        this.#nodes.addNode(container);
         display = {
           container,
           graphics,
@@ -416,6 +418,7 @@ export class WebGlRenderer implements Renderer {
       resolution: this.#app.renderer.resolution,
       edgeGeometryUpdates: this.#edgeGeometryUpdates,
       cameraRenderGroup: this.#viewport.isRenderGroup,
+      nodeRenderGroupCount: this.#nodes.children.length,
     };
   }
 }

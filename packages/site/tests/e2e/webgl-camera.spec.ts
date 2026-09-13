@@ -8,6 +8,7 @@ declare global {
       vertexSubData: number;
       indexData: number;
       indexSubData: number;
+      largestVertexSourceBytes: number;
     };
   }
 }
@@ -21,8 +22,13 @@ test("WebGL camera transforms preserve geometry buffers while content updates re
   await frames();
   const beforePixels = await page.locator(".topo-canvas").screenshot();
   await page.evaluate(() => {
-    const writes = { vertexData: 0, vertexSubData: 0, indexData: 0, indexSubData: 0 };
+    const writes = {
+      vertexData: 0, vertexSubData: 0, indexData: 0, indexSubData: 0,
+      largestVertexSourceBytes: 0,
+    };
     window.__TOPO_BUFFER_WRITES__ = writes;
+    const sourceBytes = (source: unknown): number =>
+      ArrayBuffer.isView(source) || source instanceof ArrayBuffer ? source.byteLength : 0;
     for (const prototype of [WebGLRenderingContext.prototype, WebGL2RenderingContext.prototype]) {
       const bufferData = prototype.bufferData;
       const bufferSubData = prototype.bufferSubData;
@@ -30,7 +36,10 @@ test("WebGL camera transforms preserve geometry buffers while content updates re
         this: WebGLRenderingContext | WebGL2RenderingContext,
         ...args: unknown[]
       ): void {
-        if (args[0] === this.ARRAY_BUFFER) writes.vertexData += 1;
+        if (args[0] === this.ARRAY_BUFFER) {
+          writes.vertexData += 1;
+          writes.largestVertexSourceBytes = Math.max(writes.largestVertexSourceBytes, sourceBytes(args[1]));
+        }
         if (args[0] === this.ELEMENT_ARRAY_BUFFER) writes.indexData += 1;
         Reflect.apply(bufferData, this, args);
       };
@@ -38,7 +47,10 @@ test("WebGL camera transforms preserve geometry buffers while content updates re
         this: WebGLRenderingContext | WebGL2RenderingContext,
         ...args: unknown[]
       ): void {
-        if (args[0] === this.ARRAY_BUFFER) writes.vertexSubData += 1;
+        if (args[0] === this.ARRAY_BUFFER) {
+          writes.vertexSubData += 1;
+          writes.largestVertexSourceBytes = Math.max(writes.largestVertexSourceBytes, sourceBytes(args[2]));
+        }
         if (args[0] === this.ELEMENT_ARRAY_BUFFER) writes.indexSubData += 1;
         Reflect.apply(bufferSubData, this, args);
       };
@@ -46,7 +58,10 @@ test("WebGL camera transforms preserve geometry buffers while content updates re
   });
   const snapshot = () => page.evaluate(() => window.__TOPO_BENCHMARK__!.snapshot());
   const writes = () => page.evaluate(() => window.__TOPO_BUFFER_WRITES__);
-  const noWrites = { vertexData: 0, vertexSubData: 0, indexData: 0, indexSubData: 0 };
+  const noWrites = {
+    vertexData: 0, vertexSubData: 0, indexData: 0, indexSubData: 0,
+    largestVertexSourceBytes: 0,
+  };
   const before = await snapshot();
 
   await page.locator('[data-action="zoom-in"]').click();
@@ -68,11 +83,14 @@ test("WebGL camera transforms preserve geometry buffers while content updates re
     const count = await writes();
     return count.vertexData + count.vertexSubData;
   }).toBeGreaterThan(0);
+  expect((await writes()).largestVertexSourceBytes).toBeGreaterThan(0);
+  expect((await writes()).largestVertexSourceBytes).toBeLessThan(512 * 1024);
   const focused = await snapshot();
   expect(focused.viewTransform).not.toEqual(before.viewTransform);
   await page.evaluate(() => {
     Object.assign(window.__TOPO_BUFFER_WRITES__, {
       vertexData: 0, vertexSubData: 0, indexData: 0, indexSubData: 0,
+      largestVertexSourceBytes: 0,
     });
   });
   await page.locator('[data-action="reset-view"]').click();
@@ -86,13 +104,17 @@ test("WebGL camera transforms preserve geometry buffers while content updates re
 });
 
 test("WebGL pointer selection follows the rendered camera after pan and zoom", async ({ page }) => {
-  const response = await page.request.get("/small/data.json");
+  const response = await page.request.get("/medium/data.json");
   expect(response.ok()).toBe(true);
   const { layout }: { layout: LayoutDocument } = await response.json();
   const target = layout.items[Math.floor(layout.items.length / 2)]!;
   expect(target.subject.kind).toBe("node");
-  await page.goto("/small/index.html?renderer=webgl&scope=all");
+  await page.goto("/medium/index.html?renderer=webgl&scope=all");
   await page.evaluate(() => window.__TOPO_READY__);
+  const groups = await page.evaluate(() => window.__TOPO_BENCHMARK__!.graphicsInfo().nodeRenderGroupCount);
+  expect(groups).toBeGreaterThan(1);
+  expect(groups).toBeLessThanOrEqual(32);
+  await page.locator(`.webgl-a11y button[data-entity-id="${target.subject.id}"]`).focus();
   const before = await page.evaluate(() => window.__TOPO_BENCHMARK__!.snapshot());
   await page.locator('[data-action="zoom-in"]').click();
   const bounds = await page.locator(".topo-canvas").boundingBox();

@@ -396,7 +396,7 @@ The twelve earlier, uninstrumented camera-group and nested-node-group trials
 are preserved in
 [`real-render-groups-intermediate.json`](../benchmarks/results/real-render-groups-intermediate.json).
 Neither established an overall FPS win. The unsupported nested node group was
-reverted; only the camera viewport group remains.
+reverted; at that commit, only the camera viewport group remained.
 
 The complete instrumented candidate matrix is in
 [`real-browser-phase-headless.json`](../benchmarks/results/real-browser-phase-headless.json):
@@ -409,6 +409,35 @@ cleanup in **69.842 seconds**.
 | Mermaid | expanded | 59.543 | 59.630 |
 | Visual Studio Code | directory | 57.738 | 57.978 |
 | Visual Studio Code | expanded | 22.843 | 49.093 |
+
+## Bounded node render groups
+
+A source-mapped native-upload trace of the merged camera-group baseline
+identifies the remaining large submissions: the edge graphics adaptor submits
+20,073,456 vertex bytes once at startup, while the ordinary batch adaptor
+submits 34,915,872 bytes initially and approximately 34.9 MB repeatedly during
+collapse/re-expansion. The latter batch contains the node graphics and labels.
+Pixi 8.20.1's `Batcher.updateElement` marks the batch dirty;
+`BatcherPipe.upload` then updates its entire active vertex range, even when
+only one node moved. The unchanged giant edge graphic uses the separate,
+non-batchable graphics path. This is not evidence for edge chunking.
+
+`NodeRenderLayer` now partitions node containers into contiguous, independently
+rendered groups: at least 128 nodes per target capacity, approximately 16 groups
+after sizing, and no more than 32 live groups. Small edits keep surviving nodes
+in their existing groups and append new nodes in the same painter order as
+before. Empty groups are released; large growth, large shrinkage, or accumulated
+fragmentation triggers ordered regrouping. Regrouping preserves live node
+objects, positions, event handlers, graphics and labels. It snapshots order
+before removing children because Pixi's removal return order is reversed.
+
+The whole-camera render group and monolithic, unchanged edge graphic remain.
+The additional node groups trade bounded render-instruction/draw-call overhead
+for smaller dirty vertex ranges; no labels, relationships, animation frames,
+camera inputs, waits, or quality settings are removed. Native-upload bounds,
+multi-group pointer picking after camera movement, and growth/shrinkage/order
+regressions cover this behavior. Headless timing alone still does not select a
+production renderer.
 
 ## Historical evidence correction
 
