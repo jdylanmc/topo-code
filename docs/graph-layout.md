@@ -68,6 +68,11 @@ endpoint, exact members, original directions, types, and weight. Directory
 containers and tangle records also retain internal edge identifiers for audit
 and expansion.
 
+Directory membership is indexed through each edge's shared endpoint ancestry,
+rather than rescanning all edges for every directory. Degree ranks are reused
+for nodes with the same degree. These optimizations preserve serialized output;
+see [real-graph preparation measurements](./graph-performance.md).
+
 ## Cycles and tangles
 
 Layout never assumes a directed acyclic graph. Tarjan strongly connected

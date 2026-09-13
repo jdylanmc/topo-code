@@ -1,0 +1,279 @@
+{
+  "schemaVersion": "1.0",
+  "generatedAt": "2026-09-12T23:26:13.413Z",
+  "status": "completed-with-failures",
+  "environment": {
+    "platform": "darwin",
+    "release": "25.6.0",
+    "architecture": "arm64",
+    "cpu": "Apple M5 Pro",
+    "logicalCpuCount": 18,
+    "totalMemoryBytes": 68719476736,
+    "browser": "153.0.8010.37",
+    "headless": true,
+    "executable": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "launchArgs": [
+      "--disable-background-timer-throttling",
+      "--disable-renderer-backgrounding"
+    ],
+    "gpuFlags": "No GPU-disabling flags supplied. Headless Chrome compositor/GPU behavior may differ from a visible browser.",
+    "browserProcessId": 96587
+  },
+  "selectedFixtures": [
+    "vscode"
+  ],
+  "preparationTimeoutMilliseconds": 30000,
+  "fixtureTimeoutMilliseconds": 120000,
+  "totalTimeoutMilliseconds": 150000,
+  "workloadTimeoutMilliseconds": 30000,
+  "cleanupTimeoutMilliseconds": 3000,
+  "fixturePreparation": [
+    {
+      "type": "fixture-preparation",
+      "fixture": {
+        "name": "vscode",
+        "graphPath": "frozen-fixtures/vscode-src.graph.json",
+        "provenancePath": "packages/scanner/fixtures/real/vscode-src.provenance.json",
+        "graphId": "repo:microsoft/vscode",
+        "fixtureKind": "real-partial"
+      },
+      "status": "completed",
+      "startedAt": "2026-09-12T23:26:13.416Z",
+      "deadlineMilliseconds": 30000,
+      "configuredDeadlineMilliseconds": 30000,
+      "elapsedMilliseconds": 2430,
+      "completedAt": "2026-09-12T23:26:15.846Z"
+    }
+  ],
+  "fixtures": [
+    {
+      "name": "vscode",
+      "fixtureKind": "real-partial",
+      "graphId": "repo:microsoft/vscode",
+      "nodes": 9376,
+      "edges": 105549,
+      "tangles": 102,
+      "urlPath": "/vscode/index.html",
+      "preparation": {
+        "parseMilliseconds": 462.60745799999995,
+        "deriveMilliseconds": 490.697625,
+        "layoutMilliseconds": 485.988417,
+        "totalMilliseconds": 1439.2935
+      },
+      "evidence": {
+        "graphContentSha256": "48c16618a1dc37c47738fc1811b1645cc48f329f3936c0cf2aee4483361ec9de",
+        "graphBytes": 171551574,
+        "provenance": {
+          "contentSha256": "a9c9cf33b5fdb108caa4f73a0fb875793573ce47304df44800f6bcd9edadc7d5",
+          "schemaVersion": "1.0",
+          "repositoryId": "microsoft/vscode",
+          "upstream": "https://github.com/microsoft/vscode.git",
+          "revision": "3879d0e80faeaeb351bbb44dd0f74f1bac12fc0a",
+          "selectedPath": "src",
+          "authoritative": false,
+          "counts": {
+            "nodes": 9376,
+            "edges": 105549,
+            "containers": 2375,
+            "sourceFiles": 9252,
+            "linesOfCode": 2993413
+          },
+          "limitationsCount": 756,
+          "diagnosticCounts": {
+            "inferred-source-configuration": 1,
+            "missing-type-library": 24,
+            "resolved-import-outside-scan": 1,
+            "unresolved-import-ratio": 1,
+            "unresolved-local-import": 729
+          },
+          "scan": {
+            "durationMilliseconds": 8104,
+            "maximumResidentSetBytes": 2194833408,
+            "nodeVersion": "v24.20.0",
+            "platform": "darwin",
+            "architecture": "arm64",
+            "cpu": "Apple M5 Pro",
+            "logicalCpuCount": 18,
+            "memoryBytes": 68719476736
+          },
+          "reproductionCommandTemplate": "corepack yarn workspace @topo/scanner fixture --root <checkout> --output <artifact> --repository-id <repository> --allow-partial true"
+        }
+      }
+    }
+  ],
+  "results": [
+    {
+      "status": "timed-out",
+      "fixture": "vscode",
+      "fixtureKind": "real-partial",
+      "renderer": "svg",
+      "scope": "directory",
+      "graph": {
+        "nodes": 9376,
+        "edges": 105549,
+        "tangles": 102
+      },
+      "timing": {
+        "elapsedMilliseconds": 30002,
+        "deadlineMilliseconds": 30000
+      },
+      "errorKind": "deadline-exceeded",
+      "error": "Browser workload exceeded 29875 ms."
+    },
+    {
+      "status": "timed-out",
+      "fixture": "vscode",
+      "fixtureKind": "real-partial",
+      "renderer": "webgl",
+      "scope": "directory",
+      "graph": {
+        "nodes": 9376,
+        "edges": 105549,
+        "tangles": 102
+      },
+      "timing": {
+        "elapsedMilliseconds": 30003,
+        "deadlineMilliseconds": 30000
+      },
+      "errorKind": "deadline-exceeded",
+      "error": "Browser workload exceeded 29899 ms."
+    },
+    {
+      "status": "timed-out",
+      "fixture": "vscode",
+      "fixtureKind": "real-partial",
+      "renderer": "svg",
+      "scope": "expanded",
+      "graph": {
+        "nodes": 9376,
+        "edges": 105549,
+        "tangles": 102
+      },
+      "timing": {
+        "elapsedMilliseconds": 30002,
+        "deadlineMilliseconds": 30000
+      },
+      "errorKind": "deadline-exceeded",
+      "error": "Browser workload exceeded 29902 ms."
+    },
+    {
+      "status": "timed-out",
+      "fixture": "vscode",
+      "fixtureKind": "real-partial",
+      "renderer": "webgl",
+      "scope": "expanded",
+      "graph": {
+        "nodes": 9376,
+        "edges": 105549,
+        "tangles": 102
+      },
+      "timing": {
+        "elapsedMilliseconds": 29970,
+        "deadlineMilliseconds": 29967
+      },
+      "errorKind": "deadline-exceeded",
+      "error": "Browser workload exceeded 29868 ms."
+    }
+  ],
+  "cleanup": [
+    {
+      "type": "workload-cleanup",
+      "resource": "browser-context",
+      "fixture": {
+        "name": "vscode",
+        "graphId": "repo:microsoft/vscode",
+        "fixtureKind": "real-partial"
+      },
+      "renderer": "svg",
+      "scope": "directory",
+      "status": "completed",
+      "startedAt": "2026-09-12T23:26:46.302Z",
+      "deadlineMilliseconds": 3000,
+      "elapsedMilliseconds": 6,
+      "completedAt": "2026-09-12T23:26:46.308Z"
+    },
+    {
+      "type": "workload-cleanup",
+      "resource": "browser-context",
+      "fixture": {
+        "name": "vscode",
+        "graphId": "repo:microsoft/vscode",
+        "fixtureKind": "real-partial"
+      },
+      "renderer": "webgl",
+      "scope": "directory",
+      "status": "completed",
+      "startedAt": "2026-09-12T23:27:16.313Z",
+      "deadlineMilliseconds": 3000,
+      "elapsedMilliseconds": 9,
+      "completedAt": "2026-09-12T23:27:16.322Z"
+    },
+    {
+      "type": "workload-cleanup",
+      "resource": "browser-context",
+      "fixture": {
+        "name": "vscode",
+        "graphId": "repo:microsoft/vscode",
+        "fixtureKind": "real-partial"
+      },
+      "renderer": "svg",
+      "scope": "expanded",
+      "status": "completed",
+      "startedAt": "2026-09-12T23:27:46.326Z",
+      "deadlineMilliseconds": 3000,
+      "elapsedMilliseconds": 5,
+      "completedAt": "2026-09-12T23:27:46.331Z"
+    },
+    {
+      "type": "workload-cleanup",
+      "resource": "browser-context",
+      "fixture": {
+        "name": "vscode",
+        "graphId": "repo:microsoft/vscode",
+        "fixtureKind": "real-partial"
+      },
+      "renderer": "webgl",
+      "scope": "expanded",
+      "status": "completed",
+      "startedAt": "2026-09-12T23:28:16.302Z",
+      "deadlineMilliseconds": 3000,
+      "elapsedMilliseconds": 6,
+      "completedAt": "2026-09-12T23:28:16.308Z"
+    },
+    {
+      "type": "cleanup",
+      "resource": "browser-connection",
+      "status": "completed",
+      "elapsedMilliseconds": 1,
+      "deadlineMilliseconds": 3000
+    },
+    {
+      "type": "cleanup",
+      "resource": "browser-process",
+      "status": "completed",
+      "elapsedMilliseconds": 246,
+      "deadlineMilliseconds": 3000
+    },
+    {
+      "type": "cleanup",
+      "resource": "fixture-server",
+      "status": "completed",
+      "elapsedMilliseconds": 0,
+      "deadlineMilliseconds": 3000
+    }
+  ],
+  "decision": "pending-visible-browser-validation",
+  "currentStage": {
+    "type": "finished",
+    "status": "completed-with-failures",
+    "elapsedMilliseconds": 123146
+  },
+  "sourceEvidence": {
+    "baseCommit": "67f8f2122699289aa7c9e7b63bfdcd91de9c421b",
+    "sourceSha256": {
+      "packages/graph/src/derive.ts": "ce7649bb0cb47ac39b451bbabf34e98f7d903e805ab610fbb0d9672ede787f0b",
+      "packages/schema/src/layout.ts": "75f619f46a78be5e490e763117ec3299212383b6416c1e8872073936e0d84b35"
+    },
+    "note": "The listed source hashes identify the uncommitted application changes at measurement time. Other application and harness sources match baseCommit. Absolute graph input paths are normalized to frozen-fixtures/; source provenance and measurements are unchanged."
+  }
+}

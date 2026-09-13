@@ -1,10 +1,23 @@
 import { cpus, platform, release, totalmem } from "node:os";
-import { mkdir, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "@playwright/test";
 import { startFixtureServer } from "./fixture-server.mjs";
+import {
+  initializeGeneratedRoot,
+  parseFixtureNames,
+} from "./prepare-fixtures.mjs";
+import {
+  PreparationTimeoutError,
+  prepareFixtureWithDeadline,
+} from "./preparation-runner.mjs";
+import {
+  DeadlineError,
+  atomicWriteJson,
+  cleanupOwnedResources,
+  withDeadline,
+} from "./lifecycle.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const chromePath =
@@ -17,9 +30,15 @@ const outputPath = path.resolve(
     : "benchmarks/results/latest.json",
 );
 const headed = process.argv.includes("--headed");
+const prepareOnly = process.argv.includes("--prepare-only");
 function argumentValue(name) {
   const index = process.argv.indexOf(name);
   return index < 0 ? undefined : process.argv[index + 1];
+}
+function argumentValues(name) {
+  return process.argv.flatMap((value, index, arguments_) =>
+    value === name ? [arguments_[index + 1]] : [],
+  );
 }
 const runTimeoutMilliseconds = Number(
   argumentValue("--run-timeout-ms") ?? "90000",
@@ -30,6 +49,56 @@ if (
 ) {
   throw new Error("--run-timeout-ms must be a positive finite number.");
 }
+const preparationTimeoutMilliseconds = Number(
+  argumentValue("--preparation-timeout-ms") ?? "90000",
+);
+if (
+  !Number.isFinite(preparationTimeoutMilliseconds) ||
+  preparationTimeoutMilliseconds <= 0
+) {
+  throw new Error("--preparation-timeout-ms must be a positive finite number.");
+}
+const fixtureTimeoutMilliseconds = Number(
+  argumentValue("--fixture-timeout-ms") ?? "240000",
+);
+if (
+  !Number.isFinite(fixtureTimeoutMilliseconds) ||
+  fixtureTimeoutMilliseconds <= 0
+) {
+  throw new Error("--fixture-timeout-ms must be a positive finite number.");
+}
+const totalTimeoutMilliseconds = Number(
+  argumentValue("--total-timeout-ms") ?? "600000",
+);
+if (
+  !Number.isFinite(totalTimeoutMilliseconds) ||
+  totalTimeoutMilliseconds <= 0
+) {
+  throw new Error("--total-timeout-ms must be a positive finite number.");
+}
+const cleanupTimeoutMilliseconds = Number(
+  argumentValue("--cleanup-timeout-ms") ?? "5000",
+);
+if (
+  !Number.isFinite(cleanupTimeoutMilliseconds) ||
+  cleanupTimeoutMilliseconds <= 0
+) {
+  throw new Error("--cleanup-timeout-ms must be a positive finite number.");
+}
+const testBlockPreparationMilliseconds =
+  argumentValue("--test-block-preparation-ms") === undefined
+    ? undefined
+    : Number(argumentValue("--test-block-preparation-ms"));
+if (
+  testBlockPreparationMilliseconds !== undefined &&
+  (!Number.isFinite(testBlockPreparationMilliseconds) ||
+    testBlockPreparationMilliseconds < 0)
+) {
+  throw new Error(
+    "--test-block-preparation-ms must be a non-negative finite number.",
+  );
+}
+const fixtureNames = parseFixtureNames(argumentValues("--fixture"));
 const fixtureOptions = {
   mermaidGraph: argumentValue("--mermaid-graph"),
   mermaidProvenance: argumentValue("--mermaid-provenance"),
@@ -97,9 +166,9 @@ function summarizeEvents(events) {
   };
 }
 
-function failedResult(fixture, renderer, scope, error) {
+function failedResult(fixture, renderer, scope, error, timing) {
   return {
-    status: "failed",
+    status: error instanceof DeadlineError ? "timed-out" : "failed",
     fixture: fixture.name,
     fixtureKind: fixture.fixtureKind,
     renderer,
@@ -109,29 +178,11 @@ function failedResult(fixture, renderer, scope, error) {
       edges: fixture.edges,
       tangles: fixture.tangles,
     },
+    timing,
+    errorKind:
+      error instanceof DeadlineError ? "deadline-exceeded" : "error",
     error: error instanceof Error ? error.message : String(error),
   };
-}
-
-async function runWithTimeout(context, page, fixture, renderer, scope) {
-  let timer;
-  try {
-    return await Promise.race([
-      runWorkload(page, fixture, renderer, scope),
-      new Promise((_, reject) => {
-        timer = setTimeout(() => {
-          void context.close();
-          reject(
-            new Error(
-              `Workload exceeded ${runTimeoutMilliseconds} ms and was stopped.`,
-            ),
-          );
-        }, runTimeoutMilliseconds);
-      }),
-    ]);
-  } finally {
-    clearTimeout(timer);
-  }
 }
 
 async function runWorkload(page, fixture, renderer, scope) {
@@ -288,14 +339,11 @@ async function runWorkload(page, fixture, renderer, scope) {
   };
 }
 
-const { server, fixtures } = await startFixtureServer(4181, fixtureOptions);
-let browser;
-try {
-  browser = await chromium.launch({
-    headless: !headed,
-    args: launchArgs,
-    ...(existsSync(chromePath) ? { executablePath: chromePath } : {}),
-  });
+async function main() {
+  const runStartedAt = Date.now();
+  const totalDeadlineAt = runStartedAt + totalTimeoutMilliseconds;
+  const remainingTotalMilliseconds = () =>
+    Math.max(0, totalDeadlineAt - Date.now());
   const results = [];
   const report = {
     schemaVersion: "1.0",
@@ -308,58 +356,425 @@ try {
       cpu: cpus()[0]?.model ?? "unknown",
       logicalCpuCount: cpus().length,
       totalMemoryBytes: totalmem(),
-      browser: await browser.version(),
+      browser: null,
       headless: !headed,
       executable: existsSync(chromePath) ? chromePath : "Playwright Chromium",
       launchArgs,
       gpuFlags:
         "No GPU-disabling flags supplied. Headless Chrome compositor/GPU behavior may differ from a visible browser.",
     },
+    selectedFixtures: fixtureNames,
+    preparationTimeoutMilliseconds,
+    fixtureTimeoutMilliseconds,
+    totalTimeoutMilliseconds,
     workloadTimeoutMilliseconds: runTimeoutMilliseconds,
-    fixtures,
+    cleanupTimeoutMilliseconds,
+    fixturePreparation: [],
+    fixtures: [],
     results,
-    decision: fixtureOptions.mermaidGraph
+    cleanup: [],
+    decision: fixtureNames.some((name) => name === "mermaid" || name === "vscode")
       ? "pending-visible-browser-validation"
       : "pending-real-fixtures",
+    currentStage: {
+      type: "initialization",
+      status: "completed",
+      elapsedMilliseconds: 0,
+    },
   };
   const writeCheckpoint = async () => {
-    await mkdir(path.dirname(outputPath), { recursive: true });
-    await writeFile(outputPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
+    await atomicWriteJson(outputPath, report);
   };
   await writeCheckpoint();
-  for (const fixture of fixtures) {
-    for (const scope of ["directory", "expanded"]) {
-      for (const renderer of ["svg", "webgl"]) {
-        const context = await browser.newContext({
-          viewport: { width: 1280, height: 800 },
-          deviceScaleFactor: 1,
-        });
-        try {
-          const page = await context.newPage();
-          results.push(
-            await runWithTimeout(
-              context,
-              page,
-              fixture,
+
+  await initializeGeneratedRoot();
+  let failed = false;
+  for (const fixtureName of fixtureNames) {
+    const startedAt = Date.now();
+    const effectiveDeadlineMilliseconds = Math.min(
+      preparationTimeoutMilliseconds,
+      remainingTotalMilliseconds(),
+    );
+    const stage = {
+      type: "fixture-preparation",
+      fixture: {
+        name: fixtureName,
+        graphPath: fixtureOptions[`${fixtureName}Graph`] ?? null,
+        provenancePath: fixtureOptions[`${fixtureName}Provenance`] ?? null,
+      },
+      status: "running",
+      startedAt: new Date(startedAt).toISOString(),
+      deadlineMilliseconds: effectiveDeadlineMilliseconds,
+      configuredDeadlineMilliseconds: preparationTimeoutMilliseconds,
+      elapsedMilliseconds: 0,
+    };
+    report.currentStage = stage;
+    await writeCheckpoint();
+    if (effectiveDeadlineMilliseconds <= 0) {
+      failed = true;
+      stage.status = "timed-out";
+      stage.completedAt = new Date().toISOString();
+      stage.error = "Total benchmark deadline expired before preparation began.";
+      report.fixturePreparation.push({ ...stage });
+      await writeCheckpoint();
+      continue;
+    }
+    try {
+      const fixture = await prepareFixtureWithDeadline({
+        fixtureName,
+        options: fixtureOptions,
+        deadlineMilliseconds: effectiveDeadlineMilliseconds,
+        testBlockMilliseconds: testBlockPreparationMilliseconds,
+      });
+      stage.status = "completed";
+      stage.elapsedMilliseconds = Date.now() - startedAt;
+      stage.completedAt = new Date().toISOString();
+      stage.fixture = {
+        ...stage.fixture,
+        graphId: fixture.graphId,
+        fixtureKind: fixture.fixtureKind,
+      };
+      report.fixtures.push(fixture);
+    } catch (error) {
+      failed = true;
+      stage.status =
+        error instanceof PreparationTimeoutError ? "timed-out" : "failed";
+      stage.elapsedMilliseconds = Date.now() - startedAt;
+      stage.completedAt = new Date().toISOString();
+      stage.error = error instanceof Error ? error.message : String(error);
+    }
+    report.fixturePreparation.push({ ...stage });
+    await writeCheckpoint();
+  }
+
+  if (prepareOnly || report.fixtures.length === 0) {
+    report.status = failed ? "completed-with-failures" : "completed";
+    report.currentStage = {
+      type: "finished",
+      status: report.status,
+      elapsedMilliseconds: 0,
+    };
+    await writeCheckpoint();
+    process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+    if (failed) process.exitCode = 1;
+    return;
+  }
+
+  let server;
+  let browser;
+  let browserServer;
+  let fatalError;
+  try {
+    const browserLaunchDeadlineMilliseconds = remainingTotalMilliseconds();
+    report.currentStage = {
+      type: "browser-launch",
+      status: "running",
+      startedAt: new Date().toISOString(),
+      deadlineMilliseconds: browserLaunchDeadlineMilliseconds,
+      elapsedMilliseconds: 0,
+    };
+    await writeCheckpoint();
+    if (browserLaunchDeadlineMilliseconds <= 0) {
+      throw new DeadlineError(
+        "Browser launch",
+        browserLaunchDeadlineMilliseconds,
+      );
+    }
+    const browserLaunchStartedAt = Date.now();
+    ({ server } = await startFixtureServer(4181));
+    browserServer = await chromium.launchServer({
+      headless: !headed,
+      args: launchArgs,
+      timeout: browserLaunchDeadlineMilliseconds,
+      ...(existsSync(chromePath) ? { executablePath: chromePath } : {}),
+    });
+    const browserConnectDeadlineMilliseconds = remainingTotalMilliseconds();
+    browser = await withDeadline(
+      "Browser connection",
+      browserConnectDeadlineMilliseconds,
+      () =>
+        chromium.connect(browserServer.wsEndpoint(), {
+          timeout: browserConnectDeadlineMilliseconds,
+        }),
+    );
+    report.environment.browser = await browser.version();
+    report.environment.browserProcessId = browserServer.process().pid;
+    report.currentStage.status = "completed";
+    report.currentStage.elapsedMilliseconds =
+      Date.now() - browserLaunchStartedAt;
+    report.currentStage.completedAt = new Date().toISOString();
+    await writeCheckpoint();
+
+    let browserUsable = true;
+    for (const fixture of report.fixtures) {
+      const fixtureStartedAt = Date.now();
+      const fixtureDeadlineAt =
+        fixtureStartedAt +
+        Math.min(
+          fixtureTimeoutMilliseconds,
+          remainingTotalMilliseconds(),
+        );
+      for (const scope of ["directory", "expanded"]) {
+        for (const renderer of ["svg", "webgl"]) {
+          const startedAt = Date.now();
+          const fixtureRemainingMilliseconds = Math.max(
+            0,
+            fixtureDeadlineAt - startedAt,
+          );
+          const effectiveDeadlineMilliseconds = Math.min(
+            runTimeoutMilliseconds,
+            fixtureRemainingMilliseconds,
+            remainingTotalMilliseconds(),
+          );
+          report.currentStage = {
+            type: "browser-workload",
+            fixture: {
+              name: fixture.name,
+              graphId: fixture.graphId,
+              fixtureKind: fixture.fixtureKind,
+            },
+            renderer,
+            scope,
+            status: "running",
+            startedAt: new Date(startedAt).toISOString(),
+            deadlineMilliseconds: effectiveDeadlineMilliseconds,
+            configuredDeadlineMilliseconds: runTimeoutMilliseconds,
+            fixtureDeadlineMilliseconds: fixtureTimeoutMilliseconds,
+            totalDeadlineMilliseconds: totalTimeoutMilliseconds,
+            elapsedMilliseconds: 0,
+          };
+          await writeCheckpoint();
+          if (!browserUsable) {
+            failed = true;
+            report.currentStage.status = "incomplete";
+            report.currentStage.error =
+              "Browser was force-stopped after an earlier lifecycle failure.";
+            report.currentStage.completedAt = new Date().toISOString();
+            results.push({
+              status: "incomplete",
+              fixture: fixture.name,
+              fixtureKind: fixture.fixtureKind,
               renderer,
               scope,
-            ),
-          );
-        } catch (error) {
-          results.push(failedResult(fixture, renderer, scope, error));
-        } finally {
-          if (context.pages().length > 0) await context.close();
+              graph: {
+                nodes: fixture.nodes,
+                edges: fixture.edges,
+                tangles: fixture.tangles,
+              },
+              timing: {
+                elapsedMilliseconds: 0,
+                deadlineMilliseconds: effectiveDeadlineMilliseconds,
+              },
+              errorKind: "browser-unavailable",
+              error: report.currentStage.error,
+            });
+            await writeCheckpoint();
+            continue;
+          }
+          if (effectiveDeadlineMilliseconds <= 0) {
+            failed = true;
+            report.currentStage.status = "incomplete";
+            report.currentStage.error =
+              remainingTotalMilliseconds() <= 0
+                ? "Total benchmark deadline expired before the workload began."
+                : `Fixture "${fixture.name}" deadline expired before the workload began.`;
+            report.currentStage.completedAt = new Date().toISOString();
+            results.push({
+              status: "incomplete",
+              fixture: fixture.name,
+              fixtureKind: fixture.fixtureKind,
+              renderer,
+              scope,
+              graph: {
+                nodes: fixture.nodes,
+                edges: fixture.edges,
+                tangles: fixture.tangles,
+              },
+              timing: {
+                elapsedMilliseconds: 0,
+                deadlineMilliseconds: effectiveDeadlineMilliseconds,
+              },
+              errorKind:
+                remainingTotalMilliseconds() <= 0
+                  ? "total-deadline-exceeded"
+                  : "fixture-deadline-exceeded",
+              error: report.currentStage.error,
+            });
+            await writeCheckpoint();
+            continue;
+          }
+          const workloadDeadlineAt =
+            startedAt + effectiveDeadlineMilliseconds;
+          const remainingWorkloadMilliseconds = () =>
+            Math.max(0, workloadDeadlineAt - Date.now());
+          let context;
+          let phase = "context-creation";
+          try {
+            context = await withDeadline(
+              "Browser context creation",
+              remainingWorkloadMilliseconds(),
+              () =>
+                browser.newContext({
+                  viewport: { width: 1280, height: 800 },
+                  deviceScaleFactor: 1,
+                }),
+            );
+            phase = "page-creation";
+            const page = await withDeadline(
+              "Browser page creation",
+              remainingWorkloadMilliseconds(),
+              () => context.newPage(),
+            );
+            phase = "measurement";
+            results.push(
+              await withDeadline(
+                "Browser workload",
+                remainingWorkloadMilliseconds(),
+                () => runWorkload(page, fixture, renderer, scope),
+              ),
+            );
+            report.currentStage.status = "completed";
+          } catch (error) {
+            failed = true;
+            report.currentStage.status =
+              error instanceof DeadlineError ? "timed-out" : "failed";
+            report.currentStage.phase = phase;
+            report.currentStage.error =
+              error instanceof Error ? error.message : String(error);
+            results.push(
+              failedResult(fixture, renderer, scope, error, {
+                elapsedMilliseconds: Date.now() - startedAt,
+                deadlineMilliseconds: effectiveDeadlineMilliseconds,
+              }),
+            );
+            if (
+              error instanceof DeadlineError &&
+              (phase === "context-creation" || phase === "page-creation")
+            ) {
+              browserUsable = false;
+            }
+          }
+          report.currentStage.elapsedMilliseconds = Date.now() - startedAt;
+          report.currentStage.completedAt = new Date().toISOString();
+          await writeCheckpoint();
+
+          if (context) {
+            const cleanupStartedAt = Date.now();
+            report.currentStage = {
+              type: "workload-cleanup",
+              resource: "browser-context",
+              fixture: {
+                name: fixture.name,
+                graphId: fixture.graphId,
+                fixtureKind: fixture.fixtureKind,
+              },
+              renderer,
+              scope,
+              status: "running",
+              startedAt: new Date(cleanupStartedAt).toISOString(),
+              deadlineMilliseconds: cleanupTimeoutMilliseconds,
+              elapsedMilliseconds: 0,
+            };
+            await writeCheckpoint();
+            try {
+              await withDeadline(
+                "Browser context cleanup",
+                cleanupTimeoutMilliseconds,
+                () => context.close(),
+              );
+              report.currentStage.status = "completed";
+            } catch (error) {
+              failed = true;
+              browserUsable = false;
+              report.currentStage.status =
+                error instanceof DeadlineError ? "timed-out" : "failed";
+              report.currentStage.error =
+                error instanceof Error ? error.message : String(error);
+            }
+            report.currentStage.elapsedMilliseconds =
+              Date.now() - cleanupStartedAt;
+            report.currentStage.completedAt = new Date().toISOString();
+            report.cleanup.push({ ...report.currentStage });
+            await writeCheckpoint();
+          }
         }
-        await writeCheckpoint();
       }
     }
+  } catch (error) {
+    failed = true;
+    fatalError = error;
+    report.status = "incomplete";
+    report.currentStage = {
+      ...report.currentStage,
+      status: "failed",
+      error: error instanceof Error ? error.message : String(error),
+    };
+    await writeCheckpoint();
+  } finally {
+    const recordedCleanupKeys = new Set();
+    const cleanupResults = await cleanupOwnedResources({
+      browser,
+      browserServer,
+      server,
+      deadlineMilliseconds: cleanupTimeoutMilliseconds,
+      onCheckpoint: async (stage) => {
+        report.currentStage = stage;
+        if (stage.status !== "running") {
+          report.cleanup.push(stage);
+          recordedCleanupKeys.add(
+            JSON.stringify([
+              stage.resource,
+              stage.status,
+              stage.elapsedMilliseconds,
+              stage.error,
+            ]),
+          );
+        }
+        await writeCheckpoint();
+      },
+    });
+    for (const result of cleanupResults) {
+      const key = JSON.stringify([
+        result.resource,
+        result.status,
+        result.elapsedMilliseconds,
+        result.error,
+      ]);
+      if (!recordedCleanupKeys.has(key)) {
+        report.cleanup.push(result);
+      }
+    }
+    if (cleanupResults.some((result) => result.status !== "completed")) {
+      failed = true;
+    }
   }
-  report.status = results.some((result) => result.status === "failed")
-    ? "completed-with-failures"
-    : "completed";
+
+  report.status = fatalError
+    ? "incomplete"
+    : failed
+      ? "completed-with-failures"
+      : "completed";
+  report.currentStage = {
+    type: "finished",
+    status: report.status,
+    elapsedMilliseconds: Date.now() - runStartedAt,
+    ...(fatalError === undefined
+      ? {}
+      : {
+          error:
+            fatalError instanceof Error
+              ? fatalError.message
+              : String(fatalError),
+        }),
+  };
   await writeCheckpoint();
   process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
-} finally {
-  await browser?.close();
-  await new Promise((resolve) => server.close(resolve));
+  if (failed) process.exitCode = 1;
 }
+
+main().catch(async (error) => {
+  process.stderr.write(
+    `${error instanceof Error ? error.stack ?? error.message : String(error)}\n`,
+  );
+  process.exitCode = 1;
+});

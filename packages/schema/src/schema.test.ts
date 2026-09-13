@@ -378,4 +378,62 @@ describe("canonical JSON and layout", () => {
       expect.objectContaining({ code: "unknown-layout-subject" }),
     );
   });
+
+  it("indexes graph primitives once for the whole layout", () => {
+    const graph = fixture();
+    const layout = layoutFixture();
+    layout.routes = Array.from({ length: 500 }, (_, index) => ({
+      subject: {
+        kind: "derived",
+        id: `route:${index}`,
+        sourceSubjects: [{ kind: "node", id: "path:README.md" }],
+      },
+      points: [{ x: 0, y: 0 }, { x: 1, y: 1 }],
+    }));
+    const reads = { nodes: 0, edges: 0, containers: 0 };
+    for (const key of ["nodes", "edges", "containers"] as const) {
+      const entries = graph[key];
+      Object.defineProperty(graph, key, {
+        get() {
+          reads[key] += 1;
+          return entries;
+        },
+      });
+    }
+
+    expect(validateLayoutAgainstGraph(layout, graph)).toEqual([]);
+    expect(reads).toEqual({ nodes: 1, edges: 1, containers: 1 });
+  });
+
+  it("preserves source diagnostics and refreshes indexes between calls", () => {
+    const graph = fixture();
+    const layout = layoutFixture();
+    layout.items[0]!.subject.sourceSubjects = [
+      { kind: "node", id: "path:README.md" },
+      { kind: "node", id: "path:README.md" },
+      { kind: "edge", id: "edge:missing" },
+    ];
+    expect(
+      validateLayoutAgainstGraph(layout, graph).map(({ code, path }) => ({
+        code,
+        path,
+      })),
+    ).toEqual([
+      {
+        code: "duplicate-layout-source",
+        path: "$.items[0].subject.sourceSubjects[1]",
+      },
+      {
+        code: "unknown-layout-source",
+        path: "$.items[0].subject.sourceSubjects[2]",
+      },
+    ]);
+
+    graph.nodes = [];
+    expect(
+      validateLayoutAgainstGraph(layout, graph).filter(
+        (issue) => issue.code === "unknown-layout-source",
+      ),
+    ).toHaveLength(3);
+  });
 });

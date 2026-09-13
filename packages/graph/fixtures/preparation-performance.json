@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "1.0",
+  "measurement": "Node graph derivation, not browser rendering",
+  "samplesPerCase": 1,
+  "deadlineMilliseconds": 30000,
+  "method": "Fresh worker per case; Node Inspector CPU profiling around derivation and expanded layout. Worker elapsed time also includes input parsing, profile output, and architecture serialization/hash.",
+  "baselineCommit": "a3baf3b435f777cbb1936cd9a82c41308fa4d69c",
+  "baselineSourceSha256": "59511ea7507a822d5424ec53cb2eaaf6e45ad4af65f50fe6d2b555032c1f2ccc",
+  "candidateSourceSha256": "ce7649bb0cb47ac39b451bbabf34e98f7d903e805ab610fbb0d9672ede787f0b",
+  "sourceFile": "packages/graph/src/derive.ts",
+  "environment": {
+    "node": "v24.20.0",
+    "platform": "darwin",
+    "release": "25.6.0",
+    "architecture": "arm64",
+    "cpu": "Apple M5 Pro"
+  },
+  "fixtures": [
+    {
+      "name": "mermaid",
+      "completeness": "partial",
+      "nodes": 1225,
+      "edges": 4136,
+      "inputSha256": "8f78a3633451bf137620258e8546edad555559d3c454d7902352cf60df6779a1",
+      "architectureSha256": "59f9868fbef72b970df34314f62b4cafaa35f0336ec5f060400b7f4855bee2a4",
+      "baselineDeriveMs": 59.272834,
+      "candidateDeriveMs": 43.011708,
+      "baselineWorkerMs": 119.424542,
+      "candidateWorkerMs": 102.515083,
+      "derivationSpeedup": 1.38
+    },
+    {
+      "name": "vscode",
+      "completeness": "partial",
+      "nodes": 9376,
+      "edges": 105549,
+      "inputSha256": "48c16618a1dc37c47738fc1811b1645cc48f329f3936c0cf2aee4483361ec9de",
+      "architectureSha256": "2e7a6d2ba41a3b19e1322ba1250b1f0ab8a117745c40eebfc45378262c66cf03",
+      "baselineDeriveMs": 4206.037708,
+      "candidateDeriveMs": 625.705833,
+      "baselineWorkerMs": 5174.033166,
+      "candidateWorkerMs": 1530.589875,
+      "derivationSpeedup": 6.72
+    }
+  ]
+}
