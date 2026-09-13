@@ -84,7 +84,11 @@ Completed earlier fixtures and workloads remain in the report. Any timeout,
 incomplete stage, or other failure sets a nonzero process exit code.
 
 Each workload records navigation and application readiness before frame
-sampling begins. Sampled work is divided into `pan`, `zoom`,
+sampling begins. A viewport preflight then requires the target SVG/canvas to
+have positive size and intersect the actual 1280x800 browser viewport.
+Offscreen or zero-size renderers fail before frame sampling, so their
+non-interactive animation frames cannot be accepted as renderer evidence.
+Sampled work is divided into `pan`, `zoom`,
 `layout-transition`, `keyboard-activation`, and `metrics` phases. Phase timing
 is explicitly labeled `controller-wall-clock`; it includes automation dispatch
 and waits and is not input-to-paint latency. Raw `requestAnimationFrame`
@@ -94,6 +98,10 @@ input responsiveness evidence.
 Layout transitions retain before/after expansion state and
 `visibleEntityIds`. They require expansion-state and visible-membership changes;
 equal node/edge counts are valid when one visible member replaces another.
+The report stores compact scene/camera summaries, SHA-256 hashes of complete
+membership lists, and exact added/removed ID deltas. Full projection-wide ID
+arrays are used in memory only for layout verification and are not repeatedly
+serialized into phase output.
 Missing controls fail when the snapshot says an action should exist. A fixture
 with no eligible non-root directory records the phase as `not-applicable` with
 a reason; the workload is `completed-with-not-applicable` and does not claim

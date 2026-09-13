@@ -34,6 +34,7 @@ import {
   collapsedDirectoryCandidates,
   visibleTangleCandidates,
   verifyLayoutTransition,
+  verifyViewportPreflight,
 } from "./benchmark-evidence.mjs";
 
 const benchmarkDirectory = path.dirname(fileURLToPath(import.meta.url));
@@ -339,11 +340,17 @@ test("layout verification accepts equal counts with changed membership", () => {
     },
   );
 
-  assert.deepEqual(verification, {
-    status: "verified",
-    expansionStateChanged: true,
-    visibleMembershipChanged: true,
-  });
+  assert.equal(verification.status, "verified");
+  assert.equal(verification.expansionStateChanged, true);
+  assert.equal(verification.visibleMembershipChanged, true);
+  assert.deepEqual(verification.visibleEntityDelta.addedIds, [
+    "directory:src",
+  ]);
+  assert.deepEqual(verification.visibleEntityDelta.removedIds, [
+    "path:src/only.ts",
+  ]);
+  assert.equal(verification.visibleEntityDelta.beforeCount, 2);
+  assert.equal(verification.visibleEntityDelta.afterCount, 2);
 });
 
 test("layout phase records genuine unsupported fixtures as not applicable", async () => {
@@ -392,6 +399,67 @@ test("layout verification rejects expansion without membership change", () => {
   assert.equal(verification.status, "failed");
   assert.equal(verification.expansionStateChanged, true);
   assert.equal(verification.visibleMembershipChanged, false);
+});
+
+test("layout evidence stores deltas instead of unchanged projection IDs", () => {
+  const unchanged = Array.from(
+    { length: 10_000 },
+    (_, index) => `path:src/file-${index}.ts`,
+  );
+  const verification = verifyLayoutTransition(
+    {
+      expandedContainerIds: ["directory:."],
+      collapsedTangleIds: [],
+      visibleEntityIds: [...unchanged, "path:src/removed.ts"],
+    },
+    {
+      expandedContainerIds: ["directory:.", "directory:src"],
+      collapsedTangleIds: [],
+      visibleEntityIds: [...unchanged, "directory:src"],
+    },
+  );
+  const serialized = JSON.stringify(verification);
+
+  assert.equal(verification.status, "verified");
+  assert.deepEqual(verification.visibleEntityDelta.addedIds, [
+    "directory:src",
+  ]);
+  assert.deepEqual(verification.visibleEntityDelta.removedIds, [
+    "path:src/removed.ts",
+  ]);
+  assert.ok(serialized.length < 2_000);
+  assert.equal(serialized.includes("path:src/file-5000.ts"), false);
+});
+
+test("viewport preflight rejects zero-size and offscreen render targets", () => {
+  assert.equal(
+    verifyViewportPreflight(
+      { x: 0, y: 0, width: 1280, height: 0 },
+      { width: 1280, height: 800 },
+    ).status,
+    "failed",
+  );
+  const offscreen = verifyViewportPreflight(
+    { x: 0, y: 12472, width: 1280, height: 720 },
+    { width: 1280, height: 800 },
+  );
+  assert.equal(offscreen.status, "failed");
+  assert.match(offscreen.reason, /does not intersect/);
+});
+
+test("viewport preflight uses the visible intersection for interactions", () => {
+  const verification = verifyViewportPreflight(
+    { x: -100, y: 700, width: 500, height: 300 },
+    { width: 1280, height: 800 },
+  );
+  assert.equal(verification.status, "verified");
+  assert.deepEqual(verification.intersection, {
+    x: 0,
+    y: 700,
+    width: 400,
+    height: 100,
+  });
+  assert.deepEqual(verification.interactionPoint, { x: 200, y: 750 });
 });
 
 test("cleanup force-stops an owned browser and still releases the server port", async () => {

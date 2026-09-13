@@ -65,6 +65,9 @@ export async function runBenchmarkPhases({
         },
         error: error instanceof Error ? error.message : String(error),
         browserErrors: [...browserErrors()],
+        ...(error?.evidence === undefined
+          ? {}
+          : { evidence: error.evidence }),
       });
       throw new BenchmarkPhaseError(
         definition.name,

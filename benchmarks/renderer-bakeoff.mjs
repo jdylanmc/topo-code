@@ -31,6 +31,7 @@ import {
   collapsedDirectoryCandidates,
   visibleTangleCandidates,
   verifyLayoutTransition,
+  verifyViewportPreflight,
 } from "./benchmark-evidence.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -241,21 +242,99 @@ function cameraEffectVerification(before, after) {
   };
 }
 
-function sceneObservation(snapshot) {
+function errorWithEvidence(message, evidence) {
+  const error = new Error(message);
+  error.evidence = evidence;
+  return error;
+}
+
+function compactSceneObservation(snapshot) {
   return {
+    renderer: snapshot.renderer,
+    graphId: snapshot.graphId,
     visibleNodes: snapshot.visibleNodes,
     visibleEdges: snapshot.visibleEdges,
-    expandedContainerIds: snapshot.expandedContainerIds,
-    collapsedTangleIds: snapshot.collapsedTangleIds,
+    expandedContainerCount:
+      snapshot.expandedContainerCount ??
+      snapshot.expandedContainerIds?.length ??
+      0,
+    collapsedTangleCount:
+      snapshot.collapsedTangleCount ??
+      snapshot.collapsedTangleIds?.length ??
+      0,
     focusedEntityId: snapshot.focusedEntityId ?? null,
-    ...(snapshot.visibleEntityIds === undefined
-      ? {}
-      : { visibleEntityIds: snapshot.visibleEntityIds }),
     selectedEntityId: snapshot.selectedEntityId ?? null,
+    lastLayoutComputationMs: snapshot.lastLayoutComputationMs ?? null,
+    lastTransitionDispatchMs: snapshot.lastTransitionDispatchMs ?? null,
     ...(snapshot.viewTransform === undefined
       ? {}
       : { viewTransform: snapshot.viewTransform }),
   };
+}
+
+async function readCompactSnapshot(page) {
+  return page.evaluate(() => {
+    const snapshot = window.__TOPO_BENCHMARK__.snapshot();
+    return {
+      renderer: snapshot.renderer,
+      graphId: snapshot.graphId,
+      visibleNodes: snapshot.visibleNodes,
+      visibleEdges: snapshot.visibleEdges,
+      expandedContainerCount: snapshot.expandedContainerIds.length,
+      collapsedTangleCount: snapshot.collapsedTangleIds.length,
+      selectedEntityId: snapshot.selectedEntityId,
+      focusedEntityId: snapshot.focusedEntityId,
+      viewTransform: snapshot.viewTransform,
+      lastLayoutComputationMs: snapshot.lastLayoutComputationMs,
+      lastTransitionDispatchMs: snapshot.lastTransitionDispatchMs,
+    };
+  });
+}
+
+async function readCameraSnapshot(page) {
+  return page.evaluate(() => {
+    const snapshot = window.__TOPO_BENCHMARK__.snapshot();
+    return { viewTransform: snapshot.viewTransform };
+  });
+}
+
+async function readLayoutSnapshot(page) {
+  return page.evaluate(() => {
+    const snapshot = window.__TOPO_BENCHMARK__.snapshot();
+    return {
+      renderer: snapshot.renderer,
+      graphId: snapshot.graphId,
+      visibleNodes: snapshot.visibleNodes,
+      visibleEdges: snapshot.visibleEdges,
+      visibleEntityIds: snapshot.visibleEntityIds,
+      expandedContainerIds: snapshot.expandedContainerIds,
+      collapsedTangleIds: snapshot.collapsedTangleIds,
+      selectedEntityId: snapshot.selectedEntityId,
+      focusedEntityId: snapshot.focusedEntityId,
+      viewTransform: snapshot.viewTransform,
+      lastLayoutComputationMs: snapshot.lastLayoutComputationMs,
+      lastTransitionDispatchMs: snapshot.lastTransitionDispatchMs,
+    };
+  });
+}
+
+async function readSelectionSnapshot(page) {
+  return page.evaluate(() => {
+    const snapshot = window.__TOPO_BENCHMARK__.snapshot();
+    return {
+      renderer: snapshot.renderer,
+      graphId: snapshot.graphId,
+      visibleNodes: snapshot.visibleNodes,
+      visibleEdges: snapshot.visibleEdges,
+      expandedContainerCount: snapshot.expandedContainerIds.length,
+      collapsedTangleCount: snapshot.collapsedTangleIds.length,
+      selectedEntityId: snapshot.selectedEntityId,
+      focusedEntityId: snapshot.focusedEntityId,
+      viewTransform: snapshot.viewTransform,
+      lastLayoutComputationMs: snapshot.lastLayoutComputationMs,
+      lastTransitionDispatchMs: snapshot.lastTransitionDispatchMs,
+    };
+  });
 }
 
 async function runWorkload(
@@ -267,7 +346,7 @@ async function runWorkload(
 ) {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  let bounds;
+  let viewportPreflight;
   let collected;
   let performanceMetrics;
   const { phases } = await runBenchmarkPhases({
@@ -299,16 +378,37 @@ async function runWorkload(
         name: "app-readiness",
         run: async () => {
           await page.evaluate(() => window.__TOPO_READY__);
-          return sceneObservation(
-            await page.evaluate(() => window.__TOPO_BENCHMARK__.snapshot()),
+          return compactSceneObservation(await readCompactSnapshot(page));
+        },
+      },
+      {
+        name: "viewport-preflight",
+        run: async () => {
+          const target =
+            renderer === "svg"
+              ? page.locator(".topo-svg").first()
+              : page.locator(".map-host canvas").first();
+          if ((await target.count()) === 0) {
+            throw new Error(
+              `No ${renderer === "svg" ? "SVG" : "WebGL canvas"} renderer target was available.`,
+            );
+          }
+          viewportPreflight = verifyViewportPreflight(
+            await target.boundingBox(),
+            page.viewportSize() ?? { width: 1280, height: 800 },
           );
+          if (viewportPreflight.status !== "verified") {
+            throw errorWithEvidence(
+              `Renderer viewport preflight failed: ${viewportPreflight.reason}`,
+              viewportPreflight,
+            );
+          }
+          return viewportPreflight;
         },
       },
       {
         name: "sampling-setup",
         run: async () => {
-          bounds = await page.locator(".map-host").boundingBox();
-          if (!bounds) throw new Error("Map host has no browser bounds.");
           return page.evaluate(() => {
             window.__TOPO_FRAME_INTERVALS__ = [];
             window.__TOPO_EVENT_TIMINGS__ = [];
@@ -352,11 +452,9 @@ async function runWorkload(
       {
         name: "pan",
         run: async () => {
-          const before = await page.evaluate(() =>
-            window.__TOPO_BENCHMARK__.snapshot(),
-          );
-          const centerX = bounds.x + bounds.width / 2;
-          const centerY = bounds.y + bounds.height / 2;
+          const before = await readCameraSnapshot(page);
+          const centerX = viewportPreflight.interactionPoint.x;
+          const centerY = viewportPreflight.interactionPoint.y;
           await page.mouse.move(centerX, centerY);
           await page.mouse.down();
           for (let index = 0; index < 80; index += 1) {
@@ -366,13 +464,11 @@ async function runWorkload(
             );
           }
           await page.mouse.up();
-          const after = await page.evaluate(() =>
-            window.__TOPO_BENCHMARK__.snapshot(),
-          );
+          const after = await readCameraSnapshot(page);
           return {
             pointerMoves: 80,
-            before: sceneObservation(before),
-            after: sceneObservation(after),
+            before: before.viewTransform ?? null,
+            after: after.viewTransform ?? null,
             effectVerification: cameraEffectVerification(before, after),
           };
         },
@@ -380,26 +476,20 @@ async function runWorkload(
       {
         name: "zoom",
         run: async () => {
-          const before = await page.evaluate(() =>
-            window.__TOPO_BENCHMARK__.snapshot(),
-          );
+          const before = await readCameraSnapshot(page);
           for (let index = 0; index < 30; index += 1) {
             await page.mouse.wheel(0, -18);
           }
-          const midpoint = await page.evaluate(() =>
-            window.__TOPO_BENCHMARK__.snapshot(),
-          );
+          const midpoint = await readCameraSnapshot(page);
           for (let index = 0; index < 30; index += 1) {
             await page.mouse.wheel(0, 18);
           }
-          const after = await page.evaluate(() =>
-            window.__TOPO_BENCHMARK__.snapshot(),
-          );
+          const after = await readCameraSnapshot(page);
           return {
             wheelEvents: 60,
-            before: sceneObservation(before),
-            midpoint: sceneObservation(midpoint),
-            after: sceneObservation(after),
+            before: before.viewTransform ?? null,
+            midpoint: midpoint.viewTransform ?? null,
+            after: after.viewTransform ?? null,
             effectVerification: cameraEffectVerification(before, midpoint),
           };
         },
@@ -407,9 +497,7 @@ async function runWorkload(
       {
         name: "layout-transition",
         run: async () => {
-          const before = await page.evaluate(() =>
-            window.__TOPO_BENCHMARK__.snapshot(),
-          );
+          const before = await readLayoutSnapshot(page);
           let control;
           let action;
           if (scope === "expanded") {
@@ -470,8 +558,15 @@ async function runWorkload(
             const expectedTangle =
               visibleTangleCandidates(before)?.length > 0;
             if (expectedDirectory || expectedTangle) {
-              throw new Error(
+              throw errorWithEvidence(
                 "Snapshot reported an expandable directory/tangle, but no matching control was available.",
+                {
+                  before: compactSceneObservation(before),
+                  expectedDirectoryIds:
+                    collapsedDirectoryCandidates(before) ?? [],
+                  expectedTangleIds:
+                    visibleTangleCandidates(before) ?? [],
+                },
               );
             }
             return {
@@ -479,7 +574,7 @@ async function runWorkload(
               action: null,
               reason:
                 "Fixture projection has no non-root expandable directory or tangle.",
-              before: sceneObservation(before),
+              before: compactSceneObservation(before),
               effectVerification: { status: "not-applicable" },
             };
           }
@@ -491,20 +586,23 @@ async function runWorkload(
           const controlLabel = await control.textContent();
           await control.click(scope === "expanded" ? {} : { force: true });
           await page.waitForTimeout(600);
-          const after = await page.evaluate(() =>
-            window.__TOPO_BENCHMARK__.snapshot(),
-          );
+          const after = await readLayoutSnapshot(page);
           const effectVerification = verifyLayoutTransition(before, after);
           if (effectVerification.status === "failed") {
-            throw new Error(
+            throw errorWithEvidence(
               `The ${scope === "expanded" ? "collapse" : "expand"} action was not verified: ${effectVerification.reason}`,
+              {
+                before: compactSceneObservation(before),
+                after: compactSceneObservation(after),
+                effectVerification,
+              },
             );
           }
           return {
             action,
             controlLabel,
-            before: sceneObservation(before),
-            after: sceneObservation(after),
+            before: compactSceneObservation(before),
+            after: compactSceneObservation(after),
             effectVerification,
           };
         },
@@ -512,9 +610,7 @@ async function runWorkload(
       {
         name: "keyboard-activation",
         run: async () => {
-          const before = await page.evaluate(() =>
-            window.__TOPO_BENCHMARK__.snapshot(),
-          );
+          const before = await readSelectionSnapshot(page);
           const accessibleEntity = page
             .locator(".webgl-a11y button, .topo-svg [data-entity-id]")
             .first();
@@ -529,26 +625,34 @@ async function runWorkload(
           await accessibleEntity.focus();
           await page.keyboard.press("Enter");
           await page.waitForTimeout(200);
-          const after = await page.evaluate(() =>
-            window.__TOPO_BENCHMARK__.snapshot(),
-          );
+          const after = await readSelectionSnapshot(page);
           if (after.selectedEntityId !== targetEntityId) {
-            throw new Error(
+            throw errorWithEvidence(
               `Keyboard activation selected "${after.selectedEntityId ?? "nothing"}" instead of "${targetEntityId}".`,
+              {
+                targetEntityId,
+                before: compactSceneObservation(before),
+                after: compactSceneObservation(after),
+              },
             );
           }
           if (
             after.focusedEntityId !== undefined &&
             after.focusedEntityId !== targetEntityId
           ) {
-            throw new Error(
+            throw errorWithEvidence(
               `Keyboard activation focused "${after.focusedEntityId ?? "nothing"}" instead of "${targetEntityId}".`,
+              {
+                targetEntityId,
+                before: compactSceneObservation(before),
+                after: compactSceneObservation(after),
+              },
             );
           }
           return {
             targetEntityId,
-            before: sceneObservation(before),
-            after: sceneObservation(after),
+            before: compactSceneObservation(before),
+            after: compactSceneObservation(after),
             effectVerification: {
               status: "verified",
               selectedTarget: true,
@@ -568,10 +672,25 @@ async function runWorkload(
           collected = await page.evaluate(() => {
             window.__TOPO_FRAME_ACTIVE__ = false;
             window.__TOPO_EVENT_OBSERVER__?.disconnect();
+            const snapshot = window.__TOPO_BENCHMARK__.snapshot();
             return {
               frames: window.__TOPO_FRAME_INTERVALS__,
               events: window.__TOPO_EVENT_TIMINGS__,
-              snapshot: window.__TOPO_BENCHMARK__.snapshot(),
+              snapshot: {
+                renderer: snapshot.renderer,
+                graphId: snapshot.graphId,
+                visibleNodes: snapshot.visibleNodes,
+                visibleEdges: snapshot.visibleEdges,
+                expandedContainerCount:
+                  snapshot.expandedContainerIds.length,
+                collapsedTangleCount: snapshot.collapsedTangleIds.length,
+                selectedEntityId: snapshot.selectedEntityId,
+                focusedEntityId: snapshot.focusedEntityId,
+                viewTransform: snapshot.viewTransform,
+                lastLayoutComputationMs: snapshot.lastLayoutComputationMs,
+                lastTransitionDispatchMs:
+                  snapshot.lastTransitionDispatchMs,
+              },
               graphics: window.__TOPO_BENCHMARK__.graphicsInfo(),
               accessibilityNodes: document.querySelectorAll(
                 ".webgl-a11y [data-entity-id]",
@@ -589,7 +708,7 @@ async function runWorkload(
           return {
             frameSamples: collected.frames.length,
             eventTimingSamples: collected.events.length,
-            finalScene: sceneObservation(collected.snapshot),
+            finalScene: collected.snapshot,
           };
         },
       },
