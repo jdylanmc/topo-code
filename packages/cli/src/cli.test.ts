@@ -14,6 +14,21 @@ async function temp() {
   directories.push(root);
   return root;
 }
+async function commit(root: string, message: string, ...paths: string[]) {
+  await execute("git", ["-C", root, "add", ...paths]);
+  await execute("git", [
+    "-C",
+    root,
+    "-c",
+    "user.name=Dylan McCurry",
+    "-c",
+    "user.email=j.dylan.mccurry@gmail.com",
+    "commit",
+    "--quiet",
+    "-m",
+    message,
+  ]);
+}
 async function fixture() {
   const root = await temp();
   await writeFile(join(root, "package.json"), '{"name":"fixture","type":"module"}');
@@ -21,8 +36,7 @@ async function fixture() {
   await writeFile(join(root, "main.ts"), 'import { value } from "./value.js";\nconsole.log(value);\n');
   await writeFile(join(root, "value.ts"), "export const value = 42;\n");
   await execute("git", ["init", "--quiet", root]);
-  await execute("git", ["-C", root, "add", "package.json", "tsconfig.json", "main.ts", "value.ts"]);
-  await execute("git", ["-C", root, "-c", "user.name=Topocode Fixture", "-c", "user.email=fixture@example.invalid", "commit", "--quiet", "-m", "Fixture"]);
+  await commit(root, "Fixture", "package.json", "tsconfig.json", "main.ts", "value.ts");
   return root;
 }
 async function cli(...args: string[]) {
@@ -48,6 +62,53 @@ describe("documented CLI workflow", () => {
     expect(await readFile(join(root, ".topo/cache/site/index.html"), "utf8")).toContain("Topocode");
   });
 
+  it("preserves source identity and unaffected positions after a committed source change", async () => {
+    const root = await fixture();
+    await writeFile(join(root, "other.ts"), "export const other = true;\n");
+    await commit(root, "Add unchanged source", "other.ts");
+    await cli("scan", root);
+    const firstGraph = JSON.parse(await readFile(join(root, ".topo/graph/graph.json"), "utf8"));
+    const firstLayout = JSON.parse(await readFile(join(root, ".topo/graph/layout.json"), "utf8"));
+    const firstSources = new Map(firstGraph.nodes
+      .filter((node: { kind: string; identity: { kind: string } }) => node.kind === "file" && node.identity.kind === "path")
+      .map((node: { id: string; identity: { value: string }; fingerprint: string }) => [node.identity.value, node]));
+    const firstPositions = new Map(firstLayout.items
+      .filter((item: { subject: { kind: string } }) => item.subject.kind === "node")
+      .map((item: { subject: { id: string }; x: number; y: number; width: number; height: number }) => [
+        item.subject.id,
+        { x: item.x, y: item.y, width: item.width, height: item.height },
+      ]));
+    expect(firstGraph.extensions["dev.topo.scanner"].authoritative).toBe(true);
+
+    await writeFile(join(root, "value.ts"), "export const value = 43;\n");
+    await commit(root, "Change value", "value.ts");
+    await cli("scan", root);
+
+    const secondGraph = JSON.parse(await readFile(join(root, ".topo/graph/graph.json"), "utf8"));
+    const secondLayout = JSON.parse(await readFile(join(root, ".topo/graph/layout.json"), "utf8"));
+    const secondSources = new Map(secondGraph.nodes
+      .filter((node: { kind: string; identity: { kind: string } }) => node.kind === "file" && node.identity.kind === "path")
+      .map((node: { id: string; identity: { value: string }; fingerprint: string }) => [node.identity.value, node]));
+    const secondPositions = new Map(secondLayout.items
+      .filter((item: { subject: { kind: string } }) => item.subject.kind === "node")
+      .map((item: { subject: { id: string }; x: number; y: number; width: number; height: number }) => [
+        item.subject.id,
+        { x: item.x, y: item.y, width: item.width, height: item.height },
+      ]));
+    const changedBefore = firstSources.get("value.ts");
+    const changedAfter = secondSources.get("value.ts");
+    expect(changedAfter?.id).toBe(changedBefore?.id);
+    expect(changedAfter?.fingerprint).not.toBe(changedBefore?.fingerprint);
+    for (const path of ["main.ts", "other.ts"]) {
+      const before = firstSources.get(path);
+      const after = secondSources.get(path);
+      expect(after).toMatchObject({ id: before?.id, fingerprint: before?.fingerprint });
+      expect(secondPositions.get(after?.id)).toEqual(firstPositions.get(before?.id));
+    }
+    expect(secondGraph.repository.revision).not.toBe(firstGraph.repository.revision);
+    expect(secondLayout.graphRef.revision).toBe(secondGraph.repository.revision);
+  });
+
   it("ingests reproducibly and rejects stale graphs or dirty sources before changing output", async () => {
     const root = await fixture();
     await cli("scan", root);
@@ -67,8 +128,7 @@ describe("documented CLI workflow", () => {
     expect(await readFile(join(root, ".topo/reports/outputs/dashboard.json"), "utf8")).toBe(before);
     await writeFile(join(root, "value.ts"), "export const value = 43;\n");
     await expect(cli("ingest", root, input)).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining("clean source") });
-    await execute("git", ["-C", root, "add", "value.ts"]);
-    await execute("git", ["-C", root, "-c", "user.name=Topocode Fixture", "-c", "user.email=fixture@example.invalid", "commit", "--quiet", "-m", "Changed"]);
+    await commit(root, "Changed", "value.ts");
     await expect(cli("ingest", root, input)).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining("stale relative to HEAD") });
     expect(await readFile(join(root, ".topo/reports/outputs/dashboard.json"), "utf8")).toBe(before);
   });
