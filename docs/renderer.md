@@ -190,6 +190,8 @@ The harness records:
   and the identity selected by keyboard activation;
 - navigation, readiness, and interaction phases as controller wall time,
   distinct from browser input-to-paint latency;
+- browser-clock phase windows, delivered DOM input counts, and submitted
+  WebGL buffer ranges alongside the unchanged whole-workload score;
 - every `requestAnimationFrame` interval during the workload;
 - delivered frames per second and frame interval distribution;
 - trusted-input `PerformanceEventTiming.duration`, which spans input start to a
@@ -342,6 +344,72 @@ wheel inputs are identical. All raw samples are retained; these single
 headless observations still miss >50 FPS on expanded VSCode and do not select
 a production renderer.
 
+## Browser-clock phase observations
+
+The instrumented harness now separates phase callback delivery from the
+whole-workload average. Definitions, boundary-frame handling, input-count
+limits, native-buffer byte semantics, and failure capture are documented in
+[benchmark-harness.md](./benchmark-harness.md).
+
+The matched comparison uses baseline application
+`94bcf1929de74d3168af84d9e21e27175c5402bb` and camera-render-group candidate
+`e78fd8f37d54041b6585b953796a5228c68efe58`, with the **same instrumented
+harness** from the latter commit in both builds. Application bundle manifests,
+harness hashes, matching lockfile hash, and all six fresh runs in A-B-B-A-A-B
+order are retained in
+[`real-browser-phase-paired.json`](../benchmarks/results/real-browser-phase-paired.json).
+
+All six runs delivered exactly 80 map drag moves and 60 wheel events, with
+identical before/midpoint/after camera transforms. These observed counts do not
+establish a general one-command/one-event rule or application-handler counts.
+
+| Expanded VSCode phase | Baseline callback FPS range | Candidate callback FPS range |
+|---|---:|---:|
+| pan | 50.648-54.528 | 53.534-54.923 |
+| zoom | 55.190-57.924 | 55.831-58.681 |
+| layout transition | 31.542-34.432 | 33.457-34.284 |
+| keyboard activation | 16.674-18.602 | 17.341-18.113 |
+
+These are three-observation ranges, not confidence intervals. The original
+whole-workload score remains **46.579-49.071 FPS** for the baseline and
+**46.895-48.752 FPS** for the candidate: no whole-workload >50 FPS acceptance
+or statistical throughput win is claimed.
+
+The camera group does remove measured work: baseline pan submits about
+**2.60 GiB** of vertex data across 80 calls, and zoom about **1.95 GiB** across
+60 calls. Candidate camera phases submit **zero vertex bytes** in these runs.
+Those totals are repeated API payloads, not resident memory or proven physical
+GPU traffic. The identical pan sequence completes in a 1.503-1.550 second
+browser window versus 3.109-3.258 seconds; this is **not input-to-paint latency**.
+A shorter smooth phase can leave fixed transition stalls more dominant in the
+whole-workload average.
+
+Transition and keyboard phases still submit approximately 399-433 MiB of
+vertex data each, with large synchronous upload costs and long frames. Buffer
+ownership is not established by target/byte observations alone. In particular,
+the measured `directory:typings` collapse/re-expansion changes **none** of the
+105,549 scene edges and finishes with `edgeGeometryUpdates === 1`; logical edge
+reconstruction is not the demonstrated cause. Further optimization must follow
+attribution rather than assumed edge invalidation.
+
+The twelve earlier, uninstrumented camera-group and nested-node-group trials
+are preserved in
+[`real-render-groups-intermediate.json`](../benchmarks/results/real-render-groups-intermediate.json).
+Neither established an overall FPS win. The unsupported nested node group was
+reverted; only the camera viewport group remains.
+
+The complete instrumented candidate matrix is in
+[`real-browser-phase-headless.json`](../benchmarks/results/real-browser-phase-headless.json):
+eight effect-verified cases, no page errors, and successful owned-resource
+cleanup in **69.842 seconds**.
+
+| Fixture | Scope | SVG whole-workload FPS | WebGL whole-workload FPS |
+|---|---|---:|---:|
+| Mermaid | directory | 60.002 | 59.812 |
+| Mermaid | expanded | 59.543 | 59.630 |
+| Visual Studio Code | directory | 57.738 | 57.978 |
+| Visual Studio Code | expanded | 22.843 | 49.093 |
+
 ## Historical evidence correction
 
 **The real FPS comparisons published with PR #18 are not valid interaction
@@ -389,8 +457,9 @@ No renderer is selected yet.
 The corrected and subsequent results do not support assuming WebGL is
 universally faster. Both backends exceed 50 average delivered FPS on real
 Mermaid and directory-level Visual Studio Code in these headless runs. Both
-still miss the criterion on expanded Visual Studio Code, including the matched
-projection-session reruns and the fitted-zoom correction.
+still miss the whole-workload criterion on expanded Visual Studio Code.
+Browser-clock phase measurements show that pan/zoom callback rates can exceed
+50 while transition and activation stalls keep the whole-workload rate lower.
 Large-scene improvements, visible-browser measurements, and visual/accessibility
 review remain before recording a production choice.
 
