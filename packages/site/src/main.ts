@@ -1,4 +1,5 @@
 import "./styles.css";
+import { createLayoutSession, type LayoutSession } from "@topo/graph";
 import type {
   AppModel,
   BenchmarkApi,
@@ -71,6 +72,7 @@ function renderError(error: unknown): void {
 class TopoApp {
   readonly #root: HTMLElement;
   readonly #model: AppModel;
+  readonly #layoutSession: LayoutSession;
   readonly #cyclicNodeIds: Set<string>;
   #renderer: Renderer | undefined;
   #rendererHost: HTMLElement | undefined;
@@ -81,9 +83,14 @@ class TopoApp {
   readonly #resizeObserver = new ResizeObserver(() => this.#renderer?.resize());
   #keyboardNavigation = false;
 
-  private constructor(root: HTMLElement, model: AppModel) {
+  private constructor(
+    root: HTMLElement,
+    model: AppModel,
+    layoutSession: LayoutSession,
+  ) {
     this.#root = root;
     this.#model = model;
+    this.#layoutSession = layoutSession;
     this.#cyclicNodeIds = new Set(
       model.artifacts.architecture.stronglyConnectedComponents.flatMap(
         (component) => component.memberNodeIds,
@@ -114,13 +121,12 @@ class TopoApp {
             ),
       ),
     };
-    const layoutResult = createLayout(
+    const layoutSession = createLayoutSession(
       artifacts.graph,
       artifacts.architecture,
-      state,
-      artifacts.layout,
     );
-    const app = new TopoApp(root, { artifacts, state, layoutResult });
+    const layoutResult = createLayout(layoutSession, state, artifacts.layout);
+    const app = new TopoApp(root, { artifacts, state, layoutResult }, layoutSession);
     await app.#initialize();
     return app;
   }
@@ -335,8 +341,7 @@ class TopoApp {
     const started = performance.now();
     const previous = this.#model.layoutResult.layout;
     this.#model.layoutResult = createLayout(
-      this.#model.artifacts.graph,
-      this.#model.artifacts.architecture,
+      this.#layoutSession,
       this.#model.state,
       previous,
     );

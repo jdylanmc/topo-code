@@ -46,6 +46,38 @@ semantically identical to `layoutGraph` but avoids recomputing directory,
 strongly connected component, and spine indexes during interactive
 expand/collapse operations.
 
+For repeated interactions on an unchanged scan, create a snapshot session:
+
+```ts
+const session = createLayoutSession(graph, architecture);
+const initial = session.layout({ expandedContainerIds });
+const expanded = session.layout({
+  expandedContainerIds: nextExpandedContainerIds,
+  previous: initial.layout,
+  pins,
+});
+```
+
+`createLayoutSession(graph, architecture): LayoutSession` validates the complete
+graph once, checks the architecture's existing version/graph-ID contract, and
+captures a private topology snapshot with reusable indexes. It does not copy
+the scan's attributes, evidence, modules, or other data unused by projection.
+The site retains its original artifacts for details and provenance, and uses
+one session for interactive layout.
+
+`createProjectionSession(graph, architecture): ProjectionSession` provides the
+same capture semantics for `session.project(options?)` and exposes a frozen
+`graphRef`. Returned projection/layout objects do not expose mutable snapshot
+arrays. Neither factory freezes or modifies caller data. Subsequent changes to
+the input graph or architecture do not affect a session: **create a new session
+when loading a new scan or changing architecture**.
+
+Options, pins, and previous layouts are still checked on every call. Existing
+`projectGraph` and `layoutGraphWithArchitecture` remain live APIs: they revalidate
+the supplied graph on every call, including after mutation. Sessions trade
+one-time capture/indexing cost and additional topology memory for cheaper
+interactions; see [measurements and limitations](./graph-performance.md).
+
 ## Directory-first aggregation
 
 Phase 1 uses repository-relative path identity to derive an auditable directory

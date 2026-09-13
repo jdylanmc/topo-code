@@ -291,7 +291,7 @@ function topLevelRepresentative(
 }
 
 export function aggregateDirectedEdges(
-  edges: readonly GraphEdge[],
+  edges: readonly Pick<GraphEdge, "id" | "sourceId" | "targetId" | "type">[],
   representativeByNodeId: ReadonlyMap<string, string>,
   spineEdgeIds: ReadonlySet<string> = new Set(),
   sparseCoverage = SPARSE_EDGE_COVERAGE,
@@ -301,9 +301,10 @@ export function aggregateDirectedEdges(
     {
       sourceId: string;
       targetId: string;
-      edges: GraphEdge[];
+      edges: Array<(typeof edges)[number]>;
     }
   >();
+  let maximumWeight = 1;
   for (const edge of [...edges].sort((left, right) =>
     compareText(left.id, right.id),
   )) {
@@ -315,15 +316,40 @@ export function aggregateDirectedEdges(
     const key = `${sourceId}\0${targetId}`;
     const group = groups.get(key) ?? { sourceId, targetId, edges: [] };
     group.edges.push(edge);
+    maximumWeight = Math.max(maximumWeight, group.edges.length);
     groups.set(key, group);
   }
 
-  const maximumWeight = Math.max(
-    1,
-    ...[...groups.values()].map((group) => group.edges.length),
-  );
+  const thicknessByWeight = new Map<number, number>();
+  function thickness(weight: number): number {
+    let value = thicknessByWeight.get(weight);
+    if (value === undefined) {
+      value = logScale(weight, maximumWeight, 1, 8);
+      thicknessByWeight.set(weight, value);
+    }
+    return value;
+  }
   const aggregates: AggregatedEdge[] = [...groups.values()].map((group) => {
-    const memberEdgeIds = group.edges.map((edge) => edge.id).sort(compareText);
+    if (group.edges.length === 1) {
+      const edge = group.edges[0]!;
+      return {
+        id: stableId("aggregate-edge", [group.sourceId, group.targetId]),
+        sourceId: group.sourceId,
+        targetId: group.targetId,
+        memberEdgeIds: [edge.id],
+        directions: [{
+          sourceId: edge.sourceId,
+          targetId: edge.targetId,
+          edgeIds: [edge.id],
+        }],
+        edgeTypes: [edge.type],
+        weight: 1,
+        visual: { thickness: thickness(1), scale: "log1p", derived: true },
+        sparse: false,
+        spine: spineEdgeIds.has(edge.id),
+      };
+    }
+    const memberEdgeIds = group.edges.map((edge) => edge.id);
     const directionGroups = new Map<string, string[]>();
     for (const edge of group.edges) {
       const key = `${edge.sourceId}\0${edge.targetId}`;
@@ -342,7 +368,7 @@ export function aggregateDirectedEdges(
           return {
             sourceId: sourceId!,
             targetId: targetId!,
-            edgeIds: edgeIds.sort(compareText),
+            edgeIds,
           };
         })
         .sort(
@@ -353,7 +379,7 @@ export function aggregateDirectedEdges(
       edgeTypes: sorted(new Set(group.edges.map((edge) => edge.type))),
       weight: group.edges.length,
       visual: {
-        thickness: logScale(group.edges.length, maximumWeight, 1, 8),
+        thickness: thickness(group.edges.length),
         scale: "log1p",
         derived: true,
       },
@@ -363,10 +389,13 @@ export function aggregateDirectedEdges(
     return aggregate;
   });
 
-  const ranked = [...aggregates].sort(
-    (left, right) =>
-      right.weight - left.weight || compareText(left.id, right.id),
-  );
+  aggregates.sort((left, right) => compareText(left.id, right.id));
+  const ranked = maximumWeight === 1
+    ? aggregates
+    : [...aggregates].sort(
+        (left, right) =>
+          right.weight - left.weight || compareText(left.id, right.id),
+      );
   const totalWeight = ranked.reduce((total, edge) => total + edge.weight, 0);
   let retainedWeight = 0;
   for (const edge of ranked) {
@@ -375,7 +404,7 @@ export function aggregateDirectedEdges(
       retainedWeight += edge.weight;
     }
   }
-  return aggregates.sort((left, right) => compareText(left.id, right.id));
+  return aggregates;
 }
 
 function deriveNodeVisualValues(graph: GraphDocument): NodeVisualValues[] {

@@ -1,0 +1,5054 @@
+{
+  "schemaVersion": "1.0",
+  "method": "Sequential baseline-candidate-candidate-baseline order, one fresh browser per run, identical frozen input and focused expanded WebGL workload. No concurrent build/test/profiling workload.",
+  "baselineCommit": "1d9ca95ad487a2ea9adebcb98cae2ca9b3eb7207",
+  "candidateCommit": "b182d3836b028ac7fa76763e345b55555f4124f7",
+  "limitation": "Two samples per version, not statistical or cross-platform guarantees. The slower full-matrix candidate observation is retained separately.",
+  "runs": [
+    {
+      "index": 0,
+      "variant": "baseline",
+      "fps": 45.112,
+      "worstFrameMs": 849.9650000000001,
+      "layoutMs": 559.2849999666214,
+      "transitionDispatchMs": 746.164999961853,
+      "heapBytes": 854590400,
+      "effectVerification": "verified",
+      "raw": {
+        "schemaVersion": "1.0",
+        "generatedAt": "2026-09-13T02:04:18.828Z",
+        "status": "completed",
+        "environment": {
+          "platform": "darwin",
+          "release": "25.6.0",
+          "architecture": "arm64",
+          "cpu": "Apple M5 Pro",
+          "logicalCpuCount": 18,
+          "totalMemoryBytes": 68719476736,
+          "browser": "153.0.8010.37",
+          "headless": true,
+          "executable": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+          "launchArgs": [
+            "--disable-background-timer-throttling",
+            "--disable-renderer-backgrounding"
+          ],
+          "gpuFlags": "No GPU-disabling flags supplied. Headless Chrome compositor/GPU behavior may differ from a visible browser.",
+          "browserProcessId": 20419
+        },
+        "selectedFixtures": [
+          "vscode"
+        ],
+        "selectedRenderers": [
+          "webgl"
+        ],
+        "selectedScopes": [
+          "expanded"
+        ],
+        "preparationTimeoutMilliseconds": 30000,
+        "fixtureTimeoutMilliseconds": 60000,
+        "totalTimeoutMilliseconds": 90000,
+        "workloadTimeoutMilliseconds": 45000,
+        "cleanupTimeoutMilliseconds": 3000,
+        "fixturePreparation": [
+          {
+            "type": "fixture-preparation",
+            "fixture": {
+              "name": "vscode",
+              "graphPath": "frozen-fixtures/vscode-src.graph.json",
+              "provenancePath": "packages/scanner/fixtures/real/vscode-src.provenance.json",
+              "graphId": "repo:microsoft/vscode",
+              "fixtureKind": "real-partial"
+            },
+            "status": "completed",
+            "startedAt": "2026-09-13T02:04:18.829Z",
+            "deadlineMilliseconds": 30000,
+            "configuredDeadlineMilliseconds": 30000,
+            "elapsedMilliseconds": 2482,
+            "completedAt": "2026-09-13T02:04:21.311Z"
+          }
+        ],
+        "fixtures": [
+          {
+            "name": "vscode",
+            "fixtureKind": "real-partial",
+            "graphId": "repo:microsoft/vscode",
+            "nodes": 9376,
+            "edges": 105549,
+            "tangles": 102,
+            "urlPath": "/vscode/index.html",
+            "preparation": {
+              "parseMilliseconds": 465.69624999999996,
+              "deriveMilliseconds": 512.7696660000001,
+              "layoutMilliseconds": 500.93724999999995,
+              "totalMilliseconds": 1479.403166
+            },
+            "evidence": {
+              "graphContentSha256": "48c16618a1dc37c47738fc1811b1645cc48f329f3936c0cf2aee4483361ec9de",
+              "graphBytes": 171551574,
+              "provenance": {
+                "contentSha256": "a9c9cf33b5fdb108caa4f73a0fb875793573ce47304df44800f6bcd9edadc7d5",
+                "schemaVersion": "1.0",
+                "repositoryId": "microsoft/vscode",
+                "upstream": "https://github.com/microsoft/vscode.git",
+                "revision": "3879d0e80faeaeb351bbb44dd0f74f1bac12fc0a",
+                "selectedPath": "src",
+                "authoritative": false,
+                "counts": {
+                  "nodes": 9376,
+                  "edges": 105549,
+                  "containers": 2375,
+                  "sourceFiles": 9252,
+                  "linesOfCode": 2993413
+                },
+                "limitationsCount": 756,
+                "diagnosticCounts": {
+                  "inferred-source-configuration": 1,
+                  "missing-type-library": 24,
+                  "resolved-import-outside-scan": 1,
+                  "unresolved-import-ratio": 1,
+                  "unresolved-local-import": 729
+                },
+                "scan": {
+                  "durationMilliseconds": 8104,
+                  "maximumResidentSetBytes": 2194833408,
+                  "nodeVersion": "v24.20.0",
+                  "platform": "darwin",
+                  "architecture": "arm64",
+                  "cpu": "Apple M5 Pro",
+                  "logicalCpuCount": 18,
+                  "memoryBytes": 68719476736
+                },
+                "reproductionCommandTemplate": "corepack yarn workspace @topo/scanner fixture --root <checkout> --output <artifact> --repository-id <repository> --allow-partial true"
+              }
+            }
+          }
+        ],
+        "results": [
+          {
+            "status": "completed",
+            "fixture": "vscode",
+            "fixtureKind": "real-partial",
+            "renderer": "webgl",
+            "scope": "expanded",
+            "graph": {
+              "nodes": 9376,
+              "edges": 105549,
+              "tangles": 102
+            },
+            "workload": {
+              "viewport": {
+                "width": 1280,
+                "height": 800
+              },
+              "panPointerMoves": 80,
+              "zoomWheelEvents": 60,
+              "layoutTransition": "collapse first expanded directory; 300ms renderer transition",
+              "selectionInput": "keyboard Enter on first accessible entity"
+            },
+            "phaseTiming": {
+              "source": "controller-wall-clock",
+              "limitation": "Automation wall time includes Playwright dispatch and waits. It is reported separately from browser Event Timing and frame intervals.",
+              "phases": [
+                {
+                  "name": "navigation",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 43.15812499999993,
+                    "deadlineMilliseconds": 44871
+                  },
+                  "observation": {
+                    "url": "http://127.0.0.1:4181/vscode/index.html?renderer=webgl&scope=all",
+                    "httpStatus": 200
+                  }
+                },
+                {
+                  "name": "app-readiness",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 4955.935,
+                    "deadlineMilliseconds": 44828
+                  },
+                  "observation": {
+                    "renderer": "webgl",
+                    "graphId": "repo:microsoft/vscode",
+                    "visibleNodes": 9376,
+                    "visibleEdges": 105549,
+                    "expandedContainerCount": 2375,
+                    "collapsedTangleCount": 0,
+                    "focusedEntityId": null,
+                    "selectedEntityId": null,
+                    "lastLayoutComputationMs": 0,
+                    "lastTransitionDispatchMs": 0,
+                    "viewTransform": {
+                      "x": 32,
+                      "y": 32,
+                      "scale": 0.0016326617722383474
+                    }
+                  }
+                },
+                {
+                  "name": "viewport-preflight",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 31.018832999999177,
+                    "deadlineMilliseconds": 39872
+                  },
+                  "observation": {
+                    "status": "verified",
+                    "bounds": {
+                      "x": 0,
+                      "y": 277,
+                      "width": 920,
+                      "height": 523
+                    },
+                    "viewport": {
+                      "width": 1280,
+                      "height": 800
+                    },
+                    "intersection": {
+                      "x": 0,
+                      "y": 277,
+                      "width": 920,
+                      "height": 523
+                    },
+                    "interactionPoint": {
+                      "x": 460,
+                      "y": 538.5
+                    }
+                  }
+                },
+                {
+                  "name": "sampling-setup",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 1.565042000000176,
+                    "deadlineMilliseconds": 39841
+                  },
+                  "observation": {
+                    "eventTimingAvailable": true
+                  }
+                },
+                {
+                  "name": "pan",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 3267.888332999999,
+                    "deadlineMilliseconds": 39839
+                  },
+                  "observation": {
+                    "pointerMoves": 80,
+                    "before": {
+                      "x": 32,
+                      "y": 32,
+                      "scale": 0.0016326617722383474
+                    },
+                    "after": {
+                      "x": -46.32977294921875,
+                      "y": 27.3997802734375,
+                      "scale": 0.0016326617722383474
+                    },
+                    "effectVerification": {
+                      "status": "verified",
+                      "before": {
+                        "x": 32,
+                        "y": 32,
+                        "scale": 0.0016326617722383474
+                      },
+                      "after": {
+                        "x": -46.32977294921875,
+                        "y": 27.3997802734375,
+                        "scale": 0.0016326617722383474
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "zoom",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 3216.723082999999,
+                    "deadlineMilliseconds": 36571
+                  },
+                  "observation": {
+                    "wheelEvents": 60,
+                    "before": {
+                      "x": -46.32977294921875,
+                      "y": 27.3997802734375,
+                      "scale": 0.0016326617722383474
+                    },
+                    "midpoint": {
+                      "x": -56887.98780183454,
+                      "y": -30380.066157208614,
+                      "scale": 0.21880265087438816
+                    },
+                    "after": {
+                      "x": -25792.80894288706,
+                      "y": -13745.688752297792,
+                      "scale": 0.1
+                    },
+                    "effectVerification": {
+                      "status": "verified",
+                      "before": {
+                        "x": -46.32977294921875,
+                        "y": 27.3997802734375,
+                        "scale": 0.0016326617722383474
+                      },
+                      "after": {
+                        "x": -56887.98780183454,
+                        "y": -30380.066157208614,
+                        "scale": 0.21880265087438816
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "layout-transition",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 1630.3467499999988,
+                    "deadlineMilliseconds": 33354
+                  },
+                  "observation": {
+                    "action": "collapse-directory",
+                    "controlLabel": "Collapse typings",
+                    "before": {
+                      "renderer": "webgl",
+                      "graphId": "repo:microsoft/vscode",
+                      "visibleNodes": 9376,
+                      "visibleEdges": 105549,
+                      "expandedContainerCount": 2375,
+                      "collapsedTangleCount": 0,
+                      "focusedEntityId": null,
+                      "selectedEntityId": null,
+                      "lastLayoutComputationMs": 0,
+                      "lastTransitionDispatchMs": 0,
+                      "viewTransform": {
+                        "x": -25792.80894288706,
+                        "y": -13745.688752297792,
+                        "scale": 0.1
+                      }
+                    },
+                    "after": {
+                      "renderer": "webgl",
+                      "graphId": "repo:microsoft/vscode",
+                      "visibleNodes": 9368,
+                      "visibleEdges": 105549,
+                      "expandedContainerCount": 2374,
+                      "collapsedTangleCount": 0,
+                      "focusedEntityId": null,
+                      "selectedEntityId": null,
+                      "lastLayoutComputationMs": 564.664999961853,
+                      "lastTransitionDispatchMs": 775.9399999976158,
+                      "viewTransform": {
+                        "x": -25792.80894288706,
+                        "y": -13745.688752297792,
+                        "scale": 0.1
+                      }
+                    },
+                    "effectVerification": {
+                      "status": "verified",
+                      "expansionStateChanged": true,
+                      "visibleMembershipChanged": true,
+                      "expandedContainerDelta": {
+                        "beforeCount": 2375,
+                        "afterCount": 2374,
+                        "beforeSha256": "03ca068e859c4adbdeb2526813000106fc72acbee90e77690a074f260539d07f",
+                        "afterSha256": "f9671d405365a07032aae690387d3d4f701750912e6771817eda8e4f89ff43a0",
+                        "addedIds": [],
+                        "removedIds": [
+                          "directory:typings"
+                        ]
+                      },
+                      "collapsedTangleDelta": {
+                        "beforeCount": 0,
+                        "afterCount": 0,
+                        "beforeSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+                        "afterSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+                        "addedIds": [],
+                        "removedIds": []
+                      },
+                      "visibleEntityDelta": {
+                        "beforeCount": 9376,
+                        "afterCount": 9368,
+                        "beforeSha256": "71bce24e29638c6fae1ea87b2c73905440dc954efca6732bbf690d54e8722470",
+                        "afterSha256": "224eaf12d97add53ae7c85c16952e01fa7fde6eaa8ae7a6f978cb25bacfc8556",
+                        "addedIds": [
+                          "directory:typings"
+                        ],
+                        "removedIds": [
+                          "path:typings/base-common.d.ts",
+                          "path:typings/copilot-api.d.ts",
+                          "path:typings/crypto.d.ts",
+                          "path:typings/css.d.ts",
+                          "path:typings/editContext.d.ts",
+                          "path:typings/thenable.d.ts",
+                          "path:typings/vscode-globals-nls.d.ts",
+                          "path:typings/vscode-globals-product.d.ts",
+                          "path:typings/vscode-globals-ttp.d.ts"
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "keyboard-activation",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 1066.7687920000026,
+                    "deadlineMilliseconds": 31724
+                  },
+                  "observation": {
+                    "targetEntityId": "directory:typings",
+                    "before": {
+                      "renderer": "webgl",
+                      "graphId": "repo:microsoft/vscode",
+                      "visibleNodes": 9368,
+                      "visibleEdges": 105549,
+                      "expandedContainerCount": 2374,
+                      "collapsedTangleCount": 0,
+                      "focusedEntityId": null,
+                      "selectedEntityId": null,
+                      "lastLayoutComputationMs": 564.664999961853,
+                      "lastTransitionDispatchMs": 775.9399999976158,
+                      "viewTransform": {
+                        "x": -25792.80894288706,
+                        "y": -13745.688752297792,
+                        "scale": 0.1
+                      }
+                    },
+                    "after": {
+                      "renderer": "webgl",
+                      "graphId": "repo:microsoft/vscode",
+                      "visibleNodes": 9376,
+                      "visibleEdges": 105549,
+                      "expandedContainerCount": 2375,
+                      "collapsedTangleCount": 0,
+                      "focusedEntityId": "directory:typings",
+                      "selectedEntityId": "directory:typings",
+                      "lastLayoutComputationMs": 559.2849999666214,
+                      "lastTransitionDispatchMs": 746.164999961853,
+                      "viewTransform": {
+                        "x": 169.8,
+                        "y": -128.70000000000005,
+                        "scale": 0.1
+                      }
+                    },
+                    "effectVerification": {
+                      "status": "verified",
+                      "selectedTarget": true,
+                      "selectionChanged": true,
+                      "focusedTarget": true
+                    }
+                  }
+                },
+                {
+                  "name": "metrics",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 62.612833000002865,
+                    "deadlineMilliseconds": 30657
+                  },
+                  "observation": {
+                    "frameSamples": 409,
+                    "eventTimingSamples": 50,
+                    "finalScene": {
+                      "renderer": "webgl",
+                      "graphId": "repo:microsoft/vscode",
+                      "visibleNodes": 9376,
+                      "visibleEdges": 105549,
+                      "expandedContainerCount": 2375,
+                      "collapsedTangleCount": 0,
+                      "selectedEntityId": "directory:typings",
+                      "focusedEntityId": "directory:typings",
+                      "viewTransform": {
+                        "x": 169.8,
+                        "y": -128.70000000000005,
+                        "scale": 0.1
+                      },
+                      "lastLayoutComputationMs": 559.2849999666214,
+                      "lastTransitionDispatchMs": 746.164999961853
+                    }
+                  }
+                }
+              ]
+            },
+            "effectVerification": {
+              "status": "verified",
+              "unverifiedPhases": [],
+              "notApplicablePhases": []
+            },
+            "frames": {
+              "rawIntervalsMs": [
+                66.665,
+                16.665,
+                16.67,
+                16.66,
+                33.335,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                33.33,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                33.335,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                33.335,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                33.335,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                33.33,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                33.335,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                33.33,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                33.335,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                33.335,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                33.33,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                33.33,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                33.33,
+                16.665,
+                16.665,
+                16.67,
+                33.33,
+                16.665,
+                16.665,
+                33.335,
+                16.665,
+                16.665,
+                16.665,
+                33.335,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.66,
+                33.34,
+                16.66,
+                16.67,
+                33.33,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                33.33,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.67,
+                16.66,
+                16.665,
+                16.67,
+                33.335,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                33.325,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                33.335,
+                16.665,
+                16.66,
+                16.67,
+                16.665,
+                16.67,
+                16.66,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                33.335,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.665,
+                16.67,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                33.33,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                33.33,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                33.33,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                33.335,
+                16.665,
+                16.67,
+                16.665,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                33.33,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                849.965,
+                16.67,
+                16.66,
+                33.335,
+                16.67,
+                16.665,
+                33.33,
+                16.665,
+                33.335,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.66,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                33.335,
+                766.63,
+                33.335,
+                33.33,
+                16.665,
+                33.335,
+                16.665,
+                33.335,
+                16.665,
+                33.33
+              ],
+              "summary": {
+                "samples": 409,
+                "durationMs": 9066.305,
+                "deliveredFps": 45.112,
+                "frameIntervalMs": {
+                  "mean": 22.167,
+                  "p50": 16.665000000000873,
+                  "p95": 33.33499999999913,
+                  "p99": 33.335000000000946,
+                  "maximum": 849.9650000000001
+                },
+                "framesOver16_7ms": 40,
+                "framesOver33_3ms": 40
+              }
+            },
+            "inputToNextPaint": {
+              "source": "PerformanceEventTiming.duration",
+              "available": true,
+              "limitation": "Browser Event Timing measures trusted input start through the next presentation opportunity and is duration-quantized. Empty means Chrome emitted no qualifying entry; handler time is not substituted.",
+              "samples": [
+                {
+                  "name": "pointerover",
+                  "duration": 192,
+                  "startTime": 5032.949999988079
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 192,
+                  "startTime": 5032.949999988079
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 192,
+                  "startTime": 5032.949999988079
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 192,
+                  "startTime": 5032.949999988079
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 192,
+                  "startTime": 5032.949999988079
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 192,
+                  "startTime": 5032.949999988079
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 192,
+                  "startTime": 5032.949999988079
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 192,
+                  "startTime": 5032.949999988079
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 192,
+                  "startTime": 5032.949999988079
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 192,
+                  "startTime": 5032.949999988079
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 192,
+                  "startTime": 5032.949999988079
+                },
+                {
+                  "name": "mouseover",
+                  "duration": 192,
+                  "startTime": 5032.949999988079
+                },
+                {
+                  "name": "pointerdown",
+                  "duration": 32,
+                  "startTime": 5212.625
+                },
+                {
+                  "name": "mousedown",
+                  "duration": 32,
+                  "startTime": 5212.625
+                },
+                {
+                  "name": "gotpointercapture",
+                  "duration": 56,
+                  "startTime": 5220.704999983311
+                },
+                {
+                  "name": "pointerup",
+                  "duration": 56,
+                  "startTime": 8288.745000004768
+                },
+                {
+                  "name": "mouseup",
+                  "duration": 56,
+                  "startTime": 8288.745000004768
+                },
+                {
+                  "name": "lostpointercapture",
+                  "duration": 56,
+                  "startTime": 8288.745000004768
+                },
+                {
+                  "name": "click",
+                  "duration": 56,
+                  "startTime": 8288.745000004768
+                },
+                {
+                  "name": "pointerout",
+                  "duration": 888,
+                  "startTime": 11610.284999966621
+                },
+                {
+                  "name": "pointerleave",
+                  "duration": 888,
+                  "startTime": 11610.284999966621
+                },
+                {
+                  "name": "pointerleave",
+                  "duration": 888,
+                  "startTime": 11610.284999966621
+                },
+                {
+                  "name": "pointerleave",
+                  "duration": 888,
+                  "startTime": 11610.284999966621
+                },
+                {
+                  "name": "pointerleave",
+                  "duration": 888,
+                  "startTime": 11610.284999966621
+                },
+                {
+                  "name": "pointerover",
+                  "duration": 888,
+                  "startTime": 11610.284999966621
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 888,
+                  "startTime": 11610.284999966621
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 888,
+                  "startTime": 11610.284999966621
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 888,
+                  "startTime": 11610.284999966621
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 888,
+                  "startTime": 11610.284999966621
+                },
+                {
+                  "name": "mouseout",
+                  "duration": 888,
+                  "startTime": 11610.284999966621
+                },
+                {
+                  "name": "mouseover",
+                  "duration": 888,
+                  "startTime": 11610.284999966621
+                },
+                {
+                  "name": "pointerdown",
+                  "duration": 888,
+                  "startTime": 11610.310000002384
+                },
+                {
+                  "name": "mousedown",
+                  "duration": 888,
+                  "startTime": 11610.310000002384
+                },
+                {
+                  "name": "pointerup",
+                  "duration": 888,
+                  "startTime": 11610.384999990463
+                },
+                {
+                  "name": "mouseup",
+                  "duration": 888,
+                  "startTime": 11610.384999990463
+                },
+                {
+                  "name": "click",
+                  "duration": 888,
+                  "startTime": 11610.384999990463
+                },
+                {
+                  "name": "pointerover",
+                  "duration": 888,
+                  "startTime": 11610.384999990463
+                },
+                {
+                  "name": "mouseover",
+                  "duration": 888,
+                  "startTime": 11610.384999990463
+                },
+                {
+                  "name": "pointerout",
+                  "duration": 48,
+                  "startTime": 12449.084999978542
+                },
+                {
+                  "name": "pointerover",
+                  "duration": 48,
+                  "startTime": 12449.084999978542
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 48,
+                  "startTime": 12449.084999978542
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 48,
+                  "startTime": 12449.084999978542
+                },
+                {
+                  "name": "mouseout",
+                  "duration": 48,
+                  "startTime": 12449.084999978542
+                },
+                {
+                  "name": "mouseover",
+                  "duration": 48,
+                  "startTime": 12449.084999978542
+                },
+                {
+                  "name": "keydown",
+                  "duration": 816,
+                  "startTime": 13210.354999959469
+                },
+                {
+                  "name": "pointerover",
+                  "duration": 48,
+                  "startTime": 13981.664999961853
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 48,
+                  "startTime": 13981.664999961853
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 48,
+                  "startTime": 13981.664999961853
+                },
+                {
+                  "name": "mouseover",
+                  "duration": 48,
+                  "startTime": 13981.664999961853
+                },
+                {
+                  "name": "keyup",
+                  "duration": 72,
+                  "startTime": 13981.889999985695
+                }
+              ],
+              "durationMs": {
+                "p50": 192,
+                "p95": 888,
+                "maximum": 888
+              }
+            },
+            "memory": {
+              "method": "Chrome DevTools Protocol Performance.getMetrics",
+              "jsHeapUsedBytes": 854590400,
+              "jsHeapTotalBytes": 924106752,
+              "limitation": "JavaScript heap only. It excludes DOM, SVG backing storage, PixiJS GPU buffers/textures, driver memory, and browser process overhead."
+            },
+            "accessibility": {
+              "accessibleEntityCount": 9376,
+              "svgLabelCount": 0,
+              "keyboardSelectionSucceeded": true,
+              "highContrastControl": true
+            },
+            "graphics": {
+              "backend": "PixiJS WebGL",
+              "renderer": "t_",
+              "webglVersion": 2,
+              "gpuVendor": "Google Inc. (Apple)",
+              "gpuRenderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Pro, Unspecified Version)",
+              "resolution": 1,
+              "edgeGeometryUpdates": 1
+            },
+            "finalSnapshot": {
+              "renderer": "webgl",
+              "graphId": "repo:microsoft/vscode",
+              "visibleNodes": 9376,
+              "visibleEdges": 105549,
+              "expandedContainerCount": 2375,
+              "collapsedTangleCount": 0,
+              "selectedEntityId": "directory:typings",
+              "focusedEntityId": "directory:typings",
+              "viewTransform": {
+                "x": 169.8,
+                "y": -128.70000000000005,
+                "scale": 0.1
+              },
+              "lastLayoutComputationMs": 559.2849999666214,
+              "lastTransitionDispatchMs": 746.164999961853
+            },
+            "pageErrors": []
+          }
+        ],
+        "cleanup": [
+          {
+            "type": "workload-cleanup",
+            "resource": "browser-context",
+            "fixture": {
+              "name": "vscode",
+              "graphId": "repo:microsoft/vscode",
+              "fixtureKind": "real-partial"
+            },
+            "renderer": "webgl",
+            "scope": "expanded",
+            "status": "completed",
+            "startedAt": "2026-09-13T02:04:36.159Z",
+            "deadlineMilliseconds": 3000,
+            "elapsedMilliseconds": 6,
+            "completedAt": "2026-09-13T02:04:36.165Z"
+          },
+          {
+            "type": "cleanup",
+            "resource": "browser-connection",
+            "status": "completed",
+            "elapsedMilliseconds": 0,
+            "deadlineMilliseconds": 3000
+          },
+          {
+            "type": "cleanup",
+            "resource": "browser-process",
+            "status": "completed",
+            "elapsedMilliseconds": 290,
+            "deadlineMilliseconds": 3000
+          },
+          {
+            "type": "cleanup",
+            "resource": "fixture-server",
+            "status": "completed",
+            "elapsedMilliseconds": 0,
+            "deadlineMilliseconds": 3000
+          }
+        ],
+        "decision": "pending-visible-browser-validation",
+        "currentStage": {
+          "type": "finished",
+          "status": "completed",
+          "elapsedMilliseconds": 17634
+        },
+        "source": {
+          "commit": "1d9ca95ad487a2ea9adebcb98cae2ca9b3eb7207",
+          "changes": "No uncommitted application or harness changes during measurement."
+        }
+      }
+    },
+    {
+      "index": 1,
+      "variant": "candidate",
+      "fps": 46.391,
+      "worstFrameMs": 566.6450000000004,
+      "layoutMs": 353.72500002384186,
+      "transitionDispatchMs": 508.0649999976158,
+      "heapBytes": 821693656,
+      "effectVerification": "verified",
+      "raw": {
+        "schemaVersion": "1.0",
+        "generatedAt": "2026-09-13T02:04:36.672Z",
+        "status": "completed",
+        "environment": {
+          "platform": "darwin",
+          "release": "25.6.0",
+          "architecture": "arm64",
+          "cpu": "Apple M5 Pro",
+          "logicalCpuCount": 18,
+          "totalMemoryBytes": 68719476736,
+          "browser": "153.0.8010.37",
+          "headless": true,
+          "executable": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+          "launchArgs": [
+            "--disable-background-timer-throttling",
+            "--disable-renderer-backgrounding"
+          ],
+          "gpuFlags": "No GPU-disabling flags supplied. Headless Chrome compositor/GPU behavior may differ from a visible browser.",
+          "browserProcessId": 26145
+        },
+        "selectedFixtures": [
+          "vscode"
+        ],
+        "selectedRenderers": [
+          "webgl"
+        ],
+        "selectedScopes": [
+          "expanded"
+        ],
+        "preparationTimeoutMilliseconds": 30000,
+        "fixtureTimeoutMilliseconds": 60000,
+        "totalTimeoutMilliseconds": 90000,
+        "workloadTimeoutMilliseconds": 45000,
+        "cleanupTimeoutMilliseconds": 3000,
+        "fixturePreparation": [
+          {
+            "type": "fixture-preparation",
+            "fixture": {
+              "name": "vscode",
+              "graphPath": "frozen-fixtures/vscode-src.graph.json",
+              "provenancePath": "packages/scanner/fixtures/real/vscode-src.provenance.json",
+              "graphId": "repo:microsoft/vscode",
+              "fixtureKind": "real-partial"
+            },
+            "status": "completed",
+            "startedAt": "2026-09-13T02:04:36.677Z",
+            "deadlineMilliseconds": 30000,
+            "configuredDeadlineMilliseconds": 30000,
+            "elapsedMilliseconds": 2973,
+            "completedAt": "2026-09-13T02:04:39.650Z"
+          }
+        ],
+        "fixtures": [
+          {
+            "name": "vscode",
+            "fixtureKind": "real-partial",
+            "graphId": "repo:microsoft/vscode",
+            "nodes": 9376,
+            "edges": 105549,
+            "tangles": 102,
+            "urlPath": "/vscode/index.html",
+            "preparation": {
+              "parseMilliseconds": 499.31412500000005,
+              "deriveMilliseconds": 923.403125,
+              "layoutMilliseconds": 460.86854200000016,
+              "totalMilliseconds": 1883.5857920000003
+            },
+            "evidence": {
+              "graphContentSha256": "48c16618a1dc37c47738fc1811b1645cc48f329f3936c0cf2aee4483361ec9de",
+              "graphBytes": 171551574,
+              "provenance": {
+                "contentSha256": "a9c9cf33b5fdb108caa4f73a0fb875793573ce47304df44800f6bcd9edadc7d5",
+                "schemaVersion": "1.0",
+                "repositoryId": "microsoft/vscode",
+                "upstream": "https://github.com/microsoft/vscode.git",
+                "revision": "3879d0e80faeaeb351bbb44dd0f74f1bac12fc0a",
+                "selectedPath": "src",
+                "authoritative": false,
+                "counts": {
+                  "nodes": 9376,
+                  "edges": 105549,
+                  "containers": 2375,
+                  "sourceFiles": 9252,
+                  "linesOfCode": 2993413
+                },
+                "limitationsCount": 756,
+                "diagnosticCounts": {
+                  "inferred-source-configuration": 1,
+                  "missing-type-library": 24,
+                  "resolved-import-outside-scan": 1,
+                  "unresolved-import-ratio": 1,
+                  "unresolved-local-import": 729
+                },
+                "scan": {
+                  "durationMilliseconds": 8104,
+                  "maximumResidentSetBytes": 2194833408,
+                  "nodeVersion": "v24.20.0",
+                  "platform": "darwin",
+                  "architecture": "arm64",
+                  "cpu": "Apple M5 Pro",
+                  "logicalCpuCount": 18,
+                  "memoryBytes": 68719476736
+                },
+                "reproductionCommandTemplate": "corepack yarn workspace @topo/scanner fixture --root <checkout> --output <artifact> --repository-id <repository> --allow-partial true"
+              }
+            }
+          }
+        ],
+        "results": [
+          {
+            "status": "completed",
+            "fixture": "vscode",
+            "fixtureKind": "real-partial",
+            "renderer": "webgl",
+            "scope": "expanded",
+            "graph": {
+              "nodes": 9376,
+              "edges": 105549,
+              "tangles": 102
+            },
+            "workload": {
+              "viewport": {
+                "width": 1280,
+                "height": 800
+              },
+              "panPointerMoves": 80,
+              "zoomWheelEvents": 60,
+              "layoutTransition": "collapse first expanded directory; 300ms renderer transition",
+              "selectionInput": "keyboard Enter on first accessible entity"
+            },
+            "phaseTiming": {
+              "source": "controller-wall-clock",
+              "limitation": "Automation wall time includes Playwright dispatch and waits. It is reported separately from browser Event Timing and frame intervals.",
+              "phases": [
+                {
+                  "name": "navigation",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 37.18337500000007,
+                    "deadlineMilliseconds": 44860
+                  },
+                  "observation": {
+                    "url": "http://127.0.0.1:4181/vscode/index.html?renderer=webgl&scope=all",
+                    "httpStatus": 200
+                  }
+                },
+                {
+                  "name": "app-readiness",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 4855.692875000001,
+                    "deadlineMilliseconds": 44823
+                  },
+                  "observation": {
+                    "renderer": "webgl",
+                    "graphId": "repo:microsoft/vscode",
+                    "visibleNodes": 9376,
+                    "visibleEdges": 105549,
+                    "expandedContainerCount": 2375,
+                    "collapsedTangleCount": 0,
+                    "focusedEntityId": null,
+                    "selectedEntityId": null,
+                    "lastLayoutComputationMs": 0,
+                    "lastTransitionDispatchMs": 0,
+                    "viewTransform": {
+                      "x": 32,
+                      "y": 32,
+                      "scale": 0.0016326617722383474
+                    }
+                  }
+                },
+                {
+                  "name": "viewport-preflight",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 41.18370800000048,
+                    "deadlineMilliseconds": 39967
+                  },
+                  "observation": {
+                    "status": "verified",
+                    "bounds": {
+                      "x": 0,
+                      "y": 277,
+                      "width": 920,
+                      "height": 523
+                    },
+                    "viewport": {
+                      "width": 1280,
+                      "height": 800
+                    },
+                    "intersection": {
+                      "x": 0,
+                      "y": 277,
+                      "width": 920,
+                      "height": 523
+                    },
+                    "interactionPoint": {
+                      "x": 460,
+                      "y": 538.5
+                    }
+                  }
+                },
+                {
+                  "name": "sampling-setup",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 1.6683329999996204,
+                    "deadlineMilliseconds": 39926
+                  },
+                  "observation": {
+                    "eventTimingAvailable": true
+                  }
+                },
+                {
+                  "name": "pan",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 3453.6335420000014,
+                    "deadlineMilliseconds": 39924
+                  },
+                  "observation": {
+                    "pointerMoves": 80,
+                    "before": {
+                      "x": 32,
+                      "y": 32,
+                      "scale": 0.0016326617722383474
+                    },
+                    "after": {
+                      "x": -46.32977294921875,
+                      "y": 27.3997802734375,
+                      "scale": 0.0016326617722383474
+                    },
+                    "effectVerification": {
+                      "status": "verified",
+                      "before": {
+                        "x": 32,
+                        "y": 32,
+                        "scale": 0.0016326617722383474
+                      },
+                      "after": {
+                        "x": -46.32977294921875,
+                        "y": 27.3997802734375,
+                        "scale": 0.0016326617722383474
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "zoom",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 3245.825541,
+                    "deadlineMilliseconds": 36471
+                  },
+                  "observation": {
+                    "wheelEvents": 60,
+                    "before": {
+                      "x": -46.32977294921875,
+                      "y": 27.3997802734375,
+                      "scale": 0.0016326617722383474
+                    },
+                    "midpoint": {
+                      "x": -56887.98780183454,
+                      "y": -30380.066157208614,
+                      "scale": 0.21880265087438816
+                    },
+                    "after": {
+                      "x": -25792.80894288706,
+                      "y": -13745.688752297792,
+                      "scale": 0.1
+                    },
+                    "effectVerification": {
+                      "status": "verified",
+                      "before": {
+                        "x": -46.32977294921875,
+                        "y": 27.3997802734375,
+                        "scale": 0.0016326617722383474
+                      },
+                      "after": {
+                        "x": -56887.98780183454,
+                        "y": -30380.066157208614,
+                        "scale": 0.21880265087438816
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "layout-transition",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 1359.7191249999996,
+                    "deadlineMilliseconds": 33225
+                  },
+                  "observation": {
+                    "action": "collapse-directory",
+                    "controlLabel": "Collapse typings",
+                    "before": {
+                      "renderer": "webgl",
+                      "graphId": "repo:microsoft/vscode",
+                      "visibleNodes": 9376,
+                      "visibleEdges": 105549,
+                      "expandedContainerCount": 2375,
+                      "collapsedTangleCount": 0,
+                      "focusedEntityId": null,
+                      "selectedEntityId": null,
+                      "lastLayoutComputationMs": 0,
+                      "lastTransitionDispatchMs": 0,
+                      "viewTransform": {
+                        "x": -25792.80894288706,
+                        "y": -13745.688752297792,
+                        "scale": 0.1
+                      }
+                    },
+                    "after": {
+                      "renderer": "webgl",
+                      "graphId": "repo:microsoft/vscode",
+                      "visibleNodes": 9368,
+                      "visibleEdges": 105549,
+                      "expandedContainerCount": 2374,
+                      "collapsedTangleCount": 0,
+                      "focusedEntityId": null,
+                      "selectedEntityId": null,
+                      "lastLayoutComputationMs": 328.55500000715256,
+                      "lastTransitionDispatchMs": 500.7549999952316,
+                      "viewTransform": {
+                        "x": -25792.80894288706,
+                        "y": -13745.688752297792,
+                        "scale": 0.1
+                      }
+                    },
+                    "effectVerification": {
+                      "status": "verified",
+                      "expansionStateChanged": true,
+                      "visibleMembershipChanged": true,
+                      "expandedContainerDelta": {
+                        "beforeCount": 2375,
+                        "afterCount": 2374,
+                        "beforeSha256": "03ca068e859c4adbdeb2526813000106fc72acbee90e77690a074f260539d07f",
+                        "afterSha256": "f9671d405365a07032aae690387d3d4f701750912e6771817eda8e4f89ff43a0",
+                        "addedIds": [],
+                        "removedIds": [
+                          "directory:typings"
+                        ]
+                      },
+                      "collapsedTangleDelta": {
+                        "beforeCount": 0,
+                        "afterCount": 0,
+                        "beforeSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+                        "afterSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+                        "addedIds": [],
+                        "removedIds": []
+                      },
+                      "visibleEntityDelta": {
+                        "beforeCount": 9376,
+                        "afterCount": 9368,
+                        "beforeSha256": "71bce24e29638c6fae1ea87b2c73905440dc954efca6732bbf690d54e8722470",
+                        "afterSha256": "224eaf12d97add53ae7c85c16952e01fa7fde6eaa8ae7a6f978cb25bacfc8556",
+                        "addedIds": [
+                          "directory:typings"
+                        ],
+                        "removedIds": [
+                          "path:typings/base-common.d.ts",
+                          "path:typings/copilot-api.d.ts",
+                          "path:typings/crypto.d.ts",
+                          "path:typings/css.d.ts",
+                          "path:typings/editContext.d.ts",
+                          "path:typings/thenable.d.ts",
+                          "path:typings/vscode-globals-nls.d.ts",
+                          "path:typings/vscode-globals-product.d.ts",
+                          "path:typings/vscode-globals-ttp.d.ts"
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "keyboard-activation",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 873.5776250000017,
+                    "deadlineMilliseconds": 31865
+                  },
+                  "observation": {
+                    "targetEntityId": "directory:typings",
+                    "before": {
+                      "renderer": "webgl",
+                      "graphId": "repo:microsoft/vscode",
+                      "visibleNodes": 9368,
+                      "visibleEdges": 105549,
+                      "expandedContainerCount": 2374,
+                      "collapsedTangleCount": 0,
+                      "focusedEntityId": null,
+                      "selectedEntityId": null,
+                      "lastLayoutComputationMs": 328.55500000715256,
+                      "lastTransitionDispatchMs": 500.7549999952316,
+                      "viewTransform": {
+                        "x": -25792.80894288706,
+                        "y": -13745.688752297792,
+                        "scale": 0.1
+                      }
+                    },
+                    "after": {
+                      "renderer": "webgl",
+                      "graphId": "repo:microsoft/vscode",
+                      "visibleNodes": 9376,
+                      "visibleEdges": 105549,
+                      "expandedContainerCount": 2375,
+                      "collapsedTangleCount": 0,
+                      "focusedEntityId": "directory:typings",
+                      "selectedEntityId": "directory:typings",
+                      "lastLayoutComputationMs": 353.72500002384186,
+                      "lastTransitionDispatchMs": 508.0649999976158,
+                      "viewTransform": {
+                        "x": 169.8,
+                        "y": -128.70000000000005,
+                        "scale": 0.1
+                      }
+                    },
+                    "effectVerification": {
+                      "status": "verified",
+                      "selectedTarget": true,
+                      "selectionChanged": true,
+                      "focusedTarget": true
+                    }
+                  }
+                },
+                {
+                  "name": "metrics",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 50.270917000001646,
+                    "deadlineMilliseconds": 30991
+                  },
+                  "observation": {
+                    "frameSamples": 409,
+                    "eventTimingSamples": 50,
+                    "finalScene": {
+                      "renderer": "webgl",
+                      "graphId": "repo:microsoft/vscode",
+                      "visibleNodes": 9376,
+                      "visibleEdges": 105549,
+                      "expandedContainerCount": 2375,
+                      "collapsedTangleCount": 0,
+                      "selectedEntityId": "directory:typings",
+                      "focusedEntityId": "directory:typings",
+                      "viewTransform": {
+                        "x": 169.8,
+                        "y": -128.70000000000005,
+                        "scale": 0.1
+                      },
+                      "lastLayoutComputationMs": 353.72500002384186,
+                      "lastTransitionDispatchMs": 508.0649999976158
+                    }
+                  }
+                }
+              ]
+            },
+            "effectVerification": {
+              "status": "verified",
+              "unverifiedPhases": [],
+              "notApplicablePhases": []
+            },
+            "frames": {
+              "rawIntervalsMs": [
+                66.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                33.33,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                33.335,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                33.33,
+                16.67,
+                16.66,
+                16.665,
+                16.67,
+                16.665,
+                33.335,
+                16.66,
+                16.665,
+                16.67,
+                16.665,
+                16.67,
+                33.325,
+                16.67,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                33.33,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                33.335,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                33.33,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                33.335,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.66,
+                16.67,
+                16.665,
+                33.335,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                33.335,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                33.33,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                33.33,
+                16.67,
+                16.665,
+                16.665,
+                33.33,
+                16.665,
+                16.665,
+                16.67,
+                33.33,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                33.33,
+                16.67,
+                16.665,
+                16.66,
+                33.34,
+                16.66,
+                16.665,
+                16.67,
+                16.665,
+                33.335,
+                16.665,
+                16.665,
+                33.33,
+                16.665,
+                16.67,
+                16.665,
+                33.33,
+                16.665,
+                16.67,
+                16.665,
+                33.33,
+                16.67,
+                16.665,
+                16.66,
+                33.335,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                33.335,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                33.33,
+                16.665,
+                16.665,
+                16.665,
+                33.335,
+                16.665,
+                16.67,
+                16.66,
+                33.335,
+                16.665,
+                16.665,
+                16.67,
+                33.33,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                33.335,
+                16.66,
+                16.67,
+                16.66,
+                33.335,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                33.33,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                33.33,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.67,
+                16.665,
+                16.66,
+                16.67,
+                16.665,
+                33.335,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.665,
+                16.665,
+                16.67,
+                16.67,
+                16.66,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                33.335,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                33.33,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                33.335,
+                16.67,
+                16.66,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                33.33,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                33.33,
+                16.67,
+                16.665,
+                16.67,
+                16.66,
+                16.665,
+                33.335,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                33.335,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                33.33,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.665,
+                16.67,
+                33.335,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.67,
+                16.665,
+                33.33,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                33.335,
+                16.66,
+                16.67,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                566.645,
+                33.33,
+                16.665,
+                16.665,
+                33.335,
+                16.665,
+                33.33,
+                16.665,
+                33.335,
+                16.665,
+                33.33,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.66,
+                16.67,
+                16.665,
+                16.67,
+                33.33,
+                533.31,
+                16.67,
+                33.33,
+                16.665,
+                16.665,
+                33.335,
+                16.66,
+                16.67,
+                33.335,
+                16.665,
+                33.33
+              ],
+              "summary": {
+                "samples": 409,
+                "durationMs": 8816.315,
+                "deliveredFps": 46.391,
+                "frameIntervalMs": {
+                  "mean": 21.556,
+                  "p50": 16.665000000000873,
+                  "p95": 33.33499999999913,
+                  "p99": 33.335000000000946,
+                  "maximum": 566.6450000000004
+                },
+                "framesOver16_7ms": 56,
+                "framesOver33_3ms": 56
+              }
+            },
+            "inputToNextPaint": {
+              "source": "PerformanceEventTiming.duration",
+              "available": true,
+              "limitation": "Browser Event Timing measures trusted input start through the next presentation opportunity and is duration-quantized. Empty means Chrome emitted no qualifying entry; handler time is not substituted.",
+              "samples": [
+                {
+                  "name": "pointerover",
+                  "duration": 192,
+                  "startTime": 4937.34500002861
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 192,
+                  "startTime": 4937.34500002861
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 192,
+                  "startTime": 4937.34500002861
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 192,
+                  "startTime": 4937.34500002861
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 192,
+                  "startTime": 4937.34500002861
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 192,
+                  "startTime": 4937.34500002861
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 192,
+                  "startTime": 4937.34500002861
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 192,
+                  "startTime": 4937.34500002861
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 192,
+                  "startTime": 4937.34500002861
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 192,
+                  "startTime": 4937.34500002861
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 192,
+                  "startTime": 4937.34500002861
+                },
+                {
+                  "name": "mouseover",
+                  "duration": 192,
+                  "startTime": 4937.34500002861
+                },
+                {
+                  "name": "pointerdown",
+                  "duration": 32,
+                  "startTime": 5112.625
+                },
+                {
+                  "name": "mousedown",
+                  "duration": 32,
+                  "startTime": 5112.625
+                },
+                {
+                  "name": "gotpointercapture",
+                  "duration": 48,
+                  "startTime": 5120.84500002861
+                },
+                {
+                  "name": "pointerup",
+                  "duration": 56,
+                  "startTime": 8380.25
+                },
+                {
+                  "name": "mouseup",
+                  "duration": 56,
+                  "startTime": 8380.25
+                },
+                {
+                  "name": "lostpointercapture",
+                  "duration": 56,
+                  "startTime": 8380.25
+                },
+                {
+                  "name": "click",
+                  "duration": 56,
+                  "startTime": 8380.25
+                },
+                {
+                  "name": "pointerout",
+                  "duration": 616,
+                  "startTime": 11730.5
+                },
+                {
+                  "name": "pointerleave",
+                  "duration": 616,
+                  "startTime": 11730.5
+                },
+                {
+                  "name": "pointerleave",
+                  "duration": 616,
+                  "startTime": 11730.5
+                },
+                {
+                  "name": "pointerleave",
+                  "duration": 616,
+                  "startTime": 11730.5
+                },
+                {
+                  "name": "pointerleave",
+                  "duration": 616,
+                  "startTime": 11730.5
+                },
+                {
+                  "name": "pointerover",
+                  "duration": 616,
+                  "startTime": 11730.5
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 616,
+                  "startTime": 11730.5
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 616,
+                  "startTime": 11730.5
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 616,
+                  "startTime": 11730.5
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 616,
+                  "startTime": 11730.5
+                },
+                {
+                  "name": "mouseout",
+                  "duration": 616,
+                  "startTime": 11730.5
+                },
+                {
+                  "name": "mouseover",
+                  "duration": 616,
+                  "startTime": 11730.5
+                },
+                {
+                  "name": "pointerdown",
+                  "duration": 616,
+                  "startTime": 11730.525000035763
+                },
+                {
+                  "name": "mousedown",
+                  "duration": 616,
+                  "startTime": 11730.525000035763
+                },
+                {
+                  "name": "pointerup",
+                  "duration": 616,
+                  "startTime": 11730.59500002861
+                },
+                {
+                  "name": "mouseup",
+                  "duration": 616,
+                  "startTime": 11730.59500002861
+                },
+                {
+                  "name": "click",
+                  "duration": 616,
+                  "startTime": 11730.59500002861
+                },
+                {
+                  "name": "pointerover",
+                  "duration": 616,
+                  "startTime": 11730.59500002861
+                },
+                {
+                  "name": "mouseover",
+                  "duration": 616,
+                  "startTime": 11730.59500002861
+                },
+                {
+                  "name": "pointerout",
+                  "duration": 48,
+                  "startTime": 12296.855000019073
+                },
+                {
+                  "name": "pointerover",
+                  "duration": 48,
+                  "startTime": 12296.855000019073
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 48,
+                  "startTime": 12296.855000019073
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 48,
+                  "startTime": 12296.855000019073
+                },
+                {
+                  "name": "mouseout",
+                  "duration": 48,
+                  "startTime": 12296.855000019073
+                },
+                {
+                  "name": "mouseover",
+                  "duration": 48,
+                  "startTime": 12296.855000019073
+                },
+                {
+                  "name": "keydown",
+                  "duration": 584,
+                  "startTime": 13070.879999995232
+                },
+                {
+                  "name": "pointerover",
+                  "duration": 40,
+                  "startTime": 13608.435000002384
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 40,
+                  "startTime": 13608.435000002384
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 40,
+                  "startTime": 13608.435000002384
+                },
+                {
+                  "name": "mouseover",
+                  "duration": 40,
+                  "startTime": 13608.435000002384
+                },
+                {
+                  "name": "keyup",
+                  "duration": 64,
+                  "startTime": 13608.70499998331
+                }
+              ],
+              "durationMs": {
+                "p50": 192,
+                "p95": 616,
+                "maximum": 616
+              }
+            },
+            "memory": {
+              "method": "Chrome DevTools Protocol Performance.getMetrics",
+              "jsHeapUsedBytes": 821693656,
+              "jsHeapTotalBytes": 898400256,
+              "limitation": "JavaScript heap only. It excludes DOM, SVG backing storage, PixiJS GPU buffers/textures, driver memory, and browser process overhead."
+            },
+            "accessibility": {
+              "accessibleEntityCount": 9376,
+              "svgLabelCount": 0,
+              "keyboardSelectionSucceeded": true,
+              "highContrastControl": true
+            },
+            "graphics": {
+              "backend": "PixiJS WebGL",
+              "renderer": "a_",
+              "webglVersion": 2,
+              "gpuVendor": "Google Inc. (Apple)",
+              "gpuRenderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Pro, Unspecified Version)",
+              "resolution": 1,
+              "edgeGeometryUpdates": 1
+            },
+            "finalSnapshot": {
+              "renderer": "webgl",
+              "graphId": "repo:microsoft/vscode",
+              "visibleNodes": 9376,
+              "visibleEdges": 105549,
+              "expandedContainerCount": 2375,
+              "collapsedTangleCount": 0,
+              "selectedEntityId": "directory:typings",
+              "focusedEntityId": "directory:typings",
+              "viewTransform": {
+                "x": 169.8,
+                "y": -128.70000000000005,
+                "scale": 0.1
+              },
+              "lastLayoutComputationMs": 353.72500002384186,
+              "lastTransitionDispatchMs": 508.0649999976158
+            },
+            "pageErrors": []
+          }
+        ],
+        "cleanup": [
+          {
+            "type": "workload-cleanup",
+            "resource": "browser-context",
+            "fixture": {
+              "name": "vscode",
+              "graphId": "repo:microsoft/vscode",
+              "fixtureKind": "real-partial"
+            },
+            "renderer": "webgl",
+            "scope": "expanded",
+            "status": "completed",
+            "startedAt": "2026-09-13T02:04:53.995Z",
+            "deadlineMilliseconds": 3000,
+            "elapsedMilliseconds": 5,
+            "completedAt": "2026-09-13T02:04:54.000Z"
+          },
+          {
+            "type": "cleanup",
+            "resource": "browser-connection",
+            "status": "completed",
+            "elapsedMilliseconds": 1,
+            "deadlineMilliseconds": 3000
+          },
+          {
+            "type": "cleanup",
+            "resource": "browser-process",
+            "status": "completed",
+            "elapsedMilliseconds": 316,
+            "deadlineMilliseconds": 3000
+          },
+          {
+            "type": "cleanup",
+            "resource": "fixture-server",
+            "status": "completed",
+            "elapsedMilliseconds": 0,
+            "deadlineMilliseconds": 3000
+          }
+        ],
+        "decision": "pending-visible-browser-validation",
+        "currentStage": {
+          "type": "finished",
+          "status": "completed",
+          "elapsedMilliseconds": 17651
+        },
+        "source": {
+          "commit": "b182d3836b028ac7fa76763e345b55555f4124f7",
+          "changes": "No uncommitted application or harness changes during measurement."
+        }
+      }
+    },
+    {
+      "index": 2,
+      "variant": "candidate",
+      "fps": 46.617,
+      "worstFrameMs": 616.6400000000012,
+      "layoutMs": 391.80000001192093,
+      "transitionDispatchMs": 584.3500000238419,
+      "heapBytes": 824244880,
+      "effectVerification": "verified",
+      "raw": {
+        "schemaVersion": "1.0",
+        "generatedAt": "2026-09-13T02:04:54.497Z",
+        "status": "completed",
+        "environment": {
+          "platform": "darwin",
+          "release": "25.6.0",
+          "architecture": "arm64",
+          "cpu": "Apple M5 Pro",
+          "logicalCpuCount": 18,
+          "totalMemoryBytes": 68719476736,
+          "browser": "153.0.8010.37",
+          "headless": true,
+          "executable": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+          "launchArgs": [
+            "--disable-background-timer-throttling",
+            "--disable-renderer-backgrounding"
+          ],
+          "gpuFlags": "No GPU-disabling flags supplied. Headless Chrome compositor/GPU behavior may differ from a visible browser.",
+          "browserProcessId": 30307
+        },
+        "selectedFixtures": [
+          "vscode"
+        ],
+        "selectedRenderers": [
+          "webgl"
+        ],
+        "selectedScopes": [
+          "expanded"
+        ],
+        "preparationTimeoutMilliseconds": 30000,
+        "fixtureTimeoutMilliseconds": 60000,
+        "totalTimeoutMilliseconds": 90000,
+        "workloadTimeoutMilliseconds": 45000,
+        "cleanupTimeoutMilliseconds": 3000,
+        "fixturePreparation": [
+          {
+            "type": "fixture-preparation",
+            "fixture": {
+              "name": "vscode",
+              "graphPath": "frozen-fixtures/vscode-src.graph.json",
+              "provenancePath": "packages/scanner/fixtures/real/vscode-src.provenance.json",
+              "graphId": "repo:microsoft/vscode",
+              "fixtureKind": "real-partial"
+            },
+            "status": "completed",
+            "startedAt": "2026-09-13T02:04:54.504Z",
+            "deadlineMilliseconds": 30000,
+            "configuredDeadlineMilliseconds": 30000,
+            "elapsedMilliseconds": 2439,
+            "completedAt": "2026-09-13T02:04:56.943Z"
+          }
+        ],
+        "fixtures": [
+          {
+            "name": "vscode",
+            "fixtureKind": "real-partial",
+            "graphId": "repo:microsoft/vscode",
+            "nodes": 9376,
+            "edges": 105549,
+            "tangles": 102,
+            "urlPath": "/vscode/index.html",
+            "preparation": {
+              "parseMilliseconds": 474.872208,
+              "deriveMilliseconds": 523.427,
+              "layoutMilliseconds": 448.70079199999986,
+              "totalMilliseconds": 1447
+            },
+            "evidence": {
+              "graphContentSha256": "48c16618a1dc37c47738fc1811b1645cc48f329f3936c0cf2aee4483361ec9de",
+              "graphBytes": 171551574,
+              "provenance": {
+                "contentSha256": "a9c9cf33b5fdb108caa4f73a0fb875793573ce47304df44800f6bcd9edadc7d5",
+                "schemaVersion": "1.0",
+                "repositoryId": "microsoft/vscode",
+                "upstream": "https://github.com/microsoft/vscode.git",
+                "revision": "3879d0e80faeaeb351bbb44dd0f74f1bac12fc0a",
+                "selectedPath": "src",
+                "authoritative": false,
+                "counts": {
+                  "nodes": 9376,
+                  "edges": 105549,
+                  "containers": 2375,
+                  "sourceFiles": 9252,
+                  "linesOfCode": 2993413
+                },
+                "limitationsCount": 756,
+                "diagnosticCounts": {
+                  "inferred-source-configuration": 1,
+                  "missing-type-library": 24,
+                  "resolved-import-outside-scan": 1,
+                  "unresolved-import-ratio": 1,
+                  "unresolved-local-import": 729
+                },
+                "scan": {
+                  "durationMilliseconds": 8104,
+                  "maximumResidentSetBytes": 2194833408,
+                  "nodeVersion": "v24.20.0",
+                  "platform": "darwin",
+                  "architecture": "arm64",
+                  "cpu": "Apple M5 Pro",
+                  "logicalCpuCount": 18,
+                  "memoryBytes": 68719476736
+                },
+                "reproductionCommandTemplate": "corepack yarn workspace @topo/scanner fixture --root <checkout> --output <artifact> --repository-id <repository> --allow-partial true"
+              }
+            }
+          }
+        ],
+        "results": [
+          {
+            "status": "completed",
+            "fixture": "vscode",
+            "fixtureKind": "real-partial",
+            "renderer": "webgl",
+            "scope": "expanded",
+            "graph": {
+              "nodes": 9376,
+              "edges": 105549,
+              "tangles": 102
+            },
+            "workload": {
+              "viewport": {
+                "width": 1280,
+                "height": 800
+              },
+              "panPointerMoves": 80,
+              "zoomWheelEvents": 60,
+              "layoutTransition": "collapse first expanded directory; 300ms renderer transition",
+              "selectionInput": "keyboard Enter on first accessible entity"
+            },
+            "phaseTiming": {
+              "source": "controller-wall-clock",
+              "limitation": "Automation wall time includes Playwright dispatch and waits. It is reported separately from browser Event Timing and frame intervals.",
+              "phases": [
+                {
+                  "name": "navigation",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 49.73029099999985,
+                    "deadlineMilliseconds": 44822
+                  },
+                  "observation": {
+                    "url": "http://127.0.0.1:4181/vscode/index.html?renderer=webgl&scope=all",
+                    "httpStatus": 200
+                  }
+                },
+                {
+                  "name": "app-readiness",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 4824.1044170000005,
+                    "deadlineMilliseconds": 44773
+                  },
+                  "observation": {
+                    "renderer": "webgl",
+                    "graphId": "repo:microsoft/vscode",
+                    "visibleNodes": 9376,
+                    "visibleEdges": 105549,
+                    "expandedContainerCount": 2375,
+                    "collapsedTangleCount": 0,
+                    "focusedEntityId": null,
+                    "selectedEntityId": null,
+                    "lastLayoutComputationMs": 0,
+                    "lastTransitionDispatchMs": 0,
+                    "viewTransform": {
+                      "x": 32,
+                      "y": 32,
+                      "scale": 0.0016326617722383474
+                    }
+                  }
+                },
+                {
+                  "name": "viewport-preflight",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 31.92345800000021,
+                    "deadlineMilliseconds": 39949
+                  },
+                  "observation": {
+                    "status": "verified",
+                    "bounds": {
+                      "x": 0,
+                      "y": 277,
+                      "width": 920,
+                      "height": 523
+                    },
+                    "viewport": {
+                      "width": 1280,
+                      "height": 800
+                    },
+                    "intersection": {
+                      "x": 0,
+                      "y": 277,
+                      "width": 920,
+                      "height": 523
+                    },
+                    "interactionPoint": {
+                      "x": 460,
+                      "y": 538.5
+                    }
+                  }
+                },
+                {
+                  "name": "sampling-setup",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 1.9942080000000715,
+                    "deadlineMilliseconds": 39917
+                  },
+                  "observation": {
+                    "eventTimingAvailable": true
+                  }
+                },
+                {
+                  "name": "pan",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 3203.42325,
+                    "deadlineMilliseconds": 39915
+                  },
+                  "observation": {
+                    "pointerMoves": 80,
+                    "before": {
+                      "x": 32,
+                      "y": 32,
+                      "scale": 0.0016326617722383474
+                    },
+                    "after": {
+                      "x": -46.32977294921875,
+                      "y": 27.3997802734375,
+                      "scale": 0.0016326617722383474
+                    },
+                    "effectVerification": {
+                      "status": "verified",
+                      "before": {
+                        "x": 32,
+                        "y": 32,
+                        "scale": 0.0016326617722383474
+                      },
+                      "after": {
+                        "x": -46.32977294921875,
+                        "y": 27.3997802734375,
+                        "scale": 0.0016326617722383474
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "zoom",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 3257.6703750000015,
+                    "deadlineMilliseconds": 36711
+                  },
+                  "observation": {
+                    "wheelEvents": 60,
+                    "before": {
+                      "x": -46.32977294921875,
+                      "y": 27.3997802734375,
+                      "scale": 0.0016326617722383474
+                    },
+                    "midpoint": {
+                      "x": -56887.98780183454,
+                      "y": -30380.066157208614,
+                      "scale": 0.21880265087438816
+                    },
+                    "after": {
+                      "x": -25792.80894288706,
+                      "y": -13745.688752297792,
+                      "scale": 0.1
+                    },
+                    "effectVerification": {
+                      "status": "verified",
+                      "before": {
+                        "x": -46.32977294921875,
+                        "y": 27.3997802734375,
+                        "scale": 0.0016326617722383474
+                      },
+                      "after": {
+                        "x": -56887.98780183454,
+                        "y": -30380.066157208614,
+                        "scale": 0.21880265087438816
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "layout-transition",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 1390.7245000000003,
+                    "deadlineMilliseconds": 33453
+                  },
+                  "observation": {
+                    "action": "collapse-directory",
+                    "controlLabel": "Collapse typings",
+                    "before": {
+                      "renderer": "webgl",
+                      "graphId": "repo:microsoft/vscode",
+                      "visibleNodes": 9376,
+                      "visibleEdges": 105549,
+                      "expandedContainerCount": 2375,
+                      "collapsedTangleCount": 0,
+                      "focusedEntityId": null,
+                      "selectedEntityId": null,
+                      "lastLayoutComputationMs": 0,
+                      "lastTransitionDispatchMs": 0,
+                      "viewTransform": {
+                        "x": -25792.80894288706,
+                        "y": -13745.688752297792,
+                        "scale": 0.1
+                      }
+                    },
+                    "after": {
+                      "renderer": "webgl",
+                      "graphId": "repo:microsoft/vscode",
+                      "visibleNodes": 9368,
+                      "visibleEdges": 105549,
+                      "expandedContainerCount": 2374,
+                      "collapsedTangleCount": 0,
+                      "focusedEntityId": null,
+                      "selectedEntityId": null,
+                      "lastLayoutComputationMs": 334.8899999856949,
+                      "lastTransitionDispatchMs": 529.085000038147,
+                      "viewTransform": {
+                        "x": -25792.80894288706,
+                        "y": -13745.688752297792,
+                        "scale": 0.1
+                      }
+                    },
+                    "effectVerification": {
+                      "status": "verified",
+                      "expansionStateChanged": true,
+                      "visibleMembershipChanged": true,
+                      "expandedContainerDelta": {
+                        "beforeCount": 2375,
+                        "afterCount": 2374,
+                        "beforeSha256": "03ca068e859c4adbdeb2526813000106fc72acbee90e77690a074f260539d07f",
+                        "afterSha256": "f9671d405365a07032aae690387d3d4f701750912e6771817eda8e4f89ff43a0",
+                        "addedIds": [],
+                        "removedIds": [
+                          "directory:typings"
+                        ]
+                      },
+                      "collapsedTangleDelta": {
+                        "beforeCount": 0,
+                        "afterCount": 0,
+                        "beforeSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+                        "afterSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+                        "addedIds": [],
+                        "removedIds": []
+                      },
+                      "visibleEntityDelta": {
+                        "beforeCount": 9376,
+                        "afterCount": 9368,
+                        "beforeSha256": "71bce24e29638c6fae1ea87b2c73905440dc954efca6732bbf690d54e8722470",
+                        "afterSha256": "224eaf12d97add53ae7c85c16952e01fa7fde6eaa8ae7a6f978cb25bacfc8556",
+                        "addedIds": [
+                          "directory:typings"
+                        ],
+                        "removedIds": [
+                          "path:typings/base-common.d.ts",
+                          "path:typings/copilot-api.d.ts",
+                          "path:typings/crypto.d.ts",
+                          "path:typings/css.d.ts",
+                          "path:typings/editContext.d.ts",
+                          "path:typings/thenable.d.ts",
+                          "path:typings/vscode-globals-nls.d.ts",
+                          "path:typings/vscode-globals-product.d.ts",
+                          "path:typings/vscode-globals-ttp.d.ts"
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "keyboard-activation",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 922.5416670000013,
+                    "deadlineMilliseconds": 32063
+                  },
+                  "observation": {
+                    "targetEntityId": "directory:typings",
+                    "before": {
+                      "renderer": "webgl",
+                      "graphId": "repo:microsoft/vscode",
+                      "visibleNodes": 9368,
+                      "visibleEdges": 105549,
+                      "expandedContainerCount": 2374,
+                      "collapsedTangleCount": 0,
+                      "focusedEntityId": null,
+                      "selectedEntityId": null,
+                      "lastLayoutComputationMs": 334.8899999856949,
+                      "lastTransitionDispatchMs": 529.085000038147,
+                      "viewTransform": {
+                        "x": -25792.80894288706,
+                        "y": -13745.688752297792,
+                        "scale": 0.1
+                      }
+                    },
+                    "after": {
+                      "renderer": "webgl",
+                      "graphId": "repo:microsoft/vscode",
+                      "visibleNodes": 9376,
+                      "visibleEdges": 105549,
+                      "expandedContainerCount": 2375,
+                      "collapsedTangleCount": 0,
+                      "focusedEntityId": "directory:typings",
+                      "selectedEntityId": "directory:typings",
+                      "lastLayoutComputationMs": 391.80000001192093,
+                      "lastTransitionDispatchMs": 584.3500000238419,
+                      "viewTransform": {
+                        "x": 169.8,
+                        "y": -128.70000000000005,
+                        "scale": 0.1
+                      }
+                    },
+                    "effectVerification": {
+                      "status": "verified",
+                      "selectedTarget": true,
+                      "selectionChanged": true,
+                      "focusedTarget": true
+                    }
+                  }
+                },
+                {
+                  "name": "metrics",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 47.07508299999972,
+                    "deadlineMilliseconds": 31140
+                  },
+                  "observation": {
+                    "frameSamples": 404,
+                    "eventTimingSamples": 50,
+                    "finalScene": {
+                      "renderer": "webgl",
+                      "graphId": "repo:microsoft/vscode",
+                      "visibleNodes": 9376,
+                      "visibleEdges": 105549,
+                      "expandedContainerCount": 2375,
+                      "collapsedTangleCount": 0,
+                      "selectedEntityId": "directory:typings",
+                      "focusedEntityId": "directory:typings",
+                      "viewTransform": {
+                        "x": 169.8,
+                        "y": -128.70000000000005,
+                        "scale": 0.1
+                      },
+                      "lastLayoutComputationMs": 391.80000001192093,
+                      "lastTransitionDispatchMs": 584.3500000238419
+                    }
+                  }
+                }
+              ]
+            },
+            "effectVerification": {
+              "status": "verified",
+              "unverifiedPhases": [],
+              "notApplicablePhases": []
+            },
+            "frames": {
+              "rawIntervalsMs": [
+                66.665,
+                16.67,
+                16.665,
+                16.665,
+                33.33,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                33.335,
+                16.66,
+                16.67,
+                16.665,
+                33.335,
+                16.66,
+                16.67,
+                16.665,
+                16.67,
+                16.66,
+                33.335,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                33.33,
+                16.665,
+                16.67,
+                16.665,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                33.335,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.67,
+                33.33,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                33.33,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                33.33,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                33.33,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                33.335,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                33.335,
+                16.665,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                33.33,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                33.335,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.66,
+                16.67,
+                33.335,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.66,
+                16.67,
+                16.665,
+                16.67,
+                33.33,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.665,
+                16.67,
+                33.33,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                33.33,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.66,
+                16.67,
+                33.335,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                33.33,
+                16.67,
+                16.665,
+                16.665,
+                33.335,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                33.33,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                33.33,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                33.335,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                33.335,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.67,
+                16.665,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                33.33,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                33.33,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                33.33,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                33.335,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                33.33,
+                16.67,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                33.335,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                599.975,
+                33.335,
+                16.665,
+                33.335,
+                16.665,
+                33.33,
+                16.665,
+                33.335,
+                16.665,
+                16.665,
+                33.33,
+                16.665,
+                16.67,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.66,
+                16.67,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                33.335,
+                616.64,
+                16.665,
+                33.335,
+                33.33,
+                33.33,
+                16.665,
+                33.335,
+                16.665,
+                33.335
+              ],
+              "summary": {
+                "samples": 404,
+                "durationMs": 8666.325,
+                "deliveredFps": 46.617,
+                "frameIntervalMs": {
+                  "mean": 21.451,
+                  "p50": 16.665000000000873,
+                  "p95": 33.33499999999913,
+                  "p99": 33.335000000000946,
+                  "maximum": 616.6400000000012
+                },
+                "framesOver16_7ms": 45,
+                "framesOver33_3ms": 45
+              }
+            },
+            "inputToNextPaint": {
+              "source": "PerformanceEventTiming.duration",
+              "available": true,
+              "limitation": "Browser Event Timing measures trusted input start through the next presentation opportunity and is duration-quantized. Empty means Chrome emitted no qualifying entry; handler time is not substituted.",
+              "samples": [
+                {
+                  "name": "pointerover",
+                  "duration": 184,
+                  "startTime": 4907.3550000190735
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 184,
+                  "startTime": 4907.3550000190735
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 184,
+                  "startTime": 4907.3550000190735
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 184,
+                  "startTime": 4907.3550000190735
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 184,
+                  "startTime": 4907.3550000190735
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 184,
+                  "startTime": 4907.3550000190735
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 184,
+                  "startTime": 4907.3550000190735
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 184,
+                  "startTime": 4907.3550000190735
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 184,
+                  "startTime": 4907.3550000190735
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 184,
+                  "startTime": 4907.3550000190735
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 184,
+                  "startTime": 4907.3550000190735
+                },
+                {
+                  "name": "mouseover",
+                  "duration": 184,
+                  "startTime": 4907.3550000190735
+                },
+                {
+                  "name": "pointerdown",
+                  "duration": 32,
+                  "startTime": 5077.245000004768
+                },
+                {
+                  "name": "mousedown",
+                  "duration": 32,
+                  "startTime": 5077.245000004768
+                },
+                {
+                  "name": "gotpointercapture",
+                  "duration": 48,
+                  "startTime": 5085.185000002384
+                },
+                {
+                  "name": "pointerup",
+                  "duration": 48,
+                  "startTime": 8100.964999973774
+                },
+                {
+                  "name": "mouseup",
+                  "duration": 48,
+                  "startTime": 8100.964999973774
+                },
+                {
+                  "name": "lostpointercapture",
+                  "duration": 48,
+                  "startTime": 8100.964999973774
+                },
+                {
+                  "name": "click",
+                  "duration": 48,
+                  "startTime": 8100.964999973774
+                },
+                {
+                  "name": "pointerout",
+                  "duration": 648,
+                  "startTime": 11462.235000014305
+                },
+                {
+                  "name": "pointerleave",
+                  "duration": 648,
+                  "startTime": 11462.235000014305
+                },
+                {
+                  "name": "pointerleave",
+                  "duration": 648,
+                  "startTime": 11462.235000014305
+                },
+                {
+                  "name": "pointerleave",
+                  "duration": 648,
+                  "startTime": 11462.235000014305
+                },
+                {
+                  "name": "pointerleave",
+                  "duration": 648,
+                  "startTime": 11462.235000014305
+                },
+                {
+                  "name": "pointerover",
+                  "duration": 648,
+                  "startTime": 11462.235000014305
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 648,
+                  "startTime": 11462.235000014305
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 648,
+                  "startTime": 11462.235000014305
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 648,
+                  "startTime": 11462.235000014305
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 648,
+                  "startTime": 11462.235000014305
+                },
+                {
+                  "name": "mouseout",
+                  "duration": 648,
+                  "startTime": 11462.235000014305
+                },
+                {
+                  "name": "mouseover",
+                  "duration": 648,
+                  "startTime": 11462.235000014305
+                },
+                {
+                  "name": "pointerdown",
+                  "duration": 648,
+                  "startTime": 11462.269999980927
+                },
+                {
+                  "name": "mousedown",
+                  "duration": 648,
+                  "startTime": 11462.269999980927
+                },
+                {
+                  "name": "pointerup",
+                  "duration": 648,
+                  "startTime": 11462.32999998331
+                },
+                {
+                  "name": "mouseup",
+                  "duration": 648,
+                  "startTime": 11462.32999998331
+                },
+                {
+                  "name": "click",
+                  "duration": 648,
+                  "startTime": 11462.32999998331
+                },
+                {
+                  "name": "pointerover",
+                  "duration": 648,
+                  "startTime": 11462.32999998331
+                },
+                {
+                  "name": "mouseover",
+                  "duration": 648,
+                  "startTime": 11462.32999998331
+                },
+                {
+                  "name": "pointerout",
+                  "duration": 48,
+                  "startTime": 12059.050000011921
+                },
+                {
+                  "name": "pointerover",
+                  "duration": 48,
+                  "startTime": 12059.050000011921
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 48,
+                  "startTime": 12059.050000011921
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 48,
+                  "startTime": 12059.050000011921
+                },
+                {
+                  "name": "mouseout",
+                  "duration": 48,
+                  "startTime": 12059.050000011921
+                },
+                {
+                  "name": "mouseover",
+                  "duration": 48,
+                  "startTime": 12059.050000011921
+                },
+                {
+                  "name": "keydown",
+                  "duration": 664,
+                  "startTime": 12821.314999997616
+                },
+                {
+                  "name": "pointerover",
+                  "duration": 48,
+                  "startTime": 13440.550000011921
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 48,
+                  "startTime": 13440.550000011921
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 48,
+                  "startTime": 13440.550000011921
+                },
+                {
+                  "name": "mouseover",
+                  "duration": 48,
+                  "startTime": 13440.550000011921
+                },
+                {
+                  "name": "keyup",
+                  "duration": 72,
+                  "startTime": 13440.889999985695
+                }
+              ],
+              "durationMs": {
+                "p50": 184,
+                "p95": 648,
+                "maximum": 664
+              }
+            },
+            "memory": {
+              "method": "Chrome DevTools Protocol Performance.getMetrics",
+              "jsHeapUsedBytes": 824244880,
+              "jsHeapTotalBytes": 890322944,
+              "limitation": "JavaScript heap only. It excludes DOM, SVG backing storage, PixiJS GPU buffers/textures, driver memory, and browser process overhead."
+            },
+            "accessibility": {
+              "accessibleEntityCount": 9376,
+              "svgLabelCount": 0,
+              "keyboardSelectionSucceeded": true,
+              "highContrastControl": true
+            },
+            "graphics": {
+              "backend": "PixiJS WebGL",
+              "renderer": "a_",
+              "webglVersion": 2,
+              "gpuVendor": "Google Inc. (Apple)",
+              "gpuRenderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Pro, Unspecified Version)",
+              "resolution": 1,
+              "edgeGeometryUpdates": 1
+            },
+            "finalSnapshot": {
+              "renderer": "webgl",
+              "graphId": "repo:microsoft/vscode",
+              "visibleNodes": 9376,
+              "visibleEdges": 105549,
+              "expandedContainerCount": 2375,
+              "collapsedTangleCount": 0,
+              "selectedEntityId": "directory:typings",
+              "focusedEntityId": "directory:typings",
+              "viewTransform": {
+                "x": 169.8,
+                "y": -128.70000000000005,
+                "scale": 0.1
+              },
+              "lastLayoutComputationMs": 391.80000001192093,
+              "lastTransitionDispatchMs": 584.3500000238419
+            },
+            "pageErrors": []
+          }
+        ],
+        "cleanup": [
+          {
+            "type": "workload-cleanup",
+            "resource": "browser-context",
+            "fixture": {
+              "name": "vscode",
+              "graphId": "repo:microsoft/vscode",
+              "fixtureKind": "real-partial"
+            },
+            "renderer": "webgl",
+            "scope": "expanded",
+            "status": "completed",
+            "startedAt": "2026-09-13T02:05:11.155Z",
+            "deadlineMilliseconds": 3000,
+            "elapsedMilliseconds": 6,
+            "completedAt": "2026-09-13T02:05:11.161Z"
+          },
+          {
+            "type": "cleanup",
+            "resource": "browser-connection",
+            "status": "completed",
+            "elapsedMilliseconds": 0,
+            "deadlineMilliseconds": 3000
+          },
+          {
+            "type": "cleanup",
+            "resource": "browser-process",
+            "status": "completed",
+            "elapsedMilliseconds": 314,
+            "deadlineMilliseconds": 3000
+          },
+          {
+            "type": "cleanup",
+            "resource": "fixture-server",
+            "status": "completed",
+            "elapsedMilliseconds": 0,
+            "deadlineMilliseconds": 3000
+          }
+        ],
+        "decision": "pending-visible-browser-validation",
+        "currentStage": {
+          "type": "finished",
+          "status": "completed",
+          "elapsedMilliseconds": 16984
+        },
+        "source": {
+          "commit": "b182d3836b028ac7fa76763e345b55555f4124f7",
+          "changes": "No uncommitted application or harness changes during measurement."
+        }
+      }
+    },
+    {
+      "index": 3,
+      "variant": "baseline",
+      "fps": 45.838,
+      "worstFrameMs": 816.6350000000002,
+      "layoutMs": 568.2900000214577,
+      "transitionDispatchMs": 717.3250000476837,
+      "heapBytes": 854581436,
+      "effectVerification": "verified",
+      "raw": {
+        "schemaVersion": "1.0",
+        "generatedAt": "2026-09-13T02:05:11.647Z",
+        "status": "completed",
+        "environment": {
+          "platform": "darwin",
+          "release": "25.6.0",
+          "architecture": "arm64",
+          "cpu": "Apple M5 Pro",
+          "logicalCpuCount": 18,
+          "totalMemoryBytes": 68719476736,
+          "browser": "153.0.8010.37",
+          "headless": true,
+          "executable": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+          "launchArgs": [
+            "--disable-background-timer-throttling",
+            "--disable-renderer-backgrounding"
+          ],
+          "gpuFlags": "No GPU-disabling flags supplied. Headless Chrome compositor/GPU behavior may differ from a visible browser.",
+          "browserProcessId": 35071
+        },
+        "selectedFixtures": [
+          "vscode"
+        ],
+        "selectedRenderers": [
+          "webgl"
+        ],
+        "selectedScopes": [
+          "expanded"
+        ],
+        "preparationTimeoutMilliseconds": 30000,
+        "fixtureTimeoutMilliseconds": 60000,
+        "totalTimeoutMilliseconds": 90000,
+        "workloadTimeoutMilliseconds": 45000,
+        "cleanupTimeoutMilliseconds": 3000,
+        "fixturePreparation": [
+          {
+            "type": "fixture-preparation",
+            "fixture": {
+              "name": "vscode",
+              "graphPath": "frozen-fixtures/vscode-src.graph.json",
+              "provenancePath": "packages/scanner/fixtures/real/vscode-src.provenance.json",
+              "graphId": "repo:microsoft/vscode",
+              "fixtureKind": "real-partial"
+            },
+            "status": "completed",
+            "startedAt": "2026-09-13T02:05:11.649Z",
+            "deadlineMilliseconds": 30000,
+            "configuredDeadlineMilliseconds": 30000,
+            "elapsedMilliseconds": 2574,
+            "completedAt": "2026-09-13T02:05:14.223Z"
+          }
+        ],
+        "fixtures": [
+          {
+            "name": "vscode",
+            "fixtureKind": "real-partial",
+            "graphId": "repo:microsoft/vscode",
+            "nodes": 9376,
+            "edges": 105549,
+            "tangles": 102,
+            "urlPath": "/vscode/index.html",
+            "preparation": {
+              "parseMilliseconds": 470.174209,
+              "deriveMilliseconds": 569.000625,
+              "layoutMilliseconds": 503.900042,
+              "totalMilliseconds": 1543.074876
+            },
+            "evidence": {
+              "graphContentSha256": "48c16618a1dc37c47738fc1811b1645cc48f329f3936c0cf2aee4483361ec9de",
+              "graphBytes": 171551574,
+              "provenance": {
+                "contentSha256": "a9c9cf33b5fdb108caa4f73a0fb875793573ce47304df44800f6bcd9edadc7d5",
+                "schemaVersion": "1.0",
+                "repositoryId": "microsoft/vscode",
+                "upstream": "https://github.com/microsoft/vscode.git",
+                "revision": "3879d0e80faeaeb351bbb44dd0f74f1bac12fc0a",
+                "selectedPath": "src",
+                "authoritative": false,
+                "counts": {
+                  "nodes": 9376,
+                  "edges": 105549,
+                  "containers": 2375,
+                  "sourceFiles": 9252,
+                  "linesOfCode": 2993413
+                },
+                "limitationsCount": 756,
+                "diagnosticCounts": {
+                  "inferred-source-configuration": 1,
+                  "missing-type-library": 24,
+                  "resolved-import-outside-scan": 1,
+                  "unresolved-import-ratio": 1,
+                  "unresolved-local-import": 729
+                },
+                "scan": {
+                  "durationMilliseconds": 8104,
+                  "maximumResidentSetBytes": 2194833408,
+                  "nodeVersion": "v24.20.0",
+                  "platform": "darwin",
+                  "architecture": "arm64",
+                  "cpu": "Apple M5 Pro",
+                  "logicalCpuCount": 18,
+                  "memoryBytes": 68719476736
+                },
+                "reproductionCommandTemplate": "corepack yarn workspace @topo/scanner fixture --root <checkout> --output <artifact> --repository-id <repository> --allow-partial true"
+              }
+            }
+          }
+        ],
+        "results": [
+          {
+            "status": "completed",
+            "fixture": "vscode",
+            "fixtureKind": "real-partial",
+            "renderer": "webgl",
+            "scope": "expanded",
+            "graph": {
+              "nodes": 9376,
+              "edges": 105549,
+              "tangles": 102
+            },
+            "workload": {
+              "viewport": {
+                "width": 1280,
+                "height": 800
+              },
+              "panPointerMoves": 80,
+              "zoomWheelEvents": 60,
+              "layoutTransition": "collapse first expanded directory; 300ms renderer transition",
+              "selectionInput": "keyboard Enter on first accessible entity"
+            },
+            "phaseTiming": {
+              "source": "controller-wall-clock",
+              "limitation": "Automation wall time includes Playwright dispatch and waits. It is reported separately from browser Event Timing and frame intervals.",
+              "phases": [
+                {
+                  "name": "navigation",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 46.38983300000018,
+                    "deadlineMilliseconds": 44808
+                  },
+                  "observation": {
+                    "url": "http://127.0.0.1:4181/vscode/index.html?renderer=webgl&scope=all",
+                    "httpStatus": 200
+                  }
+                },
+                {
+                  "name": "app-readiness",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 4784.8862500000005,
+                    "deadlineMilliseconds": 44762
+                  },
+                  "observation": {
+                    "renderer": "webgl",
+                    "graphId": "repo:microsoft/vscode",
+                    "visibleNodes": 9376,
+                    "visibleEdges": 105549,
+                    "expandedContainerCount": 2375,
+                    "collapsedTangleCount": 0,
+                    "focusedEntityId": null,
+                    "selectedEntityId": null,
+                    "lastLayoutComputationMs": 0,
+                    "lastTransitionDispatchMs": 0,
+                    "viewTransform": {
+                      "x": 32,
+                      "y": 32,
+                      "scale": 0.0016326617722383474
+                    }
+                  }
+                },
+                {
+                  "name": "viewport-preflight",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 35.31950000000052,
+                    "deadlineMilliseconds": 39977
+                  },
+                  "observation": {
+                    "status": "verified",
+                    "bounds": {
+                      "x": 0,
+                      "y": 277,
+                      "width": 920,
+                      "height": 523
+                    },
+                    "viewport": {
+                      "width": 1280,
+                      "height": 800
+                    },
+                    "intersection": {
+                      "x": 0,
+                      "y": 277,
+                      "width": 920,
+                      "height": 523
+                    },
+                    "interactionPoint": {
+                      "x": 460,
+                      "y": 538.5
+                    }
+                  }
+                },
+                {
+                  "name": "sampling-setup",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 1.3977090000007593,
+                    "deadlineMilliseconds": 39942
+                  },
+                  "observation": {
+                    "eventTimingAvailable": true
+                  }
+                },
+                {
+                  "name": "pan",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 3219.431958,
+                    "deadlineMilliseconds": 39940
+                  },
+                  "observation": {
+                    "pointerMoves": 80,
+                    "before": {
+                      "x": 32,
+                      "y": 32,
+                      "scale": 0.0016326617722383474
+                    },
+                    "after": {
+                      "x": -46.32977294921875,
+                      "y": 27.3997802734375,
+                      "scale": 0.0016326617722383474
+                    },
+                    "effectVerification": {
+                      "status": "verified",
+                      "before": {
+                        "x": 32,
+                        "y": 32,
+                        "scale": 0.0016326617722383474
+                      },
+                      "after": {
+                        "x": -46.32977294921875,
+                        "y": 27.3997802734375,
+                        "scale": 0.0016326617722383474
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "zoom",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 3204.0921670000007,
+                    "deadlineMilliseconds": 36721
+                  },
+                  "observation": {
+                    "wheelEvents": 60,
+                    "before": {
+                      "x": -46.32977294921875,
+                      "y": 27.3997802734375,
+                      "scale": 0.0016326617722383474
+                    },
+                    "midpoint": {
+                      "x": -56887.98780183454,
+                      "y": -30380.066157208614,
+                      "scale": 0.21880265087438816
+                    },
+                    "after": {
+                      "x": -25792.80894288706,
+                      "y": -13745.688752297792,
+                      "scale": 0.1
+                    },
+                    "effectVerification": {
+                      "status": "verified",
+                      "before": {
+                        "x": -46.32977294921875,
+                        "y": 27.3997802734375,
+                        "scale": 0.0016326617722383474
+                      },
+                      "after": {
+                        "x": -56887.98780183454,
+                        "y": -30380.066157208614,
+                        "scale": 0.21880265087438816
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "layout-transition",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 1594.6281249999993,
+                    "deadlineMilliseconds": 33517
+                  },
+                  "observation": {
+                    "action": "collapse-directory",
+                    "controlLabel": "Collapse typings",
+                    "before": {
+                      "renderer": "webgl",
+                      "graphId": "repo:microsoft/vscode",
+                      "visibleNodes": 9376,
+                      "visibleEdges": 105549,
+                      "expandedContainerCount": 2375,
+                      "collapsedTangleCount": 0,
+                      "focusedEntityId": null,
+                      "selectedEntityId": null,
+                      "lastLayoutComputationMs": 0,
+                      "lastTransitionDispatchMs": 0,
+                      "viewTransform": {
+                        "x": -25792.80894288706,
+                        "y": -13745.688752297792,
+                        "scale": 0.1
+                      }
+                    },
+                    "after": {
+                      "renderer": "webgl",
+                      "graphId": "repo:microsoft/vscode",
+                      "visibleNodes": 9368,
+                      "visibleEdges": 105549,
+                      "expandedContainerCount": 2374,
+                      "collapsedTangleCount": 0,
+                      "focusedEntityId": null,
+                      "selectedEntityId": null,
+                      "lastLayoutComputationMs": 567.2450000047684,
+                      "lastTransitionDispatchMs": 743.3000000119209,
+                      "viewTransform": {
+                        "x": -25792.80894288706,
+                        "y": -13745.688752297792,
+                        "scale": 0.1
+                      }
+                    },
+                    "effectVerification": {
+                      "status": "verified",
+                      "expansionStateChanged": true,
+                      "visibleMembershipChanged": true,
+                      "expandedContainerDelta": {
+                        "beforeCount": 2375,
+                        "afterCount": 2374,
+                        "beforeSha256": "03ca068e859c4adbdeb2526813000106fc72acbee90e77690a074f260539d07f",
+                        "afterSha256": "f9671d405365a07032aae690387d3d4f701750912e6771817eda8e4f89ff43a0",
+                        "addedIds": [],
+                        "removedIds": [
+                          "directory:typings"
+                        ]
+                      },
+                      "collapsedTangleDelta": {
+                        "beforeCount": 0,
+                        "afterCount": 0,
+                        "beforeSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+                        "afterSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+                        "addedIds": [],
+                        "removedIds": []
+                      },
+                      "visibleEntityDelta": {
+                        "beforeCount": 9376,
+                        "afterCount": 9368,
+                        "beforeSha256": "71bce24e29638c6fae1ea87b2c73905440dc954efca6732bbf690d54e8722470",
+                        "afterSha256": "224eaf12d97add53ae7c85c16952e01fa7fde6eaa8ae7a6f978cb25bacfc8556",
+                        "addedIds": [
+                          "directory:typings"
+                        ],
+                        "removedIds": [
+                          "path:typings/base-common.d.ts",
+                          "path:typings/copilot-api.d.ts",
+                          "path:typings/crypto.d.ts",
+                          "path:typings/css.d.ts",
+                          "path:typings/editContext.d.ts",
+                          "path:typings/thenable.d.ts",
+                          "path:typings/vscode-globals-nls.d.ts",
+                          "path:typings/vscode-globals-product.d.ts",
+                          "path:typings/vscode-globals-ttp.d.ts"
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "keyboard-activation",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 1061.7221660000014,
+                    "deadlineMilliseconds": 31922
+                  },
+                  "observation": {
+                    "targetEntityId": "directory:typings",
+                    "before": {
+                      "renderer": "webgl",
+                      "graphId": "repo:microsoft/vscode",
+                      "visibleNodes": 9368,
+                      "visibleEdges": 105549,
+                      "expandedContainerCount": 2374,
+                      "collapsedTangleCount": 0,
+                      "focusedEntityId": null,
+                      "selectedEntityId": null,
+                      "lastLayoutComputationMs": 567.2450000047684,
+                      "lastTransitionDispatchMs": 743.3000000119209,
+                      "viewTransform": {
+                        "x": -25792.80894288706,
+                        "y": -13745.688752297792,
+                        "scale": 0.1
+                      }
+                    },
+                    "after": {
+                      "renderer": "webgl",
+                      "graphId": "repo:microsoft/vscode",
+                      "visibleNodes": 9376,
+                      "visibleEdges": 105549,
+                      "expandedContainerCount": 2375,
+                      "collapsedTangleCount": 0,
+                      "focusedEntityId": "directory:typings",
+                      "selectedEntityId": "directory:typings",
+                      "lastLayoutComputationMs": 568.2900000214577,
+                      "lastTransitionDispatchMs": 717.3250000476837,
+                      "viewTransform": {
+                        "x": 169.8,
+                        "y": -128.70000000000005,
+                        "scale": 0.1
+                      }
+                    },
+                    "effectVerification": {
+                      "status": "verified",
+                      "selectedTarget": true,
+                      "selectionChanged": true,
+                      "focusedTarget": true
+                    }
+                  }
+                },
+                {
+                  "name": "metrics",
+                  "status": "completed",
+                  "timing": {
+                    "source": "controller-wall-clock",
+                    "durationMilliseconds": 51.62404100000276,
+                    "deadlineMilliseconds": 30860
+                  },
+                  "observation": {
+                    "frameSamples": 411,
+                    "eventTimingSamples": 50,
+                    "finalScene": {
+                      "renderer": "webgl",
+                      "graphId": "repo:microsoft/vscode",
+                      "visibleNodes": 9376,
+                      "visibleEdges": 105549,
+                      "expandedContainerCount": 2375,
+                      "collapsedTangleCount": 0,
+                      "selectedEntityId": "directory:typings",
+                      "focusedEntityId": "directory:typings",
+                      "viewTransform": {
+                        "x": 169.8,
+                        "y": -128.70000000000005,
+                        "scale": 0.1
+                      },
+                      "lastLayoutComputationMs": 568.2900000214577,
+                      "lastTransitionDispatchMs": 717.3250000476837
+                    }
+                  }
+                }
+              ]
+            },
+            "effectVerification": {
+              "status": "verified",
+              "unverifiedPhases": [],
+              "notApplicablePhases": []
+            },
+            "frames": {
+              "rawIntervalsMs": [
+                50,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                33.33,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                33.33,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                33.33,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                33.335,
+                16.66,
+                16.67,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                33.33,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                33.33,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                33.33,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                33.33,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                33.325,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                33.335,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.67,
+                33.33,
+                16.665,
+                16.67,
+                16.66,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                33.33,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                33.33,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                33.33,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                33.33,
+                16.67,
+                16.67,
+                16.66,
+                16.665,
+                16.67,
+                16.665,
+                33.33,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                33.33,
+                16.67,
+                16.66,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                33.335,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                33.335,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                33.33,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                33.335,
+                16.67,
+                16.66,
+                16.67,
+                16.66,
+                16.67,
+                16.67,
+                16.66,
+                16.665,
+                33.335,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                33.33,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                33.33,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.665,
+                16.67,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.665,
+                16.67,
+                33.33,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                33.33,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.67,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                816.635,
+                16.665,
+                16.665,
+                16.665,
+                33.335,
+                16.665,
+                16.665,
+                33.33,
+                16.67,
+                16.665,
+                33.335,
+                16.66,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.67,
+                16.66,
+                16.665,
+                16.67,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.665,
+                16.665,
+                16.67,
+                16.665,
+                16.66,
+                16.67,
+                16.67,
+                16.665,
+                16.665,
+                33.33,
+                749.97,
+                16.665,
+                16.665,
+                33.33,
+                16.67,
+                16.665,
+                33.33,
+                16.67,
+                16.665,
+                33.33,
+                16.67
+              ],
+              "summary": {
+                "samples": 411,
+                "durationMs": 8966.31,
+                "deliveredFps": 45.838,
+                "frameIntervalMs": {
+                  "mean": 21.816,
+                  "p50": 16.665000000000873,
+                  "p95": 33.32999999999993,
+                  "p99": 33.335000000000946,
+                  "maximum": 816.6350000000002
+                },
+                "framesOver16_7ms": 36,
+                "framesOver33_3ms": 36
+              }
+            },
+            "inputToNextPaint": {
+              "source": "PerformanceEventTiming.duration",
+              "available": true,
+              "limitation": "Browser Event Timing measures trusted input start through the next presentation opportunity and is duration-quantized. Empty means Chrome emitted no qualifying entry; handler time is not substituted.",
+              "samples": [
+                {
+                  "name": "pointerover",
+                  "duration": 168,
+                  "startTime": 4867.889999985695
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 168,
+                  "startTime": 4867.889999985695
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 168,
+                  "startTime": 4867.889999985695
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 168,
+                  "startTime": 4867.889999985695
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 168,
+                  "startTime": 4867.889999985695
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 168,
+                  "startTime": 4867.889999985695
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 168,
+                  "startTime": 4867.889999985695
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 168,
+                  "startTime": 4867.889999985695
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 168,
+                  "startTime": 4867.889999985695
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 168,
+                  "startTime": 4867.889999985695
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 168,
+                  "startTime": 4867.889999985695
+                },
+                {
+                  "name": "mouseover",
+                  "duration": 168,
+                  "startTime": 4867.889999985695
+                },
+                {
+                  "name": "pointerdown",
+                  "duration": 32,
+                  "startTime": 5026.474999964237
+                },
+                {
+                  "name": "mousedown",
+                  "duration": 32,
+                  "startTime": 5026.474999964237
+                },
+                {
+                  "name": "gotpointercapture",
+                  "duration": 64,
+                  "startTime": 5034.849999964237
+                },
+                {
+                  "name": "pointerup",
+                  "duration": 56,
+                  "startTime": 8076.584999978542
+                },
+                {
+                  "name": "mouseup",
+                  "duration": 56,
+                  "startTime": 8076.584999978542
+                },
+                {
+                  "name": "lostpointercapture",
+                  "duration": 56,
+                  "startTime": 8076.584999978542
+                },
+                {
+                  "name": "click",
+                  "duration": 56,
+                  "startTime": 8076.584999978542
+                },
+                {
+                  "name": "pointerout",
+                  "duration": 848,
+                  "startTime": 11386.259999990463
+                },
+                {
+                  "name": "pointerleave",
+                  "duration": 848,
+                  "startTime": 11386.259999990463
+                },
+                {
+                  "name": "pointerleave",
+                  "duration": 848,
+                  "startTime": 11386.259999990463
+                },
+                {
+                  "name": "pointerleave",
+                  "duration": 848,
+                  "startTime": 11386.259999990463
+                },
+                {
+                  "name": "pointerleave",
+                  "duration": 848,
+                  "startTime": 11386.259999990463
+                },
+                {
+                  "name": "pointerover",
+                  "duration": 848,
+                  "startTime": 11386.259999990463
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 848,
+                  "startTime": 11386.259999990463
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 848,
+                  "startTime": 11386.259999990463
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 848,
+                  "startTime": 11386.259999990463
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 848,
+                  "startTime": 11386.259999990463
+                },
+                {
+                  "name": "mouseout",
+                  "duration": 848,
+                  "startTime": 11386.259999990463
+                },
+                {
+                  "name": "mouseover",
+                  "duration": 848,
+                  "startTime": 11386.259999990463
+                },
+                {
+                  "name": "pointerdown",
+                  "duration": 848,
+                  "startTime": 11386.284999966621
+                },
+                {
+                  "name": "mousedown",
+                  "duration": 848,
+                  "startTime": 11386.284999966621
+                },
+                {
+                  "name": "pointerup",
+                  "duration": 848,
+                  "startTime": 11386.339999973774
+                },
+                {
+                  "name": "mouseup",
+                  "duration": 848,
+                  "startTime": 11386.339999973774
+                },
+                {
+                  "name": "click",
+                  "duration": 848,
+                  "startTime": 11386.339999973774
+                },
+                {
+                  "name": "pointerover",
+                  "duration": 848,
+                  "startTime": 11386.339999973774
+                },
+                {
+                  "name": "mouseover",
+                  "duration": 848,
+                  "startTime": 11386.339999973774
+                },
+                {
+                  "name": "pointerout",
+                  "duration": 48,
+                  "startTime": 12191.324999988079
+                },
+                {
+                  "name": "pointerover",
+                  "duration": 48,
+                  "startTime": 12191.324999988079
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 48,
+                  "startTime": 12191.324999988079
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 48,
+                  "startTime": 12191.324999988079
+                },
+                {
+                  "name": "mouseout",
+                  "duration": 48,
+                  "startTime": 12191.324999988079
+                },
+                {
+                  "name": "mouseover",
+                  "duration": 48,
+                  "startTime": 12191.324999988079
+                },
+                {
+                  "name": "keydown",
+                  "duration": 784,
+                  "startTime": 12951.875
+                },
+                {
+                  "name": "pointerover",
+                  "duration": 40,
+                  "startTime": 13694.370000004768
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 40,
+                  "startTime": 13694.370000004768
+                },
+                {
+                  "name": "pointerenter",
+                  "duration": 40,
+                  "startTime": 13694.370000004768
+                },
+                {
+                  "name": "mouseover",
+                  "duration": 40,
+                  "startTime": 13694.370000004768
+                },
+                {
+                  "name": "keyup",
+                  "duration": 64,
+                  "startTime": 13694.614999949932
+                }
+              ],
+              "durationMs": {
+                "p50": 168,
+                "p95": 848,
+                "maximum": 848
+              }
+            },
+            "memory": {
+              "method": "Chrome DevTools Protocol Performance.getMetrics",
+              "jsHeapUsedBytes": 854581436,
+              "jsHeapTotalBytes": 924532736,
+              "limitation": "JavaScript heap only. It excludes DOM, SVG backing storage, PixiJS GPU buffers/textures, driver memory, and browser process overhead."
+            },
+            "accessibility": {
+              "accessibleEntityCount": 9376,
+              "svgLabelCount": 0,
+              "keyboardSelectionSucceeded": true,
+              "highContrastControl": true
+            },
+            "graphics": {
+              "backend": "PixiJS WebGL",
+              "renderer": "t_",
+              "webglVersion": 2,
+              "gpuVendor": "Google Inc. (Apple)",
+              "gpuRenderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Pro, Unspecified Version)",
+              "resolution": 1,
+              "edgeGeometryUpdates": 1
+            },
+            "finalSnapshot": {
+              "renderer": "webgl",
+              "graphId": "repo:microsoft/vscode",
+              "visibleNodes": 9376,
+              "visibleEdges": 105549,
+              "expandedContainerCount": 2375,
+              "collapsedTangleCount": 0,
+              "selectedEntityId": "directory:typings",
+              "focusedEntityId": "directory:typings",
+              "viewTransform": {
+                "x": 169.8,
+                "y": -128.70000000000005,
+                "scale": 0.1
+              },
+              "lastLayoutComputationMs": 568.2900000214577,
+              "lastTransitionDispatchMs": 717.3250000476837
+            },
+            "pageErrors": []
+          }
+        ],
+        "cleanup": [
+          {
+            "type": "workload-cleanup",
+            "resource": "browser-context",
+            "fixture": {
+              "name": "vscode",
+              "graphId": "repo:microsoft/vscode",
+              "fixtureKind": "real-partial"
+            },
+            "renderer": "webgl",
+            "scope": "expanded",
+            "status": "completed",
+            "startedAt": "2026-09-13T02:05:28.703Z",
+            "deadlineMilliseconds": 3000,
+            "elapsedMilliseconds": 6,
+            "completedAt": "2026-09-13T02:05:28.709Z"
+          },
+          {
+            "type": "cleanup",
+            "resource": "browser-connection",
+            "status": "completed",
+            "elapsedMilliseconds": 1,
+            "deadlineMilliseconds": 3000
+          },
+          {
+            "type": "cleanup",
+            "resource": "browser-process",
+            "status": "completed",
+            "elapsedMilliseconds": 305,
+            "deadlineMilliseconds": 3000
+          },
+          {
+            "type": "cleanup",
+            "resource": "fixture-server",
+            "status": "completed",
+            "elapsedMilliseconds": 0,
+            "deadlineMilliseconds": 3000
+          }
+        ],
+        "decision": "pending-visible-browser-validation",
+        "currentStage": {
+          "type": "finished",
+          "status": "completed",
+          "elapsedMilliseconds": 17375
+        },
+        "source": {
+          "commit": "1d9ca95ad487a2ea9adebcb98cae2ca9b3eb7207",
+          "changes": "No uncommitted application or harness changes during measurement."
+        }
+      }
+    }
+  ]
+}

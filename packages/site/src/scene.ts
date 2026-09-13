@@ -1,8 +1,4 @@
-import {
-  layoutGraphWithArchitecture,
-  type ArchitectureDocument,
-  type LayoutResult,
-} from "@topo/graph";
+import type { LayoutSession, LayoutResult } from "@topo/graph";
 import type { GraphDocument } from "@topo/schema";
 import type {
   RenderScene,
@@ -12,12 +8,11 @@ import type {
 } from "./contracts.js";
 
 export function createLayout(
-  graph: GraphDocument,
-  architecture: ArchitectureDocument,
+  session: LayoutSession,
   state: ViewState,
   previous?: unknown,
 ): LayoutResult {
-  return layoutGraphWithArchitecture(graph, architecture, {
+  return session.layout({
     viewId: "directory",
     includeExternal: state.includeExternal,
     expandedContainerIds: [...state.expandedContainerIds],

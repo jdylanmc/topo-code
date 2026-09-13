@@ -8,7 +8,7 @@ import {
 } from "@topo/schema";
 import { deriveArchitecture } from "./derive.js";
 import { compareText, isRecord, stableId } from "./internal.js";
-import { projectGraph } from "./project.js";
+import { createProjectionSession, projectGraph } from "./project.js";
 import {
   GraphEngineValidationError,
   type GraphProjection,
@@ -16,6 +16,7 @@ import {
   type LayoutOptions,
   type LayoutPin,
   type LayoutResult,
+  type LayoutSession,
   type LayoutWarning,
 } from "./types.js";
 
@@ -281,7 +282,7 @@ function nextGridItem(
 
 function previousItems(
   previous: unknown,
-  graph: GraphDocument,
+  graphId: string,
   viewId: string,
   warnings: LayoutWarning[],
 ): Map<string, LayoutItem> {
@@ -295,10 +296,10 @@ function previousItems(
     return new Map();
   }
   const document = previous as LayoutDocument;
-  if (document.graphRef.graphId !== graph.graphId) {
+  if (document.graphRef.graphId !== graphId) {
     warnings.push({
       code: "previous-layout-graph-mismatch",
-      message: `Previous layout graph "${document.graphRef.graphId}" does not match "${graph.graphId}".`,
+      message: `Previous layout graph "${document.graphRef.graphId}" does not match "${graphId}".`,
     });
     return new Map();
   }
@@ -370,14 +371,41 @@ export function layoutGraphWithArchitecture(
   optionsValue?: unknown,
 ): LayoutResult {
   const options = validateOptions(optionsValue);
-  const graphDocument = graph as GraphDocument;
   const projection = projectGraph(graph, architecture, options);
+  const graphDocument = graph as GraphDocument;
+  return layoutProjection({
+    graphId: architecture.graphId,
+    schemaVersion: graphDocument.schemaVersion ?? GRAPH_SCHEMA_VERSION,
+    ...(graphDocument.repository.revision === undefined
+      ? {}
+      : { revision: graphDocument.repository.revision }),
+  }, projection, options);
+}
+
+export function createLayoutSession(
+  graph: unknown,
+  architecture: ArchitectureDocument,
+): LayoutSession {
+  const session = createProjectionSession(graph, architecture);
+  return Object.freeze({
+    layout(optionsValue?: unknown): LayoutResult {
+      const options = validateOptions(optionsValue);
+      return layoutProjection(session.graphRef, session.project(options), options);
+    },
+  });
+}
+
+function layoutProjection(
+  graphRef: Readonly<LayoutDocument["graphRef"]>,
+  projection: GraphProjection,
+  options: LayoutOptions,
+): LayoutResult {
   const grid = validateGrid(options.grid);
   const pins = validatePins(options.pins);
   const warnings: LayoutWarning[] = [];
   const previous = previousItems(
     options.previous,
-    graphDocument,
+    graphRef.graphId,
     projection.viewId,
     warnings,
   );
@@ -497,14 +525,8 @@ export function layoutGraphWithArchitecture(
   const maximumY = Math.max(0, ...items.map((item) => item.y + item.height));
   const layout: LayoutDocument = {
     schemaVersion: LAYOUT_SCHEMA_VERSION,
-    layoutId: stableId("layout", [architecture.graphId, projection.viewId]),
-    graphRef: {
-      graphId: architecture.graphId,
-      schemaVersion: graphDocument.schemaVersion ?? GRAPH_SCHEMA_VERSION,
-      ...(graphDocument.repository.revision === undefined
-        ? {}
-        : { revision: graphDocument.repository.revision }),
-    },
+    layoutId: stableId("layout", [graphRef.graphId, projection.viewId]),
+    graphRef: { ...graphRef },
     viewId: projection.viewId,
     algorithm: {
       id: "@topo/graph/stable-grid",
