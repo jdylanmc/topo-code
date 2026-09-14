@@ -7,10 +7,6 @@
       "ES2022"
     ],
     "noEmit": true,
-    "rootDirs": [
-      "../cli/dist",
-      "../cli/src"
-    ],
     "types": [
       "@playwright/test",
       "node"

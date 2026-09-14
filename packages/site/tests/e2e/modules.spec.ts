@@ -8,9 +8,10 @@ import { expect, test, type Page } from "@playwright/test";
 import { createGraphDocument, type GraphDocument } from "@topo/schema";
 import { BUILTIN_MODULE_MANIFESTS } from "@topo/modules";
 import { initializeWorkspace } from "@topo/workspace";
-import { generateArtifacts, serveSite } from "../../../cli/dist/index.js";
+import { loadBuiltCliIndex } from "./helpers/built-cli.js";
 
 const execute = promisify(execFile);
+const { generateArtifacts, serveSite } = await loadBuiltCliIndex();
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 const allModules = ["@topo/module-degree", "@topo/module-cycles"];
 

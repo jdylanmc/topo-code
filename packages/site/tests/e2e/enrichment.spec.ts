@@ -7,9 +7,10 @@ import { promisify } from "node:util";
 import { expect, test, type Page } from "@playwright/test";
 import { createGraphDocument, type GraphDocument } from "@topo/schema";
 import { initializeWorkspace } from "@topo/workspace";
-import { generateArtifacts, serveSite } from "../../../cli/dist/index.js";
+import { loadBuiltCliIndex } from "./helpers/built-cli.js";
 
 const execute = promisify(execFile);
+const { generateArtifacts, serveSite } = await loadBuiltCliIndex();
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 const assets = join(root, "packages/site/dist");
 const cli = join(root, "packages/cli/dist/main.js");
