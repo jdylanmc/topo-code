@@ -3,8 +3,9 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
-import { serveSite } from "../../../cli/dist/server.js";
+import { loadBuiltCliServer } from "./helpers/built-cli.js";
 
+const { serveSite } = await loadBuiltCliServer();
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 
 test("WebGL works through the actual production HTTP server", async ({ page }) => {

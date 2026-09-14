@@ -5,10 +5,11 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { expect, test as base, type Page } from "@playwright/test";
-import { serveSite } from "../../../cli/dist/server.js";
 import type { CuratedViewDefinition, CuratedViewDelta } from "@topo/views";
+import { loadBuiltCliServer } from "./helpers/built-cli.js";
 
 const exec = promisify(execFile);
+const { serveSite } = await loadBuiltCliServer();
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 const cli = join(root, "packages/cli/dist/main.js");
 

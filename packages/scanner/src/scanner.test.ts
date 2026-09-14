@@ -1,9 +1,9 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
   ScanError,
   ScanInputError,
@@ -15,6 +15,24 @@ import {
 
 const temporaryRoots: string[] = [];
 const execFileAsync = promisify(execFile);
+const originalGitCeilings = process.env.GIT_CEILING_DIRECTORIES;
+
+// One boundary for this isolated test worker, not competing per-fixture overrides.
+// Real .git directories below the temporary directory remain discoverable.
+beforeAll(async () => {
+  const ceiling = await realpath(os.tmpdir());
+  process.env.GIT_CEILING_DIRECTORIES = [originalGitCeilings, ceiling]
+    .filter((value) => value !== undefined)
+    .join(path.delimiter);
+});
+
+afterAll(() => {
+  if (originalGitCeilings === undefined) {
+    delete process.env.GIT_CEILING_DIRECTORIES;
+  } else {
+    process.env.GIT_CEILING_DIRECTORIES = originalGitCeilings;
+  }
+});
 
 async function temporaryRepository(): Promise<string> {
   const root = await mkdtemp(path.join(os.tmpdir(), "topo-scanner-test-"));
@@ -39,6 +57,33 @@ afterEach(async () => {
 });
 
 describe("@topo/scanner", () => {
+  it("keeps temporary repositories non-Git with local ignore rules", async () => {
+    const root = await temporaryRepository();
+    await write(root, ".gitignore", "generated/\n");
+    await write(root, "src/index.ts", "export const value = 1;\n");
+    await write(root, "generated/ignored.ts", "export const ignored = true;\n");
+
+    const result = await scanRepository({ root });
+
+    expect(result.authoritative).toBe(true);
+    expect(result.metrics.sourceFileCount).toBe(1);
+    expect(result.graph.nodes.map((node) => node.id)).toEqual([
+      "path:src/index.ts",
+    ]);
+    await expect(
+      execFileAsync("git", ["-C", root, "rev-parse", "--show-toplevel"]),
+    ).rejects.toMatchObject({
+      stderr: expect.stringContaining("not a git repository"),
+    });
+    if (originalGitCeilings !== undefined) {
+      expect(
+        process.env.GIT_CEILING_DIRECTORIES?.startsWith(
+          `${originalGitCeilings}${path.delimiter}`,
+        ),
+      ).toBe(true);
+    }
+  });
+
   it("rejects plausible invalid adapter input", () => {
     expect(() =>
       parseScanRepositoryOptions({
