@@ -5,6 +5,12 @@ does not currently publish versioned releases.
 
 ## Unreleased
 
+### Changed
+
+- Refresh the bundled agent skill pack from `jdylanmc/agent-skills` at
+  `28add88`, including Chart-a-course and the optional Joe-mode-paseo workflow.
+  Installation does not activate orchestration or scheduled monitoring.
+
 ### Fixed
 
 - Catch strict TypeScript errors in browser end-to-end tests and helpers during
