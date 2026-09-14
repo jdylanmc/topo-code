@@ -112,8 +112,8 @@ Requirements:
 - Corepack and the pinned Yarn 4.18.0
 - Git on `PATH` (the regression suite creates local fixture repositories)
 - A Chromium-capable environment with WebGL and permission to bind local test
-  servers; the browser suite reserves port 4178 and must not run concurrently
-  against the same checkout
+  servers; the browser suite uses port 4178 by default and must not run
+  concurrently against the same checkout
 
 ### Regression testing
 
@@ -124,6 +124,16 @@ corepack yarn install --immutable
 corepack yarn workspace @topo/site exec playwright install --with-deps chromium
 corepack yarn test:regression
 ```
+
+To run browser suites from separate checkouts concurrently, assign each suite a
+distinct available port:
+
+```sh
+TOPO_BROWSER_TEST_PORT=4191 corepack yarn workspace @topo/site test:browser
+```
+
+The override must be an integer from 1 through 65535. Invalid values fail before
+Playwright starts a server. Existing servers are never reused.
 
 Installation needs network access. The Playwright setup downloads a real browser
 and installs Linux system libraries when needed (which may require administrator
