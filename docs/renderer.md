@@ -108,9 +108,12 @@ The renderer consumes `GraphProjection` and `LayoutDocument` and supports:
 
 The logical-architecture workflow uses the same sole WebGL renderer. It adds
 responsibility and semantic-entity scenes, direct node dragging with
-revision-bound browser-local positions, curved or straight perimeter-attached
-arrows, drill/back, expand/collapse, and direct incoming static-potential-impact
-focus. The file/import workflow and its authored pin behavior remain separate.
+revision/source/group/view-bound browser-local positions, container-relative
+expanded members, and separate drilled-view coordinates. Curved or straight
+edges and target arrowheads remain perimeter-attached during live dragging.
+The workflow also supports drill/back, expand/collapse, and direct incoming
+static-potential-impact focus. The file/import workflow and its authored pin
+behavior remain separate.
 
 ### Logical architecture MVP measurement
 
@@ -118,10 +121,10 @@ focus. The file/import workflow and its authored pin behavior remain separate.
 records one candidate-bound run through the actual Topocode self-demo logical
 path. The workload rendered the six-box responsibility overview, changed edge
 style, selected and navigated the map, then expanded the real unassigned
-semantic inventory to **948 visible nodes** and exercised drag, pan, and zoom.
-The uncapped combined browser-clock window delivered **56.552 FPS**, above the
+semantic inventory to **956 visible nodes** and exercised drag, pan, and zoom.
+The uncapped combined browser-clock window delivered **51.245 FPS**, above the
 30 FPS floor. All requestAnimationFrame samples and intersecting intervals are
-retained: the maximum interval was **216.8 ms**, p95 was **18.6 ms**, and three
+retained: the maximum interval was **268.5 ms**, p95 was **45.0 ms**, and 20
 intervals exceeded 33.3 ms. This is one headless Chrome run on the recorded
 Apple M5 Pro environment, not a cross-hardware, worst-frame, or broad
 repository-scale guarantee.

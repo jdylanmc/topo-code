@@ -1,12 +1,20 @@
 import { describe, expect, it } from "vitest";
 import type { LogicalArchitectureDocument } from "@topo/schema";
-import { createLogicalScene, logicalPerimeterRoute } from "./logical-layout.js";
+import {
+  createLogicalScene,
+  drilledMemberPositionId,
+  logicalPerimeterRoute,
+  logicalPositionUpdate,
+  overviewMemberPositionId,
+  overviewResponsibilityPositionId,
+} from "./logical-layout.js";
 
 const document: LogicalArchitectureDocument = {
   schemaVersion: "1.0",
   graphId: "repo:test",
   revision: "abc",
   snapshotId: "snapshot",
+  positionNamespaceId: "positions",
   coverage: {
     languages: ["javascript", "typescript"],
     relationshipKinds: ["calls", "constructs", "type-use", "heritage"],
@@ -29,11 +37,13 @@ const document: LogicalArchitectureDocument = {
 describe("logical architecture layout", () => {
   it("builds responsibility overview and preserves state across edge styles", () => {
     const curved = createLogicalScene(document, {
-      expandedIds: new Set(), edgeStyle: "curved", positions: new Map([["ra", { x: 20, y: 30 }]]),
+      expandedIds: new Set(), edgeStyle: "curved",
+      positions: new Map([[overviewResponsibilityPositionId("ra"), { x: 20, y: 30 }]]),
       selectedId: "ra", impactId: "rb",
     });
     const straight = createLogicalScene(document, {
-      expandedIds: new Set(), edgeStyle: "straight", positions: new Map([["ra", { x: 20, y: 30 }]]),
+      expandedIds: new Set(), edgeStyle: "straight",
+      positions: new Map([[overviewResponsibilityPositionId("ra"), { x: 20, y: 30 }]]),
       selectedId: "ra", impactId: "rb",
     });
     expect(curved.nodes.map((node) => node.entity.id)).toEqual(["ra", "rb"]);
@@ -77,5 +87,39 @@ describe("logical architecture layout", () => {
       scopeId: "ra", expandedIds: new Set(), edgeStyle: "curved", positions: new Map(),
     });
     expect(drilled.nodes.map((node) => node.entity.id)).toEqual(["a"]);
+  });
+
+  it("keeps expanded member offsets inside parents and separate from drilled positions", () => {
+    const expandedState = {
+      expandedIds: new Set(["ra"]),
+      edgeStyle: "curved" as const,
+      positions: new Map<string, { x: number; y: number }>(),
+    };
+    const escaped = logicalPositionUpdate(document, expandedState, "a", -500, 900)!;
+    expect(escaped.key).toBe(overviewMemberPositionId("ra", "a"));
+    expandedState.positions.set(escaped.key, escaped.point);
+    let scene = createLogicalScene(document, expandedState);
+    let boundary = scene.nodes.find((node) => node.entity.id === "ra")!;
+    let member = scene.nodes.find((node) => node.entity.id === "a")!;
+    expect(member.x).toBeGreaterThan(boundary.x);
+    expect(member.y + member.height).toBeLessThan(boundary.y + boundary.height);
+
+    expandedState.positions.set(overviewResponsibilityPositionId("ra"), { x: 400, y: 300 });
+    scene = createLogicalScene(document, expandedState);
+    boundary = scene.nodes.find((node) => node.entity.id === "ra")!;
+    member = scene.nodes.find((node) => node.entity.id === "a")!;
+    expect(member.x).toBe(boundary.x + escaped.point.x);
+    expect(member.y).toBe(boundary.y + escaped.point.y);
+
+    const drilledState = {
+      scopeId: "ra",
+      expandedIds: new Set<string>(),
+      edgeStyle: "curved" as const,
+      positions: new Map([[drilledMemberPositionId("ra", "a"), { x: 700, y: 500 }]]),
+    };
+    expect(createLogicalScene(document, drilledState).nodes[0]).toMatchObject({ x: 700, y: 500 });
+    const { scopeId: _scopeId, ...overviewState } = drilledState;
+    expect(createLogicalScene(document, overviewState).nodes[0])
+      .not.toMatchObject({ x: 700, y: 500 });
   });
 });

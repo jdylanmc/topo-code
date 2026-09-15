@@ -16,6 +16,22 @@ export interface LogicalViewState {
   positions: ReadonlyMap<string, { x: number; y: number }>;
 }
 
+export function overviewResponsibilityPositionId(id: string): string {
+  return `overview:responsibility:${id}`;
+}
+
+export function overviewMemberPositionId(responsibilityId: string, entityId: string): string {
+  return `overview:member:${responsibilityId}:${entityId}`;
+}
+
+export function drilledMemberPositionId(scopeId: string, entityId: string): string {
+  return `drill:${scopeId}:${entityId}`;
+}
+
+function clamp(value: number, minimum: number, maximum: number): number {
+  return Math.max(minimum, Math.min(maximum, value));
+}
+
 function responsibilityEntity(responsibility: LogicalResponsibility, expanded: boolean): VisibleEntity {
   return {
     id: responsibility.id,
@@ -110,7 +126,7 @@ export function createLogicalScene(
       if (!entity) continue;
       const visible = semanticEntity(entity);
       const fallback = { x: 80 + (index % 3) * 280, y: 70 + Math.floor(index / 3) * 120 };
-      const position = state.positions.get(id) ?? fallback;
+      const position = state.positions.get(drilledMemberPositionId(state.scopeId!, id)) ?? fallback;
       nodes.push({
         entity: visible, x: position.x, y: position.y, width: 240, height: 78,
         selected: state.selectedId === id, focused: false, cycle: false,
@@ -128,7 +144,7 @@ export function createLogicalScene(
       const fallback = stack
         ? { x: 80, y: stackY }
         : { x: 80 + (index % 3) * 360, y: 70 + Math.floor(index / 3) * 170 };
-      const position = state.positions.get(responsibility.id) ?? fallback;
+      const position = state.positions.get(overviewResponsibilityPositionId(responsibility.id)) ?? fallback;
       nodes.push({
         entity: responsibilityEntity(responsibility, expanded),
         x: position.x, y: position.y, width, height,
@@ -143,12 +159,24 @@ export function createLogicalScene(
             x: position.x + 20 + (memberIndex % 3) * 260,
             y: position.y + 88 + Math.floor(memberIndex / 3) * 96,
           };
-          const memberPosition = state.positions.get(id) ?? memberFallback;
+          const persistedOffset = state.positions.get(overviewMemberPositionId(responsibility.id, id));
+          const memberPosition = persistedOffset
+            ? {
+                x: position.x + clamp(persistedOffset.x, 20, width - 260),
+                y: position.y + clamp(persistedOffset.y, 88, height - 98),
+              }
+            : memberFallback;
           nodes.push({
             entity: semanticEntity(entity),
             x: memberPosition.x, y: memberPosition.y, width: 240, height: 78,
             selected: state.selectedId === id, focused: false, cycle: false,
             impacted: state.impactId === id,
+            dragBounds: {
+              minX: position.x + 20,
+              maxX: position.x + width - 260,
+              minY: position.y + 88,
+              maxY: position.y + height - 98,
+            },
           });
         }
       }
@@ -204,3 +232,31 @@ export function createLogicalScene(
 }
 
 export const logicalPerimeterRoute = perimeter;
+export const logicalRoute = route;
+
+export function logicalPositionUpdate(
+  document: LogicalArchitectureDocument,
+  state: LogicalViewState,
+  id: string,
+  x: number,
+  y: number,
+): { key: string; point: { x: number; y: number } } | undefined {
+  if (state.scopeId) {
+    return { key: drilledMemberPositionId(state.scopeId, id), point: { x, y } };
+  }
+  if (document.responsibilities.some((responsibility) => responsibility.id === id)) {
+    return { key: overviewResponsibilityPositionId(id), point: { x, y } };
+  }
+  const owner = document.responsibilities.find((responsibility) =>
+    responsibility.entityIds.includes(id) && state.expandedIds.has(responsibility.id));
+  if (!owner) return undefined;
+  const boundary = createLogicalScene(document, state).nodes.find((node) => node.entity.id === owner.id);
+  if (!boundary) return undefined;
+  return {
+    key: overviewMemberPositionId(owner.id, id),
+    point: {
+      x: clamp(x - boundary.x, 20, boundary.width - 260),
+      y: clamp(y - boundary.y, 88, boundary.height - 98),
+    },
+  };
+}

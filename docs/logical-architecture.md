@@ -52,7 +52,8 @@ records that semantic entities are unassigned.
 
 `path` is repository-relative and `symbol` is a top-level function, class,
 interface, type alias, enum, or variable recognized by the configured compiler
-program. Every proposed responsibility must own at least one exported contract.
+program. Use the deterministic symbol anchor `default` for an anonymous default
+exported function or class. Every proposed responsibility must own at least one exported contract.
 Its overview box displays at most three exported contract names. Unknown
 anchors, duplicate responsibility IDs, and multiple primary assignments fail
 the scan. Valid but omitted entities remain visible under **Unassigned** with a
@@ -70,10 +71,16 @@ warning; Topocode does not invent a responsibility.
   impact, not runtime execution, complete blast radius, or guaranteed breakage.
 - Curved edges are the default; Straight is a comparison mode. Both terminate
   on box perimeters and retain selection, scope, expansion, impact, and positions.
-- Dragging a box moves it without panning the camera. Positions are stored in
-  browser local storage for the repository graph and a deterministic source
-  snapshot fingerprint. **Reset positions** removes that browser-local
-  state. No source-authored pin is changed.
+- Dragging a box moves it without panning the camera. Expanded member positions
+  are stored as offsets inside their responsibility boundary, remain contained,
+  and move with that boundary. Drilled member positions use a separate view
+  scope.
+- Positions are stored in browser local storage under a namespace derived from
+  repository revision, source snapshot, the full responsibility definition,
+  and logical view format. Unchanged inputs reload compatible positions;
+  revision, source, grouping, or view-format changes ignore incompatible state.
+  **Reset positions** removes the current namespace. No source-authored pin is
+  changed.
 
 ## Identity and coverage limits
 
@@ -81,10 +88,13 @@ Semantic IDs are deterministic for a supported compiler snapshot and derive
 from the canonical symbol's kind, name, and repository-relative declaration
 anchors. Aliases resolve to their original symbol; legitimate merged
 declarations share an entity; unrelated same-name declarations remain distinct.
-A rescan rebuilds IDs and the source snapshot fingerprint. File moves, symbol
-renames, declaration splits/merges, compiler changes, or dirty working-tree
-content therefore use a different position namespace; stale IDs are ignored
-rather than rebound.
+Anonymous default exported functions and classes use the source-anchored
+`default` authoring name while retaining distinct semantic IDs. A rescan
+rebuilds IDs and the source snapshot fingerprint. File moves, symbol renames,
+declaration splits/merges, compiler changes, dirty working-tree content,
+repository revision changes, or responsibility-definition changes therefore
+use a different position namespace; stale positions are ignored rather than
+rebound.
 
 The scanner inventories all selected TypeScript and JavaScript source. Static
 analysis does not cover runtime dispatch, reflection, dependency injection,

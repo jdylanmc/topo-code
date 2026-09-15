@@ -62,6 +62,7 @@ export interface SceneNode {
   focused: boolean;
   cycle: boolean;
   impacted?: boolean;
+  dragBounds?: { minX: number; maxX: number; minY: number; maxY: number };
 }
 
 export interface SceneEdge {
@@ -105,6 +106,11 @@ export interface Renderer {
   destroy(): void;
   getGraphicsInfo(): Record<string, string | number | boolean | null>;
   getNodeBounds(): Array<{ id: string; x: number; y: number; width: number; height: number }>;
+  getEdgeRoutes(): Array<{
+    id: string;
+    targetId: string;
+    points: Array<{ x: number; y: number }>;
+  }>;
 }
 
 export interface ViewTransform {
@@ -147,6 +153,7 @@ export interface TopoWindow extends Window {
       edgeStyle: "curved" | "straight";
       positions: Record<string, { x: number; y: number }>;
       nodes: Array<{ id: string; x: number; y: number; width: number; height: number }>;
+      edges: Array<{ id: string; targetId: string; points: Array<{ x: number; y: number }> }>;
       viewTransform: ViewTransform;
       edgeGeometryUpdates: number;
     };

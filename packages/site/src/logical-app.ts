@@ -5,7 +5,11 @@ import type {
 } from "@topo/schema";
 import type { LoadedArtifacts, Renderer, RendererCallbacks, TopoWindow } from "./contracts.js";
 import { requiredElement } from "./dom.js";
-import { createLogicalScene, type LogicalViewState } from "./logical-layout.js";
+import {
+  createLogicalScene,
+  logicalPositionUpdate,
+  type LogicalViewState,
+} from "./logical-layout.js";
 import { WebGlRenderer } from "./renderers/webgl.js";
 import { FIT_PADDING, fitScale, ZoomLimits } from "./zoom.js";
 
@@ -14,7 +18,7 @@ function compareText(left: string, right: string): number {
 }
 
 function positionKey(document: LogicalArchitectureDocument): string {
-  return `topocode:logical-positions:${document.graphId}:${document.snapshotId}`;
+  return `topocode:logical-positions:${document.graphId}:${document.positionNamespaceId}`;
 }
 
 function readPositions(document: LogicalArchitectureDocument): Map<string, { x: number; y: number }> {
@@ -166,7 +170,9 @@ export class LogicalArchitectureApp {
       },
       focus: () => {},
       move: (id, x, y) => {
-        this.#positions.set(id, { x, y });
+        const update = logicalPositionUpdate(this.#document, this.#state, id, x, y);
+        if (!update) return;
+        this.#positions.set(update.key, update.point);
         savePositions(this.#document, this.#positions);
         this.#refresh(false);
       },
@@ -360,6 +366,7 @@ export class LogicalArchitectureApp {
           edgeStyle: this.#state.edgeStyle,
           positions: Object.fromEntries(this.#positions),
           nodes: this.#renderer.getNodeBounds(),
+          edges: this.#renderer.getEdgeRoutes(),
           viewTransform: this.#renderer.getTransform(),
           edgeGeometryUpdates: Number(this.#renderer.getGraphicsInfo().edgeGeometryUpdates),
         };

@@ -19,6 +19,7 @@ import { COLORS, nodeColor } from "./renderer.js";
 import { sameNodeAppearance, sameSceneEdges, SceneInteraction } from "./render-state.js";
 import { fitScale, ZoomLimits } from "../zoom.js";
 import { NodeRenderLayer } from "./node-render-layer.js";
+import { logicalRoute } from "../logical-layout.js";
 
 interface DisplayNode {
   container: Container;
@@ -49,6 +50,10 @@ export class WebGlRenderer implements Renderer {
   readonly #displayNodes = new Map<string, DisplayNode>();
   readonly #movingNodes = new Set<DisplayNode>();
   readonly #interaction = new SceneInteraction();
+  readonly #renderedEdgeRoutes = new Map<string, {
+    targetId: string;
+    points: Array<{ x: number; y: number }>;
+  }>();
   readonly #zoomLimits: ZoomLimits;
   #edgesMoving = false;
   #edgeGeometryUpdates = 0;
@@ -61,7 +66,15 @@ export class WebGlRenderer implements Renderer {
     | { x: number; y: number; originX: number; originY: number }
     | undefined;
   #nodeDrag:
-    | { id: string; offsetX: number; offsetY: number; startX: number; startY: number; display: DisplayNode }
+    | {
+        id: string;
+        offsetX: number;
+        offsetY: number;
+        startX: number;
+        startY: number;
+        display: DisplayNode;
+        children: Array<{ display: DisplayNode; startX: number; startY: number }>;
+      }
     | undefined;
   #suppressTapId: string | undefined;
   #initialized = false;
@@ -251,6 +264,16 @@ export class WebGlRenderer implements Renderer {
             startX: container.x,
             startY: container.y,
             display: this.#displayNodes.get(node.entity.id)!,
+            children: node.entity.kind === "container"
+              ? node.entity.memberNodeIds
+                .map((id) => this.#displayNodes.get(id))
+                .filter((child): child is DisplayNode => child !== undefined)
+                .map((child) => ({
+                  display: child,
+                  startX: child.container.x,
+                  startY: child.container.y,
+                }))
+              : [],
           };
         });
         container.on("pointerover", () => this.#callbacks?.focus(node.entity.id));
@@ -332,6 +355,7 @@ export class WebGlRenderer implements Renderer {
   #drawEdges(): void {
     this.#edgeGeometryUpdates += 1;
     this.#edges.clear();
+    this.#renderedEdgeRoutes.clear();
     if (!this.#scene) return;
     const positions = new Map(
       [...this.#displayNodes.entries()].map(([id, display]) => [
@@ -348,9 +372,20 @@ export class WebGlRenderer implements Renderer {
       const sourceNode = sceneNodes.get(edge.sourceId);
       const targetNode = sceneNodes.get(edge.targetId);
       if (!source || !target || !sourceNode || !targetNode) continue;
-      const points = this.#animationDuration > 0
-        ? this.#translatedRoute(edge, source, target, sourceNode, targetNode)
-        : edge.points;
+      const points = edge.style
+        ? logicalRoute(
+            { ...sourceNode, x: source.x, y: source.y },
+            { ...targetNode, x: target.x, y: target.y },
+            edge.style,
+          )
+        : source.x !== sourceNode.x || source.y !== sourceNode.y ||
+            target.x !== targetNode.x || target.y !== targetNode.y
+          ? this.#translatedRoute(edge, source, target, sourceNode, targetNode)
+          : edge.points;
+      this.#renderedEdgeRoutes.set(edge.id, {
+        targetId: edge.targetId,
+        points: points.map((point) => ({ ...point })),
+      });
       this.#edges.moveTo(points[0]!.x, points[0]!.y);
       if (edge.style === "curved" && points.length === 4) {
         this.#edges.bezierCurveTo(
@@ -388,12 +423,19 @@ export class WebGlRenderer implements Renderer {
   #onNodePointerMove = (event: FederatedPointerEvent): void => {
     if (!this.#nodeDrag) return;
     const local = this.#viewport.toLocal(event.global);
-    this.#nodeDrag.display.container.position.set(
-      local.x - this.#nodeDrag.offsetX,
-      local.y - this.#nodeDrag.offsetY,
-    );
-    this.#nodeDrag.display.node.x = this.#nodeDrag.display.container.x;
-    this.#nodeDrag.display.node.y = this.#nodeDrag.display.container.y;
+    const bounds = this.#nodeDrag.display.node.dragBounds;
+    const x = bounds
+      ? Math.max(bounds.minX, Math.min(bounds.maxX, local.x - this.#nodeDrag.offsetX))
+      : local.x - this.#nodeDrag.offsetX;
+    const y = bounds
+      ? Math.max(bounds.minY, Math.min(bounds.maxY, local.y - this.#nodeDrag.offsetY))
+      : local.y - this.#nodeDrag.offsetY;
+    this.#nodeDrag.display.container.position.set(x, y);
+    const deltaX = x - this.#nodeDrag.startX;
+    const deltaY = y - this.#nodeDrag.startY;
+    for (const child of this.#nodeDrag.children) {
+      child.display.container.position.set(child.startX + deltaX, child.startY + deltaY);
+    }
     this.#drawEdges();
   };
 
@@ -488,6 +530,7 @@ export class WebGlRenderer implements Renderer {
     this.#host.replaceChildren();
     this.#initialized = false;
     this.#displayNodes.clear();
+    this.#renderedEdgeRoutes.clear();
     this.#movingNodes.clear();
     this.#interaction.reset([]);
     this.#scene = undefined;
@@ -523,6 +566,18 @@ export class WebGlRenderer implements Renderer {
       y: display.container.y,
       width: display.node.width,
       height: display.node.height,
+    }));
+  }
+
+  getEdgeRoutes(): Array<{
+    id: string;
+    targetId: string;
+    points: Array<{ x: number; y: number }>;
+  }> {
+    return [...this.#renderedEdgeRoutes.entries()].map(([id, route]) => ({
+      id,
+      targetId: route.targetId,
+      points: route.points.map((point) => ({ ...point })),
     }));
   }
 }

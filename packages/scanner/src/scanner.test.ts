@@ -133,6 +133,65 @@ describe("@topo/scanner", () => {
     ]));
   });
 
+  it("represents anonymous default exports with authorable anchors and relationships", async () => {
+    const root = await temporaryRepository();
+    await write(root, "tsconfig.json", JSON.stringify({
+      compilerOptions: { module: "NodeNext", moduleResolution: "NodeNext" },
+      include: ["src"],
+    }));
+    await write(root, "src/create.ts", "export default function (): number { return 1; }\n");
+    await write(root, "src/model.ts", "export default class { readonly value = 1; }\n");
+    await write(root, "src/use.ts", `
+      import create from "./create.js";
+      import Model from "./model.js";
+      export function run(): number { return create() + new Model().value; }
+    `);
+    await write(root, "responsibilities.json", JSON.stringify({
+      schemaVersion: "1.0",
+      responsibilities: [
+        {
+          id: "defaults",
+          name: "Default contracts",
+          purpose: "Owns anonymous default exports.",
+          entities: [
+            { path: "src/create.ts", symbol: "default" },
+            { path: "src/model.ts", symbol: "default" },
+          ],
+        },
+        {
+          id: "use",
+          name: "Use",
+          purpose: "Calls and constructs default contracts.",
+          entities: [{ path: "src/use.ts", symbol: "run" }],
+        },
+      ],
+    }));
+
+    const first = await scanRepository({
+      root,
+      responsibilityFile: path.join(root, "responsibilities.json"),
+    });
+    const second = await scanRepository({
+      root,
+      responsibilityFile: path.join(root, "responsibilities.json"),
+    });
+    const defaults = first.logicalArchitecture.entities.filter((entity) => entity.name === "default");
+    const run = first.logicalArchitecture.entities.find((entity) => entity.name === "run")!;
+    const defaultFunction = defaults.find((entity) => entity.kind === "function")!;
+    const defaultClass = defaults.find((entity) => entity.kind === "class")!;
+
+    expect(defaults).toHaveLength(2);
+    expect(defaults.every((entity) => entity.exported)).toBe(true);
+    expect(second.logicalArchitecture.entities.filter((entity) => entity.name === "default")
+      .map((entity) => entity.id)).toEqual(defaults.map((entity) => entity.id));
+    expect(first.logicalArchitecture.responsibilities.find((item) => item.id === "defaults")?.entityIds)
+      .toEqual([defaultClass.id, defaultFunction.id].sort());
+    expect(first.logicalArchitecture.relationships).toEqual(expect.arrayContaining([
+      expect.objectContaining({ sourceId: run.id, targetId: defaultFunction.id, kind: "calls" }),
+      expect.objectContaining({ sourceId: run.id, targetId: defaultClass.id, kind: "constructs" }),
+    ]));
+  });
+
   it("uses repository path aliases for semantic relationships", async () => {
     const root = await temporaryRepository();
     await write(root, "tsconfig.json", JSON.stringify({
@@ -585,6 +644,18 @@ describe("@topo/scanner", () => {
       revision: "abc123",
     });
     expect(second.graph).toEqual(first.graph);
+    expect(second.logicalArchitecture.positionNamespaceId)
+      .toBe(first.logicalArchitecture.positionNamespaceId);
+
+    const changedRevision = await scanRepository({
+      root,
+      repositoryId: "fixture/repository",
+      revision: "def456",
+    });
+    expect(changedRevision.logicalArchitecture.snapshotId)
+      .toBe(first.logicalArchitecture.snapshotId);
+    expect(changedRevision.logicalArchitecture.positionNamespaceId)
+      .not.toBe(first.logicalArchitecture.positionNamespaceId);
 
     await write(root, "index.ts", "export const value = 2;\n");
     const changed = await scanRepository({
@@ -596,6 +667,62 @@ describe("@topo/scanner", () => {
     expect(changed.graph.nodes[0]?.fingerprint).not.toBe(
       first.graph.nodes[0]?.fingerprint,
     );
+    expect(changed.logicalArchitecture.snapshotId)
+      .not.toBe(first.logicalArchitecture.snapshotId);
+    expect(changed.logicalArchitecture.positionNamespaceId)
+      .not.toBe(first.logicalArchitecture.positionNamespaceId);
+  });
+
+  it("changes the position namespace when only responsibility definitions change", async () => {
+    const root = await temporaryRepository();
+    await write(root, "index.ts", `
+      export function first(): number { return 1; }
+      export function second(): number { return 2; }
+    `);
+    const responsibilityFile = path.join(root, "responsibilities.json");
+    await write(root, "responsibilities.json", JSON.stringify({
+      schemaVersion: "1.0",
+      responsibilities: [{
+        id: "application",
+        name: "Application",
+        purpose: "Owns the first contract.",
+        entities: [{ path: "index.ts", symbol: "first" }],
+      }],
+    }));
+    const first = await scanRepository({ root, revision: "abc", responsibilityFile });
+
+    await write(root, "responsibilities.json", JSON.stringify({
+      schemaVersion: "1.0",
+      responsibilities: [{
+        id: "application",
+        name: "Application",
+        purpose: "Coordinates the first contract.",
+        entities: [{ path: "index.ts", symbol: "first" }],
+      }],
+    }));
+    const changedPurpose = await scanRepository({ root, revision: "abc", responsibilityFile });
+    expect(changedPurpose.logicalArchitecture.snapshotId)
+      .toBe(first.logicalArchitecture.snapshotId);
+    expect(changedPurpose.logicalArchitecture.positionNamespaceId)
+      .not.toBe(first.logicalArchitecture.positionNamespaceId);
+
+    await write(root, "responsibilities.json", JSON.stringify({
+      schemaVersion: "1.0",
+      responsibilities: [{
+        id: "application",
+        name: "Application",
+        purpose: "Coordinates both contracts.",
+        entities: [
+          { path: "index.ts", symbol: "first" },
+          { path: "index.ts", symbol: "second" },
+        ],
+      }],
+    }));
+    const changed = await scanRepository({ root, revision: "abc", responsibilityFile });
+
+    expect(changed.logicalArchitecture.snapshotId).toBe(first.logicalArchitecture.snapshotId);
+    expect(changed.logicalArchitecture.positionNamespaceId)
+      .not.toBe(changedPurpose.logicalArchitecture.positionNamespaceId);
   });
 
   it("uses Git inventory and ignores generated untracked files", async () => {

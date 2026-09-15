@@ -54,16 +54,33 @@ function declarationKind(node: ts.Declaration): SemanticEntityKind | undefined {
   return undefined;
 }
 
-function namedDeclarations(sourceFile: ts.SourceFile): Array<{ declaration: ts.Declaration; name: ts.Identifier }> {
-  const result: Array<{ declaration: ts.Declaration; name: ts.Identifier }> = [];
+function semanticDeclarations(
+  checker: ts.TypeChecker,
+  sourceFile: ts.SourceFile,
+): Array<{ declaration: ts.Declaration; symbol: ts.Symbol; anchor: string }> {
+  const result: Array<{ declaration: ts.Declaration; symbol: ts.Symbol; anchor: string }> = [];
+  const moduleSymbol = checker.getSymbolAtLocation(sourceFile);
+  const anonymousDefaults = new Map(
+    moduleSymbol
+      ? checker.getExportsOfModule(moduleSymbol)
+        .filter((symbol) => symbol.getName() === "default")
+        .flatMap((symbol) => (symbol.declarations ?? []).map((declaration) => [declaration, symbol] as const))
+      : [],
+  );
   for (const statement of sourceFile.statements) {
-    if ((ts.isFunctionDeclaration(statement) || ts.isClassDeclaration(statement)) && statement.name) {
-      result.push({ declaration: statement, name: statement.name });
+    if (ts.isFunctionDeclaration(statement) || ts.isClassDeclaration(statement)) {
+      const symbol = statement.name
+        ? checker.getSymbolAtLocation(statement.name)
+        : anonymousDefaults.get(statement);
+      if (symbol) result.push({ declaration: statement, symbol, anchor: statement.name?.text ?? "default" });
     } else if (ts.isInterfaceDeclaration(statement) || ts.isTypeAliasDeclaration(statement) || ts.isEnumDeclaration(statement)) {
-      result.push({ declaration: statement, name: statement.name });
+      const symbol = checker.getSymbolAtLocation(statement.name);
+      if (symbol) result.push({ declaration: statement, symbol, anchor: statement.name.text });
     } else if (ts.isVariableStatement(statement)) {
       for (const declaration of statement.declarationList.declarations) {
-        if (ts.isIdentifier(declaration.name)) result.push({ declaration, name: declaration.name });
+        if (!ts.isIdentifier(declaration.name)) continue;
+        const symbol = checker.getSymbolAtLocation(declaration.name);
+        if (symbol) result.push({ declaration, symbol, anchor: declaration.name.text });
       }
     }
   }
@@ -239,8 +256,8 @@ export async function extractLogicalArchitecture(options: {
 
   for (const sourceFile of program.getSourceFiles()) {
     if (!sourcePaths.has(path.resolve(sourceFile.fileName))) continue;
-    for (const item of namedDeclarations(sourceFile)) {
-      const symbol = canonicalSymbol(checker, checker.getSymbolAtLocation(item.name));
+    for (const item of semanticDeclarations(checker, sourceFile)) {
+      const symbol = canonicalSymbol(checker, item.symbol);
       const kind = declarationKind(item.declaration);
       if (!symbol || !kind) continue;
       let id = entityBySymbol.get(symbol);
@@ -272,7 +289,7 @@ export async function extractLogicalArchitecture(options: {
         }
       }
       const repositoryPath = path.relative(options.root, sourceFile.fileName).split(path.sep).join("/");
-      anchorToEntity.set(`${repositoryPath}\0${symbol.getName()}`, id);
+      anchorToEntity.set(`${repositoryPath}\0${item.anchor}`, id);
     }
   }
 
@@ -371,12 +388,22 @@ export async function extractLogicalArchitecture(options: {
       message: `${unassignedEntityIds.length} semantic entities are not assigned by the responsibility proposal.`,
     });
   }
+  const sortedResponsibilities = responsibilities.sort((left, right) => compareText(left.id, right.id));
+  const snapshotId = createHash("sha256").update(options.graph.nodes
+    .map((node) => `${node.id}\0${node.fingerprint ?? ""}`).sort(compareText).join("\0")).digest("hex");
+  const positionNamespaceId = createHash("sha256").update(JSON.stringify({
+    version: 2,
+    revision: options.revision ?? null,
+    snapshotId,
+    responsibilities: sortedResponsibilities,
+    views: ["logical-overview", "logical-drill"],
+  })).digest("hex");
   return {
     schemaVersion: "1.0",
     graphId: options.graphId,
     ...(options.revision ? { revision: options.revision } : {}),
-    snapshotId: createHash("sha256").update(options.graph.nodes
-      .map((node) => `${node.id}\0${node.fingerprint ?? ""}`).sort(compareText).join("\0")).digest("hex"),
+    snapshotId,
+    positionNamespaceId,
     coverage: {
       languages: ["javascript", "typescript"],
       relationshipKinds: ["calls", "constructs", "type-use", "heritage"],
@@ -385,7 +412,7 @@ export async function extractLogicalArchitecture(options: {
     },
     entities,
     relationships,
-    responsibilities: responsibilities.sort((left, right) => compareText(left.id, right.id)),
+    responsibilities: sortedResponsibilities,
     unassignedEntityIds,
     diagnostics,
   };

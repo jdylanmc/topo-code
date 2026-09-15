@@ -9,8 +9,9 @@ does not currently publish versioned releases.
 
 - Add an explicit responsibility-first logical architecture workflow with
   compiler-backed TypeScript/JavaScript entities, contracts, members, static
-  dependents, drill/expand navigation, draggable local positions, and curved or
-  straight WebGL edges while preserving the existing source map.
+  dependents, anonymous default-export anchors, drill/expand navigation,
+  container-aware scoped positions, and live curved or straight WebGL edges
+  while preserving the existing source map.
 - Refresh the bundled agent skill pack from `jdylanmc/agent-skills` at
   `28add88`, including Chart-a-course and the optional Joe-mode-paseo workflow.
   Installation does not activate orchestration or scheduled monitoring.

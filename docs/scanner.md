@@ -41,8 +41,10 @@ Empty scans and unsupported Cargo workspaces always fail.
 semantic inventory for the compiler snapshot: top-level functions, classes,
 interfaces, type aliases, enums and variables; exports, signatures, class and
 interface members, declaration anchors, and categorized direct static
-relationships. `--responsibilities <file>` binds an explicit proposal to those
-anchors. Unknown anchors, duplicate homes, or responsibilities without an
+relationships. Anonymous default exported functions and classes use `default`
+as their deterministic authoring anchor. `--responsibilities <file>` binds an
+explicit proposal to those anchors. Unknown anchors, duplicate homes, or
+responsibilities without an
 exported contract are errors. See [logical architecture](./logical-architecture.md).
 
 The adapter API is separate:

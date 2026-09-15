@@ -59,6 +59,7 @@ export interface LogicalArchitectureDocument {
   graphId: string;
   revision?: string;
   snapshotId: string;
+  positionNamespaceId: string;
   coverage: {
     languages: ["javascript", "typescript"];
     relationshipKinds: SemanticRelationshipKind[];
@@ -89,8 +90,9 @@ function strings(value: unknown, label: string): string[] {
 export function parseLogicalArchitecture(value: unknown): LogicalArchitectureDocument {
   const document = record(value, "Logical architecture");
   if (document.schemaVersion !== "1.0" || typeof document.graphId !== "string" ||
-      typeof document.snapshotId !== "string" || document.snapshotId.length === 0) {
-    throw new Error("Logical architecture must be version 1.0 with graphId and snapshotId.");
+      typeof document.snapshotId !== "string" || document.snapshotId.length === 0 ||
+      typeof document.positionNamespaceId !== "string" || document.positionNamespaceId.length === 0) {
+    throw new Error("Logical architecture must be version 1.0 with graphId, snapshotId, and positionNamespaceId.");
   }
   if (!Array.isArray(document.entities) || !Array.isArray(document.relationships) ||
       !Array.isArray(document.responsibilities) || !Array.isArray(document.diagnostics)) {
