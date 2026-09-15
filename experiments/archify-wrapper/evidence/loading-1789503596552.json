@@ -1,0 +1,16 @@
+{
+  "name": "loading",
+  "args": [
+    "deliver",
+    "workflow",
+    "/Users/dylan/.copilot/session-state/ef5ad974-98b8-432f-99bd-8bc7e5cb24af/files/archify-poc/specs/loading.json",
+    "/Users/dylan/.copilot/session-state/ef5ad974-98b8-432f-99bd-8bc7e5cb24af/files/archify-poc/site/pr-34/loading.artifact.html",
+    "--quality",
+    "showcase",
+    "--json"
+  ],
+  "status": 0,
+  "milliseconds": 127.26591600000006,
+  "stdout": "{\n  \"schemaVersion\": 1,\n  \"ok\": true,\n  \"command\": \"deliver\",\n  \"type\": \"workflow\",\n  \"input\": \"/Users/dylan/.copilot/session-state/ef5ad974-98b8-432f-99bd-8bc7e5cb24af/files/archify-poc/specs/loading.json\",\n  \"output\": \"/Users/dylan/.copilot/session-state/ef5ad974-98b8-432f-99bd-8bc7e5cb24af/files/archify-poc/site/pr-34/loading.artifact.html\",\n  \"specification\": {\n    \"sha256\": \"3c44494fee6160501d845371aeb1d821fe875d43f04767a7949dba5838abbd87\",\n    \"bytes\": 1883\n  },\n  \"artifact\": {\n    \"sha256\": \"4210df6b79bb6c411a7dd154495b445927b5f12440ab9778a6787c9f434227fc\",\n    \"bytes\": 797077\n  },\n  \"validation\": {\n    \"checksPassed\": 9,\n    \"checkCount\": 9,\n    \"compositionProfile\": \"showcase\",\n    \"compositionStatus\": \"pass\",\n    \"errors\": 0,\n    \"warnings\": 0\n  }\n}\n",
+  "stderr": ""
+}

@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "compare",
+  "type": "architecture",
+  "comparatorVersion": 1,
+  "canonicalVersion": 1,
+  "completeness": "complete",
+  "proofLevel": "authored",
+  "base": {
+    "title": "Synthetic PR: validated publication",
+    "rawSha256": "82350682854e7ae4d8af6bad0a79f0b7eda1dfd557b75f916e4026fc184add55",
+    "semanticSha256": "e4de9f9ace2933f63c953153e2daf082c9de58a78a89aedc2b8f13d286f8c7af",
+    "bytes": 1125
+  },
+  "head": {
+    "title": "Synthetic PR: validated publication",
+    "rawSha256": "f483c8a651fea8cb7c826a55116cd367bb99c2854217df98e3d6dac2578476f0",
+    "semanticSha256": "13f1eff8d10335891be2117eb74b82c04e43101c727d80964bbe23bdf15cd3ee",
+    "bytes": 1465
+  },
+  "summary": {
+    "components": {
+      "added": 1,
+      "changed": 1,
+      "evidenceChanged": 0,
+      "removed": 0,
+      "moved": 0
+    },
+    "connections": {
+      "added": 2,
+      "changed": 0,
+      "removed": 1,
+      "rerouted": 0
+    },
+    "boundaries": {
+      "added": 0,
+      "changed": 0,
+      "removed": 0,
+      "geometryChanged": 0
+    },
+    "presentationChanged": false,
+    "provenanceChanged": false
+  },
+  "changes": {
+    "components": [
+      {
+        "id": "gate",
+        "headLabel": "Validation",
+        "status": "added",
+        "classifications": [
+          "semantic"
+        ],
+        "changedFields": []
+      },
+      {
+        "id": "publish",
+        "baseLabel": "Preview",
+        "headLabel": "Preview",
+        "status": "changed",
+        "classifications": [
+          "semantic"
+        ],
+        "changedFields": [
+          "/sublabel"
+        ]
+      }
+    ],
+    "connections": [
+      {
+        "id": "gate_publish",
+        "head": {
+          "from": "gate",
+          "to": "publish",
+          "label": "accepted"
+        },
+        "status": "added",
+        "classifications": [
+          "topology"
+        ],
+        "changedFields": []
+      },
+      {
+        "id": "publish_direct",
+        "base": {
+          "from": "render",
+          "to": "publish",
+          "label": "HTML"
+        },
+        "status": "removed",
+        "classifications": [
+          "topology"
+        ],
+        "changedFields": []
+      },
+      {
+        "id": "render_gate",
+        "head": {
+          "from": "render",
+          "to": "gate",
+          "label": "candidate"
+        },
+        "status": "added",
+        "classifications": [
+          "topology"
+        ],
+        "changedFields": []
+      }
+    ],
+    "boundaries": []
+  },
+  "identity": {
+    "components": "components[].id",
+    "connections": "connections[].id (required)",
+    "boundaries": "boundaries[].kind + boundaries[].label (derived)"
+  },
+  "view": {
+    "visualPreset": "classic"
+  },
+  "limitations": [
+    "Authored Architecture IR only; no runtime impact, causality, risk, or mergeability is inferred.",
+    "Boundary identity is conservatively derived from kind + label."
+  ],
+  "artifact": {
+    "sha256": "2ba5e571ddb95c4934dcfd53a73ee46a4a6eb472e0d7704b4c77cda2e5fbc7b6",
+    "bytes": 2163258
+  },
+  "validation": {
+    "checksPassed": 28,
+    "checkCount": 28,
+    "baseComposition": "pass",
+    "headComposition": "pass"
+  }
+}

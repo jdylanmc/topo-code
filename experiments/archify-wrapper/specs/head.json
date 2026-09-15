@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Synthetic PR: validated publication",
+    "quality_profile": "showcase",
+    "locale": "en"
+  },
+  "components": [
+    {
+      "id": "agent",
+      "type": "backend",
+      "label": "Agent",
+      "sublabel": "Authors explanation",
+      "pos": [
+        40,
+        170
+      ],
+      "size": [
+        150,
+        80
+      ]
+    },
+    {
+      "id": "render",
+      "type": "backend",
+      "label": "Renderer",
+      "sublabel": "Compiles diagram",
+      "pos": [
+        310,
+        170
+      ],
+      "size": [
+        150,
+        80
+      ]
+    },
+    {
+      "id": "gate",
+      "type": "security",
+      "label": "Validation",
+      "sublabel": "Reject invalid artifacts",
+      "pos": [
+        580,
+        170
+      ],
+      "size": [
+        150,
+        80
+      ]
+    },
+    {
+      "id": "publish",
+      "type": "frontend",
+      "label": "Preview",
+      "sublabel": "Last-good output",
+      "pos": [
+        850,
+        170
+      ],
+      "size": [
+        150,
+        80
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "author_render",
+      "from": "agent",
+      "to": "render",
+      "label": "specification"
+    },
+    {
+      "id": "render_gate",
+      "from": "render",
+      "to": "gate",
+      "label": "candidate"
+    },
+    {
+      "id": "gate_publish",
+      "from": "gate",
+      "to": "publish",
+      "label": "accepted"
+    }
+  ]
+}

@@ -1,0 +1,158 @@
+{
+  "schemaVersion": "experimental-1",
+  "revision": "339135da2792046a422308fbc8e5b54ead5828cd",
+  "description": "Agent-authored abstraction, not complete scan or execution trace.",
+  "nodes": [
+    {
+      "canonicalId": "topo:explanation:scan-to-site:cli",
+      "diagramId": "n_242a6f86c5427c95",
+      "sourceEntityId": "path:packages/cli/src/main.ts",
+      "anchor": {
+        "path": "packages/cli/src/main.ts",
+        "symbol": "runCli"
+      },
+      "interpretation": "inferred",
+      "blobHash": "f317e575ba0459fb23c23d2ab31638bce01b4e447ab82b6a2d4d37624b286beb"
+    },
+    {
+      "canonicalId": "topo:explanation:scan-to-site:scanner",
+      "diagramId": "n_e8ee7cfbe22ef4c4",
+      "sourceEntityId": "path:packages/scanner/src/typescript-scanner.ts",
+      "anchor": {
+        "path": "packages/scanner/src/typescript-scanner.ts",
+        "symbol": "scanRepository"
+      },
+      "interpretation": "inferred",
+      "blobHash": "be2f981c651533f99887c96018dbd4d9b35e8abc69fd28cc1560a773c5b27554"
+    },
+    {
+      "canonicalId": "topo:explanation:scan-to-site:graph",
+      "diagramId": "n_2164395fce7b5788",
+      "sourceEntityId": "path:packages/schema/src/model.ts",
+      "anchor": {
+        "path": "packages/schema/src/model.ts",
+        "symbol": "GraphDocument"
+      },
+      "interpretation": "inferred",
+      "blobHash": "5fca232679e55e70a6d5d8c80cd3ab4e9b0c96ed83fa57ffe59ad63c8f36c88d"
+    },
+    {
+      "canonicalId": "topo:explanation:scan-to-site:modules",
+      "diagramId": "n_b7cab67130739b26",
+      "sourceEntityId": "path:packages/modules/src/modules.ts",
+      "anchor": {
+        "path": "packages/modules/src/modules.ts",
+        "symbol": "composeModules"
+      },
+      "interpretation": "inferred",
+      "blobHash": "09716a405dd9e80bcd1ecac4faf2913d2225e94652b7cbccc9cbd9ae3549e894"
+    },
+    {
+      "canonicalId": "topo:explanation:scan-to-site:layout",
+      "diagramId": "n_13303dbc0833d000",
+      "sourceEntityId": "path:packages/graph/src/layout.ts",
+      "anchor": {
+        "path": "packages/graph/src/layout.ts",
+        "symbol": "layoutGraphWithArchitecture"
+      },
+      "interpretation": "inferred",
+      "blobHash": "73c8e21e141dac10322d72934688ff2628ef6fc779e4c87a4f17e66c95e59954"
+    },
+    {
+      "canonicalId": "topo:explanation:scan-to-site:views",
+      "diagramId": "n_891eff1dababb66c",
+      "sourceEntityId": "path:packages/cli/src/pipeline.ts",
+      "anchor": {
+        "path": "packages/cli/src/pipeline.ts",
+        "symbol": "generateArtifacts"
+      },
+      "interpretation": "inferred",
+      "blobHash": "9628050a8fa82bf8fa72d9caeb0a7e91092e8045320b0f3bfb249496c63e29f4"
+    },
+    {
+      "canonicalId": "topo:explanation:scan-to-site:bundle",
+      "diagramId": "n_09eac276825af9cc",
+      "sourceEntityId": "path:packages/cli/src/site-bundle.ts",
+      "anchor": {
+        "path": "packages/cli/src/site-bundle.ts",
+        "symbol": "serializeSiteBundle"
+      },
+      "interpretation": "inferred",
+      "blobHash": "cc6655fc3085d74794cad5659bf4516f2652cc07cedd289cbcbd831c631ed845"
+    },
+    {
+      "canonicalId": "topo:explanation:scan-to-site:browser",
+      "diagramId": "n_0608bac9b3c73571",
+      "sourceEntityId": "path:packages/site/src/load.ts",
+      "anchor": {
+        "path": "packages/site/src/load.ts",
+        "symbol": "loadArtifacts"
+      },
+      "interpretation": "inferred",
+      "blobHash": "5b658c2d4dd1c879249148010914cb42851b48bc2c4ee82d4d3e5d1ee800a304"
+    }
+  ],
+  "edges": [
+    {
+      "diagramId": "e_cli_scanner",
+      "interpretation": "inferred",
+      "evidencePaths": [
+        "packages/cli/src/main.ts",
+        "packages/cli/src/pipeline.ts",
+        "packages/scanner/src/typescript-scanner.ts"
+      ]
+    },
+    {
+      "diagramId": "e_scanner_graph",
+      "interpretation": "inferred",
+      "evidencePaths": [
+        "packages/scanner/src/typescript-scanner.ts",
+        "packages/cli/src/pipeline.ts",
+        "packages/schema/src/model.ts"
+      ]
+    },
+    {
+      "diagramId": "e_graph_modules",
+      "interpretation": "inferred",
+      "evidencePaths": [
+        "packages/schema/src/model.ts",
+        "packages/cli/src/pipeline.ts",
+        "packages/modules/src/modules.ts"
+      ]
+    },
+    {
+      "diagramId": "e_modules_layout",
+      "interpretation": "inferred",
+      "evidencePaths": [
+        "packages/modules/src/modules.ts",
+        "packages/cli/src/pipeline.ts",
+        "packages/graph/src/layout.ts"
+      ]
+    },
+    {
+      "diagramId": "e_layout_views",
+      "interpretation": "inferred",
+      "evidencePaths": [
+        "packages/graph/src/layout.ts",
+        "packages/cli/src/pipeline.ts"
+      ]
+    },
+    {
+      "diagramId": "e_views_bundle",
+      "interpretation": "inferred",
+      "evidencePaths": [
+        "packages/cli/src/pipeline.ts",
+        "packages/cli/src/site-bundle.ts"
+      ]
+    },
+    {
+      "diagramId": "e_bundle_browser",
+      "interpretation": "inferred",
+      "evidencePaths": [
+        "packages/cli/src/site-bundle.ts",
+        "packages/cli/src/pipeline.ts",
+        "packages/site/src/load.ts"
+      ]
+    }
+  ]
+}

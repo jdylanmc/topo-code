@@ -22,6 +22,11 @@ everything a human adds is recorded as such.
 
 ## Run locally
 
+For the separately preserved, non-integrated prototype, see the
+[Archify wrapper experiment: runnable snapshot, findings, and product vision](./experiments/archify-wrapper/README.md).
+See the [published findings](https://github.com/jdylanmc/topo-code/issues/34#issuecomment-5689439517)
+and [follow-up planning anchor](https://github.com/jdylanmc/topo-code/issues/35).
+
 From this checkout, with Node.js 22+ and Corepack:
 
 ```sh

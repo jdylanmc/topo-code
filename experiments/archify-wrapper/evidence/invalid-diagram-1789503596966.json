@@ -1,0 +1,18 @@
+{
+  "name": "invalid-diagram",
+  "args": [
+    "deliver",
+    "architecture",
+    "/Users/dylan/.copilot/session-state/ef5ad974-98b8-432f-99bd-8bc7e5cb24af/files/archify-poc/specs/invalid.json",
+    "/Users/dylan/.copilot/session-state/ef5ad974-98b8-432f-99bd-8bc7e5cb24af/files/archify-poc/site/pr-34/overview.artifact.html",
+    "--repo-root",
+    "/Users/dylan/git/_opensource/jdylanmc/topo-code",
+    "--quality",
+    "showcase",
+    "--json"
+  ],
+  "status": 1,
+  "milliseconds": 90.038542,
+  "stdout": "{\n  \"schemaVersion\": 1,\n  \"ok\": false,\n  \"command\": \"deliver\",\n  \"stage\": \"render\",\n  \"type\": \"architecture\",\n  \"input\": \"/Users/dylan/.copilot/session-state/ef5ad974-98b8-432f-99bd-8bc7e5cb24af/files/archify-poc/specs/invalid.json\",\n  \"output\": \"/Users/dylan/.copilot/session-state/ef5ad974-98b8-432f-99bd-8bc7e5cb24af/files/archify-poc/site/pr-34/overview.artifact.html\",\n  \"error\": \"architecture schema validation failed:\\n  /components/0/id (id/label: \\\"path:invalid/id\\\") must match pattern \\\"^[a-zA-Z][a-zA-Z0-9_-]*$\\\" {\\\"pattern\\\":\\\"^[a-zA-Z][a-zA-Z0-9_-]*$\\\"}\",\n  \"diagnostics\": [\n    {\n      \"code\": \"schema/pattern\",\n      \"severity\": \"error\",\n      \"message\": \"/components/0/id (id/label: \\\"path:invalid/id\\\") must match pattern \\\"^[a-zA-Z][a-zA-Z0-9_-]*$\\\" {\\\"pattern\\\":\\\"^[a-zA-Z][a-zA-Z0-9_-]*$\\\"}\",\n      \"subject\": {\n        \"diagramType\": \"architecture\",\n        \"path\": \"/components/0/id\",\n        \"identity\": \"path:invalid/id\"\n      },\n      \"evidence\": {\n        \"keyword\": \"pattern\",\n        \"pattern\": \"^[a-zA-Z][a-zA-Z0-9_-]*$\"\n      },\n      \"supportedFixes\": [\n        \"match the required pattern \\\"^[a-zA-Z][a-zA-Z0-9_-]*$\\\"\"\n      ]\n    }\n  ]\n}\n",
+  "stderr": ""
+}

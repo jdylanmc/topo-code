@@ -1,0 +1,18 @@
+{
+  "name": "overview",
+  "args": [
+    "deliver",
+    "architecture",
+    "/Users/dylan/.copilot/session-state/ef5ad974-98b8-432f-99bd-8bc7e5cb24af/files/archify-poc/specs/overview.json",
+    "/Users/dylan/.copilot/session-state/ef5ad974-98b8-432f-99bd-8bc7e5cb24af/files/archify-poc/site/pr-34/overview.artifact.html",
+    "--quality",
+    "showcase",
+    "--json",
+    "--repo-root",
+    "/Users/dylan/git/_opensource/jdylanmc/topo-code"
+  ],
+  "status": 1,
+  "milliseconds": 323.96837500000004,
+  "stdout": "{\n  \"schemaVersion\": 1,\n  \"ok\": false,\n  \"command\": \"deliver\",\n  \"stage\": \"render\",\n  \"type\": \"architecture\",\n  \"input\": \"/Users/dylan/.copilot/session-state/ef5ad974-98b8-432f-99bd-8bc7e5cb24af/files/archify-poc/specs/overview.json\",\n  \"output\": \"/Users/dylan/.copilot/session-state/ef5ad974-98b8-432f-99bd-8bc7e5cb24af/files/archify-poc/site/pr-34/overview.artifact.html\",\n  \"error\": \"Architecture layout validation failed:\\n- Label \\\"derive\\\" overlaps component \\\"n_b7cab67130739b26\\\" — adjust labelDx/labelDy/labelSegment or set labelAt.\\n  label rect: [881, 140, 39, 14]\\n  component \\\"n_b7cab67130739b26\\\" rect: [820, 80, 160, 80]\\n  Suggested fix: labelAt [900, 174] or labelDy +24 (below); or labelAt [900, 76] or labelDy -74 (above)\",\n  \"diagnostics\": [\n    {\n      \"code\": \"layout/constraint\",\n      \"severity\": \"error\",\n      \"message\": \"Label \\\"derive\\\" overlaps component \\\"n_b7cab67130739b26\\\" — adjust labelDx/labelDy/labelSegment or set labelAt.\\n  label rect: [881, 140, 39, 14]\\n  component \\\"n_b7cab67130739b26\\\" rect: [820, 80, 160, 80]\\n  Suggested fix: labelAt [900, 174] or labelDy +24 (below); or labelAt [900, 76] or labelDy -74 (above)\",\n      \"subject\": {\n        \"diagramType\": \"architecture\"\n      },\n      \"evidence\": {},\n      \"supportedFixes\": []\n    }\n  ]\n}\n",
+  "stderr": ""
+}

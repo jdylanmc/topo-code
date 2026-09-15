@@ -1,0 +1,86 @@
+{
+  "observations": [
+    {
+      "name": "overview",
+      "nestedUrl": "http://127.0.0.1:62631/pr-34/index.html",
+      "iframeUrl": "http://127.0.0.1:62631/pr-34/overview.artifact.html",
+      "size": {
+        "width": 1600,
+        "height": 840,
+        "scrollWidth": 1600,
+        "scrollHeight": 840,
+        "nodes": 16
+      }
+    },
+    {
+      "name": "generation",
+      "nestedUrl": "http://127.0.0.1:62631/pr-34/generation.html",
+      "iframeUrl": "http://127.0.0.1:62631/pr-34/generation.artifact.html",
+      "size": {
+        "width": 1600,
+        "height": 840,
+        "scrollWidth": 1600,
+        "scrollHeight": 840,
+        "nodes": 10
+      }
+    },
+    {
+      "name": "loading",
+      "nestedUrl": "http://127.0.0.1:62631/pr-34/loading.html",
+      "iframeUrl": "http://127.0.0.1:62631/pr-34/loading.artifact.html",
+      "size": {
+        "width": 1600,
+        "height": 840,
+        "scrollWidth": 1600,
+        "scrollHeight": 840,
+        "nodes": 10
+      }
+    },
+    {
+      "name": "head",
+      "nestedUrl": "http://127.0.0.1:62631/pr-34/head.html",
+      "iframeUrl": "http://127.0.0.1:62631/pr-34/head.artifact.html",
+      "size": {
+        "width": 1600,
+        "height": 840,
+        "scrollWidth": 1600,
+        "scrollHeight": 840,
+        "nodes": 8
+      }
+    },
+    {
+      "name": "delta",
+      "nestedUrl": "http://127.0.0.1:62631/pr-34/delta.html",
+      "iframeUrl": "http://127.0.0.1:62631/pr-34/delta.artifact.html",
+      "size": {
+        "width": 1600,
+        "height": 840,
+        "scrollWidth": 1600,
+        "scrollHeight": 1191,
+        "nodes": 4
+      }
+    },
+    {
+      "name": "native-search-focus-permalink",
+      "passed": true,
+      "focusHash": "#focus=n_e8ee7cfbe22ef4c4"
+    }
+  ],
+  "errors": [],
+  "requests": [
+    "http://127.0.0.1:62631/pr-34/index.html",
+    "http://127.0.0.1:62631/pr-34/overview.artifact.html",
+    "http://127.0.0.1:62631/pr-34/generation.html",
+    "http://127.0.0.1:62631/pr-34/generation.artifact.html",
+    "http://127.0.0.1:62631/pr-34/loading.html",
+    "http://127.0.0.1:62631/pr-34/loading.artifact.html",
+    "http://127.0.0.1:62631/pr-34/head.html",
+    "http://127.0.0.1:62631/pr-34/head.artifact.html",
+    "http://127.0.0.1:62631/pr-34/delta.html",
+    "http://127.0.0.1:62631/pr-34/delta.artifact.html",
+    "http://127.0.0.1:62631/pr-34/overview.html",
+    "http://127.0.0.1:62631/pr-34/overview.artifact.html",
+    "http://127.0.0.1:62631/pr-34/overview.artifact.html",
+    "http://127.0.0.1:62631/pr-34/overview.artifact.html"
+  ]
+}

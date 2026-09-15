@@ -1,0 +1,17 @@
+{
+  "name": "movement",
+  "args": [
+    "compare",
+    "architecture",
+    "/Users/dylan/.copilot/session-state/ef5ad974-98b8-432f-99bd-8bc7e5cb24af/files/archify-poc/specs/base.json",
+    "/Users/dylan/.copilot/session-state/ef5ad974-98b8-432f-99bd-8bc7e5cb24af/files/archify-poc/specs/moved.json",
+    "/Users/dylan/.copilot/session-state/ef5ad974-98b8-432f-99bd-8bc7e5cb24af/files/archify-poc/site/pr-34/movement.artifact.html",
+    "--quality",
+    "showcase",
+    "--json"
+  ],
+  "status": 0,
+  "milliseconds": 417.5645420000001,
+  "stdout": "{\n  \"schemaVersion\": 1,\n  \"ok\": true,\n  \"command\": \"compare\",\n  \"type\": \"architecture\",\n  \"comparatorVersion\": 1,\n  \"canonicalVersion\": 1,\n  \"completeness\": \"complete\",\n  \"proofLevel\": \"authored\",\n  \"base\": {\n    \"title\": \"Synthetic PR: validated publication\",\n    \"rawSha256\": \"82350682854e7ae4d8af6bad0a79f0b7eda1dfd557b75f916e4026fc184add55\",\n    \"semanticSha256\": \"e4de9f9ace2933f63c953153e2daf082c9de58a78a89aedc2b8f13d286f8c7af\",\n    \"bytes\": 1125\n  },\n  \"head\": {\n    \"title\": \"Synthetic PR: validated publication\",\n    \"rawSha256\": \"894c56b4d3375f16c198441561a5cb076c357c4b633c616934cd09262673043f\",\n    \"semanticSha256\": \"950fae6e85d6ff4301f46281daeceadce7fef86f7f0963069dc942d0d5417bad\",\n    \"bytes\": 1125\n  },\n  \"summary\": {\n    \"components\": {\n      \"added\": 0,\n      \"changed\": 0,\n      \"evidenceChanged\": 0,\n      \"removed\": 0,\n      \"moved\": 1\n    },\n    \"connections\": {\n      \"added\": 0,\n      \"changed\": 0,\n      \"removed\": 0,\n      \"rerouted\": 0\n    },\n    \"boundaries\": {\n      \"added\": 0,\n      \"changed\": 0,\n      \"removed\": 0,\n      \"geometryChanged\": 0\n    },\n    \"presentationChanged\": false,\n    \"provenanceChanged\": false\n  },\n  \"changes\": {\n    \"components\": [\n      {\n        \"id\": \"agent\",\n        \"baseLabel\": \"Agent\",\n        \"headLabel\": \"Agent\",\n        \"status\": \"moved\",\n        \"classifications\": [\n          \"geometry\"\n        ],\n        \"changedFields\": [\n          \"/pos\"\n        ]\n      }\n    ],\n    \"connections\": [],\n    \"boundaries\": []\n  },\n  \"identity\": {\n    \"components\": \"components[].id\",\n    \"connections\": \"connections[].id (required)\",\n    \"boundaries\": \"boundaries[].kind + boundaries[].label (derived)\"\n  },\n  \"view\": {\n    \"visualPreset\": \"classic\"\n  },\n  \"limitations\": [\n    \"Authored Architecture IR only; no runtime impact, causality, risk, or mergeability is inferred.\",\n    \"Boundary identity is conservatively derived from kind + label.\"\n  ],\n  \"artifact\": {\n    \"sha256\": \"591570f538a30730345c9521895916829ebf8fd7337a578f10c88b0eb9faba90\",\n    \"bytes\": 2154572\n  },\n  \"validation\": {\n    \"checksPassed\": 28,\n    \"checkCount\": 28,\n    \"baseComposition\": \"pass\",\n    \"headComposition\": \"pass\"\n  }\n}\n",
+  "stderr": ""
+}

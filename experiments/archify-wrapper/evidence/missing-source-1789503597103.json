@@ -1,0 +1,18 @@
+{
+  "name": "missing-source",
+  "args": [
+    "deliver",
+    "architecture",
+    "/Users/dylan/.copilot/session-state/ef5ad974-98b8-432f-99bd-8bc7e5cb24af/files/archify-poc/specs/missing-source.json",
+    "/Users/dylan/.copilot/session-state/ef5ad974-98b8-432f-99bd-8bc7e5cb24af/files/archify-poc/site/pr-34/overview.artifact.html",
+    "--repo-root",
+    "/Users/dylan/git/_opensource/jdylanmc/topo-code",
+    "--quality",
+    "showcase",
+    "--json"
+  ],
+  "status": 1,
+  "milliseconds": 136.10641699999996,
+  "stdout": "{\n  \"schemaVersion\": 1,\n  \"ok\": false,\n  \"command\": \"deliver\",\n  \"stage\": \"render\",\n  \"type\": \"architecture\",\n  \"input\": \"/Users/dylan/.copilot/session-state/ef5ad974-98b8-432f-99bd-8bc7e5cb24af/files/archify-poc/specs/missing-source.json\",\n  \"output\": \"/Users/dylan/.copilot/session-state/ef5ad974-98b8-432f-99bd-8bc7e5cb24af/files/archify-poc/site/pr-34/overview.artifact.html\",\n  \"error\": \"/components/0/sources/0/path does not identify a file at revision 339135da2792046a422308fbc8e5b54ead5828cd.\",\n  \"diagnostics\": [\n    {\n      \"code\": \"repository-evidence/file-missing\",\n      \"severity\": \"error\",\n      \"message\": \"/components/0/sources/0/path does not identify a file at revision 339135da2792046a422308fbc8e5b54ead5828cd.\",\n      \"subject\": {\n        \"surface\": \"repository-evidence\",\n        \"path\": \"/components/0/sources/0/path\",\n        \"componentId\": \"n_242a6f86c5427c95\"\n      },\n      \"evidence\": {\n        \"sourcePath\": \"does-not-exist.ts\",\n        \"revision\": \"339135da2792046a422308fbc8e5b54ead5828cd\"\n      },\n      \"supportedFixes\": [\n        \"use a file path that exists at the pinned revision\"\n      ]\n    }\n  ]\n}\n",
+  "stderr": ""
+}

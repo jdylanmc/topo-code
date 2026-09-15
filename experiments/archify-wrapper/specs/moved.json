@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Synthetic PR: validated publication",
+    "quality_profile": "showcase",
+    "locale": "en"
+  },
+  "components": [
+    {
+      "id": "agent",
+      "type": "backend",
+      "label": "Agent",
+      "sublabel": "Authors explanation",
+      "pos": [
+        40,
+        290
+      ],
+      "size": [
+        150,
+        80
+      ]
+    },
+    {
+      "id": "render",
+      "type": "backend",
+      "label": "Renderer",
+      "sublabel": "Compiles diagram",
+      "pos": [
+        310,
+        170
+      ],
+      "size": [
+        150,
+        80
+      ]
+    },
+    {
+      "id": "publish",
+      "type": "frontend",
+      "label": "Preview",
+      "sublabel": "Unvalidated output",
+      "pos": [
+        850,
+        170
+      ],
+      "size": [
+        150,
+        80
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "author_render",
+      "from": "agent",
+      "to": "render",
+      "label": "specification"
+    },
+    {
+      "id": "publish_direct",
+      "from": "render",
+      "to": "publish",
+      "label": "HTML"
+    }
+  ]
+}

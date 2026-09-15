@@ -1,0 +1,100 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Generation: preserve intent, publish a snapshot",
+    "locale": "en",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    {
+      "id": "flow",
+      "label": "generateArtifacts"
+    }
+  ],
+  "mainPath": [
+    "lock",
+    "compose",
+    "layout",
+    "context",
+    "publish"
+  ],
+  "nodes": [
+    {
+      "id": "lock",
+      "label": "Lock workspace",
+      "sublabel": "Check repository identity",
+      "col": 0,
+      "lane": "flow",
+      "type": "backend",
+      "width": 145
+    },
+    {
+      "id": "compose",
+      "label": "Compose",
+      "sublabel": "Enabled modules only",
+      "col": 1,
+      "lane": "flow",
+      "type": "backend",
+      "width": 145
+    },
+    {
+      "id": "layout",
+      "label": "Layout",
+      "sublabel": "Use previous layout + pins",
+      "col": 2,
+      "lane": "flow",
+      "type": "backend",
+      "width": 145
+    },
+    {
+      "id": "context",
+      "label": "Context",
+      "sublabel": "Reports, views, commentary",
+      "col": 3,
+      "lane": "flow",
+      "type": "backend",
+      "width": 145
+    },
+    {
+      "id": "publish",
+      "label": "Publish",
+      "sublabel": "Write generated artifacts",
+      "col": 4,
+      "lane": "flow",
+      "type": "backend",
+      "width": 145
+    }
+  ],
+  "edges": [
+    {
+      "id": "step_0",
+      "from": "lock",
+      "to": "compose"
+    },
+    {
+      "id": "step_1",
+      "from": "compose",
+      "to": "layout"
+    },
+    {
+      "id": "step_2",
+      "from": "layout",
+      "to": "context"
+    },
+    {
+      "id": "step_3",
+      "from": "context",
+      "to": "publish"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "slate",
+      "title": "Scope and evidence",
+      "items": [
+        "Source: packages/cli/src/pipeline.ts, generateArtifacts. Simplified success path; not a claim of multi-file transactional publication."
+      ]
+    }
+  ]
+}

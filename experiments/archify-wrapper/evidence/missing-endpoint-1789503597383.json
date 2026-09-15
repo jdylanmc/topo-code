@@ -1,0 +1,17 @@
+{
+  "name": "missing-endpoint",
+  "args": [
+    "validate",
+    "architecture",
+    "/Users/dylan/.copilot/session-state/ef5ad974-98b8-432f-99bd-8bc7e5cb24af/files/archify-poc/specs/missing-endpoint.json",
+    "--repo-root",
+    "/Users/dylan/git/_opensource/jdylanmc/topo-code",
+    "--quality",
+    "showcase",
+    "--json"
+  ],
+  "status": 1,
+  "milliseconds": 279.2573749999999,
+  "stdout": "{\n  \"schemaVersion\": 1,\n  \"ok\": false,\n  \"command\": \"validate\",\n  \"stage\": \"render\",\n  \"type\": \"architecture\",\n  \"input\": \"/Users/dylan/.copilot/session-state/ef5ad974-98b8-432f-99bd-8bc7e5cb24af/files/archify-poc/specs/missing-endpoint.json\",\n  \"error\": \"Architecture layout validation failed:\\n- Connection \\\"scan\\\" references unknown target \\\"not_a_node\\\".\",\n  \"diagnostics\": [\n    {\n      \"code\": \"layout/constraint\",\n      \"severity\": \"error\",\n      \"message\": \"Connection \\\"scan\\\" references unknown target \\\"not_a_node\\\".\",\n      \"subject\": {\n        \"diagramType\": \"architecture\"\n      },\n      \"evidence\": {},\n      \"supportedFixes\": []\n    }\n  ]\n}\n",
+  "stderr": ""
+}

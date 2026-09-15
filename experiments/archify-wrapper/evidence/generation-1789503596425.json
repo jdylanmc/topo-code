@@ -1,0 +1,16 @@
+{
+  "name": "generation",
+  "args": [
+    "deliver",
+    "workflow",
+    "/Users/dylan/.copilot/session-state/ef5ad974-98b8-432f-99bd-8bc7e5cb24af/files/archify-poc/specs/generation.json",
+    "/Users/dylan/.copilot/session-state/ef5ad974-98b8-432f-99bd-8bc7e5cb24af/files/archify-poc/site/pr-34/generation.artifact.html",
+    "--quality",
+    "showcase",
+    "--json"
+  ],
+  "status": 0,
+  "milliseconds": 133.20375,
+  "stdout": "{\n  \"schemaVersion\": 1,\n  \"ok\": true,\n  \"command\": \"deliver\",\n  \"type\": \"workflow\",\n  \"input\": \"/Users/dylan/.copilot/session-state/ef5ad974-98b8-432f-99bd-8bc7e5cb24af/files/archify-poc/specs/generation.json\",\n  \"output\": \"/Users/dylan/.copilot/session-state/ef5ad974-98b8-432f-99bd-8bc7e5cb24af/files/archify-poc/site/pr-34/generation.artifact.html\",\n  \"specification\": {\n    \"sha256\": \"4eea1b537750295675214f3f17439261e6597888f50667012728b244729a8877\",\n    \"bytes\": 1937\n  },\n  \"artifact\": {\n    \"sha256\": \"ebeec3f2d9307acb7b5c30a3dcca95f56562a92baa6187c4d30f464f9df6f356\",\n    \"bytes\": 797316\n  },\n  \"validation\": {\n    \"checksPassed\": 9,\n    \"checkCount\": 9,\n    \"compositionProfile\": \"showcase\",\n    \"compositionStatus\": \"pass\",\n    \"errors\": 0,\n    \"warnings\": 0\n  }\n}\n",
+  "stderr": ""
+}

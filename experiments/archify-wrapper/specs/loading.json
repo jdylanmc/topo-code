@@ -1,0 +1,100 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Browser: validate before rendering",
+    "locale": "en",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    {
+      "id": "flow",
+      "label": "loadArtifacts"
+    }
+  ],
+  "mainPath": [
+    "fetch",
+    "envelope",
+    "graph",
+    "layout",
+    "context"
+  ],
+  "nodes": [
+    {
+      "id": "fetch",
+      "label": "Fetch",
+      "sublabel": "GET ./data.json",
+      "col": 0,
+      "lane": "flow",
+      "type": "backend",
+      "width": 145
+    },
+    {
+      "id": "envelope",
+      "label": "Envelope",
+      "sublabel": "Check required fields",
+      "col": 1,
+      "lane": "flow",
+      "type": "backend",
+      "width": 145
+    },
+    {
+      "id": "graph",
+      "label": "Graph",
+      "sublabel": "Parse + check modules",
+      "col": 2,
+      "lane": "flow",
+      "type": "backend",
+      "width": 145
+    },
+    {
+      "id": "layout",
+      "label": "Layout",
+      "sublabel": "Validate against graph",
+      "col": 3,
+      "lane": "flow",
+      "type": "backend",
+      "width": 145
+    },
+    {
+      "id": "context",
+      "label": "Context",
+      "sublabel": "Architecture + views",
+      "col": 4,
+      "lane": "flow",
+      "type": "backend",
+      "width": 145
+    }
+  ],
+  "edges": [
+    {
+      "id": "step_0",
+      "from": "fetch",
+      "to": "envelope"
+    },
+    {
+      "id": "step_1",
+      "from": "envelope",
+      "to": "graph"
+    },
+    {
+      "id": "step_2",
+      "from": "graph",
+      "to": "layout"
+    },
+    {
+      "id": "step_3",
+      "from": "layout",
+      "to": "context"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "slate",
+      "title": "Scope and evidence",
+      "items": [
+        "Source: packages/site/src/load.ts. Initial validation path only; enrichment handling and final map rendering are outside this view."
+      ]
+    }
+  ]
+}
