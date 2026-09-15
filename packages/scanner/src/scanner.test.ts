@@ -57,6 +57,108 @@ afterEach(async () => {
 });
 
 describe("@topo/scanner", () => {
+  it("extracts semantic identities, merged declarations, contracts, and categorized references", async () => {
+    const root = await temporaryRepository();
+    await write(root, "tsconfig.json", JSON.stringify({
+      compilerOptions: { module: "NodeNext", moduleResolution: "NodeNext" },
+      include: ["src"],
+    }));
+    await write(root, "src/contracts.ts", `
+      export interface Service { run(value: string): number }
+      export interface Service { name: string }
+      export class Worker implements Service {
+        name = "worker";
+        run(value: string): number { return value.length; }
+      }
+      export function createService(): Service { return new Worker(); }
+    `);
+    await write(root, "src/use.ts", `
+      import { createService, type Service } from "./contracts.js";
+      export function execute(service: Service = createService()): number {
+        return service.run("value");
+      }
+    `);
+    await write(root, "responsibilities.json", JSON.stringify({
+      schemaVersion: "1.0",
+      responsibilities: [
+        {
+          id: "service-contracts",
+          name: "Service contracts",
+          purpose: "Defines and constructs the service boundary.",
+          entities: [
+            { path: "src/contracts.ts", symbol: "Service" },
+            { path: "src/contracts.ts", symbol: "Worker" },
+            { path: "src/contracts.ts", symbol: "createService" },
+          ],
+        },
+        {
+          id: "service-use",
+          name: "Service use",
+          purpose: "Invokes the service contract.",
+          entities: [{ path: "src/use.ts", symbol: "execute" }],
+        },
+      ],
+    }));
+
+    const result = await scanRepository({
+      root,
+      responsibilityFile: path.join(root, "responsibilities.json"),
+    });
+    const service = result.logicalArchitecture.entities.find((entity) => entity.name === "Service");
+    const worker = result.logicalArchitecture.entities.find((entity) => entity.name === "Worker");
+    const createService = result.logicalArchitecture.entities.find((entity) => entity.name === "createService");
+    const execute = result.logicalArchitecture.entities.find((entity) => entity.name === "execute");
+    expect(service?.declarations).toHaveLength(2);
+    expect(service?.members.map((member) => member.name)).toEqual(["name", "run"]);
+    expect(worker?.members.map((member) => member.name)).toEqual(["name", "run"]);
+    expect(result.logicalArchitecture.responsibilities).toEqual([
+      expect.objectContaining({
+        id: "service-contracts",
+        provenance: "proposed",
+        contracts: ["Service", "Worker", "createService"],
+      }),
+      expect.objectContaining({
+        id: "service-use",
+        contracts: ["execute"],
+      }),
+    ]);
+    expect(result.logicalArchitecture.unassignedEntityIds).toEqual([]);
+    expect(result.logicalArchitecture.relationships).toEqual(expect.arrayContaining([
+      expect.objectContaining({ sourceId: worker?.id, targetId: service?.id, kind: "heritage" }),
+      expect.objectContaining({ sourceId: createService?.id, targetId: worker?.id, kind: "constructs" }),
+      expect.objectContaining({ sourceId: execute?.id, targetId: createService?.id, kind: "calls" }),
+      expect.objectContaining({ sourceId: execute?.id, targetId: service?.id, kind: "type-use" }),
+    ]));
+  });
+
+  it("fails loudly for stale and duplicate responsibility assignments", async () => {
+    const root = await temporaryRepository();
+    await write(root, "index.ts", "export function value(): number { return 1; }\n");
+    await write(root, "responsibilities.json", JSON.stringify({
+      schemaVersion: "1.0",
+      responsibilities: [{
+        id: "one", name: "One", purpose: "First.",
+        entities: [{ path: "index.ts", symbol: "missing" }],
+      }],
+    }));
+    await expect(scanRepository({
+      root,
+      responsibilityFile: path.join(root, "responsibilities.json"),
+    })).rejects.toThrow("unknown semantic anchor index.ts#missing");
+
+    await write(root, "responsibilities.json", JSON.stringify({
+      schemaVersion: "1.0",
+      responsibilities: [
+        { id: "one", name: "One", purpose: "First.", entities: [{ path: "index.ts", symbol: "value" }] },
+        { id: "two", name: "Two", purpose: "Second.", entities: [{ path: "index.ts", symbol: "value" }] },
+      ],
+    }));
+    await expect(scanRepository({
+      root,
+      responsibilityFile: path.join(root, "responsibilities.json"),
+    })).rejects.toThrow("multiple primary responsibility homes");
+  });
+
   it("keeps temporary repositories non-Git with local ignore rules", async () => {
     const root = await temporaryRepository();
     await write(root, ".gitignore", "generated/\n");

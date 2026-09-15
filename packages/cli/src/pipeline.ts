@@ -10,7 +10,10 @@ import {
 import {
   assertGraphDocument,
   serializeGraphDocument,
+  parseLogicalArchitecture,
+  serializeLogicalArchitecture,
   type GraphDocument,
+  type LogicalArchitectureDocument,
 } from "@topo/schema";
 import {
   deriveArchitecture,
@@ -134,6 +137,7 @@ export async function generateArtifacts(
   root: string,
   graph: GraphDocument,
   siteAssets: string,
+  logicalArchitecture?: LogicalArchitectureDocument,
 ): Promise<ArtifactGenerationResult> {
   assertGraphDocument(graph);
   return withWorkspaceLock(root, async () => {
@@ -155,12 +159,16 @@ export async function generateArtifacts(
       architecture,
       dashboard,
       curatedViews: curatedViews.snapshot,
+      ...(logicalArchitecture ? { logicalArchitecture } : {}),
       ...(enrichment.enrichment === undefined ? {} : { enrichment: enrichment.enrichment }),
     });
     await copySite(root, siteAssets);
     await writeGenerated(root, "graph/graph.json", serializeGraphDocument(composedGraph));
     await writeGenerated(root, "graph/layout.json", serializeLayoutDeterministic(layout.layout));
     await writeGenerated(root, "graph/architecture.json", serializeArchitecture(architecture));
+    if (logicalArchitecture) {
+      await writeGenerated(root, "graph/logical-architecture.json", serializeLogicalArchitecture(logicalArchitecture));
+    }
     await writeGenerated(root, "reports/outputs/layout-delta.json", `${JSON.stringify({ delta: layout.delta, warnings: layout.warnings }, null, 2)}\n`);
     await writeGenerated(root, "reports/outputs/dashboard.json", dashboard === null ? "null\n" : serializeDashboard(dashboard));
     await writeGenerated(root, "reports/outputs/curated-views.json", serializeCuratedViewsSnapshot(curatedViews.snapshot));
@@ -201,6 +209,8 @@ export async function ingestReports(
     const layout = layoutGraphWithArchitecture(composedGraph, architecture, { previous, pins });
     const curatedViews = await buildCuratedViews(root, composedGraph);
     const enrichment = await freshStoredEnrichment(root, composedGraph, dashboard);
+    const logicalValue = await readOptionalArtifact(root, "graph/logical-architecture.json");
+    const logicalArchitecture = logicalValue === undefined ? undefined : parseLogicalArchitecture(logicalValue);
     const data = serializeSiteBundle({
       schemaVersion: "1.0",
       graph: composedGraph,
@@ -208,6 +218,7 @@ export async function ingestReports(
       architecture,
       dashboard,
       curatedViews: curatedViews.snapshot,
+      ...(logicalArchitecture ? { logicalArchitecture } : {}),
       ...(enrichment.enrichment === undefined ? {} : { enrichment: enrichment.enrichment }),
     });
     for (const report of incoming) {

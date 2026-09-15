@@ -5,6 +5,7 @@ import {
 import {
   assertLayoutDocument,
   parseGraphDocument,
+  parseLogicalArchitecture,
   validateLayoutAgainstGraph,
   type GraphDocument,
   type LayoutDocument,
@@ -39,6 +40,7 @@ interface SiteDataEnvelope {
   dashboard: unknown | null;
   curatedViews?: unknown;
   enrichment?: unknown;
+  logicalArchitecture?: unknown;
 }
 
 async function fetchRequiredJson(path: string, label: string): Promise<{ value: unknown; editingToken?: string }> {
@@ -245,6 +247,18 @@ export async function loadArtifacts(
       enrichmentError = new ArtifactLoadError("AI commentary", error).message;
     }
   }
+  let logicalArchitecture: LoadedArtifacts["logicalArchitecture"];
+  if (envelope.logicalArchitecture !== undefined) {
+    try {
+      logicalArchitecture = parseLogicalArchitecture(envelope.logicalArchitecture);
+      if (logicalArchitecture.graphId !== parsedGraph.document.graphId ||
+          logicalArchitecture.revision !== parsedGraph.document.repository.revision) {
+        throw new Error("Artifact graph or revision does not match the loaded graph.");
+      }
+    } catch (error) {
+      throw new ArtifactLoadError("data.json logicalArchitecture", error);
+    }
+  }
 
   return {
     graph: parsedGraph.document,
@@ -255,6 +269,7 @@ export async function loadArtifacts(
     dashboard,
     ...(enrichment === undefined ? {} : { enrichment }),
     ...(enrichmentError === undefined ? {} : { enrichmentError }),
+    ...(logicalArchitecture === undefined ? {} : { logicalArchitecture }),
     ...(curatedViews === undefined ? {} : { curatedViews }),
     ...(curatedViews && response.editingToken ? { viewEditingToken: response.editingToken } : {}),
     quality: {

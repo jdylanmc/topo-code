@@ -10,6 +10,7 @@ import type { EnrichmentDocument } from "@topo/enrichment";
 import type {
   GraphDocument,
   LayoutDocument,
+  LogicalArchitectureDocument,
   SchemaCompatibility,
 } from "@topo/schema";
 
@@ -31,6 +32,7 @@ export interface LoadedArtifacts {
   viewEditingToken?: string;
   enrichment?: EnrichmentDocument;
   enrichmentError?: string;
+  logicalArchitecture?: LogicalArchitectureDocument;
   quality: {
     authoritative: boolean;
     scannerStatus: string;
@@ -59,6 +61,7 @@ export interface SceneNode {
   selected: boolean;
   focused: boolean;
   cycle: boolean;
+  impacted?: boolean;
 }
 
 export interface SceneEdge {
@@ -70,6 +73,8 @@ export interface SceneEdge {
   readonly spine: boolean;
   readonly weight: number;
   readonly provenance: "observed" | "derived" | "inferred" | "human" | "mixed";
+  readonly style?: "curved" | "straight";
+  readonly impacted?: boolean;
 }
 
 export interface RenderScene {
@@ -85,6 +90,7 @@ export interface RendererCallbacks {
   select(entityId: string): void;
   activate(entityId: string): void;
   focus(entityId: string): void;
+  move?(entityId: string, x: number, y: number): void;
 }
 
 export interface Renderer {
@@ -132,6 +138,17 @@ export interface BenchmarkApi {
 export interface TopoWindow extends Window {
   __TOPO_READY__?: Promise<void>;
   __TOPO_BENCHMARK__?: BenchmarkApi;
+  __TOPO_LOGICAL__?: {
+    snapshot(): {
+      scopeId?: string;
+      selectedId?: string;
+      impactId?: string;
+      edgeStyle: "curved" | "straight";
+      positions: Record<string, { x: number; y: number }>;
+      nodes: Array<{ id: string; x: number; y: number; width: number; height: number }>;
+      viewTransform: ViewTransform;
+    };
+  };
 }
 
 export interface AppModel {

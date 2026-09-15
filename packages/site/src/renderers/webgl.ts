@@ -60,6 +60,10 @@ export class WebGlRenderer implements Renderer {
   #dragStart:
     | { x: number; y: number; originX: number; originY: number }
     | undefined;
+  #nodeDrag:
+    | { id: string; offsetX: number; offsetY: number; startX: number; startY: number; display: DisplayNode }
+    | undefined;
+  #suppressTapId: string | undefined;
   #initialized = false;
 
   private constructor(host: HTMLElement, zoomLimits: ZoomLimits) {
@@ -101,6 +105,11 @@ export class WebGlRenderer implements Renderer {
     this.#host.replaceChildren(canvas);
     this.#viewport.addChild(this.#edges, this.#nodes);
     this.#app.stage.addChild(this.#viewport);
+    this.#app.stage.eventMode = "static";
+    this.#app.stage.hitArea = this.#app.screen;
+    this.#app.stage.on("globalpointermove", this.#onNodePointerMove);
+    this.#app.stage.on("pointerup", this.#onNodePointerUp);
+    this.#app.stage.on("pointerupoutside", this.#onNodePointerUp);
     this.setTransform(this.#transform);
 
     canvas.addEventListener("wheel", this.#onWheel, { passive: false });
@@ -214,8 +223,26 @@ export class WebGlRenderer implements Renderer {
         container.eventMode = "static";
         container.cursor = "pointer";
         container.on("pointertap", (event: FederatedPointerEvent) => {
+          if (this.#suppressTapId === node.entity.id) {
+            this.#suppressTapId = undefined;
+            return;
+          }
           if (event.detail >= 2) this.#callbacks?.activate(node.entity.id);
           else this.#callbacks?.select(node.entity.id);
+        });
+        container.on("pointerdown", (event: FederatedPointerEvent) => {
+          if (!this.#callbacks?.move) return;
+          event.stopPropagation();
+          (event.nativeEvent as Event).stopPropagation?.();
+          const local = this.#viewport.toLocal(event.global);
+          this.#nodeDrag = {
+            id: node.entity.id,
+            offsetX: local.x - container.x,
+            offsetY: local.y - container.y,
+            startX: container.x,
+            startY: container.y,
+            display: this.#displayNodes.get(node.entity.id)!,
+          };
         });
         container.on("pointerover", () => this.#callbacks?.focus(node.entity.id));
         this.#nodes.addNode(container);
@@ -276,6 +303,8 @@ export class WebGlRenderer implements Renderer {
             ? COLORS.focused
             : node.cycle
               ? COLORS.spine
+              : node.impacted
+                ? COLORS.human
               : COLORS.background,
         width:
           node.selected || node.focused || node.cycle ? 4 : 2,
@@ -314,8 +343,14 @@ export class WebGlRenderer implements Renderer {
         ? this.#translatedRoute(edge, source, target, sourceNode, targetNode)
         : edge.points;
       this.#edges.moveTo(points[0]!.x, points[0]!.y);
-      for (const point of points.slice(1)) {
-        this.#edges.lineTo(point.x, point.y);
+      if (edge.style === "curved" && points.length === 4) {
+        this.#edges.bezierCurveTo(
+          points[1]!.x, points[1]!.y,
+          points[2]!.x, points[2]!.y,
+          points[3]!.x, points[3]!.y,
+        );
+      } else {
+        for (const point of points.slice(1)) this.#edges.lineTo(point.x, point.y);
       }
       this.#edges.stroke({
         color: edge.spine
@@ -326,10 +361,42 @@ export class WebGlRenderer implements Renderer {
               ? COLORS.human
               : COLORS.edge,
         width: Math.max(1, edge.width),
-        alpha: edge.spine ? 1 : 0.65,
+        alpha: edge.impacted || edge.spine ? 1 : 0.65,
       });
+      const end = points.at(-1)!;
+      const prior = points.at(-2)!;
+      const angle = Math.atan2(end.y - prior.y, end.x - prior.x);
+      const size = 9;
+      this.#edges
+        .moveTo(end.x, end.y)
+        .lineTo(end.x - Math.cos(angle - Math.PI / 6) * size, end.y - Math.sin(angle - Math.PI / 6) * size)
+        .moveTo(end.x, end.y)
+        .lineTo(end.x - Math.cos(angle + Math.PI / 6) * size, end.y - Math.sin(angle + Math.PI / 6) * size)
+        .stroke({ color: edge.impacted ? COLORS.human : COLORS.edge, width: Math.max(1, edge.width), alpha: 0.9 });
     }
   }
+
+  #onNodePointerMove = (event: FederatedPointerEvent): void => {
+    if (!this.#nodeDrag) return;
+    const local = this.#viewport.toLocal(event.global);
+    this.#nodeDrag.display.container.position.set(
+      local.x - this.#nodeDrag.offsetX,
+      local.y - this.#nodeDrag.offsetY,
+    );
+    this.#nodeDrag.display.node.x = this.#nodeDrag.display.container.x;
+    this.#nodeDrag.display.node.y = this.#nodeDrag.display.container.y;
+    this.#drawEdges();
+  };
+
+  #onNodePointerUp = (): void => {
+    if (!this.#nodeDrag) return;
+    const { id, display, startX, startY } = this.#nodeDrag;
+    this.#nodeDrag = undefined;
+    if (Math.hypot(display.container.x - startX, display.container.y - startY) > 3) {
+      this.#suppressTapId = id;
+    }
+    this.#callbacks?.move?.(id, Math.round(display.container.x), Math.round(display.container.y));
+  };
 
   #translatedRoute(
     edge: SceneEdge,
@@ -405,6 +472,9 @@ export class WebGlRenderer implements Renderer {
     canvas.removeEventListener("pointerup", this.#onPointerUp);
     canvas.removeEventListener("pointercancel", this.#onPointerUp);
     this.#app.ticker.remove(this.#tick);
+    this.#app.stage.off("globalpointermove", this.#onNodePointerMove);
+    this.#app.stage.off("pointerup", this.#onNodePointerUp);
+    this.#app.stage.off("pointerupoutside", this.#onNodePointerUp);
     this.#app.destroy({ removeView: true }, { children: true });
     this.#host.replaceChildren();
     this.#initialized = false;

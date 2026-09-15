@@ -106,6 +106,26 @@ The renderer consumes `GraphProjection` and `LayoutDocument` and supports:
 - high-contrast shell controls and forced-colours-aware DOM controls;
 - observed, derived, inferred, human, mixed, and spine visual distinctions.
 
+The logical-architecture workflow uses the same sole WebGL renderer. It adds
+responsibility and semantic-entity scenes, direct node dragging with
+revision-bound browser-local positions, curved or straight perimeter-attached
+arrows, drill/back, expand/collapse, and direct incoming static-potential-impact
+focus. The file/import workflow and its authored pin behavior remain separate.
+
+### Logical architecture MVP measurement
+
+[`logical-architecture-mvp.json`](../benchmarks/results/logical-architecture-mvp.json)
+records one candidate-bound run through the actual Topocode self-demo logical
+path. The workload rendered the six-box responsibility overview, changed edge
+style, selected and navigated the map, then expanded the real unassigned
+semantic inventory to **948 visible nodes** and exercised drag, pan, and zoom.
+The uncapped combined browser-clock window delivered **56.356 FPS**, above the
+30 FPS floor. All requestAnimationFrame samples and intersecting intervals are
+retained: the maximum interval was **206.4 ms**, p95 was **18.2 ms**, and three
+intervals exceeded 33.3 ms. This is one headless Chrome run on the recorded
+Apple M5 Pro environment, not a cross-hardware, worst-frame, or broad
+repository-scale guarantee.
+
 Zoom limits start at 0.1..8 and widen to include fitted or explicitly transferred
 camera scales. Large persisted maps can fit below 0.1: zooming out at that lower
 limit must stay put, not jump inward to 0.1. Toolbar, keyboard, and wheel input

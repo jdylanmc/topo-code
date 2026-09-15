@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "1.0",
+  "responsibilities": [
+    {
+      "id": "command-orchestration",
+      "name": "Command orchestration",
+      "purpose": "Runs local scan, report, enrichment, and serving workflows.",
+      "entities": [
+        { "path": "packages/cli/src/main.ts", "symbol": "runCli" }
+      ]
+    },
+    {
+      "id": "semantic-evidence",
+      "name": "Static and semantic evidence",
+      "purpose": "Inventories TypeScript and JavaScript and extracts compiler-backed facts.",
+      "entities": [
+        { "path": "packages/scanner/src/typescript-scanner.ts", "symbol": "scanRepository" }
+      ]
+    },
+    {
+      "id": "graph-layout",
+      "name": "Graph projection and layout",
+      "purpose": "Projects graph state and computes stable map geometry.",
+      "entities": [
+        { "path": "packages/graph/src/layout.ts", "symbol": "layoutGraphWithArchitecture" },
+        { "path": "packages/graph/src/layout.ts", "symbol": "createLayoutSession" },
+        { "path": "packages/graph/src/layout.ts", "symbol": "layoutGraph" }
+      ]
+    },
+    {
+      "id": "interactive-presentation",
+      "name": "Interactive presentation",
+      "purpose": "Loads artifacts and translates application state into the WebGL scene.",
+      "entities": [
+        { "path": "packages/site/src/load.ts", "symbol": "loadArtifacts" },
+        { "path": "packages/site/src/scene.ts", "symbol": "createScene" }
+      ]
+    },
+    {
+      "id": "workspace-persistence",
+      "name": "Workspace persistence",
+      "purpose": "Owns the local .topo workspace and generated artifact lifecycle.",
+      "entities": [
+        { "path": "packages/workspace/src/index.ts", "symbol": "initializeWorkspace" }
+      ]
+    }
+  ]
+}
