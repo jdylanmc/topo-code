@@ -11,7 +11,12 @@ Follow the common [invocation policy](../setup/INVOCATION.md). This route is int
 
 Joe-mode's selected delivery grants in-scope worktree, changes, commits, push/PR, review/fixes, and Shepherd authority. Do not repeatedly ask whether to implement or publish; do ask for missing material requirements, scope changes, semantic conflicts, destructive probes, or production-data access. Explicit narrower assignments stay narrower. Refactor is a peer route, not a wrapper around Ship.
 
-Use [doctrine selection and application](../doctrine/APPLY.md), preserving the task's selections and requiring `worktrees` for PR changes. With none, consider `code`, `solid`, and `laziness` for the actual restructuring; choose relevant IDs from metadata rather than loading the whole bundle. Code Roast requires `solid`. Apply loaded rules without weakening behavior preservation.
+Use [doctrine selection and application](../doctrine/APPLY.md), preserving the
+task's selections. Require `laziness` and `solid` for restructuring, and
+`worktrees` for PR changes. Laziness supplies KISS and YAGNI: keep it simple,
+do not build what is not needed. These are not separate catalog IDs.
+Code Roast also requires `solid`. Apply the loaded rules without weakening
+behavior preservation.
 
 ## Establish the boundary and baseline
 
@@ -24,7 +29,11 @@ return/custody, cancellation recovery, and terminal owned-agent retirement.
 Keep its evidence in the packet. Root delivery must execute DELIVERY's provider
 promotion/readback gate; scoped workers return, never claim delivery.
 
-Discover and run the repository's relevant baseline checks. Add characterization/protection tests at real behavior boundaries before risky structural edits. Use [TDD](../tdd/SKILL.md) for testable changes, passing the existing owner rather than restarting a delivery. Report baseline failures and unavailable proof.
+Use one developer slot under Joe. Refactoring evolves architecture; it does not
+require TDD, a red/green pair or forced test-first order. Discover and run relevant
+baseline checks. Add/update useful characterization or regression tests where
+the change benefits from them, before risky edits when that protects behavior.
+Report baseline failures and unavailable proof.
 
 ## Restructure in bounded steps
 
@@ -40,6 +49,11 @@ Run the same behavior proof after each meaningful step and at the end. Inspect t
 ## Deliver, or return to the existing owner
 
 For a Joe-mode-selected Refactor delivery, execute [the shared finish](../ship/DELIVERY.md): independent whole-deliverable Roast, required validation, criterion verdicts, the same PR, latest-target synchronization, and real Shepherd custody. Local preservation proof and an internal draft are not the final handoff. Do not invoke Ship, approve your own work, merge, or enable automatic merge.
+
+Roast from distinct preservation, ownership/SOLID and simplicity/KISS/YAGNI
+angles. Use separate reviewers when their expertise needs separate context.
+Reconcile findings against evidence before proceeding; do not count votes or
+hide disagreement behind "consensus." Review fixes and affected behavior again.
 
 For an existing Refactor PR, classify feedback against the original preservation boundary, apply in-scope structural fixes, and repeat proof/review on that branch/PR. Return to its existing Shepherd, not a nested monitor. A new bug/regression or requested behavior change that requires a different route returns to Joe-mode/the human. Pure rebase/regeneration remains Shepherd work.
 

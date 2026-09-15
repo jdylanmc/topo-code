@@ -35,6 +35,10 @@ nor permissions.
 
 1. Before launch, reconcile owners/placement. Dispatch stays pending until
    returned agent identity and its first assigned-state observation are confirmed.
+   Under Joe, apply [TEAM](../joe-mode-paseo/TEAM.md) developer-slot accounting
+   and [permission propagation](../joe-mode-paseo/RUNTIME.md#permission-preserving-dispatch).
+   Copy current authorized mode/features before the first prompt and verify
+   readback after bootstrap, including for replacements and reviewers.
 2. Workers return complete actual diff/artifacts, candidate IDs, validation/
    acceptance evidence, blockers, and live responsibilities. Bounded returns are
    not full delivery: parents retain integration, independent review, publication,
@@ -67,6 +71,10 @@ One runtime may host several explicitly assigned Shepherd scopes, each with one
 owner and its required cadence. Share execution, not scope, intent, or readiness.
 One merge ends only that PR's scope. Active repairs, other PRs, heartbeat waits,
 human/permission blockers, or recovery duties can justify idle-agent retention.
+Under Joe, blocked developers do not stay idle indefinitely: TEAM owns the
+self-challenge, delegated second lens, fresh retry and backlog escalation.
+Transfer duties and preserve work before retiring them. Keep genuine persistent
+roles, not stalled workers with only hypothetical future work.
 
 ## Retire finished owned agents
 
@@ -97,6 +105,10 @@ Retirement is **not** project/workspace archival or worktree/branch/evidence
 deletion. Paseo workspace archival may delete owned worktrees; never substitute
 it. Preserve resources; separately authorized Git cleanup follows WORKSPACE's
 preservation checks.
+Joe team kickoff includes TEAM's bounded blocked-work cleanup: verify remote
+branches and all local evidence before removing exact owned worktrees. Failed
+preservation means keep the worktree. Role retirement also needs PM-recorded
+heartbeat deletion; an unknown timer remains a concrete unresolved duty.
 
 For contract/caller changes, exercise [acceptance scenarios](LIFECYCLE-SCENARIOS.md).
 Package/link tests prove reachability, not runtime compliance.

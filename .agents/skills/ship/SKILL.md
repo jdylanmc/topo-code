@@ -41,7 +41,15 @@ Use artifact pointers for the spec, tickets, code, and prior findings instead of
 
 Use the [worker contract](WORKER.md) for dispatch and return: complete bounded task, authorized worktree and harness mapping, actual start/result commits, acceptance evidence, and explicit blockers. Reuse a known worker retained for pending fixes when supported; retire accepted terminal workers under LIFECYCLE. Use configured runtime model preferences; do not revive a separate executor, mandatory model tiers, special ledger tooling, or an alternate finishing route.
 
-For a single issue, dispatch one implementation worker. For a specification:
+Standalone Ship does **not** invoke TDD by default; the operator opts in.
+Under Joe-mode or Joe-mode Paseo, prefer paired TDD for features, especially
+greenfield, under [TEAM](../joe-mode-paseo/TEAM.md). That feature lane uses two
+developer slots; a legacy/non-TDD exception does not make tests or the second
+developer useless. Record the exception and useful acceptance work. Do not force
+a test-framework retrofit. The caller's slot budget limits the frontier below.
+
+For a standalone single issue, dispatch one implementation worker. Under Joe,
+use the selected two-developer feature lane. For a specification:
 
 - Dispatch independent frontier tasks concurrently within the available, authorized capacity. Each worker has its own branch and worktree, created from the latest integrated delivery branch.
 - A prerequisite is complete for scheduling only after its work is integrated and its required checks pass, not because a worker said "done" or a tracker issue was closed.
@@ -58,7 +66,7 @@ Give each implementer this discipline:
 - Trace the entry point through the layers owning the behavior and invariants. Build a complete end-to-end outcome, not an arbitrary one-file patch.
 - Reuse existing seams and patterns. Prefer deletion and simplification; refactor within scope when a patch duplicates behavior, weakens ownership, or hides the cause.
 - Omit speculative modes, providers, configuration, extensibility, and polish. Add infrastructure or dependencies only when acceptance or correct lifecycle handling requires them; explain material tradeoffs.
-- Use [tdd](../tdd/SKILL.md) at agreed seams, with small behavior-preserving refactoring after green. Run focused tests and typechecking regularly. Report agreed exceptions honestly.
+- Use [tdd](../tdd/SKILL.md) only when selected above. Otherwise add useful regression/acceptance coverage without forced test-first order. Run focused tests and typechecking; report missing proof honestly.
 - Preserve unrelated behavior and user changes. Return commits, checks actually run, unmet criteria, and blockers.
 
 All authored commit messages use the [shared commit-message policy](../setup/COMMIT-STYLE.md), including worker and integration commits. Preserve target-repository conventions, required trailers, and existing Git authority; formatting is not permission to commit or rewrite history.

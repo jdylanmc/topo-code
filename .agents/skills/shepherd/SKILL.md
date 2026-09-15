@@ -9,7 +9,11 @@ user-invocable: true
 
 Own one published pull request (PR) beyond a green snapshot. Follow the common [invocation policy](../setup/INVOCATION.md) for human invocation or machine handoff. Humans may invoke `/shepherd` on conflicted PRs; the resolver stays internal. Observe, rebase whenever the target advances, and return functional work to the existing Ship, Patch, or Refactor route owner. Never merge, approve, enable auto-merge, accept product risk, or delete the delivery branch. See the human-authored [intent](intent.md).
 
-One PR scope per invocation; runtime sharing preserves explicit assignments,
+One PR scope per ordinary invocation. Under Joe's
+[TEAM](../joe-mode-paseo/TEAM.md), one shared Shepherd accepts all project PR
+scopes, with separate owners, observations and due times. PM owns its heartbeat
+lifecycle; the bound Shepherd executes create/delete and returns receipts.
+Runtime sharing preserves explicit assignments,
 sole owners and per-PR cadence. Load/execute [LIFECYCLE](../squadron/LIFECYCLE.md)
 for accepted custody/recovery/retirement; idle proves no end of maintenance.
 Before custody, load/execute [OBSERVATION](OBSERVATION.md): scheduler-first
@@ -69,7 +73,8 @@ Use [the shared current-base readiness gate](../ship/DELIVERY.md#current-base-re
 | Target advanced, even while PR remains mergeable/policy-compliant | Rebase the owned branch onto the latest fetched target; invalidate stale proof and refresh it below. |
 | Conflicted/unmergeable, or policy needs maintenance | Perform bounded branch maintenance; invoke the internal resolver for actual conflicts. |
 | Unexpected source-head movement or target retarget/rewrite | Reconcile actual ownership and intent before mutation; do not overwrite concurrent work or silently replay onto a different target. |
-| In-scope review feedback or check failure requiring code/test changes | Return to the existing route's feedback continuation on this same PR. |
+| Scoped formatting/linter failure with an unambiguous mechanical fix | Apply only that fix under the branch-maintenance gate; validate and review the current candidate. |
+| In-scope review feedback or check failure requiring functional code/test changes | Return through PM to the existing route's feedback continuation on this same PR. |
 | Concrete incompatibility or failed acceptance requires Joe re-routing/reimplementation/refactoring | Execute [issue-backed recovery](RECOVERY.md) within recorded authority: one episode, existing controller, same PR. Target diff size alone cannot justify this route. |
 | Cancelled check, missing runner/tool, or service outage | Distinguish infrastructure from code failure. Report the blocker; use only authorized provider recovery actions. |
 | Changed requirements, architecture, scope, accepted risk, or a semantic conflict | Present the decision to the human and stop. |
@@ -107,6 +112,12 @@ success is insufficient. After accepted terminal repair return, arrange LIFECYCL
 retirement, preserving monitoring scope/worktree.
 
 ## Observation rhythm
+
+In the shared Joe team, PM's explicit role cadence (five minutes by default)
+overrides the standalone adaptive schedule below. Keep per-PR due/coverage
+records and notify PM of urgency or gaps. Do not create a timer per PR or
+change the PM timer. Retire the shared agent only when all scopes end and PM
+has recorded successful deletion of its exact role heartbeat.
 
 Execute [OBSERVATION](OBSERVATION.md), never an age table: observe immediately;
 default 1 minute, then 5 and 15 only after each stage's 30 consecutive successful,

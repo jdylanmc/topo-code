@@ -50,7 +50,9 @@ automatic release/version change or recursive entry for changelog-only maintenan
 ## Independent review and proof
 
 The route owns implementation using its own workflow, never by secretly routing
-through Ship. Use [TDD](../tdd/SKILL.md) where applicable. Workers follow the bounded
+through Ship. TDD is opt-in for standalone Ship and preferred for Joe features;
+Patch and Refactor do not force it. Honor the packet's testing choice and real
+developer budget. Workers follow the bounded
 [worker contract](WORKER.md); their self-inspection does not approve their code.
 
 Have an independent [Roast](../roast/SKILL.md) reviewer inspect the whole committed

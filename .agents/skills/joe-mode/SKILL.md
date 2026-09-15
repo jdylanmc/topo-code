@@ -7,6 +7,13 @@ user-invocable: true
 
 # Joe-mode
 
+Use [the shared team contract](../joe-mode-paseo/TEAM.md): six developer slots
+by default, feature two, bug/hardening/refactor one; support roles are separate.
+Prefer TDD for features, with useful legacy exceptions. Delegate blocker
+investigation, retry one confirmed work blocker with fresh context/worktree,
+then return repeated blockers to the single backlog manager. Session Joe has
+no recurring heartbeat; the Paseo adapter alone owns that runtime extension.
+
 Hand the human pull requests to review. Loop existing skills, not a second implementation process. The human-authored [intent](intent.md) defines the purpose.
 
 Use [Doctrine](../doctrine/SKILL.md) under the [common application contract](../doctrine/APPLY.md). Scope explicit selections to the named delivery, not every unrelated backlog item. With none preselected, choose appropriate doctrines per worker from catalog metadata; each work packet carries IDs, required flags, reasons, source locations, and digests. Applying workers retrieve the texts. Require `worktrees` for each PR-producing lane and preserve role-specific requirements such as `solid` for code Roast.
@@ -93,7 +100,13 @@ objective clock. Independent work not needing setup may continue within scope.
 
 ### Dispatch through the controller
 
-Joe-mode owns routing and the human conversation. Use [Squadron](../squadron/SKILL.md) aggressively for independent investigations, planning, distinct Ship/Patch/Refactor deliveries, or Shepherd assignments. Keep useful capacity occupied without splitting dependent work or manufacturing agents for trivial tasks. Each delivery route retains its workers and integration; Shepherd retains its one PR monitor. Do not launch competing workers underneath those owners or delegate the Joe controller.
+Joe-mode owns routing and the human conversation. Use [Squadron](../squadron/SKILL.md)
+for useful independent work within TEAM's developer pool. Reuse one shared
+Shepherd for all accepted PR scopes and one optional backlog manager for deep
+inquiry. Disposable roasters and blocker investigators return compact evidence.
+Each route retains integration; do not launch competing workers beneath it.
+Do not delegate this controller. The optional PR coordinator requires the
+separately human-enabled Paseo merge contract; session Joe grants no merge power.
 
 ## 3. Refresh the relevant backlog
 

@@ -2,6 +2,7 @@ import { closeSync, existsSync, fsyncSync, lstatSync, mkdirSync, openSync, readF
 import { isDeepStrictEqual } from 'node:util';
 import { randomUUID } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
+import { teamKinds, checkTeamReservation, checkTeamBinding, checkTeamState, teamOperation } from './team.mjs';
 
 function requireText(value, label) {
   if (typeof value !== 'string' || !value.trim()) throw new Error(`Missing ${label}`);
@@ -49,7 +50,12 @@ function validateConfig(input) {
     'humanOrigin', 'anchor', 'setupEvidence', 'authority', 'capabilities', 'mapping', 'retirement']) {
     requireText(config[key], key);
   }
-  if (config.merge !== 'human') throw new Error('Automated merge unsupported');
+  if (!['human', 'orchestrator'].includes(config.merge)) throw new Error('Merge mode unsupported');
+  if (config.merge === 'orchestrator') {
+    for (const key of ['source', 'authority', 'roast', 'ci', 'lint', 'rubberDuck', 'verification']) {
+      requireText(config.mergeGate?.[key], `repository merge gate ${key}; clarify with the human`);
+    }
+  }
   if (!Number.isSafeInteger(config.capacity) || config.capacity < 1) throw new Error('Invalid capacity');
   if (config.cron !== undefined && (typeof config.cron !== 'string' ||
     !/^(?:\*|\*\/(?:[1-9]|[1-5][0-9])) \* \* \* \*$/.test(config.cron))) {
@@ -64,12 +70,14 @@ function validateConfig(input) {
   } else if (config.pmAgentId !== undefined) {
     throw new Error('Fresh wakeup cannot bind a heartbeat PM agent');
   }
+  if (config.team !== undefined && config.team !== true) throw new Error('Invalid team selection');
+  if (config.team && config.wakeupMode !== 'heartbeat') throw new Error('Team mode requires the persistent PM heartbeat');
   return config;
 }
 
 function validateJob(config, job) {
-  requireText(job?.id, 'schedule ID');
-  requireText(job.evidence, 'schedule readback');
+  requireText(job?.id, 'wakeup ID');
+  requireText(job.evidence, 'wakeup verification evidence');
   requireText(job.observation, 'initial observation');
   const heartbeat = config.wakeupMode === 'heartbeat';
   if (job.enabled !== true || job.cron !== (config.cron ?? '* * * * *') ||
@@ -121,6 +129,7 @@ function validateState(state) {
     !isDeepStrictEqual(pm.config, validateConfig(pm.config))) throw new Error('Invalid PM state');
   if (pm.schedule !== undefined) validateJob(pm.config, pm.schedule);
   if (pm.wakeupHistory !== undefined && !Array.isArray(pm.wakeupHistory)) throw new Error('Invalid wakeup history');
+  if (pm.mergeHistory !== undefined && !Array.isArray(pm.mergeHistory)) throw new Error('Invalid merge history');
   if (pm.mode === 'enabled' && !pm.schedule) throw new Error('Missing schedule binding');
   if (pm.lease !== null) {
     for (const key of ['owner', 'token', 'reconciliation']) requireText(pm.lease?.[key], `Invalid lease ${key}`);
@@ -132,7 +141,7 @@ function validateState(state) {
   let deliveries = 0;
   for (const worker of pm.workers) {
     if (!worker || typeof worker.settled !== 'boolean' ||
-      !['delivery', 'discovery', 'research'].includes(worker.kind) ||
+      !(pm.config.team ? teamKinds : ['delivery', 'discovery', 'research']).includes(worker.kind) ||
       typeof worker.key !== 'string' || !worker.key.trim() || keys.has(worker.key) ||
       !validCoverage(worker.coverage) ||
       worker.assignment?.key !== worker.key || worker.assignment?.kind !== worker.kind ||
@@ -156,13 +165,14 @@ function validateState(state) {
     }
   }
   if (discovery > 1 || deliveries > pm.config.capacity) throw new Error('Invalid capacity state');
+  if (pm.config.team) checkTeamState(pm);
   return state;
 }
 
 function reserve(pm, worker) {
   requireText(worker?.key, 'worker key');
   requireText(worker.packet, 'worker packet');
-  if (!['delivery', 'discovery', 'research'].includes(worker.kind)) throw new Error('Invalid worker kind');
+  if (!(pm.config.team ? teamKinds : ['delivery', 'discovery', 'research']).includes(worker.kind)) throw new Error('Invalid worker kind');
   if (!validCoverage(worker.coverage)) throw new Error('Invalid coverage');
   if (worker.graph !== undefined && (worker.graph !== true || worker.kind !== 'delivery')) {
     throw new Error('Invalid publication group');
@@ -185,6 +195,7 @@ function reserve(pm, worker) {
       throw new Error('Delivery capacity exhausted');
     }
   }
+  if (pm.config.team) checkTeamReservation(pm, worker);
   pm.workers.push({ key: worker.key, kind: worker.kind, coverage: worker.coverage,
     assignment: worker, settled: false, agentId: null,
     ...(worker.graph ? { graph: { complete: false, receipts: [] } } : {}) });
@@ -216,6 +227,11 @@ function updateWorker(pm, request) {
     requireText(request.agentId, 'observed agent ID');
     if (worker.kind === 'delivery' && publicationPending(pm)) throw new Error('Unresolved ticket publication; hold delivery launch');
     if (worker.settled || (worker.agentId && worker.agentId !== request.agentId)) throw new Error('Worker already bound or settled');
+    if (pm.config.team) {
+      checkTeamBinding(pm, worker, request);
+      worker.permissions = request.permissions;
+      if (worker.kind === 'delivery') worker.worktree = request.worktree;
+    }
     worker.agentId = request.agentId;
     worker.observation = request.evidence;
     return 'bound';
@@ -226,6 +242,7 @@ function updateWorker(pm, request) {
     return 'archive-recorded';
   }
   if (request.noLiveWriters !== true || request.noUntransferredDuties !== true) throw new Error('Unreconciled live custody');
+  if (worker.heartbeat && !['deleted', 'absent'].includes(worker.heartbeat.status)) throw new Error('Unresolved owned heartbeat');
   if (worker.kind === 'discovery' && request.discoveryEnded !== true) throw new Error('Discovery alignment or explicit end required');
   requireText(request.result, 'preserved result');
   requireText(request.acceptance, 'receiver acceptance');
@@ -248,9 +265,30 @@ function apply(state, request) {
   if (request.op === 'inspect') return 'observed';
   const pm = state.pm;
   if (pm?.version !== 1) throw new Error('Missing or unsupported PM state');
-  if (['pause', 'stop', 'resume', 'recover'].includes(request.op)) {
+  if (['pause', 'stop', 'resume', 'recover', 'configure-merge', 'enable-team'].includes(request.op)) {
     requireText(request.human, 'human decision');
-    if (request.op === 'resume') {
+    if (request.op === 'enable-team') {
+      if (pm.mode === 'enabled') throw new Error('Team conversion requires paused state');
+      if (pm.lease) throw new Error('Team conversion requires released or fenced lease');
+      requireText(request.reconciliation, 'all owners and wakeups reconciled');
+      if (pm.workers.some(worker => !worker.settled) || pm.pending.some(record => record.status === 'pending')) {
+        throw new Error('Settle existing owners and pending operations before changing capacity units');
+      }
+      pm.config = validateConfig({ ...pm.config, team: true });
+    } else if (request.op === 'configure-merge') {
+      if (pm.mode === 'enabled') throw new Error('Merge configuration requires paused or stopped state');
+      if (pm.lease) throw new Error('Merge configuration requires released or fenced lease');
+      requireText(request.reconciliation, 'merge authority and pending-operation reconciliation');
+      const { mergeGate, ...previous } = pm.config;
+      const config = validateConfig({ ...previous, merge: request.merge,
+        ...(request.merge === 'orchestrator' ? { mergeGate: request.mergeGate } : {}) });
+      if (!isDeepStrictEqual(pm.config, config)) {
+        pm.mergeHistory ??= [];
+        pm.mergeHistory.push({ merge: pm.config.merge, ...(mergeGate ? { mergeGate } : {}),
+          human: request.human, reconciliation: request.reconciliation });
+        pm.config = config;
+      }
+    } else if (request.op === 'resume') {
       resume(pm, request);
     } else if (request.op === 'recover') {
       requireText(request.fencing, 'stopped-owner fencing evidence');
@@ -274,7 +312,12 @@ function apply(state, request) {
     pm.lease = { owner: request.owner, token: randomUUID(), reconciliation: request.reconciliation };
     return 'claimed';
   }
-  if (!pm.lease || pm.lease.owner !== request.owner || pm.lease.token !== request.token) {
+  const management = pm.config.team && pm.mode !== 'enabled' && !pm.lease && request.human &&
+    ['role-heartbeat', 'record', 'settle', 'archive', 'retire-developer', 'cleanup-ready', 'cleanup'].includes(request.op);
+  if (management) {
+    requireText(request.human, 'human management decision');
+    requireText(request.reconciliation, 'current custody and pending-operation reconciliation');
+  } else if (!pm.lease || pm.lease.owner !== request.owner || pm.lease.token !== request.token) {
     throw new Error('Invalid run lease');
   }
   if (request.op === 'release') {
@@ -288,6 +331,10 @@ function apply(state, request) {
     if (pm.mode !== 'enabled') throw new Error('PM is not enabled');
   }
   if (request.op === 'reserve') return reserve(pm, request.worker);
+  if (['permission-preflight', 'permission-launch', 'staff', 'retire-developer', 'role-heartbeat',
+    'block', 'unblock', 'cleanup-ready', 'cleanup'].includes(request.op)) {
+    return teamOperation(pm, request);
+  }
   if (['cover', 'bind', 'settle', 'archive'].includes(request.op)) return updateWorker(pm, request);
   if (request.op === 'record') {
     requireText(request.key, 'operation key');
@@ -309,6 +356,62 @@ function apply(state, request) {
   throw new Error('Unsupported operation');
 }
 
+function workerView(worker) {
+  const active = (worker.developers ?? []).filter(member => !member.return);
+  return { key: worker.key, kind: worker.kind, coverage: worker.coverage,
+    ...(worker.assignment.work ? { work: worker.assignment.work } : {}),
+    agentId: worker.agentId, ...(worker.worktree ? { worktree: worker.worktree } : {}),
+    ...(active.length ? { developers: active.map(({ agentId, worktree }) => ({ agentId, worktree })) } : {}),
+    ...(worker.developers?.length > active.length ? { retiredDevelopers: worker.developers.length - active.length } : {}),
+    ...(worker.permissionPreflights?.length ? { permissionPreflights: worker.permissionPreflights.length } : {}),
+    ...(worker.heartbeat ? { heartbeat: worker.heartbeat.status } : {}),
+    ...(worker.graph ? { publication: worker.graph.complete ? 'complete' : 'pending' } : {}) };
+}
+
+// A settled worker still needs archival, and an owned worktree still needs an
+// actual removal or a deliberate retention record, before it leaves the queue.
+function retirementView(worker) {
+  const phase = !worker.archive ? 'archive-pending'
+    : !worker.worktree ? null
+      : !worker.cleanup ? 'cleanup-pending'
+        : worker.cleanup.removal || worker.cleanup.retention ? null : 'removal-pending';
+  if (!phase) return null;
+  return { key: worker.key, kind: worker.kind, agentId: worker.agentId,
+    ...(worker.worktree ? { worktree: worker.worktree } : {}), phase,
+    ...(phase === 'removal-pending'
+      ? { recovery: { branch: worker.cleanup.branch, head: worker.cleanup.head } } : {}) };
+}
+
+// Current work, not the whole durable record: growing history stays on the board.
+export function summarize(state) {
+  const pm = state.pm;
+  if (!pm) return { initialized: false };
+  const open = pm.pending.filter(record => ['pending', 'blocked'].includes(record.status));
+  const blockers = (pm.blockers ?? []).filter(episode => !episode.resolution);
+  const settled = pm.workers.filter(worker => worker.settled);
+  const retirement = settled.map(retirementView).filter(Boolean);
+  return {
+    mode: pm.mode, ...(pm.config.team ? { team: true } : {}), capacity: pm.config.capacity,
+    ...(pm.lease ? { lease: { owner: pm.lease.owner, token: pm.lease.token } } : {}),
+    ...(pm.schedule ? { schedule: { id: pm.schedule.id, kind: pm.schedule.kind ?? 'schedule',
+      cron: pm.schedule.cron, targetAgentId: pm.schedule.targetAgentId, enabled: pm.schedule.enabled } } : {}),
+    workers: pm.workers.filter(worker => !worker.settled).map(workerView),
+    ...(retirement.length ? { retirement } : {}),
+    pending: open.map(({ key, status, evidence }) => ({ key, status, evidence })),
+    ...(blockers.length ? { blockers: blockers.map(episode => ({ issue: episode.issue,
+      status: episode.status, attempts: episode.attempts.length })) } : {}),
+    history: {
+      runs: pm.runs.length,
+      settledWorkers: settled.length,
+      resolvedOperations: pm.pending.length - open.length,
+      operationHistory: pm.pending.reduce((total, record) => total + (record.history?.length ?? 0), 0),
+      wakeups: pm.wakeupHistory?.length ?? 0, merges: pm.mergeHistory?.length ?? 0,
+      blockers: (pm.blockers ?? []).length - blockers.length,
+      inspect: '{"op":"inspect","view":"full"}',
+    },
+  };
+}
+
 export function transact(filename, request) {
   requireText(filename, 'board path');
   if (!request || typeof request !== 'object') throw new Error('Invalid request');
@@ -321,6 +424,7 @@ export function transact(filename, request) {
   try {
     const state = read();
     const status = apply(state, request);
+    validateState(state);
     const next = `${filename}.next`;
     const fd = openSync(next, 'wx', 0o600);
     try {
@@ -338,7 +442,12 @@ export function transact(filename, request) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
-    process.stdout.write(`${JSON.stringify(transact(process.argv[2], JSON.parse(process.argv[3])))}\n`);
+    const request = JSON.parse(process.argv[3]);
+    const view = request?.view ?? 'current';
+    if (!['current', 'full'].includes(view)) throw new Error("Unsupported view; use 'current' or 'full'");
+    const result = transact(process.argv[2], request);
+    process.stdout.write(`${JSON.stringify(view === 'full' ? result
+      : { status: result.status, view: summarize(result.state) })}\n`);
   } catch (error) {
     process.stderr.write(`${error.message}\n`);
     process.exitCode = 1;

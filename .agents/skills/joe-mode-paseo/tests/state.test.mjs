@@ -23,6 +23,83 @@ const config = {
   retirement: 'runtime/no-workspace-archive', merge: 'human',
 };
 
+const mergeGate = {
+  source: 'repo/AGENTS.md#merge-gate', authority: 'human/repo-pm-merge-grant',
+  roast: 'repo/independent-roast', ci: 'repo/required-ci',
+  lint: 'repo/lint-command', rubberDuck: 'repo/final-orchestrator-walkthrough',
+  verification: 'repo/final-orchestrator-acceptance',
+};
+
+test('repository-defined orchestrator merging initializes paused and preserves the agreed gate', t => {
+  const filename = store(t);
+  const selected = { ...config, merge: 'orchestrator', mergeGate };
+  const result = transact(filename, { op: 'init', config: selected });
+  assert.equal(result.state.pm.mode, 'paused');
+  assert.equal(result.state.pm.config.merge, 'orchestrator');
+  assert.deepEqual(JSON.parse(readFileSync(filename)).pm.config.mergeGate, mergeGate);
+  assert.equal(transact(filename, { op: 'init', config: selected }).status, 'existing');
+  assert.throws(() => transact(filename, { op: 'init', config: {
+    ...selected, mergeGate: { ...mergeGate, ci: 'different/workflow' },
+  } }), /different/);
+});
+
+test('orchestrator merging without a complete repository gate asks for clarification without creating a board', t => {
+  for (const gate of [undefined, null, 'repo/policy',
+    ...Object.keys(mergeGate).map(key => ({ ...mergeGate, [key]: ' ' }))]) {
+    const filename = store(t);
+    assert.throws(() => transact(filename, { op: 'init',
+      config: { ...config, merge: 'orchestrator', mergeGate: gate },
+    }), /repository merge gate.*clarify with the human/);
+    assert.deepEqual(transact(filename, { op: 'inspect' }).state, {});
+  }
+});
+
+test('human merge boards cannot silently acquire orchestrator authority and persisted gate corruption blocks reads', t => {
+  const human = enabled(t);
+  const before = readFileSync(human, 'utf8');
+  assert.throws(() => transact(human, { op: 'init',
+    config: { ...config, merge: 'orchestrator', mergeGate },
+  }), /different/);
+  assert.equal(readFileSync(human, 'utf8'), before);
+  const filename = store(t);
+  transact(filename, { op: 'init', config: { ...config, merge: 'orchestrator', mergeGate } });
+  const state = JSON.parse(readFileSync(filename));
+  delete state.pm.config.mergeGate.verification;
+  writeFileSync(filename, JSON.stringify(state));
+  assert.throws(() => transact(filename, { op: 'inspect' }), /merge gate verification/);
+});
+
+test('human can configure the merge gate on a paused reconciled board without replacing its workers or wakeup', t => {
+  const filename = enabled(t);
+  const lease = claim(filename).state.pm.lease;
+  reserve(filename, lease, 'unfinished');
+  owned(filename, lease, { op: 'record', key: 'pending/merge', status: 'pending', evidence: 'prior/operation' });
+  const request = { op: 'configure-merge', human: 'human/change-merge-mode',
+    reconciliation: 'owners/pending-operations-reconciled', merge: 'orchestrator', mergeGate };
+  assert.throws(() => transact(filename, request), /paused|stopped/);
+  transact(filename, { op: 'pause', human: 'human/pause', disposition: 'keep unfinished work' });
+  assert.throws(() => transact(filename, request), /lease/);
+  owned(filename, lease, { op: 'release', result: 'pass/preserved', duties: 'retain unfinished work' });
+  const before = transact(filename, { op: 'inspect' }).state.pm;
+  for (const change of [{ human: '' }, { reconciliation: '' }, { mergeGate: undefined }]) {
+    assert.throws(() => transact(filename, { ...request, ...change }), /human|reconciliation|merge gate/);
+    assert.deepEqual(transact(filename, { op: 'inspect' }).state.pm, before);
+  }
+  const updated = transact(filename, request).state.pm;
+  assert.equal(updated.mode, 'paused');
+  assert.deepEqual(updated.workers, before.workers);
+  assert.deepEqual(updated.pending, before.pending);
+  assert.deepEqual(updated.schedule, before.schedule);
+  assert.deepEqual(updated.runs, before.runs);
+  assert.deepEqual(updated.config, { ...before.config, merge: 'orchestrator', mergeGate });
+  assert.equal(updated.mergeHistory.length, 1);
+  assert.equal(transact(filename, request).state.pm.mergeHistory.length, 1);
+  const human = transact(filename, { ...request, merge: 'human', mergeGate: undefined }).state.pm;
+  assert.equal(human.config.merge, 'human');
+  assert.equal(human.config.mergeGate, undefined);
+  assert.equal(human.mergeHistory.length, 2);
+});
+
 test('heartbeat activation requires explicit consent and an actual bound PM agent; unknown modes fail closed', t => {
   for (const change of [
     { wakeupMode: 'unknown' },
@@ -285,7 +362,7 @@ const heartbeatConfig = { ...config, wakeupMode: 'heartbeat',
 const heartbeatJob = { id: 'heartbeat-a', kind: 'heartbeat', targetAgentId: 'pm-agent',
   cron: '* * * * *', cwd: config.cwd, projectId: config.projectId, workspaceId: config.workspaceId,
   enabled: true, settings: 'approved/exact-prompt-timezone-lifetime-settings',
-  evidence: 'heartbeat/stored-readback', observation: 'actual/initial-observation' };
+  evidence: 'heartbeat/create-receipt-and-live-agent-binding', observation: 'actual/initial-observation' };
 function heartbeatEnabled(t) {
   const filename = store(t);
   transact(filename, { op: 'init', config: heartbeatConfig });
@@ -293,16 +370,17 @@ function heartbeatEnabled(t) {
   return filename;
 }
 
-test('heartbeat readback must prove job kind, bound target, cadence and exact existing workspace', t => {
+test('heartbeat creation evidence must prove job kind, bound target, cadence and exact existing workspace', t => {
   const filename = store(t);
   transact(filename, { op: 'init', config: heartbeatConfig });
   for (const change of [
     { kind: undefined }, { kind: 'schedule' }, { targetAgentId: 'bootstrap-agent' },
     { targetAgentId: undefined }, { cron: '*/2 * * * *' }, { cwd: '/other' },
     { projectId: 'other' }, { workspaceId: 'other' }, { enabled: false }, { settings: '' },
+    { evidence: '' }, { observation: '' },
   ]) {
     assert.throws(() => transact(filename, { op: 'resume', human: 'human/activate',
-      schedule: { ...heartbeatJob, ...change } }), /binding|settings/);
+      schedule: { ...heartbeatJob, ...change } }), /binding|settings|evidence|observation/);
   }
   assert.equal(transact(filename, { op: 'inspect' }).state.pm.mode, 'paused');
   const fresh = enabled(t);
@@ -349,7 +427,7 @@ test('persisted forged heartbeat target or lease owner fails closed', t => {
 });
 
 const replacement = { oldId: 'heartbeat-a', human: 'human/explicit-recreate',
-  absence: 'runtime/complete-old-owned-job-absence', reconciliation: 'live/children-scope-settings-target-preserved' };
+  absence: 'heartbeat/exact-owned-id-delete-success-receipt', reconciliation: 'live/children-scope-settings-target-preserved' };
 
 test('heartbeat pause or stop gates before deletion and reconciled human recreation preserves custody and fencing', t => {
   for (const op of ['pause', 'stop']) {
@@ -497,12 +575,14 @@ test('unknown or malformed persisted state fails closed without discarding the o
   assert.equal(JSON.parse(readFileSync(filename)).pm.workers[0].key, 'unknown-live-owner');
 });
 
-test('missing capability evidence and automated merge modes block initialization', t => {
+test('missing capability evidence and unknown merge modes block initialization', t => {
   for (const field of ['humanOrigin', 'setupEvidence', 'capabilities', 'mapping', 'retirement']) {
     const filename = store(t);
     assert.throws(() => transact(filename, { op: 'init', config: { ...config, [field]: '' } }), new RegExp(field));
   }
-  assert.throws(() => transact(store(t), { op: 'init', config: { ...config, merge: 'automatic' } }), /unsupported/);
+  for (const merge of ['automatic', 'unknown', '', undefined]) {
+    assert.throws(() => transact(store(t), { op: 'init', config: { ...config, merge } }), /unsupported/);
+  }
   assert.throws(() => transact(store(t), { op: 'init', config: { ...config, capacity: 0 } }), /capacity/);
 });
 
@@ -573,4 +653,74 @@ test('CLI failures produce no success envelope and leave the board unchanged', t
     assert.ok(child.stderr.trim());
     assert.equal(readFileSync(filename, 'utf8'), before);
   }
+});
+
+function cli(filename, request) {
+  const script = fileURLToPath(new URL('../scripts/state.mjs', import.meta.url));
+  return spawnSync(process.execPath, [script, filename, JSON.stringify(request)], { encoding: 'utf8' });
+}
+
+test('CLI returns the bounded current board and full durable history only when asked', t => {
+  const filename = enabled(t);
+  let lease = claim(filename).state.pm.lease;
+  reserve(filename, lease, 'ticket-live');
+  reserve(filename, lease, 'ticket-done');
+  owned(filename, lease, { op: 'bind', key: 'ticket-live', agentId: 'agent-live', evidence: 'first/observation' });
+  owned(filename, lease, { op: 'settle', key: 'ticket-done', noLiveWriters: true,
+    noUntransferredDuties: true, evidence: 'settled/readback', result: 'preserved/result',
+    acceptance: 'receiver/observed' });
+  for (let pass = 0; pass < 12; pass++) {
+    owned(filename, lease, { op: 'record', key: 'episode/open', status: 'pending', evidence: `attempt-${pass}` });
+    owned(filename, lease, { op: 'record', key: 'episode/closed', status: 'accepted',
+      evidence: `return-${pass}`, receiver: 'owner/observed' });
+    owned(filename, lease, { op: 'release', result: `pass-receipt-${pass}`, duties: 'none' });
+    lease = claim(filename, `run-${pass}`).state.pm.lease;
+  }
+  const bounded = cli(filename, { op: 'inspect' });
+  assert.equal(bounded.status, 0, bounded.stderr);
+  const observed = JSON.parse(bounded.stdout);
+  assert.equal(observed.status, 'observed');
+  assert.equal(observed.state, undefined);
+  const text = JSON.stringify(observed);
+  for (const omitted of ['pass-receipt-0', 'pass-receipt-11', 'attempt-0', 'return-11', 'packets/ticket-done']) {
+    assert.ok(!text.includes(omitted), `bounded view leaked ${omitted}`);
+  }
+  assert.equal(observed.view.mode, 'enabled');
+  assert.equal(observed.view.lease.owner, 'run-11');
+  assert.deepEqual(observed.view.workers, [{ key: 'ticket-live', kind: 'delivery',
+    coverage: ['ticket-live'], agentId: 'agent-live' }]);
+  assert.deepEqual(observed.view.pending, [{ key: 'episode/open', status: 'pending', evidence: 'attempt-11' }]);
+  assert.deepEqual(observed.view.history, { runs: 12, settledWorkers: 1, resolvedOperations: 1,
+    operationHistory: 22, wakeups: 0, merges: 0, blockers: 0,
+    inspect: '{"op":"inspect","view":"full"}' });
+
+  const claimed = cli(filename, { op: 'claim', owner: 'run-next', reconciliation: 'live/reconciled' });
+  assert.equal(claimed.status, 0, claimed.stderr);
+  assert.equal(JSON.parse(claimed.stdout).status, 'busy');
+
+  const full = cli(filename, { op: 'inspect', view: 'full' });
+  assert.equal(full.status, 0, full.stderr);
+  const complete = JSON.parse(full.stdout);
+  assert.equal(complete.view, undefined);
+  assert.equal(complete.state.pm.runs.length, 12);
+  assert.equal(complete.state.pm.pending.find(item => item.key === 'episode/open').history.length, 11);
+  assert.deepEqual(complete.state, transact(filename, { op: 'inspect' }).state);
+
+  const unknown = cli(filename, { op: 'inspect', view: 'everything' });
+  assert.equal(unknown.status, 1);
+  assert.equal(unknown.stdout, '');
+  assert.match(unknown.stderr, /view/);
+  const empty = JSON.parse(cli(store(t), { op: 'inspect' }).stdout);
+  assert.deepEqual(empty, { status: 'observed', view: { initialized: false } });
+});
+
+test('a bounded mutation view still returns the fencing token and current lease', t => {
+  const filename = enabled(t);
+  const first = JSON.parse(cli(filename, { op: 'claim', owner: 'run-a',
+    reconciliation: 'live/reconciled' }).stdout);
+  assert.equal(first.status, 'claimed');
+  assert.equal(first.view.lease.owner, 'run-a');
+  const lease = { owner: 'run-a', token: first.view.lease.token };
+  assert.equal(owned(filename, lease, { op: 'record', key: 'episode/1',
+    status: 'pending', evidence: 'uncertain/create' }).status, 'recorded');
 });

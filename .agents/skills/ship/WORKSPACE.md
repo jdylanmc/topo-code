@@ -58,7 +58,9 @@ project/workspace IDs, Git worktree/branch.
 Place agents with verified `workspaceId` in `create_agent`. No invented cwd argument
 or assumed controller-path inheritance: each inspects actual cwd/Git paths/branch/
 starting state. Mismatch/missing mapping capability blocks writes, never permits
-main, project-per-worker, or bypass/allow-all permissions.
+main, project-per-worker, or permission widening. Deliberate inheritance of
+human-selected Allow All is not a placement workaround; follow the actual
+[permission contract](../joe-mode-paseo/RUNTIME.md#permission-preserving-dispatch).
 
 ## Preserve resources at retirement
 
@@ -67,3 +69,10 @@ worktree removal, verify run ownership, integration, no live writer, no uncommit
 unpreserved work. Remove only specific completed run-owned worker worktrees.
 Keep delivery workspace while PR/Shepherd needs it; never archive projects/workspaces
 or delete branches/worktrees merely to clear finished agents.
+
+For Joe's explicitly authorized blocked-work cleanup, verified recoverable
+remote branches replace the integration prerequisite, not the preservation
+checks. Follow [TEAM](../joe-mode-paseo/TEAM.md): stop writers, inspect tracked,
+untracked and ignored files, preserve safe work/evidence, verify exact remote
+commits, then remove only the owned worktree. Push failure or unpreserved data
+means keep the local copy. Never delete the only copy or a live PR repair workspace.

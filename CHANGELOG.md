@@ -14,6 +14,9 @@ does not currently publish versioned releases.
 
 ### Changed
 
+- Update Joe-mode-paseo and related bundled skills from `jdylanmc/agent-skills`
+  at `507dda0`, including team coordination, state validation, and delivery
+  lifecycle guidance. Installation does not activate orchestration.
 - Add an explicit responsibility-first logical architecture workflow with
   compiler-backed TypeScript/JavaScript entities, contracts, members, static
   dependents, anonymous default-export anchors, drill/expand navigation,
