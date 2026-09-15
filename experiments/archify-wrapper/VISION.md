@@ -2,6 +2,9 @@
 
 This records the agreed direction behind [the plan](PLAN.md), not an implemented
 feature specification or a claim that the prototype meets all product needs.
+The [published findings](https://github.com/jdylanmc/topo-code/issues/34#issuecomment-5689439517)
+support the bounded wrap-first direction; [issue #35](https://github.com/jdylanmc/topo-code/issues/35)
+is the follow-up planning anchor, not evidence of completed integration.
 
 **Topo is an architectural whiteboard that an agent uses to express architecture
 and intention to a human.** Explicitly distinguish observed implementation from

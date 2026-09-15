@@ -5,6 +5,13 @@ does not currently publish versioned releases.
 
 ## Unreleased
 
+### Added
+
+- Preserve the runnable Archify wrapper prototype, original research and licensed
+  artifacts, product direction, and portable verification harness; no production
+  integration. See [findings](https://github.com/jdylanmc/topo-code/issues/34#issuecomment-5689439517)
+  and [follow-up planning](https://github.com/jdylanmc/topo-code/issues/35).
+
 ### Changed
 
 - Add an explicit responsibility-first logical architecture workflow with

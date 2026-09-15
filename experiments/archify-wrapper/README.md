@@ -16,6 +16,8 @@ search, source panels, directed routes, chapters, and export.
 ![Historical overview](evidence/overview-wrapper.png)
 
 - [Full original findings](FINDINGS.md): all verdicts, limitations and corrections.
+- [Published findings on issue #34](https://github.com/jdylanmc/topo-code/issues/34#issuecomment-5689439517)
+  and [follow-up planning anchor #35](https://github.com/jdylanmc/topo-code/issues/35).
 - [Product vision and separately dated human feedback](VISION.md).
 - [Original investigation plan](PLAN.md), associated with
   [issue #34](https://github.com/jdylanmc/topo-code/issues/34).
