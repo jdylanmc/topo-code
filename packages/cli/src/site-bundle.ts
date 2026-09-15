@@ -16,10 +16,12 @@ import {
   assertLayoutDocument,
   serializeGraphDocument,
   serializeJson,
+  serializeLogicalArchitecture,
   validateLayoutAgainstGraph,
   type GraphDocument,
   type JsonValue,
   type LayoutDocument,
+  type LogicalArchitectureDocument,
 } from "@topo/schema";
 import {
   parseCuratedViewsSnapshot,
@@ -35,6 +37,7 @@ const CORE_KEYS = new Set([
   "dashboard",
   "curatedViews",
   "enrichment",
+  "logicalArchitecture",
 ]);
 
 export interface SiteBundle {
@@ -44,6 +47,7 @@ export interface SiteBundle {
   architecture: ArchitectureDocument;
   dashboard: DashboardDocument | null;
   curatedViews: CuratedViewsSnapshot;
+  logicalArchitecture?: LogicalArchitectureDocument;
   enrichment?: EnrichmentDocument;
   additionalFields?: Readonly<Record<string, JsonValue>>;
 }
@@ -63,6 +67,9 @@ export function serializeSiteBundle(bundle: SiteBundle): string {
   ];
   if (bundle.enrichment !== undefined) {
     fields.push(field("enrichment", serializeEnrichmentDocument(bundle.enrichment)));
+  }
+  if (bundle.logicalArchitecture !== undefined) {
+    fields.push(field("logicalArchitecture", serializeLogicalArchitecture(bundle.logicalArchitecture)));
   }
   for (const [name, value] of Object.entries(bundle.additionalFields ?? {})) {
     if (!CORE_KEYS.has(name)) fields.push(field(name, serializeJson(value)));
@@ -113,6 +120,9 @@ export function parseSiteBundleForEnrichment(value: unknown): Omit<SiteBundle, "
     architecture,
     dashboard: envelope.dashboard as DashboardDocument | null,
     curatedViews,
+    ...(envelope.logicalArchitecture === undefined
+      ? {}
+      : { logicalArchitecture: envelope.logicalArchitecture as LogicalArchitectureDocument }),
     additionalFields,
   };
 }

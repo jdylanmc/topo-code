@@ -40,6 +40,7 @@ import {
   type ScanResult,
   type ScannerAdapter,
 } from "./types.js";
+import { extractLogicalArchitecture } from "./semantic.js";
 
 interface SourceRecord {
   absolutePath: string;
@@ -1077,7 +1078,16 @@ export async function scanRepository(
     },
   });
   serializeGraphDocument(graph);
-  return { graph, diagnostics, metrics, authoritative };
+  const logicalArchitecture = await extractLogicalArchitecture({
+    root: options.root,
+    graphId: graph.graphId,
+    graph,
+    authoritative,
+    ...(options.revision ? { revision: options.revision } : {}),
+    sources: sortedSources,
+    ...(options.responsibilityFile ? { responsibilityFile: options.responsibilityFile } : {}),
+  });
+  return { graph, logicalArchitecture, diagnostics, metrics, authoritative };
 }
 
 export function createTypeScriptScannerAdapter(): ScannerAdapter {

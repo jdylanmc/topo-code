@@ -15,7 +15,7 @@ const execute = promisify(execFile);
 const HELP = `Topocode: local, deterministic repository maps
 
   topo init [repository]
-  topo scan [repository] [--allow-partial]
+  topo scan [repository] [--allow-partial] [--responsibilities path]
   topo ingest <repository> <report.json> [more.json ...]
   topo enrich [repository]
   topo serve [repository] [--port 4173]
@@ -62,6 +62,7 @@ export async function runCli(args: string[]): Promise<number> {
       help: { type: "boolean", short: "h" },
       port: { type: "string" },
       "allow-partial": { type: "boolean" },
+      responsibilities: { type: "string" },
     },
   });
   const command = positionals[0] ?? "help";
@@ -72,6 +73,7 @@ export async function runCli(args: string[]): Promise<number> {
   if (!["init", "scan", "ingest", "enrich", "serve"].includes(command)) throw new Error(`Unknown command: ${command}`);
   if (values.port !== undefined && command !== "serve") throw new Error("--port is only valid with serve");
   if (values["allow-partial"] !== undefined && command !== "scan") throw new Error("--allow-partial is only valid with scan");
+  if (values.responsibilities !== undefined && command !== "scan") throw new Error("--responsibilities is only valid with scan");
   if (command !== "ingest" && positionals.length > 2) throw new Error(`Too many arguments for ${command}`);
   const root = resolve(positionals[1] ?? ".");
   if (command === "init") {
@@ -128,9 +130,10 @@ export async function runCli(args: string[]): Promise<number> {
   const result = await scanRepository({
     root, repositoryId: config.repositoryId, revision: state.revision,
     quality: { allowPartial: values["allow-partial"] ?? false },
+    ...(values.responsibilities ? { responsibilityFile: resolve(values.responsibilities) } : {}),
   });
   if ((await sourceState(root)).revision !== state.revision) throw new Error("Repository revision changed during scan; retry");
-  const artifacts = await generateArtifacts(root, result.graph, assets);
+  const artifacts = await generateArtifacts(root, result.graph, assets, result.logicalArchitecture);
   for (const diagnostic of result.diagnostics) console.warn(`${diagnostic.severity}: ${diagnostic.code}: ${diagnostic.message}`);
   for (const warning of artifacts.layout.warnings) console.warn(`layout: ${warning.code}: ${warning.message}`);
   for (const warning of artifacts.warnings) console.warn(warning);

@@ -9,6 +9,7 @@ import type {
   RendererCallbacks,
   TopoWindow,
   ViewState,
+  LoadedArtifacts,
 } from "./contracts.js";
 import { getEntityDetails } from "./details.js";
 import { ArtifactLoadError, loadArtifacts } from "./load.js";
@@ -20,6 +21,7 @@ import { CurationController } from "./curation.js";
 import { requiredElement } from "./dom.js";
 import { ModuleViewsController } from "./module-views.js";
 import { EnrichmentController } from "./enrichment-view.js";
+import { LogicalArchitectureApp } from "./logical-app.js";
 
 function compareText(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
@@ -92,8 +94,8 @@ class TopoApp {
     );
   }
 
-  static async create(root: HTMLElement): Promise<TopoApp> {
-    const artifacts = await loadArtifacts();
+  static async create(root: HTMLElement, artifactsValue?: LoadedArtifacts): Promise<TopoApp> {
+    const artifacts = artifactsValue ?? await loadArtifacts();
     const fullyExpanded =
       new URLSearchParams(window.location.search).get("scope") === "all";
     const state: ViewState = {
@@ -129,6 +131,7 @@ class TopoApp {
       <main class="app-shell" data-high-contrast="false">
         <section class="authority-banner" role="status" tabindex="0" aria-label="Scan completeness warnings" hidden></section>
         <header class="toolbar" aria-label="Map controls">
+          ${this.#model.artifacts.logicalArchitecture ? '<button data-action="logical-map" type="button">Logical architecture</button>' : ""}
           <label class="toolbar-group control">View <select id="view-select" aria-label="Curated view"></select></label>
           <button id="view-new" type="button">New view</button>
           <label class="toolbar-group control">
@@ -228,6 +231,11 @@ class TopoApp {
   }
 
   #bindControls(): void {
+    this.#root.querySelector('[data-action="logical-map"]')?.addEventListener("click", () => {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("mode");
+      window.location.assign(url);
+    });
     requiredElement<HTMLInputElement>(
       this.#root,
       "#external-toggle",
@@ -774,7 +782,15 @@ class TopoApp {
 async function start(): Promise<void> {
   const root = document.querySelector<HTMLElement>("#app");
   if (!root) throw new Error("Missing #app mount point.");
-  const app = await TopoApp.create(root);
+  const artifacts = await loadArtifacts();
+  if (artifacts.logicalArchitecture?.responsibilities.length &&
+      new URLSearchParams(window.location.search).get("mode") !== "source") {
+    const app = new LogicalArchitectureApp(root, artifacts);
+    await app.initialize();
+    app.installDiagnostics();
+    return;
+  }
+  const app = await TopoApp.create(root, artifacts);
   (window as TopoWindow).__TOPO_BENCHMARK__ = app.benchmarkApi();
 }
 

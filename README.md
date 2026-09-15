@@ -38,6 +38,20 @@ These static commands upload nothing and install nothing in the scanned reposito
 WebGL support is required. If initialization fails, the site shows an actionable
 error; it does not switch to another renderer.
 
+To open on a responsibility-first logical architecture with compiler-backed
+entities, signatures, members, and static dependents, supply an explicit
+grouping proposal:
+
+```sh
+corepack yarn topo scan /absolute/path/to/repository \
+  --responsibilities /absolute/path/to/responsibilities.json
+```
+
+Topocode never invokes a model while scanning. Invalid or stale anchors fail
+loudly, unassigned entities remain visible, and the existing source map remains
+available. See [logical architecture](./docs/logical-architecture.md), including
+the checked-in Topocode self-demo grouping.
+
 Use **New view** to define path membership, explicit overrides, and anchored
 pins. Save definitions locally and review source-change deltas against an
 explicit baseline; rescanning never rewrites authored intent. Exported sites

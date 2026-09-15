@@ -37,6 +37,16 @@ returns a graph only when supported source was found; the graph extension
 `authoritative: false`, diagnostics, metrics, adapter version, and capabilities.
 Empty scans and unsupported Cargo workspaces always fail.
 
+`ScanResult.logicalArchitecture` contains the full selected TypeScript/JavaScript
+semantic inventory for the compiler snapshot: top-level functions, classes,
+interfaces, type aliases, enums and variables; exports, signatures, class and
+interface members, declaration anchors, and categorized direct static
+relationships. Anonymous default exported functions and classes use `default`
+as their deterministic authoring anchor. `--responsibilities <file>` binds an
+explicit proposal to those anchors. Unknown anchors, duplicate homes, or
+responsibilities without an
+exported contract are errors. See [logical architecture](./logical-architecture.md).
+
 The adapter API is separate:
 
 ```ts

@@ -127,6 +127,7 @@ export function parseScanRepositoryOptions(
     "repositoryId",
     "revision",
     "quality",
+    "responsibilityFile",
   ]);
   for (const key of Object.keys(value)) {
     if (!allowed.has(key)) {
@@ -148,5 +149,8 @@ export function parseScanRepositoryOptions(
       ? {}
       : { revision: value.revision as string }),
     ...(quality === undefined ? {} : { quality }),
+    ...(optionalString(value.responsibilityFile, "responsibilityFile") === undefined
+      ? {}
+      : { responsibilityFile: path.resolve(value.responsibilityFile as string) }),
   };
 }

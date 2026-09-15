@@ -37,6 +37,7 @@ export function sameNodeAppearance(left: SceneNode, right: SceneNode): boolean {
     left.selected === right.selected &&
     left.focused === right.focused &&
     left.cycle === right.cycle &&
+    left.impacted === right.impacted &&
     left.entity.kind === right.entity.kind &&
     left.entity.external === right.entity.external &&
     left.entity.label === right.entity.label &&
@@ -50,6 +51,8 @@ export function sameEdgeGeometry(left: SceneEdge, right: SceneEdge): boolean {
     left.width === right.width &&
     left.spine === right.spine &&
     left.provenance === right.provenance &&
+    left.style === right.style &&
+    left.impacted === right.impacted &&
     left.weight === right.weight &&
     left.points.length === right.points.length &&
     left.points.every((point, index) =>

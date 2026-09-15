@@ -1,12 +1,12 @@
-import type { GraphDocument } from "@topo/schema";
+import type { GraphDocument, LogicalArchitectureDocument } from "@topo/schema";
 
 export const SCANNER_MODULE_ID = "@topo/scanner-typescript" as const;
 export const SCANNER_VERSION = "0.0.0" as const;
 
 export interface ScannerCapabilities {
   languages: readonly ["javascript", "typescript"];
-  granularity: readonly ["directory", "file"];
-  relationships: readonly ["imports"];
+  granularity: readonly ["directory", "file", "semantic-entity"];
+  relationships: readonly ["imports", "calls", "constructs", "type-use", "heritage"];
   moduleResolution: "typescript-compiler";
   workspaceManifests: readonly ["package.json"];
   opaqueAssets: readonly ["css"];
@@ -26,8 +26,8 @@ export const TYPESCRIPT_SCANNER_MANIFEST: ScannerManifest = {
   contractVersion: "1.0",
   capabilities: {
     languages: ["javascript", "typescript"],
-    granularity: ["directory", "file"],
-    relationships: ["imports"],
+    granularity: ["directory", "file", "semantic-entity"],
+    relationships: ["imports", "calls", "constructs", "type-use", "heritage"],
     moduleResolution: "typescript-compiler",
     workspaceManifests: ["package.json"],
     opaqueAssets: ["css"],
@@ -47,6 +47,7 @@ export interface ScanRepositoryOptions {
   repositoryId?: string;
   revision?: string;
   quality?: ScanQualityOptions;
+  responsibilityFile?: string;
 }
 
 export type ScanDiagnosticSeverity = "warning" | "error";
@@ -74,6 +75,7 @@ export interface ScanMetrics {
 
 export interface ScanResult {
   graph: GraphDocument;
+  logicalArchitecture: LogicalArchitectureDocument;
   diagnostics: ScanDiagnostic[];
   metrics: ScanMetrics;
   authoritative: boolean;
