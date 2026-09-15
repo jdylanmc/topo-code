@@ -1,0 +1,143 @@
+// Experimental browser checks. The static wrapper does not access iframe internals.
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import http from 'node:http';
+import { pathToFileURL } from 'node:url';
+import { root, generated } from './paths.mjs';
+
+const { chromium } = await import(process.env.PLAYWRIGHT_MODULE
+  ? pathToFileURL(path.resolve(process.env.PLAYWRIGHT_MODULE)).href : 'playwright');
+const output = path.join(generated,'browser-evidence');
+fs.mkdirSync(output, { recursive: true });
+const site = path.resolve(process.env.POC_SITE || path.join(root,'site'));
+const observations = [];
+const errors = [];
+const requests = [];
+const server = http.createServer((req,res) => {
+  const requested = decodeURIComponent(new URL(req.url,'http://localhost').pathname);
+  const file = path.resolve(site, `.${requested}`);
+  if (!file.startsWith(site + path.sep)) { res.writeHead(403).end(); return; }
+  fs.readFile(file.endsWith(path.sep) ? path.join(file,'index.html') : file, (error,data) => {
+    if (error) { res.writeHead(404).end('Not found'); return; }
+    res.writeHead(200,{'Content-Type': file.endsWith('.json') ? 'application/json' : 'text/html'});
+    res.end(data);
+  });
+});
+let browser;
+try {
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  const origin = `http://127.0.0.1:${server.address().port}`;
+  assert.equal((await fetch(`${origin}/pr-34/index.html`)).status,200);
+  browser = await chromium.launch({ ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}), headless:true });
+  const context = await browser.newContext({ viewport:{width:1600,height:1000}, acceptDownloads:true });
+  const page = await context.newPage();
+  page.on('pageerror',error=>errors.push(error.message));
+  page.on('request',request=>requests.push(request.url()));
+  for (const [name,title] of [['overview','System overview'],['generation','Artifact generation'],['loading','Browser loading'],['head','Synthetic PR: proposed system'],['delta','Synthetic PR: architectural delta']]) {
+    if (name==='overview') await page.goto(`${origin}/pr-34/index.html`);
+    else await page.getByRole('link',{ name:title, exact:true }).click();
+    await page.locator('iframe').waitFor();
+    const frame = await page.locator('iframe').elementHandle().then(handle=>handle.contentFrame());
+    await frame.locator('svg').first().waitFor();
+    await frame.evaluate(()=>document.fonts.ready);
+    const size = await frame.evaluate(()=>({ width:innerWidth,height:innerHeight,scrollWidth:document.documentElement.scrollWidth,scrollHeight:document.documentElement.scrollHeight,nodes:new Set([...document.querySelectorAll('[data-node-id]')].map(node=>node.getAttribute('data-node-id'))).size }));
+    observations.push({ name, nestedUrl:page.url(), iframeUrl:frame.url(), size });
+    await page.screenshot({ path:path.join(output,`${name}-wrapper.png`),fullPage:true });
+    assert.ok(frame.url().startsWith(`${origin}/pr-34/`));
+  }
+  await page.getByRole('link',{name:'System overview',exact:true}).click();
+  const overviewFrame = await page.locator('iframe').elementHandle().then(handle=>handle.contentFrame());
+  await overviewFrame.waitForLoadState('load');
+  await overviewFrame.evaluate(()=>document.fonts.ready);
+  await overviewFrame.locator('#btn-node-finder').click();
+  await overviewFrame.locator('#node-finder-input').fill('Scanner');
+  await overviewFrame.locator('#node-finder-results').getByRole('button',{name:/Scanner/}).click();
+  await overviewFrame.locator('svg[data-focus-active]').waitFor();
+  const focusedChildUrl = await overviewFrame.evaluate(()=>location.href);
+  const shellUrlWithFocusedChild = page.url();
+  await page.getByRole('link',{name:'Artifact generation',exact:true}).click();
+  await page.getByRole('link',{name:'System overview',exact:true}).click();
+  const returnedFrame = await page.locator('iframe').elementHandle().then(handle=>handle.contentFrame());
+  await returnedFrame.locator('svg').first().waitFor();
+  observations.push({name:'shell-cross-page-context',childUrlIncludesFocus:focusedChildUrl.includes('#focus='),parentUrlIncludesFocus:shellUrlWithFocusedChild.includes('#focus='),
+    focusRestoredAfterNavigation:await returnedFrame.locator('svg[data-focus-active]').count()>0,
+    limitation:'Wrapper navigation reloads artifacts; child focus URLs are not propagated to the parent.'});
+  await page.getByRole('link',{name:'Open standalone diagram',exact:true}).click();
+  assert.ok(page.url().endsWith('/pr-34/overview.artifact.html'));
+  await page.locator('[data-node-id]').first().waitFor();
+  await page.evaluate(()=>document.fonts.ready);
+  await page.locator('#btn-node-finder').click();
+  await page.locator('#node-finder-input').fill('Scanner');
+  const found = page.locator('#node-finder-results button');
+  assert.equal(await found.count(),1);
+  await found.first().click();
+  assert.ok((await page.locator('svg[data-focus-active]').count()) > 0);
+  const focusHash = new URL(page.url()).hash;
+  assert.ok(focusHash.includes('focus='));
+  await page.screenshot({path:path.join(output,'overview-focused.png'),fullPage:true});
+  await page.reload();
+  await page.locator('svg[data-focus-active]').waitFor();
+  observations.push({ name:'native-search-focus-permalink',passed:true,focusHash });
+  await page.locator('#btn-focus-clear').click();
+  const mapping = JSON.parse(fs.readFileSync(path.join(site,'pr-34/mapping.json'),'utf8'));
+  const sourceLinks = [];
+  for (const node of mapping.nodes) {
+    await page.locator(`[data-node-id="${node.diagramId}"]`).first().click();
+    const links = await page.locator('a[href]').evaluateAll(anchors=>anchors.map(anchor=>anchor.href));
+    const pinned = links.filter(url=>url.includes('/blob/339135da2792046a422308fbc8e5b54ead5828cd/'));
+    assert.ok(pinned.some(url=>url.includes(node.anchor.path)), `Missing source link for ${node.anchor.path}`);
+    sourceLinks.push(...pinned);
+    await page.locator('#btn-focus-clear').click();
+  }
+  observations.push({name:'revision-pinned-source-links',count:sourceLinks.length,example:sourceLinks[0]});
+  await page.locator('#btn-route-probe').click();
+  await page.locator(`[data-node-id="${mapping.nodes[0].diagramId}"]`).first().click();
+  await page.locator(`[data-node-id="${mapping.nodes[7].diagramId}"]`).first().click();
+  await page.locator('svg[data-route-active]').waitFor();
+  const routeText = await page.locator('#route-probe-path').innerText();
+  assert.ok(routeText.includes('CLI') && routeText.includes('Browser'));
+  observations.push({name:'native-directed-route',passed:true,text:routeText});
+  await page.locator('#route-probe-clear').click();
+  await page.locator('#btn-export').click();
+  const exportMenu = await page.locator('[role="menuitem"]').allTextContents();
+  observations.push({name:'export-menu',items:exportMenu});
+  const svgItem = page.getByRole('menuitem', { name:/SVG/ }).first();
+  const downloadWait = page.waitForEvent('download');
+  await svgItem.click();
+  const download = await downloadWait;
+  const exportPath = path.join(output,'overview-export.svg');
+  await download.saveAs(exportPath);
+  const exported = fs.readFileSync(exportPath,'utf8');
+  assert.ok(exported.includes('<svg'));
+  const exportState = await page.evaluate(text => {
+    const doc = new DOMParser().parseFromString(text,'image/svg+xml');
+    return { parseErrors: doc.querySelectorAll('parsererror').length,
+      transientAttributes: doc.querySelectorAll('[data-route-active], [data-focus-active]').length };
+  }, exported);
+  assert.deepEqual(exportState, { parseErrors:0, transientAttributes:0 });
+  observations.push({name:'native-svg-export',passed:true,bytes:Buffer.byteLength(exported)});
+  await page.locator('[data-guided-view-id="source-facts"]').click();
+  assert.ok(new URL(page.url()).hash.includes('view=source-facts'));
+  await page.reload();
+  await page.locator('[data-guided-view-id="source-facts"][aria-pressed="true"]').waitFor();
+  observations.push({name:'native-guided-chapter-permalink',passed:true,hash:new URL(page.url()).hash});
+  await page.screenshot({path:path.join(output,'overview-standalone.png'),fullPage:true});
+  const externalRequests = [...new Set(requests.filter(url=>!url.startsWith(origin) && !url.startsWith('data:') && !url.startsWith('blob:')))];
+  assert.deepEqual(externalRequests,[]);
+  assert.deepEqual(errors,[]);
+  observations.push({name:'no-external-network-or-page-errors',passed:true});
+  await page.goto(pathToFileURL(path.join(site,'pr-34/index.html')).href);
+  await page.frameLocator('iframe').locator('svg').first().waitFor();
+  await page.getByRole('link',{name:'Artifact generation',exact:true}).click();
+  await page.frameLocator('iframe').locator('svg').first().waitFor();
+  await page.getByRole('link',{name:'System overview',exact:true}).click();
+  await page.frameLocator('iframe').locator('svg').first().waitFor();
+  assert.deepEqual(errors,[]);
+  observations.push({name:'local-file-preview-navigation',passed:true,url:page.url()});
+  console.log(JSON.stringify(observations,null,2));
+} finally {
+  fs.writeFileSync(path.join(output,`browser-${Date.now()}.json`),JSON.stringify({observations,errors,requests},null,2));
+  await browser?.close();
+  await new Promise(resolve=>server.close(resolve));
+}

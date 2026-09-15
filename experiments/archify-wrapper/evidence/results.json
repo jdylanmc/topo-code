@@ -1,0 +1,129 @@
+{
+  "startedAt": "2026-09-15T20:23:15.142Z",
+  "finishedAt": "2026-09-15T20:23:18.177Z",
+  "node": "v24.20.0",
+  "archifyRevision": "d673e8300df60a5c8166abe78787fdc78f6b8000",
+  "topoRevision": "339135da2792046a422308fbc8e5b54ead5828cd",
+  "results": [
+    {
+      "name": "overview",
+      "status": 0,
+      "milliseconds": 321.961125
+    },
+    {
+      "name": "generation",
+      "status": 0,
+      "milliseconds": 142.05337500000007
+    },
+    {
+      "name": "loading",
+      "status": 0,
+      "milliseconds": 147.69212500000003
+    },
+    {
+      "name": "overview",
+      "status": 0,
+      "milliseconds": 367.707083
+    },
+    {
+      "name": "byte-reproducibility",
+      "passed": true,
+      "sha256": "3b77f6df110eea2ed468576a77107af7154f422aa058c6e3438660e65334ea40"
+    },
+    {
+      "name": "invalid-diagram",
+      "status": 1,
+      "milliseconds": 76.03283299999998
+    },
+    {
+      "name": "missing-source",
+      "status": 1,
+      "milliseconds": 124.03437499999995
+    },
+    {
+      "name": "missing-endpoint",
+      "status": 1,
+      "milliseconds": 263.17525
+    },
+    {
+      "name": "wrapper-freshness",
+      "passed": true,
+      "scope": "revision + referenced Git blob hashes only; not semantic completeness or working-tree changes"
+    },
+    {
+      "name": "native-historical-evidence-valid",
+      "status": 0,
+      "milliseconds": 303.9359999999999
+    },
+    {
+      "name": "native-node-hyperlink-unsupported",
+      "status": 1,
+      "milliseconds": 71.17295799999988
+    },
+    {
+      "name": "head",
+      "status": 0,
+      "milliseconds": 116.43537500000002
+    },
+    {
+      "name": "delta",
+      "status": 0,
+      "milliseconds": 411.50370799999973
+    },
+    {
+      "name": "movement",
+      "status": 0,
+      "milliseconds": 415.8738330000001
+    },
+    {
+      "name": "delta-classification",
+      "passed": true,
+      "delta": {
+        "components": {
+          "added": 1,
+          "changed": 1,
+          "evidenceChanged": 0,
+          "removed": 0,
+          "moved": 0
+        },
+        "connections": {
+          "added": 2,
+          "changed": 0,
+          "removed": 1,
+          "rerouted": 0
+        },
+        "boundaries": {
+          "added": 0,
+          "changed": 0,
+          "removed": 0,
+          "geometryChanged": 0
+        },
+        "presentationChanged": false,
+        "provenanceChanged": false
+      },
+      "movement": {
+        "components": {
+          "added": 0,
+          "changed": 0,
+          "evidenceChanged": 0,
+          "removed": 0,
+          "moved": 1
+        },
+        "connections": {
+          "added": 0,
+          "changed": 0,
+          "removed": 0,
+          "rerouted": 0
+        },
+        "boundaries": {
+          "added": 0,
+          "changed": 0,
+          "removed": 0,
+          "geometryChanged": 0
+        },
+        "presentationChanged": false,
+        "provenanceChanged": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "native-node-hyperlink-unsupported",
+  "args": [
+    "validate",
+    "architecture",
+    "/Users/dylan/.copilot/session-state/ef5ad974-98b8-432f-99bd-8bc7e5cb24af/files/archify-poc/specs/node-link.json",
+    "--repo-root",
+    "/Users/dylan/git/_opensource/jdylanmc/topo-code",
+    "--quality",
+    "showcase",
+    "--json"
+  ],
+  "status": 1,
+  "milliseconds": 71.17295799999988,
+  "stdout": "{\n  \"schemaVersion\": 1,\n  \"ok\": false,\n  \"command\": \"validate\",\n  \"stage\": \"render\",\n  \"type\": \"architecture\",\n  \"input\": \"/Users/dylan/.copilot/session-state/ef5ad974-98b8-432f-99bd-8bc7e5cb24af/files/archify-poc/specs/node-link.json\",\n  \"error\": \"architecture schema validation failed:\\n  /components/0 (id/label: \\\"n_242a6f86c5427c95\\\") must NOT have additional properties {\\\"additionalProperty\\\":\\\"href\\\"}\",\n  \"diagnostics\": [\n    {\n      \"code\": \"schema/additionalProperties\",\n      \"severity\": \"error\",\n      \"message\": \"/components/0 (id/label: \\\"n_242a6f86c5427c95\\\") must NOT have additional properties {\\\"additionalProperty\\\":\\\"href\\\"}\",\n      \"subject\": {\n        \"diagramType\": \"architecture\",\n        \"path\": \"/components/0\",\n        \"identity\": \"n_242a6f86c5427c95\"\n      },\n      \"evidence\": {\n        \"keyword\": \"additionalProperties\",\n        \"additionalProperty\": \"href\"\n      },\n      \"supportedFixes\": [\n        \"remove unsupported property \\\"href\\\"\"\n      ]\n    }\n  ]\n}\n",
+  "stderr": ""
+}

@@ -22,6 +22,9 @@ everything a human adds is recorded as such.
 
 ## Run locally
 
+For the separately preserved, non-integrated prototype, see the
+[Archify wrapper experiment: runnable snapshot, findings, and product vision](./experiments/archify-wrapper/README.md).
+
 From this checkout, with Node.js 22+ and Corepack:
 
 ```sh

@@ -1,0 +1,137 @@
+{
+  "observations": [
+    {
+      "name": "overview",
+      "nestedUrl": "http://127.0.0.1:63087/pr-34/index.html",
+      "iframeUrl": "http://127.0.0.1:63087/pr-34/overview.artifact.html",
+      "size": {
+        "width": 1600,
+        "height": 840,
+        "scrollWidth": 1600,
+        "scrollHeight": 840,
+        "nodes": 8
+      }
+    },
+    {
+      "name": "generation",
+      "nestedUrl": "http://127.0.0.1:63087/pr-34/generation.html",
+      "iframeUrl": "http://127.0.0.1:63087/pr-34/generation.artifact.html",
+      "size": {
+        "width": 1600,
+        "height": 840,
+        "scrollWidth": 1600,
+        "scrollHeight": 840,
+        "nodes": 5
+      }
+    },
+    {
+      "name": "loading",
+      "nestedUrl": "http://127.0.0.1:63087/pr-34/loading.html",
+      "iframeUrl": "http://127.0.0.1:63087/pr-34/loading.artifact.html",
+      "size": {
+        "width": 1600,
+        "height": 840,
+        "scrollWidth": 1600,
+        "scrollHeight": 840,
+        "nodes": 5
+      }
+    },
+    {
+      "name": "head",
+      "nestedUrl": "http://127.0.0.1:63087/pr-34/head.html",
+      "iframeUrl": "http://127.0.0.1:63087/pr-34/head.artifact.html",
+      "size": {
+        "width": 1600,
+        "height": 840,
+        "scrollWidth": 1600,
+        "scrollHeight": 840,
+        "nodes": 4
+      }
+    },
+    {
+      "name": "delta",
+      "nestedUrl": "http://127.0.0.1:63087/pr-34/delta.html",
+      "iframeUrl": "http://127.0.0.1:63087/pr-34/delta.artifact.html",
+      "size": {
+        "width": 1600,
+        "height": 840,
+        "scrollWidth": 1600,
+        "scrollHeight": 1191,
+        "nodes": 4
+      }
+    },
+    {
+      "name": "shell-cross-page-context",
+      "childUrlIncludesFocus": true,
+      "parentUrlIncludesFocus": false,
+      "focusRestoredAfterNavigation": false,
+      "limitation": "Wrapper navigation reloads artifacts; child focus URLs are not propagated to the parent."
+    },
+    {
+      "name": "native-search-focus-permalink",
+      "passed": true,
+      "focusHash": "#focus=n_e8ee7cfbe22ef4c4"
+    },
+    {
+      "name": "revision-pinned-source-links",
+      "count": 8,
+      "example": "https://github.com/jdylanmc/topo-code/blob/339135da2792046a422308fbc8e5b54ead5828cd/packages/cli/src/main.ts#L61-L142"
+    },
+    {
+      "name": "native-directed-route",
+      "passed": true,
+      "text": "CLI\n→\nScanner\n→\nGraph\n→\nModules\n→\nLayout\n→\nViews + reports\n→\nSite bundle\n→\nBrowser"
+    },
+    {
+      "name": "export-menu",
+      "items": [
+        "Share Card1200×630 PNG",
+        "Route Share Card1200×630 PNG",
+        "Reach Share Card1200×630 PNG",
+        "Copy Share CardPNG to clipboard",
+        "Copy diagramPNG to clipboard",
+        "PNGLossless image",
+        "JPEGCompact image",
+        "WebPModern image",
+        "SVGEditable vector",
+        "WebM6s motion"
+      ]
+    },
+    {
+      "name": "native-svg-export",
+      "passed": true,
+      "bytes": 147964
+    },
+    {
+      "name": "native-guided-chapter-permalink",
+      "passed": true,
+      "hash": "#view=source-facts"
+    },
+    {
+      "name": "no-external-network-or-page-errors",
+      "passed": true
+    }
+  ],
+  "errors": [],
+  "requests": [
+    "http://127.0.0.1:63087/pr-34/index.html",
+    "http://127.0.0.1:63087/pr-34/overview.artifact.html",
+    "http://127.0.0.1:63087/pr-34/generation.html",
+    "http://127.0.0.1:63087/pr-34/generation.artifact.html",
+    "http://127.0.0.1:63087/pr-34/loading.html",
+    "http://127.0.0.1:63087/pr-34/loading.artifact.html",
+    "http://127.0.0.1:63087/pr-34/head.html",
+    "http://127.0.0.1:63087/pr-34/head.artifact.html",
+    "http://127.0.0.1:63087/pr-34/delta.html",
+    "http://127.0.0.1:63087/pr-34/delta.artifact.html",
+    "http://127.0.0.1:63087/pr-34/overview.html",
+    "http://127.0.0.1:63087/pr-34/overview.artifact.html",
+    "http://127.0.0.1:63087/pr-34/generation.html",
+    "http://127.0.0.1:63087/pr-34/generation.artifact.html",
+    "http://127.0.0.1:63087/pr-34/overview.html",
+    "http://127.0.0.1:63087/pr-34/overview.artifact.html",
+    "http://127.0.0.1:63087/pr-34/overview.artifact.html",
+    "http://127.0.0.1:63087/pr-34/overview.artifact.html",
+    "http://127.0.0.1:63087/pr-34/overview.artifact.html"
+  ]
+}

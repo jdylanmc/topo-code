@@ -1,0 +1,243 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Topo: source to architectural map",
+    "quality_profile": "showcase",
+    "locale": "en",
+    "repository": {
+      "url": "https://github.com/jdylanmc/topo-code",
+      "revision": "339135da2792046a422308fbc8e5b54ead5828cd"
+    },
+    "views": [
+      {
+        "id": "source-facts",
+        "label": "Source facts",
+        "focus": [
+          "n_242a6f86c5427c95",
+          "n_e8ee7cfbe22ef4c4",
+          "n_2164395fce7b5788",
+          "n_b7cab67130739b26"
+        ],
+        "note": "Source-backed implementation summary; this is not a runtime trace."
+      },
+      {
+        "id": "publish-and-read",
+        "label": "Publish and read",
+        "focus": [
+          "n_13303dbc0833d000",
+          "n_891eff1dababb66c",
+          "n_09eac276825af9cc",
+          "n_0608bac9b3c73571"
+        ],
+        "note": "Derived layout, curated views and reports feed the browser snapshot."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "n_242a6f86c5427c95",
+      "type": "backend",
+      "label": "CLI",
+      "sublabel": "Local scan command",
+      "pos": [
+        40,
+        80
+      ],
+      "size": [
+        160,
+        80
+      ],
+      "sources": [
+        {
+          "path": "does-not-exist.ts"
+        }
+      ]
+    },
+    {
+      "id": "n_e8ee7cfbe22ef4c4",
+      "type": "backend",
+      "label": "Scanner",
+      "sublabel": "Resolve source imports",
+      "pos": [
+        300,
+        80
+      ],
+      "size": [
+        160,
+        80
+      ],
+      "sources": [
+        {
+          "path": "packages/scanner/src/typescript-scanner.ts"
+        }
+      ]
+    },
+    {
+      "id": "n_2164395fce7b5788",
+      "type": "backend",
+      "label": "Graph",
+      "sublabel": "Validate stable identities",
+      "pos": [
+        560,
+        80
+      ],
+      "size": [
+        160,
+        80
+      ],
+      "sources": [
+        {
+          "path": "packages/schema/src/model.ts"
+        }
+      ]
+    },
+    {
+      "id": "n_b7cab67130739b26",
+      "type": "backend",
+      "label": "Modules",
+      "sublabel": "Optional derived attributes",
+      "pos": [
+        820,
+        80
+      ],
+      "size": [
+        160,
+        80
+      ],
+      "sources": [
+        {
+          "path": "packages/modules/src/modules.ts"
+        }
+      ]
+    },
+    {
+      "id": "n_13303dbc0833d000",
+      "type": "backend",
+      "label": "Layout",
+      "sublabel": "Derive and place entities",
+      "pos": [
+        820,
+        310
+      ],
+      "size": [
+        160,
+        80
+      ],
+      "sources": [
+        {
+          "path": "packages/graph/src/layout.ts"
+        }
+      ]
+    },
+    {
+      "id": "n_891eff1dababb66c",
+      "type": "backend",
+      "label": "Views + reports",
+      "sublabel": "Add authored view context",
+      "pos": [
+        560,
+        310
+      ],
+      "size": [
+        160,
+        80
+      ],
+      "sources": [
+        {
+          "path": "packages/cli/src/pipeline.ts",
+          "line": 133,
+          "end_line": 170
+        }
+      ]
+    },
+    {
+      "id": "n_09eac276825af9cc",
+      "type": "backend",
+      "label": "Site bundle",
+      "sublabel": "Publish data.json",
+      "pos": [
+        300,
+        310
+      ],
+      "size": [
+        160,
+        80
+      ],
+      "sources": [
+        {
+          "path": "packages/cli/src/site-bundle.ts"
+        }
+      ]
+    },
+    {
+      "id": "n_0608bac9b3c73571",
+      "type": "frontend",
+      "label": "Browser",
+      "sublabel": "Validate and display map",
+      "pos": [
+        40,
+        310
+      ],
+      "size": [
+        160,
+        80
+      ],
+      "sources": [
+        {
+          "path": "packages/site/src/load.ts",
+          "line": 187,
+          "end_line": 225
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "e_cli_scanner",
+      "from": "n_242a6f86c5427c95",
+      "to": "n_e8ee7cfbe22ef4c4",
+      "label": "scan"
+    },
+    {
+      "id": "e_scanner_graph",
+      "from": "n_e8ee7cfbe22ef4c4",
+      "to": "n_2164395fce7b5788",
+      "label": "facts"
+    },
+    {
+      "id": "e_graph_modules",
+      "from": "n_2164395fce7b5788",
+      "to": "n_b7cab67130739b26",
+      "label": "compose"
+    },
+    {
+      "id": "e_modules_layout",
+      "from": "n_b7cab67130739b26",
+      "to": "n_13303dbc0833d000",
+      "label": "derive",
+      "labelAt": [
+        900,
+        174
+      ]
+    },
+    {
+      "id": "e_layout_views",
+      "from": "n_13303dbc0833d000",
+      "to": "n_891eff1dababb66c",
+      "label": "prepare"
+    },
+    {
+      "id": "e_views_bundle",
+      "from": "n_891eff1dababb66c",
+      "to": "n_09eac276825af9cc",
+      "label": "serialize"
+    },
+    {
+      "id": "e_bundle_browser",
+      "from": "n_09eac276825af9cc",
+      "to": "n_0608bac9b3c73571",
+      "label": "load"
+    }
+  ]
+}

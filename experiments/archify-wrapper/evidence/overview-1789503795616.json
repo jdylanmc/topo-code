@@ -1,0 +1,18 @@
+{
+  "name": "overview",
+  "args": [
+    "deliver",
+    "architecture",
+    "/Users/dylan/.copilot/session-state/ef5ad974-98b8-432f-99bd-8bc7e5cb24af/files/archify-poc/specs/overview.json",
+    "/Users/dylan/.copilot/session-state/ef5ad974-98b8-432f-99bd-8bc7e5cb24af/files/archify-poc/site/pr-34/overview.artifact.html",
+    "--quality",
+    "showcase",
+    "--json",
+    "--repo-root",
+    "/Users/dylan/git/_opensource/jdylanmc/topo-code"
+  ],
+  "status": 0,
+  "milliseconds": 321.961125,
+  "stdout": "{\n  \"schemaVersion\": 1,\n  \"ok\": true,\n  \"command\": \"deliver\",\n  \"type\": \"architecture\",\n  \"input\": \"/Users/dylan/.copilot/session-state/ef5ad974-98b8-432f-99bd-8bc7e5cb24af/files/archify-poc/specs/overview.json\",\n  \"output\": \"/Users/dylan/.copilot/session-state/ef5ad974-98b8-432f-99bd-8bc7e5cb24af/files/archify-poc/site/pr-34/overview.artifact.html\",\n  \"specification\": {\n    \"sha256\": \"3854f9dcda33409d24296b88b31f91abc22b50d0570c51e3d25c05dbe46c8d70\",\n    \"bytes\": 4918\n  },\n  \"artifact\": {\n    \"sha256\": \"3b77f6df110eea2ed468576a77107af7154f422aa058c6e3438660e65334ea40\",\n    \"bytes\": 806921\n  },\n  \"validation\": {\n    \"checksPassed\": 9,\n    \"checkCount\": 9,\n    \"compositionProfile\": \"showcase\",\n    \"compositionStatus\": \"pass\",\n    \"errors\": 0,\n    \"warnings\": 0\n  },\n  \"evidence\": {\n    \"verified\": true,\n    \"repository\": \"https://github.com/jdylanmc/topo-code\",\n    \"revision\": \"339135da2792046a422308fbc8e5b54ead5828cd\",\n    \"references\": 8\n  }\n}\n",
+  "stderr": ""
+}
