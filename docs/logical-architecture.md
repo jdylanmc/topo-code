@@ -71,8 +71,8 @@ warning; Topocode does not invent a responsibility.
 - Curved edges are the default; Straight is a comparison mode. Both terminate
   on box perimeters and retain selection, scope, expansion, impact, and positions.
 - Dragging a box moves it without panning the camera. Positions are stored in
-  browser local storage for the repository graph, revision (or working-tree
-  snapshot), and logical view. **Reset positions** removes that browser-local
+  browser local storage for the repository graph and a deterministic source
+  snapshot fingerprint. **Reset positions** removes that browser-local
   state. No source-authored pin is changed.
 
 ## Identity and coverage limits
@@ -81,8 +81,9 @@ Semantic IDs are deterministic for a supported compiler snapshot and derive
 from the canonical symbol's kind, name, and repository-relative declaration
 anchors. Aliases resolve to their original symbol; legitimate merged
 declarations share an entity; unrelated same-name declarations remain distinct.
-A rescan rebuilds IDs. File moves, symbol renames, declaration splits/merges, or
-compiler changes can make saved browser positions stale; stale IDs are ignored
+A rescan rebuilds IDs and the source snapshot fingerprint. File moves, symbol
+renames, declaration splits/merges, compiler changes, or dirty working-tree
+content therefore use a different position namespace; stale IDs are ignored
 rather than rebound.
 
 The scanner inventories all selected TypeScript and JavaScript source. Static

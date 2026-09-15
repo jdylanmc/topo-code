@@ -137,6 +137,15 @@ export class WebGlRenderer implements Renderer {
   };
 
   #onPointerDown = (event: PointerEvent): void => {
+    if (this.#callbacks?.move && this.#scene) {
+      const bounds = this.#app.canvas.getBoundingClientRect();
+      const x = (event.clientX - bounds.left - this.#transform.x) / this.#transform.scale;
+      const y = (event.clientY - bounds.top - this.#transform.y) / this.#transform.scale;
+      if (this.#scene.nodes.some((node) =>
+        x >= node.x && x <= node.x + node.width && y >= node.y && y <= node.y + node.height)) {
+        return;
+      }
+    }
     this.#app.canvas.setPointerCapture(event.pointerId);
     this.#dragStart = {
       x: event.clientX,
@@ -505,5 +514,15 @@ export class WebGlRenderer implements Renderer {
       nodeRenderGroupCount: this.#nodes.activeGroupCount,
       nodeRenderGroupPoolSize: this.#nodes.children.length,
     };
+  }
+
+  getNodeBounds(): Array<{ id: string; x: number; y: number; width: number; height: number }> {
+    return [...this.#displayNodes.entries()].map(([id, display]) => ({
+      id,
+      x: display.container.x,
+      y: display.container.y,
+      width: display.node.width,
+      height: display.node.height,
+    }));
   }
 }

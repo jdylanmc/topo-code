@@ -62,6 +62,17 @@ test("production CLI serves the responsibility-first logical architecture workfl
   await expect(page.locator('[data-details="selection"]')).toContainText("MemoryStore, Store, createStore");
   await page.getByRole("button", { name: "Expand here" }).click();
   await expect(page.locator('.webgl-a11y [data-entity-id^="semantic:"]')).toHaveCount(3);
+  await page.waitForTimeout(350);
+  const expanded = await page.evaluate(() => window.__TOPO_LOGICAL__!.snapshot());
+  const storageBoundary = expanded.nodes.find((node) => node.id === "storage")!;
+  const storageMembers = expanded.nodes.filter((node) => node.id.startsWith("semantic:"));
+  expect(storageMembers).toHaveLength(3);
+  for (const member of storageMembers) {
+    expect(member.x).toBeGreaterThan(storageBoundary.x);
+    expect(member.y).toBeGreaterThan(storageBoundary.y);
+    expect(member.x + member.width).toBeLessThan(storageBoundary.x + storageBoundary.width);
+    expect(member.y + member.height).toBeLessThan(storageBoundary.y + storageBoundary.height);
+  }
   await page.getByRole("button", { name: "Collapse" }).click();
   await expect(page.locator('.webgl-a11y [data-entity-id^="semantic:"]')).toHaveCount(0);
 
@@ -70,9 +81,12 @@ test("production CLI serves the responsibility-first logical architecture workfl
   await page.getByRole("button", { name: /Store, interface/ }).focus();
   await page.keyboard.press("Enter");
   await expect(page.locator('[data-details="selection"]')).toContainText("method read");
+  const impactUpdates = await page.evaluate(() => window.__TOPO_LOGICAL__!.snapshot().edgeGeometryUpdates);
   await page.getByRole("button", { name: "What depends on this?" }).click();
   await expect(page.locator('[data-details="selection"]')).toContainText("Direct static potential impact");
   await expect(page.locator('[data-details="selection"]')).toContainText("type-use:");
+  expect(await page.evaluate(() => window.__TOPO_LOGICAL__!.snapshot().edgeGeometryUpdates))
+    .toBeGreaterThan(impactUpdates);
 
   await page.getByLabel("Relationship edge style").selectOption("straight");
   expect(await page.evaluate(() => window.__TOPO_LOGICAL__!.snapshot().edgeStyle)).toBe("straight");
@@ -88,6 +102,8 @@ test("production CLI serves the responsibility-first logical architecture workfl
   await page.mouse.move(x + 60, y + 35, { steps: 8 });
   await page.mouse.up();
   await expect.poll(() => page.evaluate(() => window.__TOPO_LOGICAL__!.snapshot().positions.storage?.x)).not.toBeUndefined();
+  expect((await page.evaluate(() => window.__TOPO_LOGICAL__!.snapshot().viewTransform)))
+    .toEqual(before.viewTransform);
   const persisted = await page.evaluate(() => Object.keys(localStorage).some((key) => key.startsWith("topocode:logical-positions:")));
   expect(persisted).toBe(true);
   await page.getByRole("button", { name: "Reset positions" }).click();
@@ -98,4 +114,31 @@ test("production CLI serves the responsibility-first logical architecture workfl
   await page.evaluate(() => window.__TOPO_READY__);
   await expect(page.getByRole("button", { name: "Logical architecture" })).toBeVisible();
   await expect(page.locator('[data-status="architecture"]')).toContainText("Architecture:");
+});
+
+test("logical mode preserves partial-scan warnings and coverage", async ({
+  page,
+  repository,
+  startSite,
+}) => {
+  await writeFile(join(repository, "package.json"), '{"name":"partial-logical","type":"module"}\n');
+  await writeFile(join(repository, "index.ts"), 'import "./missing.js";\nexport function run(): void {}\n');
+  await writeFile(join(repository, "responsibilities.json"), JSON.stringify({
+    schemaVersion: "1.0",
+    responsibilities: [{
+      id: "application",
+      name: "Application",
+      purpose: "Runs the application.",
+      entities: [{ path: "index.ts", symbol: "run" }],
+    }],
+  }));
+  await commit(repository, "Partial logical fixture", "package.json", "index.ts", "responsibilities.json");
+  await expect(topo(repository, "scan", ".", "--allow-partial", "--responsibilities", "responsibilities.json"))
+    .rejects.toMatchObject({ code: 2 });
+  const url = await startSite();
+  await page.goto(url);
+  await page.evaluate(() => window.__TOPO_READY__);
+  await expect(page.getByText("Non-authoritative logical architecture.")).toBeVisible();
+  const logical = await page.evaluate(async () => (await fetch("./data.json")).json());
+  expect(logical.logicalArchitecture.coverage.completeSourceInventory).toBe(false);
 });

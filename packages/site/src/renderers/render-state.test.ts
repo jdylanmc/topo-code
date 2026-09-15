@@ -57,6 +57,7 @@ describe("incremental renderer state", () => {
       { ...edge, id: "other" }, { ...edge, sourceId: "c" }, { ...edge, targetId: "c" },
       { ...edge, width: 3 }, { ...edge, weight: 2 }, { ...edge, spine: true },
       { ...edge, provenance: "inferred" },
+      { ...edge, style: "curved" }, { ...edge, impacted: true },
       { ...edge, points: [{ x: 1, y: 0 }, edge.points[1]!] },
       { ...edge, points: [{ x: 0, y: 1 }, edge.points[1]!] },
       { ...edge, points: [...edge.points, { x: 40, y: 20 }] },
@@ -72,6 +73,7 @@ describe("incremental renderer state", () => {
     expect(sameNodeAppearance(a, { ...a, x: 100, y: 100 })).toBe(true);
     for (const changed of [
       { ...a, selected: true }, { ...a, focused: true }, { ...a, cycle: true },
+      { ...a, impacted: true },
       { ...a, width: 200 }, { ...a, height: 120 },
       { ...a, entity: { ...a.entity, label: "renamed" } },
       { ...a, entity: { ...a.entity, memberNodeIds: ["a", "b"] } },

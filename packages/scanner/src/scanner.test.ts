@@ -111,6 +111,7 @@ describe("@topo/scanner", () => {
     expect(service?.declarations).toHaveLength(2);
     expect(service?.members.map((member) => member.name)).toEqual(["name", "run"]);
     expect(worker?.members.map((member) => member.name)).toEqual(["name", "run"]);
+    expect(service?.members.find((member) => member.name === "name")?.type).toBe("string");
     expect(result.logicalArchitecture.responsibilities).toEqual([
       expect.objectContaining({
         id: "service-contracts",
@@ -128,7 +129,39 @@ describe("@topo/scanner", () => {
       expect.objectContaining({ sourceId: createService?.id, targetId: worker?.id, kind: "constructs" }),
       expect.objectContaining({ sourceId: execute?.id, targetId: createService?.id, kind: "calls" }),
       expect.objectContaining({ sourceId: execute?.id, targetId: service?.id, kind: "type-use" }),
+      expect.objectContaining({ sourceId: execute?.id, targetId: service?.id, kind: "calls" }),
     ]));
+  });
+
+  it("uses repository path aliases for semantic relationships", async () => {
+    const root = await temporaryRepository();
+    await write(root, "tsconfig.json", JSON.stringify({
+      compilerOptions: {
+        module: "NodeNext",
+        moduleResolution: "NodeNext",
+        baseUrl: ".",
+        paths: { "@app/*": ["src/*"] },
+      },
+      include: ["src"],
+    }));
+    await write(root, "src/contracts.ts", "export function contract(): number { return 1; }\n");
+    await write(root, "src/app.ts", 'import { contract } from "@app/contracts";\nexport function run(): number { return contract(); }\n');
+    await write(root, "responsibilities.json", JSON.stringify({
+      schemaVersion: "1.0",
+      responsibilities: [
+        { id: "contracts", name: "Contracts", purpose: "Provides a contract.", entities: [{ path: "src/contracts.ts", symbol: "contract" }] },
+        { id: "app", name: "Application", purpose: "Calls the contract.", entities: [{ path: "src/app.ts", symbol: "run" }] },
+      ],
+    }));
+    const result = await scanRepository({
+      root,
+      responsibilityFile: path.join(root, "responsibilities.json"),
+    });
+    const run = result.logicalArchitecture.entities.find((entity) => entity.name === "run")!;
+    const contract = result.logicalArchitecture.entities.find((entity) => entity.name === "contract")!;
+    expect(result.logicalArchitecture.relationships).toContainEqual(
+      expect.objectContaining({ sourceId: run.id, targetId: contract.id, kind: "calls" }),
+    );
   });
 
   it("fails loudly for stale and duplicate responsibility assignments", async () => {
@@ -262,7 +295,7 @@ describe("@topo/scanner", () => {
     await write(
       root,
       "packages/app/src/index.ts",
-      'import { value } from "@fixture/lib";\nexport { value };\n',
+      'import { value } from "@fixture/lib";\nexport function run(): number { return value(); }\n',
     );
     await write(
       root,
@@ -284,7 +317,7 @@ describe("@topo/scanner", () => {
         include: ["src"],
       }),
     );
-    await write(root, "packages/lib/src/index.ts", "export const value = 1;\n");
+    await write(root, "packages/lib/src/index.ts", "export function value(): number { return 1; }\n");
 
     const result = await scanRepository({ root });
 
@@ -312,6 +345,11 @@ describe("@topo/scanner", () => {
           contentPattern: "\"@fixture/lib\"",
         },
       }),
+    );
+    const run = result.logicalArchitecture.entities.find((entity) => entity.name === "run")!;
+    const value = result.logicalArchitecture.entities.find((entity) => entity.name === "value")!;
+    expect(result.logicalArchitecture.relationships).toContainEqual(
+      expect.objectContaining({ sourceId: run.id, targetId: value.id, kind: "calls" }),
     );
   });
 
@@ -523,6 +561,10 @@ describe("@topo/scanner", () => {
       authoritative: false,
       status: "partial",
     });
+    expect(partial.logicalArchitecture.coverage.completeSourceInventory).toBe(false);
+    expect(partial.logicalArchitecture.diagnostics).toContainEqual(
+      expect.objectContaining({ code: "partial-source-inventory" }),
+    );
     expect(partial.graph.nodes.some((node) => node.id.includes("missing"))).toBe(
       false,
     );

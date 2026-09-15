@@ -1,13 +1,13 @@
 {
   "schemaVersion": "1.0",
-  "measuredAt": "2026-09-15T00:47:59.745Z",
+  "measuredAt": "2026-09-15T01:07:22.977Z",
   "candidate": {
     "repository": "jdylanmc/topo-code",
     "sourceSha256": {
-      "packages/scanner/src/semantic.ts": "f3cc156e829b3a085e47026a4ff368cdecaa64164d4c61092389b55786b1a237",
-      "packages/site/src/logical-app.ts": "46555b7abb21c4f56cd935e2842895c41bba6ac34b00309b145d9a02db4dd102",
-      "packages/site/src/logical-layout.ts": "f9ac0d9a56a4dd9071f999add8ddb0319333edf0cf8d7ac087761265dee6ad06",
-      "packages/site/src/renderers/webgl.ts": "637c555d2b374d9fc8d18d06b76f5229854af66ac8e1aafebddeac6335e3397b"
+      "packages/scanner/src/semantic.ts": "5f09aee60d72b04f69e36b5e89cd6b0456f0522a850f38c5e7c00b5a28a38c11",
+      "packages/site/src/logical-app.ts": "5e468c1357c8f067077de817194e3cd46fc7d9337ee840c08c791ee3f39772a0",
+      "packages/site/src/logical-layout.ts": "521be17c449f7fb8f10248eeaf064bb1700f3f44a639f1cbad7ed0b32835ff6a",
+      "packages/site/src/renderers/webgl.ts": "bd47997f7810f835c2c1264b98434febcf12d5e49ec775fb61ad50b680ca0ee0"
     },
     "graphId": "repo:topo-code",
     "workload": "Actual Topocode self-demo logical overview followed by expansion of the real unassigned semantic inventory.",
@@ -28,10 +28,10 @@
     "overview": {
       "observation": {
         "clock": "browser-performance",
-        "timeOriginMs": 1789433275453.7,
+        "timeOriginMs": 1789434438473,
         "name": "logical-overview",
-        "startTimeMs": 133.5,
-        "endTimeMs": 1708.9000000357628,
+        "startTimeMs": 130.70000004768372,
+        "endTimeMs": 1701.5,
         "inputs": {
           "events": {
             "keydown": 1,
@@ -58,7 +58,7 @@
             "thrownCalls": 0,
             "unknownByteCalls": 0,
             "specifiedStorageBytes": 0,
-            "submittedDataBytes": 29136,
+            "submittedDataBytes": 32304,
             "largestSubmissionBytes": 22032,
             "synchronousCallMilliseconds": 0
           },
@@ -69,7 +69,7 @@
             "thrownCalls": 0,
             "unknownByteCalls": 0,
             "specifiedStorageBytes": 0,
-            "submittedDataBytes": 6816,
+            "submittedDataBytes": 7500,
             "largestSubmissionBytes": 5328,
             "synchronousCallMilliseconds": 0
           }
@@ -77,391 +77,391 @@
         "status": "completed",
         "frameSamples": [
           {
-            "timestampMs": 119.3,
-            "callbackTimeMs": 131.60000002384186
+            "timestampMs": 113.7,
+            "callbackTimeMs": 126
           },
           {
-            "timestampMs": 135.9,
-            "callbackTimeMs": 136.9000000357628
+            "timestampMs": 130.4,
+            "callbackTimeMs": 131.4000000357628
           },
           {
-            "timestampMs": 152.6,
-            "callbackTimeMs": 187.19999998807907
+            "timestampMs": 147,
+            "callbackTimeMs": 183.60000002384186
           },
           {
-            "timestampMs": 186,
-            "callbackTimeMs": 188.30000001192093
+            "timestampMs": 180.4,
+            "callbackTimeMs": 184.80000001192093
           },
           {
-            "timestampMs": 202.6,
-            "callbackTimeMs": 204.19999998807907
+            "timestampMs": 197,
+            "callbackTimeMs": 198.20000004768372
           },
           {
-            "timestampMs": 219.3,
-            "callbackTimeMs": 220.19999998807907
+            "timestampMs": 213.7,
+            "callbackTimeMs": 216.4000000357628
           },
           {
-            "timestampMs": 235.9,
-            "callbackTimeMs": 237.30000001192093
+            "timestampMs": 230.3,
+            "callbackTimeMs": 231.10000002384186
           },
           {
-            "timestampMs": 252.6,
-            "callbackTimeMs": 253.60000002384186
+            "timestampMs": 247,
+            "callbackTimeMs": 248.60000002384186
           },
           {
-            "timestampMs": 269.3,
-            "callbackTimeMs": 270.10000002384186
+            "timestampMs": 263.7,
+            "callbackTimeMs": 266.2000000476837
           },
           {
-            "timestampMs": 285.9,
-            "callbackTimeMs": 287
+            "timestampMs": 280.3,
+            "callbackTimeMs": 281.80000001192093
           },
           {
-            "timestampMs": 302.6,
-            "callbackTimeMs": 304.10000002384186
+            "timestampMs": 297,
+            "callbackTimeMs": 299.10000002384186
           },
           {
-            "timestampMs": 319.3,
-            "callbackTimeMs": 320.60000002384186
+            "timestampMs": 313.7,
+            "callbackTimeMs": 315.5
           },
           {
-            "timestampMs": 335.9,
-            "callbackTimeMs": 337.4000000357628
+            "timestampMs": 330.3,
+            "callbackTimeMs": 332.4000000357628
           },
           {
-            "timestampMs": 352.6,
-            "callbackTimeMs": 353.19999998807907
+            "timestampMs": 347.1,
+            "callbackTimeMs": 349.60000002384186
           },
           {
-            "timestampMs": 369.3,
-            "callbackTimeMs": 370.69999998807907
+            "timestampMs": 363.7,
+            "callbackTimeMs": 364.5
           },
           {
-            "timestampMs": 386,
-            "callbackTimeMs": 387.4000000357628
+            "timestampMs": 380.4,
+            "callbackTimeMs": 382.10000002384186
           },
           {
-            "timestampMs": 402.6,
-            "callbackTimeMs": 403.69999998807907
+            "timestampMs": 397,
+            "callbackTimeMs": 397.80000001192093
           },
           {
-            "timestampMs": 419.2,
-            "callbackTimeMs": 419.9000000357628
+            "timestampMs": 413.7,
+            "callbackTimeMs": 416
           },
           {
-            "timestampMs": 435.9,
-            "callbackTimeMs": 437.4000000357628
+            "timestampMs": 430.3,
+            "callbackTimeMs": 432.7000000476837
           },
           {
-            "timestampMs": 452.6,
-            "callbackTimeMs": 454.10000002384186
+            "timestampMs": 447.1,
+            "callbackTimeMs": 449.5
           },
           {
-            "timestampMs": 469.3,
-            "callbackTimeMs": 469.69999998807907
+            "timestampMs": 463.7,
+            "callbackTimeMs": 465.4000000357628
           },
           {
-            "timestampMs": 485.9,
-            "callbackTimeMs": 486.9000000357628
+            "timestampMs": 480.4,
+            "callbackTimeMs": 482.5
           },
           {
-            "timestampMs": 502.6,
-            "callbackTimeMs": 504.80000001192093
+            "timestampMs": 497.1,
+            "callbackTimeMs": 498.9000000357628
           },
           {
-            "timestampMs": 519.2,
-            "callbackTimeMs": 520.6999999880791
+            "timestampMs": 513.6,
+            "callbackTimeMs": 514.4000000357628
           },
           {
-            "timestampMs": 535.9,
-            "callbackTimeMs": 537.3000000119209
+            "timestampMs": 530.3,
+            "callbackTimeMs": 531.9000000357628
           },
           {
-            "timestampMs": 552.6,
-            "callbackTimeMs": 554
+            "timestampMs": 547,
+            "callbackTimeMs": 548.9000000357628
           },
           {
-            "timestampMs": 569.2,
-            "callbackTimeMs": 570.1999999880791
+            "timestampMs": 563.6,
+            "callbackTimeMs": 566
           },
           {
-            "timestampMs": 585.9,
-            "callbackTimeMs": 587.3000000119209
+            "timestampMs": 580.3,
+            "callbackTimeMs": 580.9000000357628
           },
           {
-            "timestampMs": 602.6,
-            "callbackTimeMs": 604
+            "timestampMs": 597,
+            "callbackTimeMs": 599
           },
           {
-            "timestampMs": 619.3,
-            "callbackTimeMs": 620.1999999880791
+            "timestampMs": 613.7,
+            "callbackTimeMs": 615.7000000476837
           },
           {
-            "timestampMs": 635.9,
-            "callbackTimeMs": 637.3000000119209
+            "timestampMs": 630.4,
+            "callbackTimeMs": 632.8000000119209
           },
           {
-            "timestampMs": 652.6,
-            "callbackTimeMs": 654.1999999880791
+            "timestampMs": 647,
+            "callbackTimeMs": 647.5
           },
           {
-            "timestampMs": 669.2,
-            "callbackTimeMs": 670
+            "timestampMs": 663.6,
+            "callbackTimeMs": 665.6000000238419
           },
           {
-            "timestampMs": 685.9,
-            "callbackTimeMs": 686.8000000119209
+            "timestampMs": 680.4,
+            "callbackTimeMs": 682.1000000238419
           },
           {
-            "timestampMs": 702.5,
-            "callbackTimeMs": 703.6999999880791
+            "timestampMs": 697,
+            "callbackTimeMs": 699.4000000357628
           },
           {
-            "timestampMs": 719.2,
-            "callbackTimeMs": 720
+            "timestampMs": 713.7,
+            "callbackTimeMs": 714.4000000357628
           },
           {
-            "timestampMs": 735.9,
-            "callbackTimeMs": 737.4000000357628
+            "timestampMs": 730.4,
+            "callbackTimeMs": 732.3000000119209
           },
           {
-            "timestampMs": 752.6,
-            "callbackTimeMs": 753.4000000357628
+            "timestampMs": 747,
+            "callbackTimeMs": 747.6000000238419
           },
           {
-            "timestampMs": 769.3,
-            "callbackTimeMs": 770.6999999880791
+            "timestampMs": 763.7,
+            "callbackTimeMs": 766.2000000476837
           },
           {
-            "timestampMs": 785.9,
-            "callbackTimeMs": 787.4000000357628
+            "timestampMs": 780.4,
+            "callbackTimeMs": 782.7000000476837
           },
           {
-            "timestampMs": 802.6,
-            "callbackTimeMs": 804.1000000238419
+            "timestampMs": 797,
+            "callbackTimeMs": 799.1000000238419
           },
           {
-            "timestampMs": 819.2,
-            "callbackTimeMs": 819.8000000119209
+            "timestampMs": 813.7,
+            "callbackTimeMs": 816.1000000238419
           },
           {
-            "timestampMs": 835.9,
-            "callbackTimeMs": 837.4000000357628
+            "timestampMs": 830.3,
+            "callbackTimeMs": 832.3000000119209
           },
           {
-            "timestampMs": 852.6,
-            "callbackTimeMs": 854.4000000357628
+            "timestampMs": 847,
+            "callbackTimeMs": 849.3000000119209
           },
           {
-            "timestampMs": 869.2,
-            "callbackTimeMs": 870
+            "timestampMs": 863.6,
+            "callbackTimeMs": 865.5
           },
           {
-            "timestampMs": 885.9,
-            "callbackTimeMs": 886.6999999880791
+            "timestampMs": 880.3,
+            "callbackTimeMs": 882.7000000476837
           },
           {
-            "timestampMs": 902.6,
-            "callbackTimeMs": 904.1000000238419
+            "timestampMs": 897,
+            "callbackTimeMs": 897.8000000119209
           },
           {
-            "timestampMs": 919.2,
-            "callbackTimeMs": 920.8000000119209
+            "timestampMs": 913.7,
+            "callbackTimeMs": 915.8000000119209
           },
           {
-            "timestampMs": 935.9,
-            "callbackTimeMs": 937.5
+            "timestampMs": 930.3,
+            "callbackTimeMs": 931.4000000357628
           },
           {
-            "timestampMs": 952.5,
-            "callbackTimeMs": 953.3000000119209
+            "timestampMs": 947,
+            "callbackTimeMs": 949.2000000476837
           },
           {
-            "timestampMs": 969.3,
-            "callbackTimeMs": 970.1999999880791
+            "timestampMs": 963.7,
+            "callbackTimeMs": 964.8000000119209
           },
           {
-            "timestampMs": 985.9,
-            "callbackTimeMs": 987.1999999880791
+            "timestampMs": 980.3,
+            "callbackTimeMs": 981.7000000476837
           },
           {
-            "timestampMs": 1002.6,
-            "callbackTimeMs": 1004
+            "timestampMs": 997,
+            "callbackTimeMs": 998.8000000119209
           },
           {
-            "timestampMs": 1019.2,
-            "callbackTimeMs": 1020.1999999880791
+            "timestampMs": 1013.7,
+            "callbackTimeMs": 1013.9000000357628
           },
           {
-            "timestampMs": 1035.9,
-            "callbackTimeMs": 1037.699999988079
+            "timestampMs": 1030.4,
+            "callbackTimeMs": 1032.6000000238419
           },
           {
-            "timestampMs": 1052.5,
-            "callbackTimeMs": 1054
+            "timestampMs": 1047,
+            "callbackTimeMs": 1049.2000000476837
           },
           {
-            "timestampMs": 1069.2,
-            "callbackTimeMs": 1070.6000000238419
+            "timestampMs": 1063.7,
+            "callbackTimeMs": 1065.800000011921
           },
           {
-            "timestampMs": 1085.9,
-            "callbackTimeMs": 1087
+            "timestampMs": 1080.3,
+            "callbackTimeMs": 1082.5
           },
           {
-            "timestampMs": 1102.5,
-            "callbackTimeMs": 1103.4000000357628
+            "timestampMs": 1097,
+            "callbackTimeMs": 1097.9000000357628
           },
           {
-            "timestampMs": 1119.2,
-            "callbackTimeMs": 1120.800000011921
+            "timestampMs": 1113.7,
+            "callbackTimeMs": 1115.9000000357628
           },
           {
-            "timestampMs": 1135.9,
-            "callbackTimeMs": 1137.4000000357628
+            "timestampMs": 1130.4,
+            "callbackTimeMs": 1132.1000000238419
           },
           {
-            "timestampMs": 1152.5,
-            "callbackTimeMs": 1153.4000000357628
+            "timestampMs": 1147,
+            "callbackTimeMs": 1149.300000011921
           },
           {
-            "timestampMs": 1169.2,
-            "callbackTimeMs": 1170.5
+            "timestampMs": 1163.7,
+            "callbackTimeMs": 1164.4000000357628
           },
           {
-            "timestampMs": 1185.9,
-            "callbackTimeMs": 1187.6000000238419
+            "timestampMs": 1180.3,
+            "callbackTimeMs": 1182.6000000238419
           },
           {
-            "timestampMs": 1202.5,
-            "callbackTimeMs": 1204.199999988079
+            "timestampMs": 1197,
+            "callbackTimeMs": 1198.300000011921
           },
           {
-            "timestampMs": 1219.2,
-            "callbackTimeMs": 1220.699999988079
+            "timestampMs": 1213.6,
+            "callbackTimeMs": 1215
           },
           {
-            "timestampMs": 1235.9,
-            "callbackTimeMs": 1237.4000000357628
+            "timestampMs": 1230.3,
+            "callbackTimeMs": 1232.9000000357628
           },
           {
-            "timestampMs": 1252.6,
-            "callbackTimeMs": 1254.199999988079
+            "timestampMs": 1246.9,
+            "callbackTimeMs": 1248.7000000476837
           },
           {
-            "timestampMs": 1269.2,
-            "callbackTimeMs": 1270.300000011921
+            "timestampMs": 1263.6,
+            "callbackTimeMs": 1265.2000000476837
           },
           {
-            "timestampMs": 1285.9,
-            "callbackTimeMs": 1287
+            "timestampMs": 1280.3,
+            "callbackTimeMs": 1281.1000000238419
           },
           {
-            "timestampMs": 1302.5,
-            "callbackTimeMs": 1304.199999988079
+            "timestampMs": 1297,
+            "callbackTimeMs": 1299.5
           },
           {
-            "timestampMs": 1319.2,
-            "callbackTimeMs": 1320.800000011921
+            "timestampMs": 1313.6,
+            "callbackTimeMs": 1315.300000011921
           },
           {
-            "timestampMs": 1335.9,
-            "callbackTimeMs": 1337.6000000238419
+            "timestampMs": 1330.4,
+            "callbackTimeMs": 1331.4000000357628
           },
           {
-            "timestampMs": 1352.5,
-            "callbackTimeMs": 1354.199999988079
+            "timestampMs": 1347,
+            "callbackTimeMs": 1348.7000000476837
           },
           {
-            "timestampMs": 1369.2,
-            "callbackTimeMs": 1370.800000011921
+            "timestampMs": 1363.7,
+            "callbackTimeMs": 1364.6000000238419
           },
           {
-            "timestampMs": 1385.9,
-            "callbackTimeMs": 1387.4000000357628
+            "timestampMs": 1380.4,
+            "callbackTimeMs": 1382.800000011921
           },
           {
-            "timestampMs": 1402.6,
-            "callbackTimeMs": 1404.199999988079
+            "timestampMs": 1397,
+            "callbackTimeMs": 1398.5
           },
           {
-            "timestampMs": 1419.2,
-            "callbackTimeMs": 1420.699999988079
+            "timestampMs": 1413.7,
+            "callbackTimeMs": 1415.800000011921
           },
           {
-            "timestampMs": 1435.9,
-            "callbackTimeMs": 1437.4000000357628
+            "timestampMs": 1430.3,
+            "callbackTimeMs": 1432.7000000476837
           },
           {
-            "timestampMs": 1452.6,
-            "callbackTimeMs": 1454
+            "timestampMs": 1446.9,
+            "callbackTimeMs": 1447.800000011921
           },
           {
-            "timestampMs": 1469.2,
-            "callbackTimeMs": 1470.199999988079
+            "timestampMs": 1463.6,
+            "callbackTimeMs": 1466
           },
           {
-            "timestampMs": 1485.9,
-            "callbackTimeMs": 1487.199999988079
+            "timestampMs": 1480.3,
+            "callbackTimeMs": 1480.800000011921
           },
           {
-            "timestampMs": 1502.5,
-            "callbackTimeMs": 1504.199999988079
+            "timestampMs": 1497,
+            "callbackTimeMs": 1499.300000011921
           },
           {
-            "timestampMs": 1519.2,
-            "callbackTimeMs": 1520.9000000357628
+            "timestampMs": 1513.6,
+            "callbackTimeMs": 1516
           },
           {
-            "timestampMs": 1535.9,
-            "callbackTimeMs": 1537.6000000238419
+            "timestampMs": 1530.3,
+            "callbackTimeMs": 1531.300000011921
           },
           {
-            "timestampMs": 1552.6,
-            "callbackTimeMs": 1553.800000011921
+            "timestampMs": 1547,
+            "callbackTimeMs": 1549.2000000476837
           },
           {
-            "timestampMs": 1569.2,
-            "callbackTimeMs": 1570.199999988079
+            "timestampMs": 1563.6,
+            "callbackTimeMs": 1564.300000011921
           },
           {
-            "timestampMs": 1585.9,
-            "callbackTimeMs": 1587.6000000238419
+            "timestampMs": 1580.3,
+            "callbackTimeMs": 1582.6000000238419
           },
           {
-            "timestampMs": 1602.5,
-            "callbackTimeMs": 1604.4000000357628
+            "timestampMs": 1596.9,
+            "callbackTimeMs": 1597.9000000357628
           },
           {
-            "timestampMs": 1619.2,
-            "callbackTimeMs": 1620.6000000238419
+            "timestampMs": 1613.6,
+            "callbackTimeMs": 1615.800000011921
           },
           {
-            "timestampMs": 1635.8,
-            "callbackTimeMs": 1637.5
+            "timestampMs": 1630.3,
+            "callbackTimeMs": 1632.5
           },
           {
-            "timestampMs": 1652.6,
-            "callbackTimeMs": 1654.300000011921
+            "timestampMs": 1646.9,
+            "callbackTimeMs": 1648.5
           },
           {
-            "timestampMs": 1669.2,
-            "callbackTimeMs": 1670.300000011921
+            "timestampMs": 1663.7,
+            "callbackTimeMs": 1664.2000000476837
           },
           {
-            "timestampMs": 1685.8,
-            "callbackTimeMs": 1687.6000000238419
+            "timestampMs": 1680.3,
+            "callbackTimeMs": 1681.300000011921
           },
           {
-            "timestampMs": 1702.6,
-            "callbackTimeMs": 1704.1000000238419
+            "timestampMs": 1697,
+            "callbackTimeMs": 1699.6000000238419
           }
         ]
       },
       "frames": {
-        "durationMs": 1575.4000000357628,
+        "durationMs": 1570.7999999523163,
         "deliveredCallbacks": 94,
-        "deliveredFps": 59.6673860593285,
+        "deliveredFps": 59.84211866746467,
         "intervalIndexes": [
           0,
           1,
@@ -565,10 +565,10 @@
     "expanded": {
       "observation": {
         "clock": "browser-performance",
-        "timeOriginMs": 1789433275453.7,
+        "timeOriginMs": 1789434438473,
         "name": "logical-expanded",
-        "startTimeMs": 1716.800000011921,
-        "endTimeMs": 4285.699999988079,
+        "startTimeMs": 1708.4000000357628,
+        "endTimeMs": 4498.400000035763,
         "inputs": {
           "events": {
             "keydown": 1,
@@ -591,620 +591,672 @@
           {
             "operation": "bufferSubData",
             "target": 34962,
-            "calls": 71,
+            "calls": 53,
             "thrownCalls": 0,
             "unknownByteCalls": 0,
             "specifiedStorageBytes": 0,
-            "submittedDataBytes": 23808432,
-            "largestSubmissionBytes": 470016,
-            "synchronousCallMilliseconds": 2.099999964237213
+            "submittedDataBytes": 74998416,
+            "largestSubmissionBytes": 3952320,
+            "synchronousCallMilliseconds": 209.29999995231628
           },
           {
             "operation": "bufferSubData",
             "target": 34963,
-            "calls": 18,
+            "calls": 15,
             "thrownCalls": 0,
             "unknownByteCalls": 0,
             "specifiedStorageBytes": 0,
-            "submittedDataBytes": 68160,
-            "largestSubmissionBytes": 5328,
-            "synchronousCallMilliseconds": 0
+            "submittedDataBytes": 25308960,
+            "largestSubmissionBytes": 1838352,
+            "synchronousCallMilliseconds": 0.19999998807907104
           },
           {
             "operation": "bufferData",
             "target": 34962,
-            "calls": 9,
+            "calls": 10,
             "thrownCalls": 0,
             "unknownByteCalls": 0,
-            "specifiedStorageBytes": 3497184,
-            "submittedDataBytes": 3497184,
-            "largestSubmissionBytes": 470016,
-            "synchronousCallMilliseconds": 0.4999999403953552
+            "specifiedStorageBytes": 10782720,
+            "submittedDataBytes": 10782720,
+            "largestSubmissionBytes": 4867776,
+            "synchronousCallMilliseconds": 1.199999988079071
           },
           {
             "operation": "bufferData",
             "target": 34963,
-            "calls": 9,
+            "calls": 11,
             "thrownCalls": 0,
             "unknownByteCalls": 0,
-            "specifiedStorageBytes": 845568,
-            "submittedDataBytes": 845568,
-            "largestSubmissionBytes": 113664,
-            "synchronousCallMilliseconds": 0
+            "specifiedStorageBytes": 6005800,
+            "submittedDataBytes": 6005800,
+            "largestSubmissionBytes": 2446096,
+            "synchronousCallMilliseconds": 0.3999999761581421
           }
         ],
         "status": "completed",
         "frameSamples": [
           {
-            "timestampMs": 1702.6,
-            "callbackTimeMs": 1704.1000000238419
+            "timestampMs": 1697,
+            "callbackTimeMs": 1699.6000000238419
           },
           {
-            "timestampMs": 1719.2,
-            "callbackTimeMs": 1721.4000000357628
+            "timestampMs": 1713.7,
+            "callbackTimeMs": 1728.7000000476837
           },
           {
-            "timestampMs": 1735.9,
-            "callbackTimeMs": 1739.6000000238419
+            "timestampMs": 1730.3,
+            "callbackTimeMs": 1730.800000011921
           },
           {
-            "timestampMs": 1752.6,
-            "callbackTimeMs": 1753.699999988079
+            "timestampMs": 1747,
+            "callbackTimeMs": 1749.2000000476837
           },
           {
-            "timestampMs": 1769.2,
-            "callbackTimeMs": 1770.5
+            "timestampMs": 1763.6,
+            "callbackTimeMs": 1763.9000000357628
           },
           {
-            "timestampMs": 1785.8,
-            "callbackTimeMs": 1852.199999988079
+            "timestampMs": 1780.3,
+            "callbackTimeMs": 1846.4000000357628
           },
           {
-            "timestampMs": 1835.8,
-            "callbackTimeMs": 1855.6000000238419
+            "timestampMs": 1830.3,
+            "callbackTimeMs": 1867.4000000357628
           },
           {
-            "timestampMs": 1869.2,
-            "callbackTimeMs": 1871.6000000238419
+            "timestampMs": 1863.6,
+            "callbackTimeMs": 2084.2000000476837
           },
           {
-            "timestampMs": 1885.9,
-            "callbackTimeMs": 1888.800000011921
+            "timestampMs": 2080.3,
+            "callbackTimeMs": 2096
           },
           {
-            "timestampMs": 2085.8,
-            "callbackTimeMs": 2095.199999988079
+            "timestampMs": 2097,
+            "callbackTimeMs": 2099.5
           },
           {
-            "timestampMs": 2102.5,
-            "callbackTimeMs": 2105.600000023842
+            "timestampMs": 2113.6,
+            "callbackTimeMs": 2115
           },
           {
-            "timestampMs": 2119.1,
-            "callbackTimeMs": 2120.800000011921
+            "timestampMs": 2130.3,
+            "callbackTimeMs": 2132.800000011921
           },
           {
-            "timestampMs": 2135.9,
-            "callbackTimeMs": 2137.300000011921
+            "timestampMs": 2146.9,
+            "callbackTimeMs": 2149.5
           },
           {
-            "timestampMs": 2152.5,
-            "callbackTimeMs": 2153.5
+            "timestampMs": 2163.6,
+            "callbackTimeMs": 2164.5
           },
           {
-            "timestampMs": 2169.2,
-            "callbackTimeMs": 2170.699999988079
+            "timestampMs": 2180.2,
+            "callbackTimeMs": 2182.7000000476837
           },
           {
-            "timestampMs": 2185.9,
-            "callbackTimeMs": 2187.400000035763
+            "timestampMs": 2196.9,
+            "callbackTimeMs": 2198.2000000476837
           },
           {
-            "timestampMs": 2202.5,
-            "callbackTimeMs": 2204
+            "timestampMs": 2213.6,
+            "callbackTimeMs": 2216
           },
           {
-            "timestampMs": 2219.2,
-            "callbackTimeMs": 2220.199999988079
+            "timestampMs": 2230.3,
+            "callbackTimeMs": 2232.300000011921
           },
           {
-            "timestampMs": 2235.8,
-            "callbackTimeMs": 2237.400000035763
+            "timestampMs": 2247,
+            "callbackTimeMs": 2249.400000035763
           },
           {
-            "timestampMs": 2252.5,
-            "callbackTimeMs": 2253.199999988079
+            "timestampMs": 2263.6,
+            "callbackTimeMs": 2266.100000023842
           },
           {
-            "timestampMs": 2269.2,
-            "callbackTimeMs": 2270.300000011921
+            "timestampMs": 2280.3,
+            "callbackTimeMs": 2282.900000035763
           },
           {
-            "timestampMs": 2285.8,
-            "callbackTimeMs": 2287
+            "timestampMs": 2297,
+            "callbackTimeMs": 2299.600000023842
           },
           {
-            "timestampMs": 2302.5,
-            "callbackTimeMs": 2304
+            "timestampMs": 2313.6,
+            "callbackTimeMs": 2316.2000000476837
           },
           {
-            "timestampMs": 2319.2,
-            "callbackTimeMs": 2319.699999988079
+            "timestampMs": 2330.3,
+            "callbackTimeMs": 2332.900000035763
           },
           {
-            "timestampMs": 2335.8,
-            "callbackTimeMs": 2337.400000035763
+            "timestampMs": 2346.9,
+            "callbackTimeMs": 2348.7000000476837
           },
           {
-            "timestampMs": 2352.5,
-            "callbackTimeMs": 2353.699999988079
+            "timestampMs": 2363.6,
+            "callbackTimeMs": 2365.600000023842
           },
           {
-            "timestampMs": 2369.1,
-            "callbackTimeMs": 2376.300000011921
+            "timestampMs": 2380.3,
+            "callbackTimeMs": 2381.800000011921
           },
           {
-            "timestampMs": 2385.8,
-            "callbackTimeMs": 2386.300000011921
+            "timestampMs": 2396.9,
+            "callbackTimeMs": 2400.2000000476837
           },
           {
-            "timestampMs": 2402.5,
-            "callbackTimeMs": 2404.300000011921
+            "timestampMs": 2413.6,
+            "callbackTimeMs": 2416.7000000476837
           },
           {
-            "timestampMs": 2419.2,
-            "callbackTimeMs": 2420.199999988079
+            "timestampMs": 2430.3,
+            "callbackTimeMs": 2433.5
           },
           {
-            "timestampMs": 2435.8,
-            "callbackTimeMs": 2438.5
+            "timestampMs": 2446.9,
+            "callbackTimeMs": 2449.600000023842
           },
           {
-            "timestampMs": 2452.5,
-            "callbackTimeMs": 2453.100000023842
+            "timestampMs": 2463.6,
+            "callbackTimeMs": 2464.900000035763
           },
           {
-            "timestampMs": 2469.1,
-            "callbackTimeMs": 2472.400000035763
+            "timestampMs": 2480.3,
+            "callbackTimeMs": 2483.300000011921
           },
           {
-            "timestampMs": 2485.8,
-            "callbackTimeMs": 2488.699999988079
+            "timestampMs": 2496.9,
+            "callbackTimeMs": 2500.300000011921
           },
           {
-            "timestampMs": 2502.5,
-            "callbackTimeMs": 2504.300000011921
+            "timestampMs": 2513.6,
+            "callbackTimeMs": 2516.900000035763
           },
           {
-            "timestampMs": 2519.2,
-            "callbackTimeMs": 2520.699999988079
+            "timestampMs": 2530.3,
+            "callbackTimeMs": 2532.600000023842
           },
           {
-            "timestampMs": 2535.9,
-            "callbackTimeMs": 2538.300000011921
+            "timestampMs": 2546.9,
+            "callbackTimeMs": 2550.100000023842
           },
           {
-            "timestampMs": 2552.5,
-            "callbackTimeMs": 2554.900000035763
+            "timestampMs": 2563.6,
+            "callbackTimeMs": 2564.900000035763
           },
           {
-            "timestampMs": 2569.1,
-            "callbackTimeMs": 2571
+            "timestampMs": 2580.2,
+            "callbackTimeMs": 2583
           },
           {
-            "timestampMs": 2585.8,
-            "callbackTimeMs": 2587.400000035763
+            "timestampMs": 2596.9,
+            "callbackTimeMs": 2599.7000000476837
           },
           {
-            "timestampMs": 2602.5,
-            "callbackTimeMs": 2605.199999988079
+            "timestampMs": 2613.6,
+            "callbackTimeMs": 2628.800000011921
           },
           {
-            "timestampMs": 2619.1,
-            "callbackTimeMs": 2621.300000011921
+            "timestampMs": 2630.2,
+            "callbackTimeMs": 2632.2000000476837
           },
           {
-            "timestampMs": 2635.8,
-            "callbackTimeMs": 2638.5
+            "timestampMs": 2646.9,
+            "callbackTimeMs": 2649.400000035763
           },
           {
-            "timestampMs": 2652.5,
-            "callbackTimeMs": 2653.900000035763
+            "timestampMs": 2663.6,
+            "callbackTimeMs": 2666.100000023842
           },
           {
-            "timestampMs": 2669.1,
-            "callbackTimeMs": 2671.5
+            "timestampMs": 2680.2,
+            "callbackTimeMs": 2682
           },
           {
-            "timestampMs": 2685.8,
-            "callbackTimeMs": 2698.699999988079
+            "timestampMs": 2696.9,
+            "callbackTimeMs": 2702.300000011921
           },
           {
-            "timestampMs": 2702.5,
-            "callbackTimeMs": 2704
+            "timestampMs": 2713.6,
+            "callbackTimeMs": 2727.800000011921
           },
           {
-            "timestampMs": 2719.2,
-            "callbackTimeMs": 2719.800000011921
+            "timestampMs": 2730.3,
+            "callbackTimeMs": 2743.100000023842
           },
           {
-            "timestampMs": 2735.8,
-            "callbackTimeMs": 2738.199999988079
+            "timestampMs": 2746.9,
+            "callbackTimeMs": 2758.2000000476837
           },
           {
-            "timestampMs": 2752.5,
-            "callbackTimeMs": 2754.100000023842
+            "timestampMs": 2763.6,
+            "callbackTimeMs": 2773.400000035763
           },
           {
-            "timestampMs": 2769.2,
-            "callbackTimeMs": 2770.699999988079
+            "timestampMs": 2780.2,
+            "callbackTimeMs": 2793.300000011921
           },
           {
-            "timestampMs": 2785.8,
-            "callbackTimeMs": 2786.5
+            "timestampMs": 2796.9,
+            "callbackTimeMs": 2810.400000035763
           },
           {
-            "timestampMs": 2802.5,
-            "callbackTimeMs": 2804
+            "timestampMs": 2813.6,
+            "callbackTimeMs": 2826.300000011921
           },
           {
-            "timestampMs": 2819.2,
-            "callbackTimeMs": 2820.699999988079
+            "timestampMs": 2830.3,
+            "callbackTimeMs": 2840.400000035763
           },
           {
-            "timestampMs": 2835.8,
-            "callbackTimeMs": 2837.199999988079
+            "timestampMs": 2846.9,
+            "callbackTimeMs": 2857.900000035763
           },
           {
-            "timestampMs": 2852.5,
-            "callbackTimeMs": 2853.300000011921
+            "timestampMs": 2863.6,
+            "callbackTimeMs": 2876.400000035763
           },
           {
-            "timestampMs": 2869.1,
-            "callbackTimeMs": 2870
+            "timestampMs": 2880.2,
+            "callbackTimeMs": 2893.100000023842
           },
           {
-            "timestampMs": 2885.8,
-            "callbackTimeMs": 2887.400000035763
+            "timestampMs": 2896.9,
+            "callbackTimeMs": 2908.100000023842
           },
           {
-            "timestampMs": 2902.5,
-            "callbackTimeMs": 2903.900000035763
+            "timestampMs": 2913.6,
+            "callbackTimeMs": 2932.5
           },
           {
-            "timestampMs": 2919.2,
-            "callbackTimeMs": 2919.800000011921
+            "timestampMs": 2930.2,
+            "callbackTimeMs": 2933.5
           },
           {
-            "timestampMs": 2935.8,
-            "callbackTimeMs": 2937.300000011921
+            "timestampMs": 2946.9,
+            "callbackTimeMs": 2947.7000000476837
           },
           {
-            "timestampMs": 2952.5,
-            "callbackTimeMs": 2954
+            "timestampMs": 2963.6,
+            "callbackTimeMs": 2965.800000011921
           },
           {
-            "timestampMs": 2969.1,
-            "callbackTimeMs": 2970.699999988079
+            "timestampMs": 2980.3,
+            "callbackTimeMs": 2981.800000011921
           },
           {
-            "timestampMs": 2985.8,
-            "callbackTimeMs": 2986.5
+            "timestampMs": 2996.9,
+            "callbackTimeMs": 2999.300000011921
           },
           {
-            "timestampMs": 3002.5,
-            "callbackTimeMs": 3003.800000011921
+            "timestampMs": 3013.6,
+            "callbackTimeMs": 3014.100000023842
           },
           {
-            "timestampMs": 3019.2,
-            "callbackTimeMs": 3020.699999988079
+            "timestampMs": 3030.2,
+            "callbackTimeMs": 3031.300000011921
           },
           {
-            "timestampMs": 3035.8,
-            "callbackTimeMs": 3037.199999988079
+            "timestampMs": 3046.9,
+            "callbackTimeMs": 3049.300000011921
           },
           {
-            "timestampMs": 3052.5,
-            "callbackTimeMs": 3053.100000023842
+            "timestampMs": 3063.6,
+            "callbackTimeMs": 3065.7000000476837
           },
           {
-            "timestampMs": 3069.1,
-            "callbackTimeMs": 3069.800000011921
+            "timestampMs": 3080.3,
+            "callbackTimeMs": 3082.800000011921
           },
           {
-            "timestampMs": 3085.8,
-            "callbackTimeMs": 3087.400000035763
+            "timestampMs": 3096.9,
+            "callbackTimeMs": 3097.900000035763
           },
           {
-            "timestampMs": 3102.4,
-            "callbackTimeMs": 3104.300000011921
+            "timestampMs": 3113.6,
+            "callbackTimeMs": 3114.300000011921
           },
           {
-            "timestampMs": 3119.1,
-            "callbackTimeMs": 3120.300000011921
+            "timestampMs": 3130.2,
+            "callbackTimeMs": 3132.800000011921
           },
           {
-            "timestampMs": 3135.8,
-            "callbackTimeMs": 3138
+            "timestampMs": 3146.9,
+            "callbackTimeMs": 3149.400000035763
           },
           {
-            "timestampMs": 3152.5,
-            "callbackTimeMs": 3155.300000011921
+            "timestampMs": 3163.6,
+            "callbackTimeMs": 3164.5
           },
           {
-            "timestampMs": 3169.1,
-            "callbackTimeMs": 3171.400000035763
+            "timestampMs": 3180.2,
+            "callbackTimeMs": 3182.600000023842
           },
           {
-            "timestampMs": 3185.9,
-            "callbackTimeMs": 3187.100000023842
+            "timestampMs": 3196.9,
+            "callbackTimeMs": 3199.300000011921
           },
           {
-            "timestampMs": 3202.5,
-            "callbackTimeMs": 3204.300000011921
+            "timestampMs": 3213.6,
+            "callbackTimeMs": 3215
           },
           {
-            "timestampMs": 3219.1,
-            "callbackTimeMs": 3221
+            "timestampMs": 3230.2,
+            "callbackTimeMs": 3233.400000035763
           },
           {
-            "timestampMs": 3235.8,
-            "callbackTimeMs": 3237.699999988079
+            "timestampMs": 3246.9,
+            "callbackTimeMs": 3249.800000011921
           },
           {
-            "timestampMs": 3252.5,
-            "callbackTimeMs": 3253.800000011921
+            "timestampMs": 3263.6,
+            "callbackTimeMs": 3265.5
           },
           {
-            "timestampMs": 3269.1,
-            "callbackTimeMs": 3270
+            "timestampMs": 3280.2,
+            "callbackTimeMs": 3282.7000000476837
           },
           {
-            "timestampMs": 3285.8,
-            "callbackTimeMs": 3288.5
+            "timestampMs": 3296.9,
+            "callbackTimeMs": 3297.7000000476837
           },
           {
-            "timestampMs": 3302.5,
-            "callbackTimeMs": 3304.600000023842
+            "timestampMs": 3313.6,
+            "callbackTimeMs": 3316.300000011921
           },
           {
-            "timestampMs": 3319.1,
-            "callbackTimeMs": 3320.699999988079
+            "timestampMs": 3330.2,
+            "callbackTimeMs": 3331.300000011921
           },
           {
-            "timestampMs": 3335.8,
-            "callbackTimeMs": 3336.600000023842
+            "timestampMs": 3346.9,
+            "callbackTimeMs": 3349.7000000476837
           },
           {
-            "timestampMs": 3352.5,
-            "callbackTimeMs": 3354.400000035763
+            "timestampMs": 3363.6,
+            "callbackTimeMs": 3365.300000011921
           },
           {
-            "timestampMs": 3369.2,
-            "callbackTimeMs": 3371.5
+            "timestampMs": 3380.2,
+            "callbackTimeMs": 3383.5
           },
           {
-            "timestampMs": 3385.8,
-            "callbackTimeMs": 3387.100000023842
+            "timestampMs": 3396.9,
+            "callbackTimeMs": 3398.7000000476837
           },
           {
-            "timestampMs": 3402.5,
-            "callbackTimeMs": 3403.300000011921
+            "timestampMs": 3413.6,
+            "callbackTimeMs": 3416.300000011921
           },
           {
-            "timestampMs": 3419.2,
-            "callbackTimeMs": 3421.5
+            "timestampMs": 3430.2,
+            "callbackTimeMs": 3433
           },
           {
-            "timestampMs": 3435.7,
-            "callbackTimeMs": 3437.800000011921
+            "timestampMs": 3446.9,
+            "callbackTimeMs": 3448.800000011921
           },
           {
-            "timestampMs": 3452.5,
-            "callbackTimeMs": 3453.699999988079
+            "timestampMs": 3463.6,
+            "callbackTimeMs": 3466.7000000476837
           },
           {
-            "timestampMs": 3469.1,
-            "callbackTimeMs": 3470.699999988079
+            "timestampMs": 3480.2,
+            "callbackTimeMs": 3482
           },
           {
-            "timestampMs": 3485.8,
-            "callbackTimeMs": 3487.800000011921
+            "timestampMs": 3496.9,
+            "callbackTimeMs": 3499.7000000476837
           },
           {
-            "timestampMs": 3502.5,
-            "callbackTimeMs": 3504.5
+            "timestampMs": 3513.6,
+            "callbackTimeMs": 3514.600000023842
           },
           {
-            "timestampMs": 3519.1,
-            "callbackTimeMs": 3520.800000011921
+            "timestampMs": 3530.3,
+            "callbackTimeMs": 3531.900000035763
           },
           {
-            "timestampMs": 3535.8,
-            "callbackTimeMs": 3537
+            "timestampMs": 3546.9,
+            "callbackTimeMs": 3549.300000011921
           },
           {
-            "timestampMs": 3552.5,
-            "callbackTimeMs": 3554.800000011921
+            "timestampMs": 3563.6,
+            "callbackTimeMs": 3565.800000011921
           },
           {
-            "timestampMs": 3569.2,
-            "callbackTimeMs": 3571.100000023842
+            "timestampMs": 3580.2,
+            "callbackTimeMs": 3583.100000023842
           },
           {
-            "timestampMs": 3585.7,
-            "callbackTimeMs": 3587
+            "timestampMs": 3596.9,
+            "callbackTimeMs": 3600.400000035763
           },
           {
-            "timestampMs": 3602.4,
-            "callbackTimeMs": 3604
+            "timestampMs": 3613.6,
+            "callbackTimeMs": 3616.100000023842
           },
           {
-            "timestampMs": 3619.1,
-            "callbackTimeMs": 3620.600000023842
+            "timestampMs": 3630.2,
+            "callbackTimeMs": 3633.300000011921
           },
           {
-            "timestampMs": 3635.8,
-            "callbackTimeMs": 3636.400000035763
+            "timestampMs": 3646.9,
+            "callbackTimeMs": 3649.7000000476837
           },
           {
-            "timestampMs": 3652.5,
-            "callbackTimeMs": 3653.400000035763
+            "timestampMs": 3663.6,
+            "callbackTimeMs": 3665.600000023842
           },
           {
-            "timestampMs": 3669.1,
-            "callbackTimeMs": 3669.900000035763
+            "timestampMs": 3680.2,
+            "callbackTimeMs": 3682.400000035763
           },
           {
-            "timestampMs": 3685.8,
-            "callbackTimeMs": 3687.300000011921
+            "timestampMs": 3696.9,
+            "callbackTimeMs": 3698.400000035763
           },
           {
-            "timestampMs": 3702.5,
-            "callbackTimeMs": 3704.100000023842
+            "timestampMs": 3713.6,
+            "callbackTimeMs": 3716.600000023842
           },
           {
-            "timestampMs": 3719.1,
-            "callbackTimeMs": 3720.100000023842
+            "timestampMs": 3730.2,
+            "callbackTimeMs": 3731.300000011921
           },
           {
-            "timestampMs": 3735.8,
-            "callbackTimeMs": 3737.199999988079
+            "timestampMs": 3746.9,
+            "callbackTimeMs": 3749.100000023842
           },
           {
-            "timestampMs": 3752.5,
-            "callbackTimeMs": 3754
+            "timestampMs": 3763.5,
+            "callbackTimeMs": 3764.7000000476837
           },
           {
-            "timestampMs": 3769.2,
-            "callbackTimeMs": 3770.699999988079
+            "timestampMs": 3780.2,
+            "callbackTimeMs": 3783
           },
           {
-            "timestampMs": 3785.7,
-            "callbackTimeMs": 3786.699999988079
+            "timestampMs": 3796.9,
+            "callbackTimeMs": 3798.7000000476837
           },
           {
-            "timestampMs": 3802.5,
-            "callbackTimeMs": 3803.800000011921
+            "timestampMs": 3813.5,
+            "callbackTimeMs": 3815
           },
           {
-            "timestampMs": 3819.1,
-            "callbackTimeMs": 3820.800000011921
+            "timestampMs": 3830.2,
+            "callbackTimeMs": 3833.400000035763
           },
           {
-            "timestampMs": 3835.8,
-            "callbackTimeMs": 3837.100000023842
+            "timestampMs": 3846.9,
+            "callbackTimeMs": 3850.2000000476837
           },
           {
-            "timestampMs": 3852.5,
-            "callbackTimeMs": 3853.400000035763
+            "timestampMs": 3863.6,
+            "callbackTimeMs": 3866.600000023842
           },
           {
-            "timestampMs": 3869.2,
-            "callbackTimeMs": 3869.5
+            "timestampMs": 3880.2,
+            "callbackTimeMs": 3882
           },
           {
-            "timestampMs": 3885.8,
-            "callbackTimeMs": 3887.300000011921
+            "timestampMs": 3896.9,
+            "callbackTimeMs": 3900.100000023842
           },
           {
-            "timestampMs": 3902.5,
-            "callbackTimeMs": 3902.900000035763
+            "timestampMs": 3913.6,
+            "callbackTimeMs": 3916.800000011921
           },
           {
-            "timestampMs": 3919.1,
-            "callbackTimeMs": 3920.100000023842
+            "timestampMs": 3930.2,
+            "callbackTimeMs": 3931.900000035763
           },
           {
-            "timestampMs": 3935.7,
-            "callbackTimeMs": 3936.300000011921
+            "timestampMs": 3946.8,
+            "callbackTimeMs": 3949.800000011921
           },
           {
-            "timestampMs": 3952.4,
-            "callbackTimeMs": 3953.900000035763
+            "timestampMs": 3963.6,
+            "callbackTimeMs": 3964.7000000476837
           },
           {
-            "timestampMs": 3969.1,
-            "callbackTimeMs": 3970.600000023842
+            "timestampMs": 3980.2,
+            "callbackTimeMs": 3982.600000023842
           },
           {
-            "timestampMs": 3985.7,
-            "callbackTimeMs": 3986.900000035763
+            "timestampMs": 3996.8,
+            "callbackTimeMs": 4000
           },
           {
-            "timestampMs": 4002.4,
-            "callbackTimeMs": 4003.5
+            "timestampMs": 4013.6,
+            "callbackTimeMs": 4015.100000023842
           },
           {
-            "timestampMs": 4019.1,
-            "callbackTimeMs": 4019.5
+            "timestampMs": 4030.2,
+            "callbackTimeMs": 4033.400000035763
           },
           {
-            "timestampMs": 4035.8,
-            "callbackTimeMs": 4037.300000011921
+            "timestampMs": 4046.9,
+            "callbackTimeMs": 4049.5
           },
           {
-            "timestampMs": 4052.4,
-            "callbackTimeMs": 4053.5
+            "timestampMs": 4063.6,
+            "callbackTimeMs": 4066.600000023842
           },
           {
-            "timestampMs": 4069.1,
-            "callbackTimeMs": 4069.900000035763
+            "timestampMs": 4080.2,
+            "callbackTimeMs": 4082.400000035763
           },
           {
-            "timestampMs": 4085.8,
-            "callbackTimeMs": 4086.300000011921
+            "timestampMs": 4096.8,
+            "callbackTimeMs": 4099.800000011921
           },
           {
-            "timestampMs": 4102.5,
-            "callbackTimeMs": 4103.900000035763
+            "timestampMs": 4113.5,
+            "callbackTimeMs": 4116.400000035763
           },
           {
-            "timestampMs": 4119.1,
-            "callbackTimeMs": 4120.199999988079
+            "timestampMs": 4130.2,
+            "callbackTimeMs": 4133.400000035763
           },
           {
-            "timestampMs": 4135.7,
-            "callbackTimeMs": 4136.699999988079
+            "timestampMs": 4146.9,
+            "callbackTimeMs": 4149.900000035763
           },
           {
-            "timestampMs": 4152.4,
-            "callbackTimeMs": 4153.900000035763
+            "timestampMs": 4163.5,
+            "callbackTimeMs": 4165.200000047684
           },
           {
-            "timestampMs": 4169.1,
-            "callbackTimeMs": 4170.900000035763
+            "timestampMs": 4180.2,
+            "callbackTimeMs": 4183.300000011921
           },
           {
-            "timestampMs": 4185.8,
-            "callbackTimeMs": 4187.5
+            "timestampMs": 4196.8,
+            "callbackTimeMs": 4199.300000011921
           },
           {
-            "timestampMs": 4202.5,
-            "callbackTimeMs": 4204.400000035763
+            "timestampMs": 4213.6,
+            "callbackTimeMs": 4214.800000011921
           },
           {
-            "timestampMs": 4219.1,
-            "callbackTimeMs": 4220.600000023842
+            "timestampMs": 4230.2,
+            "callbackTimeMs": 4233.400000035763
           },
           {
-            "timestampMs": 4235.7,
-            "callbackTimeMs": 4237.800000011921
+            "timestampMs": 4246.8,
+            "callbackTimeMs": 4249.100000023842
           },
           {
-            "timestampMs": 4252.4,
-            "callbackTimeMs": 4269.600000023842
+            "timestampMs": 4263.5,
+            "callbackTimeMs": 4266.600000023842
           },
           {
-            "timestampMs": 4269.1,
-            "callbackTimeMs": 4269.900000035763
+            "timestampMs": 4280.2,
+            "callbackTimeMs": 4281.900000035763
+          },
+          {
+            "timestampMs": 4296.9,
+            "callbackTimeMs": 4299.900000035763
+          },
+          {
+            "timestampMs": 4313.5,
+            "callbackTimeMs": 4316.600000023842
+          },
+          {
+            "timestampMs": 4330.2,
+            "callbackTimeMs": 4332.800000011921
+          },
+          {
+            "timestampMs": 4346.9,
+            "callbackTimeMs": 4349.400000035763
+          },
+          {
+            "timestampMs": 4363.5,
+            "callbackTimeMs": 4365
+          },
+          {
+            "timestampMs": 4380.2,
+            "callbackTimeMs": 4383.200000047684
+          },
+          {
+            "timestampMs": 4396.8,
+            "callbackTimeMs": 4400.200000047684
+          },
+          {
+            "timestampMs": 4413.5,
+            "callbackTimeMs": 4416.5
+          },
+          {
+            "timestampMs": 4430.2,
+            "callbackTimeMs": 4431.800000011921
+          },
+          {
+            "timestampMs": 4446.9,
+            "callbackTimeMs": 4449.700000047684
+          },
+          {
+            "timestampMs": 4463.5,
+            "callbackTimeMs": 4466.700000047684
+          },
+          {
+            "timestampMs": 4480.1,
+            "callbackTimeMs": 4480.900000035763
+          },
+          {
+            "timestampMs": 4496.8,
+            "callbackTimeMs": 4498.100000023842
           }
         ]
       },
       "frames": {
-        "durationMs": 2568.899999976158,
-        "deliveredCallbacks": 140,
-        "deliveredFps": 54.498034178558655,
+        "durationMs": 2790,
+        "deliveredCallbacks": 153,
+        "deliveredFps": 54.83870967741936,
         "intervalIndexes": [
           94,
           95,
@@ -1346,16 +1398,28 @@
           231,
           232,
           233,
-          234
+          234,
+          235,
+          236,
+          237,
+          238,
+          239,
+          240,
+          241,
+          242,
+          243,
+          244,
+          245,
+          246
         ],
-        "unobservedTailMs": 0
+        "unobservedTailMs": 0.30000001192092896
       }
     }
   },
   "wholeWorkload": {
-    "durationMs": 4152.199999988079,
-    "deliveredCallbacks": 234,
-    "deliveredFps": 56.355666875553155,
+    "durationMs": 4367.699999988079,
+    "deliveredCallbacks": 247,
+    "deliveredFps": 56.551503079578296,
     "intervalIndexes": [
       0,
       1,
@@ -1591,971 +1655,1031 @@
       231,
       232,
       233,
-      234
+      234,
+      235,
+      236,
+      237,
+      238,
+      239,
+      240,
+      241,
+      242,
+      243,
+      244,
+      245,
+      246
     ],
-    "unobservedTailMs": 0,
-    "intervalCount": 235,
-    "maximumIntervalMs": 206.39999997615814,
-    "p95IntervalMs": 18.19999998807907,
+    "unobservedTailMs": 0.30000001192092896,
+    "intervalCount": 247,
+    "maximumIntervalMs": 216.80000001192093,
+    "p95IntervalMs": 18.600000023841858,
     "intervalsOver33_3Ms": 3
   },
   "browserMeasurements": {
     "clock": "browser-performance",
-    "timeOriginMs": 1789433275453.7,
-    "capturedAtMs": 4288.600000023842,
+    "timeOriginMs": 1789434438473,
+    "capturedAtMs": 4501.400000035763,
     "frameSamples": [
       {
-        "timestampMs": 119.3,
-        "callbackTimeMs": 131.60000002384186
+        "timestampMs": 113.7,
+        "callbackTimeMs": 126
       },
       {
-        "timestampMs": 135.9,
-        "callbackTimeMs": 136.9000000357628
+        "timestampMs": 130.4,
+        "callbackTimeMs": 131.4000000357628
       },
       {
-        "timestampMs": 152.6,
-        "callbackTimeMs": 187.19999998807907
+        "timestampMs": 147,
+        "callbackTimeMs": 183.60000002384186
       },
       {
-        "timestampMs": 186,
-        "callbackTimeMs": 188.30000001192093
+        "timestampMs": 180.4,
+        "callbackTimeMs": 184.80000001192093
       },
       {
-        "timestampMs": 202.6,
-        "callbackTimeMs": 204.19999998807907
+        "timestampMs": 197,
+        "callbackTimeMs": 198.20000004768372
       },
       {
-        "timestampMs": 219.3,
-        "callbackTimeMs": 220.19999998807907
+        "timestampMs": 213.7,
+        "callbackTimeMs": 216.4000000357628
       },
       {
-        "timestampMs": 235.9,
-        "callbackTimeMs": 237.30000001192093
+        "timestampMs": 230.3,
+        "callbackTimeMs": 231.10000002384186
       },
       {
-        "timestampMs": 252.6,
-        "callbackTimeMs": 253.60000002384186
+        "timestampMs": 247,
+        "callbackTimeMs": 248.60000002384186
       },
       {
-        "timestampMs": 269.3,
-        "callbackTimeMs": 270.10000002384186
+        "timestampMs": 263.7,
+        "callbackTimeMs": 266.2000000476837
       },
       {
-        "timestampMs": 285.9,
-        "callbackTimeMs": 287
+        "timestampMs": 280.3,
+        "callbackTimeMs": 281.80000001192093
       },
       {
-        "timestampMs": 302.6,
-        "callbackTimeMs": 304.10000002384186
+        "timestampMs": 297,
+        "callbackTimeMs": 299.10000002384186
       },
       {
-        "timestampMs": 319.3,
-        "callbackTimeMs": 320.60000002384186
+        "timestampMs": 313.7,
+        "callbackTimeMs": 315.5
       },
       {
-        "timestampMs": 335.9,
-        "callbackTimeMs": 337.4000000357628
+        "timestampMs": 330.3,
+        "callbackTimeMs": 332.4000000357628
       },
       {
-        "timestampMs": 352.6,
-        "callbackTimeMs": 353.19999998807907
+        "timestampMs": 347.1,
+        "callbackTimeMs": 349.60000002384186
       },
       {
-        "timestampMs": 369.3,
-        "callbackTimeMs": 370.69999998807907
+        "timestampMs": 363.7,
+        "callbackTimeMs": 364.5
       },
       {
-        "timestampMs": 386,
-        "callbackTimeMs": 387.4000000357628
+        "timestampMs": 380.4,
+        "callbackTimeMs": 382.10000002384186
       },
       {
-        "timestampMs": 402.6,
-        "callbackTimeMs": 403.69999998807907
+        "timestampMs": 397,
+        "callbackTimeMs": 397.80000001192093
       },
       {
-        "timestampMs": 419.2,
-        "callbackTimeMs": 419.9000000357628
+        "timestampMs": 413.7,
+        "callbackTimeMs": 416
       },
       {
-        "timestampMs": 435.9,
-        "callbackTimeMs": 437.4000000357628
+        "timestampMs": 430.3,
+        "callbackTimeMs": 432.7000000476837
       },
       {
-        "timestampMs": 452.6,
-        "callbackTimeMs": 454.10000002384186
+        "timestampMs": 447.1,
+        "callbackTimeMs": 449.5
       },
       {
-        "timestampMs": 469.3,
-        "callbackTimeMs": 469.69999998807907
+        "timestampMs": 463.7,
+        "callbackTimeMs": 465.4000000357628
       },
       {
-        "timestampMs": 485.9,
-        "callbackTimeMs": 486.9000000357628
+        "timestampMs": 480.4,
+        "callbackTimeMs": 482.5
       },
       {
-        "timestampMs": 502.6,
-        "callbackTimeMs": 504.80000001192093
+        "timestampMs": 497.1,
+        "callbackTimeMs": 498.9000000357628
       },
       {
-        "timestampMs": 519.2,
-        "callbackTimeMs": 520.6999999880791
+        "timestampMs": 513.6,
+        "callbackTimeMs": 514.4000000357628
       },
       {
-        "timestampMs": 535.9,
-        "callbackTimeMs": 537.3000000119209
+        "timestampMs": 530.3,
+        "callbackTimeMs": 531.9000000357628
       },
       {
-        "timestampMs": 552.6,
-        "callbackTimeMs": 554
+        "timestampMs": 547,
+        "callbackTimeMs": 548.9000000357628
       },
       {
-        "timestampMs": 569.2,
-        "callbackTimeMs": 570.1999999880791
+        "timestampMs": 563.6,
+        "callbackTimeMs": 566
       },
       {
-        "timestampMs": 585.9,
-        "callbackTimeMs": 587.3000000119209
+        "timestampMs": 580.3,
+        "callbackTimeMs": 580.9000000357628
       },
       {
-        "timestampMs": 602.6,
-        "callbackTimeMs": 604
+        "timestampMs": 597,
+        "callbackTimeMs": 599
       },
       {
-        "timestampMs": 619.3,
-        "callbackTimeMs": 620.1999999880791
+        "timestampMs": 613.7,
+        "callbackTimeMs": 615.7000000476837
       },
       {
-        "timestampMs": 635.9,
-        "callbackTimeMs": 637.3000000119209
+        "timestampMs": 630.4,
+        "callbackTimeMs": 632.8000000119209
       },
       {
-        "timestampMs": 652.6,
-        "callbackTimeMs": 654.1999999880791
+        "timestampMs": 647,
+        "callbackTimeMs": 647.5
       },
       {
-        "timestampMs": 669.2,
-        "callbackTimeMs": 670
+        "timestampMs": 663.6,
+        "callbackTimeMs": 665.6000000238419
       },
       {
-        "timestampMs": 685.9,
-        "callbackTimeMs": 686.8000000119209
+        "timestampMs": 680.4,
+        "callbackTimeMs": 682.1000000238419
       },
       {
-        "timestampMs": 702.5,
-        "callbackTimeMs": 703.6999999880791
+        "timestampMs": 697,
+        "callbackTimeMs": 699.4000000357628
       },
       {
-        "timestampMs": 719.2,
-        "callbackTimeMs": 720
+        "timestampMs": 713.7,
+        "callbackTimeMs": 714.4000000357628
       },
       {
-        "timestampMs": 735.9,
-        "callbackTimeMs": 737.4000000357628
+        "timestampMs": 730.4,
+        "callbackTimeMs": 732.3000000119209
       },
       {
-        "timestampMs": 752.6,
-        "callbackTimeMs": 753.4000000357628
+        "timestampMs": 747,
+        "callbackTimeMs": 747.6000000238419
       },
       {
-        "timestampMs": 769.3,
-        "callbackTimeMs": 770.6999999880791
+        "timestampMs": 763.7,
+        "callbackTimeMs": 766.2000000476837
       },
       {
-        "timestampMs": 785.9,
-        "callbackTimeMs": 787.4000000357628
+        "timestampMs": 780.4,
+        "callbackTimeMs": 782.7000000476837
       },
       {
-        "timestampMs": 802.6,
-        "callbackTimeMs": 804.1000000238419
+        "timestampMs": 797,
+        "callbackTimeMs": 799.1000000238419
       },
       {
-        "timestampMs": 819.2,
-        "callbackTimeMs": 819.8000000119209
+        "timestampMs": 813.7,
+        "callbackTimeMs": 816.1000000238419
       },
       {
-        "timestampMs": 835.9,
-        "callbackTimeMs": 837.4000000357628
+        "timestampMs": 830.3,
+        "callbackTimeMs": 832.3000000119209
       },
       {
-        "timestampMs": 852.6,
-        "callbackTimeMs": 854.4000000357628
+        "timestampMs": 847,
+        "callbackTimeMs": 849.3000000119209
       },
       {
-        "timestampMs": 869.2,
-        "callbackTimeMs": 870
+        "timestampMs": 863.6,
+        "callbackTimeMs": 865.5
       },
       {
-        "timestampMs": 885.9,
-        "callbackTimeMs": 886.6999999880791
+        "timestampMs": 880.3,
+        "callbackTimeMs": 882.7000000476837
       },
       {
-        "timestampMs": 902.6,
-        "callbackTimeMs": 904.1000000238419
+        "timestampMs": 897,
+        "callbackTimeMs": 897.8000000119209
       },
       {
-        "timestampMs": 919.2,
-        "callbackTimeMs": 920.8000000119209
+        "timestampMs": 913.7,
+        "callbackTimeMs": 915.8000000119209
       },
       {
-        "timestampMs": 935.9,
-        "callbackTimeMs": 937.5
+        "timestampMs": 930.3,
+        "callbackTimeMs": 931.4000000357628
       },
       {
-        "timestampMs": 952.5,
-        "callbackTimeMs": 953.3000000119209
+        "timestampMs": 947,
+        "callbackTimeMs": 949.2000000476837
       },
       {
-        "timestampMs": 969.3,
-        "callbackTimeMs": 970.1999999880791
+        "timestampMs": 963.7,
+        "callbackTimeMs": 964.8000000119209
       },
       {
-        "timestampMs": 985.9,
-        "callbackTimeMs": 987.1999999880791
+        "timestampMs": 980.3,
+        "callbackTimeMs": 981.7000000476837
       },
       {
-        "timestampMs": 1002.6,
-        "callbackTimeMs": 1004
+        "timestampMs": 997,
+        "callbackTimeMs": 998.8000000119209
       },
       {
-        "timestampMs": 1019.2,
-        "callbackTimeMs": 1020.1999999880791
+        "timestampMs": 1013.7,
+        "callbackTimeMs": 1013.9000000357628
       },
       {
-        "timestampMs": 1035.9,
-        "callbackTimeMs": 1037.699999988079
+        "timestampMs": 1030.4,
+        "callbackTimeMs": 1032.6000000238419
       },
       {
-        "timestampMs": 1052.5,
-        "callbackTimeMs": 1054
+        "timestampMs": 1047,
+        "callbackTimeMs": 1049.2000000476837
       },
       {
-        "timestampMs": 1069.2,
-        "callbackTimeMs": 1070.6000000238419
+        "timestampMs": 1063.7,
+        "callbackTimeMs": 1065.800000011921
       },
       {
-        "timestampMs": 1085.9,
-        "callbackTimeMs": 1087
+        "timestampMs": 1080.3,
+        "callbackTimeMs": 1082.5
       },
       {
-        "timestampMs": 1102.5,
-        "callbackTimeMs": 1103.4000000357628
+        "timestampMs": 1097,
+        "callbackTimeMs": 1097.9000000357628
       },
       {
-        "timestampMs": 1119.2,
-        "callbackTimeMs": 1120.800000011921
+        "timestampMs": 1113.7,
+        "callbackTimeMs": 1115.9000000357628
       },
       {
-        "timestampMs": 1135.9,
-        "callbackTimeMs": 1137.4000000357628
+        "timestampMs": 1130.4,
+        "callbackTimeMs": 1132.1000000238419
       },
       {
-        "timestampMs": 1152.5,
-        "callbackTimeMs": 1153.4000000357628
+        "timestampMs": 1147,
+        "callbackTimeMs": 1149.300000011921
       },
       {
-        "timestampMs": 1169.2,
-        "callbackTimeMs": 1170.5
+        "timestampMs": 1163.7,
+        "callbackTimeMs": 1164.4000000357628
       },
       {
-        "timestampMs": 1185.9,
-        "callbackTimeMs": 1187.6000000238419
+        "timestampMs": 1180.3,
+        "callbackTimeMs": 1182.6000000238419
       },
       {
-        "timestampMs": 1202.5,
-        "callbackTimeMs": 1204.199999988079
+        "timestampMs": 1197,
+        "callbackTimeMs": 1198.300000011921
       },
       {
-        "timestampMs": 1219.2,
-        "callbackTimeMs": 1220.699999988079
+        "timestampMs": 1213.6,
+        "callbackTimeMs": 1215
       },
       {
-        "timestampMs": 1235.9,
-        "callbackTimeMs": 1237.4000000357628
+        "timestampMs": 1230.3,
+        "callbackTimeMs": 1232.9000000357628
       },
       {
-        "timestampMs": 1252.6,
-        "callbackTimeMs": 1254.199999988079
+        "timestampMs": 1246.9,
+        "callbackTimeMs": 1248.7000000476837
       },
       {
-        "timestampMs": 1269.2,
-        "callbackTimeMs": 1270.300000011921
+        "timestampMs": 1263.6,
+        "callbackTimeMs": 1265.2000000476837
       },
       {
-        "timestampMs": 1285.9,
-        "callbackTimeMs": 1287
+        "timestampMs": 1280.3,
+        "callbackTimeMs": 1281.1000000238419
       },
       {
-        "timestampMs": 1302.5,
-        "callbackTimeMs": 1304.199999988079
+        "timestampMs": 1297,
+        "callbackTimeMs": 1299.5
       },
       {
-        "timestampMs": 1319.2,
-        "callbackTimeMs": 1320.800000011921
+        "timestampMs": 1313.6,
+        "callbackTimeMs": 1315.300000011921
       },
       {
-        "timestampMs": 1335.9,
-        "callbackTimeMs": 1337.6000000238419
+        "timestampMs": 1330.4,
+        "callbackTimeMs": 1331.4000000357628
       },
       {
-        "timestampMs": 1352.5,
-        "callbackTimeMs": 1354.199999988079
+        "timestampMs": 1347,
+        "callbackTimeMs": 1348.7000000476837
       },
       {
-        "timestampMs": 1369.2,
-        "callbackTimeMs": 1370.800000011921
+        "timestampMs": 1363.7,
+        "callbackTimeMs": 1364.6000000238419
       },
       {
-        "timestampMs": 1385.9,
-        "callbackTimeMs": 1387.4000000357628
+        "timestampMs": 1380.4,
+        "callbackTimeMs": 1382.800000011921
       },
       {
-        "timestampMs": 1402.6,
-        "callbackTimeMs": 1404.199999988079
+        "timestampMs": 1397,
+        "callbackTimeMs": 1398.5
       },
       {
-        "timestampMs": 1419.2,
-        "callbackTimeMs": 1420.699999988079
+        "timestampMs": 1413.7,
+        "callbackTimeMs": 1415.800000011921
       },
       {
-        "timestampMs": 1435.9,
-        "callbackTimeMs": 1437.4000000357628
+        "timestampMs": 1430.3,
+        "callbackTimeMs": 1432.7000000476837
       },
       {
-        "timestampMs": 1452.6,
-        "callbackTimeMs": 1454
+        "timestampMs": 1446.9,
+        "callbackTimeMs": 1447.800000011921
       },
       {
-        "timestampMs": 1469.2,
-        "callbackTimeMs": 1470.199999988079
+        "timestampMs": 1463.6,
+        "callbackTimeMs": 1466
       },
       {
-        "timestampMs": 1485.9,
-        "callbackTimeMs": 1487.199999988079
+        "timestampMs": 1480.3,
+        "callbackTimeMs": 1480.800000011921
       },
       {
-        "timestampMs": 1502.5,
-        "callbackTimeMs": 1504.199999988079
+        "timestampMs": 1497,
+        "callbackTimeMs": 1499.300000011921
       },
       {
-        "timestampMs": 1519.2,
-        "callbackTimeMs": 1520.9000000357628
+        "timestampMs": 1513.6,
+        "callbackTimeMs": 1516
       },
       {
-        "timestampMs": 1535.9,
-        "callbackTimeMs": 1537.6000000238419
+        "timestampMs": 1530.3,
+        "callbackTimeMs": 1531.300000011921
       },
       {
-        "timestampMs": 1552.6,
-        "callbackTimeMs": 1553.800000011921
+        "timestampMs": 1547,
+        "callbackTimeMs": 1549.2000000476837
       },
       {
-        "timestampMs": 1569.2,
-        "callbackTimeMs": 1570.199999988079
+        "timestampMs": 1563.6,
+        "callbackTimeMs": 1564.300000011921
       },
       {
-        "timestampMs": 1585.9,
-        "callbackTimeMs": 1587.6000000238419
+        "timestampMs": 1580.3,
+        "callbackTimeMs": 1582.6000000238419
       },
       {
-        "timestampMs": 1602.5,
-        "callbackTimeMs": 1604.4000000357628
+        "timestampMs": 1596.9,
+        "callbackTimeMs": 1597.9000000357628
       },
       {
-        "timestampMs": 1619.2,
-        "callbackTimeMs": 1620.6000000238419
+        "timestampMs": 1613.6,
+        "callbackTimeMs": 1615.800000011921
       },
       {
-        "timestampMs": 1635.8,
-        "callbackTimeMs": 1637.5
+        "timestampMs": 1630.3,
+        "callbackTimeMs": 1632.5
       },
       {
-        "timestampMs": 1652.6,
-        "callbackTimeMs": 1654.300000011921
+        "timestampMs": 1646.9,
+        "callbackTimeMs": 1648.5
       },
       {
-        "timestampMs": 1669.2,
-        "callbackTimeMs": 1670.300000011921
+        "timestampMs": 1663.7,
+        "callbackTimeMs": 1664.2000000476837
       },
       {
-        "timestampMs": 1685.8,
-        "callbackTimeMs": 1687.6000000238419
+        "timestampMs": 1680.3,
+        "callbackTimeMs": 1681.300000011921
       },
       {
-        "timestampMs": 1702.6,
-        "callbackTimeMs": 1704.1000000238419
+        "timestampMs": 1697,
+        "callbackTimeMs": 1699.6000000238419
       },
       {
-        "timestampMs": 1719.2,
-        "callbackTimeMs": 1721.4000000357628
+        "timestampMs": 1713.7,
+        "callbackTimeMs": 1728.7000000476837
       },
       {
-        "timestampMs": 1735.9,
-        "callbackTimeMs": 1739.6000000238419
+        "timestampMs": 1730.3,
+        "callbackTimeMs": 1730.800000011921
       },
       {
-        "timestampMs": 1752.6,
-        "callbackTimeMs": 1753.699999988079
+        "timestampMs": 1747,
+        "callbackTimeMs": 1749.2000000476837
       },
       {
-        "timestampMs": 1769.2,
-        "callbackTimeMs": 1770.5
+        "timestampMs": 1763.6,
+        "callbackTimeMs": 1763.9000000357628
       },
       {
-        "timestampMs": 1785.8,
-        "callbackTimeMs": 1852.199999988079
+        "timestampMs": 1780.3,
+        "callbackTimeMs": 1846.4000000357628
       },
       {
-        "timestampMs": 1835.8,
-        "callbackTimeMs": 1855.6000000238419
+        "timestampMs": 1830.3,
+        "callbackTimeMs": 1867.4000000357628
       },
       {
-        "timestampMs": 1869.2,
-        "callbackTimeMs": 1871.6000000238419
+        "timestampMs": 1863.6,
+        "callbackTimeMs": 2084.2000000476837
       },
       {
-        "timestampMs": 1885.9,
-        "callbackTimeMs": 1888.800000011921
+        "timestampMs": 2080.3,
+        "callbackTimeMs": 2096
       },
       {
-        "timestampMs": 2085.8,
-        "callbackTimeMs": 2095.199999988079
+        "timestampMs": 2097,
+        "callbackTimeMs": 2099.5
       },
       {
-        "timestampMs": 2102.5,
-        "callbackTimeMs": 2105.600000023842
+        "timestampMs": 2113.6,
+        "callbackTimeMs": 2115
       },
       {
-        "timestampMs": 2119.1,
-        "callbackTimeMs": 2120.800000011921
+        "timestampMs": 2130.3,
+        "callbackTimeMs": 2132.800000011921
       },
       {
-        "timestampMs": 2135.9,
-        "callbackTimeMs": 2137.300000011921
+        "timestampMs": 2146.9,
+        "callbackTimeMs": 2149.5
       },
       {
-        "timestampMs": 2152.5,
-        "callbackTimeMs": 2153.5
+        "timestampMs": 2163.6,
+        "callbackTimeMs": 2164.5
       },
       {
-        "timestampMs": 2169.2,
-        "callbackTimeMs": 2170.699999988079
+        "timestampMs": 2180.2,
+        "callbackTimeMs": 2182.7000000476837
       },
       {
-        "timestampMs": 2185.9,
-        "callbackTimeMs": 2187.400000035763
+        "timestampMs": 2196.9,
+        "callbackTimeMs": 2198.2000000476837
       },
       {
-        "timestampMs": 2202.5,
-        "callbackTimeMs": 2204
+        "timestampMs": 2213.6,
+        "callbackTimeMs": 2216
       },
       {
-        "timestampMs": 2219.2,
-        "callbackTimeMs": 2220.199999988079
+        "timestampMs": 2230.3,
+        "callbackTimeMs": 2232.300000011921
       },
       {
-        "timestampMs": 2235.8,
-        "callbackTimeMs": 2237.400000035763
+        "timestampMs": 2247,
+        "callbackTimeMs": 2249.400000035763
       },
       {
-        "timestampMs": 2252.5,
-        "callbackTimeMs": 2253.199999988079
+        "timestampMs": 2263.6,
+        "callbackTimeMs": 2266.100000023842
       },
       {
-        "timestampMs": 2269.2,
-        "callbackTimeMs": 2270.300000011921
+        "timestampMs": 2280.3,
+        "callbackTimeMs": 2282.900000035763
       },
       {
-        "timestampMs": 2285.8,
-        "callbackTimeMs": 2287
+        "timestampMs": 2297,
+        "callbackTimeMs": 2299.600000023842
       },
       {
-        "timestampMs": 2302.5,
-        "callbackTimeMs": 2304
+        "timestampMs": 2313.6,
+        "callbackTimeMs": 2316.2000000476837
       },
       {
-        "timestampMs": 2319.2,
-        "callbackTimeMs": 2319.699999988079
+        "timestampMs": 2330.3,
+        "callbackTimeMs": 2332.900000035763
       },
       {
-        "timestampMs": 2335.8,
-        "callbackTimeMs": 2337.400000035763
+        "timestampMs": 2346.9,
+        "callbackTimeMs": 2348.7000000476837
       },
       {
-        "timestampMs": 2352.5,
-        "callbackTimeMs": 2353.699999988079
+        "timestampMs": 2363.6,
+        "callbackTimeMs": 2365.600000023842
       },
       {
-        "timestampMs": 2369.1,
-        "callbackTimeMs": 2376.300000011921
+        "timestampMs": 2380.3,
+        "callbackTimeMs": 2381.800000011921
       },
       {
-        "timestampMs": 2385.8,
-        "callbackTimeMs": 2386.300000011921
+        "timestampMs": 2396.9,
+        "callbackTimeMs": 2400.2000000476837
       },
       {
-        "timestampMs": 2402.5,
-        "callbackTimeMs": 2404.300000011921
+        "timestampMs": 2413.6,
+        "callbackTimeMs": 2416.7000000476837
       },
       {
-        "timestampMs": 2419.2,
-        "callbackTimeMs": 2420.199999988079
+        "timestampMs": 2430.3,
+        "callbackTimeMs": 2433.5
       },
       {
-        "timestampMs": 2435.8,
-        "callbackTimeMs": 2438.5
+        "timestampMs": 2446.9,
+        "callbackTimeMs": 2449.600000023842
       },
       {
-        "timestampMs": 2452.5,
-        "callbackTimeMs": 2453.100000023842
+        "timestampMs": 2463.6,
+        "callbackTimeMs": 2464.900000035763
       },
       {
-        "timestampMs": 2469.1,
-        "callbackTimeMs": 2472.400000035763
+        "timestampMs": 2480.3,
+        "callbackTimeMs": 2483.300000011921
       },
       {
-        "timestampMs": 2485.8,
-        "callbackTimeMs": 2488.699999988079
+        "timestampMs": 2496.9,
+        "callbackTimeMs": 2500.300000011921
       },
       {
-        "timestampMs": 2502.5,
-        "callbackTimeMs": 2504.300000011921
+        "timestampMs": 2513.6,
+        "callbackTimeMs": 2516.900000035763
       },
       {
-        "timestampMs": 2519.2,
-        "callbackTimeMs": 2520.699999988079
+        "timestampMs": 2530.3,
+        "callbackTimeMs": 2532.600000023842
       },
       {
-        "timestampMs": 2535.9,
-        "callbackTimeMs": 2538.300000011921
+        "timestampMs": 2546.9,
+        "callbackTimeMs": 2550.100000023842
       },
       {
-        "timestampMs": 2552.5,
-        "callbackTimeMs": 2554.900000035763
+        "timestampMs": 2563.6,
+        "callbackTimeMs": 2564.900000035763
       },
       {
-        "timestampMs": 2569.1,
-        "callbackTimeMs": 2571
+        "timestampMs": 2580.2,
+        "callbackTimeMs": 2583
       },
       {
-        "timestampMs": 2585.8,
-        "callbackTimeMs": 2587.400000035763
+        "timestampMs": 2596.9,
+        "callbackTimeMs": 2599.7000000476837
       },
       {
-        "timestampMs": 2602.5,
-        "callbackTimeMs": 2605.199999988079
+        "timestampMs": 2613.6,
+        "callbackTimeMs": 2628.800000011921
       },
       {
-        "timestampMs": 2619.1,
-        "callbackTimeMs": 2621.300000011921
+        "timestampMs": 2630.2,
+        "callbackTimeMs": 2632.2000000476837
       },
       {
-        "timestampMs": 2635.8,
-        "callbackTimeMs": 2638.5
+        "timestampMs": 2646.9,
+        "callbackTimeMs": 2649.400000035763
       },
       {
-        "timestampMs": 2652.5,
-        "callbackTimeMs": 2653.900000035763
+        "timestampMs": 2663.6,
+        "callbackTimeMs": 2666.100000023842
       },
       {
-        "timestampMs": 2669.1,
-        "callbackTimeMs": 2671.5
+        "timestampMs": 2680.2,
+        "callbackTimeMs": 2682
       },
       {
-        "timestampMs": 2685.8,
-        "callbackTimeMs": 2698.699999988079
+        "timestampMs": 2696.9,
+        "callbackTimeMs": 2702.300000011921
       },
       {
-        "timestampMs": 2702.5,
-        "callbackTimeMs": 2704
+        "timestampMs": 2713.6,
+        "callbackTimeMs": 2727.800000011921
       },
       {
-        "timestampMs": 2719.2,
-        "callbackTimeMs": 2719.800000011921
+        "timestampMs": 2730.3,
+        "callbackTimeMs": 2743.100000023842
       },
       {
-        "timestampMs": 2735.8,
-        "callbackTimeMs": 2738.199999988079
+        "timestampMs": 2746.9,
+        "callbackTimeMs": 2758.2000000476837
       },
       {
-        "timestampMs": 2752.5,
-        "callbackTimeMs": 2754.100000023842
+        "timestampMs": 2763.6,
+        "callbackTimeMs": 2773.400000035763
       },
       {
-        "timestampMs": 2769.2,
-        "callbackTimeMs": 2770.699999988079
+        "timestampMs": 2780.2,
+        "callbackTimeMs": 2793.300000011921
       },
       {
-        "timestampMs": 2785.8,
-        "callbackTimeMs": 2786.5
+        "timestampMs": 2796.9,
+        "callbackTimeMs": 2810.400000035763
       },
       {
-        "timestampMs": 2802.5,
-        "callbackTimeMs": 2804
+        "timestampMs": 2813.6,
+        "callbackTimeMs": 2826.300000011921
       },
       {
-        "timestampMs": 2819.2,
-        "callbackTimeMs": 2820.699999988079
+        "timestampMs": 2830.3,
+        "callbackTimeMs": 2840.400000035763
       },
       {
-        "timestampMs": 2835.8,
-        "callbackTimeMs": 2837.199999988079
+        "timestampMs": 2846.9,
+        "callbackTimeMs": 2857.900000035763
       },
       {
-        "timestampMs": 2852.5,
-        "callbackTimeMs": 2853.300000011921
+        "timestampMs": 2863.6,
+        "callbackTimeMs": 2876.400000035763
       },
       {
-        "timestampMs": 2869.1,
-        "callbackTimeMs": 2870
+        "timestampMs": 2880.2,
+        "callbackTimeMs": 2893.100000023842
       },
       {
-        "timestampMs": 2885.8,
-        "callbackTimeMs": 2887.400000035763
+        "timestampMs": 2896.9,
+        "callbackTimeMs": 2908.100000023842
       },
       {
-        "timestampMs": 2902.5,
-        "callbackTimeMs": 2903.900000035763
+        "timestampMs": 2913.6,
+        "callbackTimeMs": 2932.5
       },
       {
-        "timestampMs": 2919.2,
-        "callbackTimeMs": 2919.800000011921
+        "timestampMs": 2930.2,
+        "callbackTimeMs": 2933.5
       },
       {
-        "timestampMs": 2935.8,
-        "callbackTimeMs": 2937.300000011921
+        "timestampMs": 2946.9,
+        "callbackTimeMs": 2947.7000000476837
       },
       {
-        "timestampMs": 2952.5,
-        "callbackTimeMs": 2954
+        "timestampMs": 2963.6,
+        "callbackTimeMs": 2965.800000011921
       },
       {
-        "timestampMs": 2969.1,
-        "callbackTimeMs": 2970.699999988079
+        "timestampMs": 2980.3,
+        "callbackTimeMs": 2981.800000011921
       },
       {
-        "timestampMs": 2985.8,
-        "callbackTimeMs": 2986.5
+        "timestampMs": 2996.9,
+        "callbackTimeMs": 2999.300000011921
       },
       {
-        "timestampMs": 3002.5,
-        "callbackTimeMs": 3003.800000011921
+        "timestampMs": 3013.6,
+        "callbackTimeMs": 3014.100000023842
       },
       {
-        "timestampMs": 3019.2,
-        "callbackTimeMs": 3020.699999988079
+        "timestampMs": 3030.2,
+        "callbackTimeMs": 3031.300000011921
       },
       {
-        "timestampMs": 3035.8,
-        "callbackTimeMs": 3037.199999988079
+        "timestampMs": 3046.9,
+        "callbackTimeMs": 3049.300000011921
       },
       {
-        "timestampMs": 3052.5,
-        "callbackTimeMs": 3053.100000023842
+        "timestampMs": 3063.6,
+        "callbackTimeMs": 3065.7000000476837
       },
       {
-        "timestampMs": 3069.1,
-        "callbackTimeMs": 3069.800000011921
+        "timestampMs": 3080.3,
+        "callbackTimeMs": 3082.800000011921
       },
       {
-        "timestampMs": 3085.8,
-        "callbackTimeMs": 3087.400000035763
+        "timestampMs": 3096.9,
+        "callbackTimeMs": 3097.900000035763
       },
       {
-        "timestampMs": 3102.4,
-        "callbackTimeMs": 3104.300000011921
+        "timestampMs": 3113.6,
+        "callbackTimeMs": 3114.300000011921
       },
       {
-        "timestampMs": 3119.1,
-        "callbackTimeMs": 3120.300000011921
+        "timestampMs": 3130.2,
+        "callbackTimeMs": 3132.800000011921
       },
       {
-        "timestampMs": 3135.8,
-        "callbackTimeMs": 3138
+        "timestampMs": 3146.9,
+        "callbackTimeMs": 3149.400000035763
       },
       {
-        "timestampMs": 3152.5,
-        "callbackTimeMs": 3155.300000011921
+        "timestampMs": 3163.6,
+        "callbackTimeMs": 3164.5
       },
       {
-        "timestampMs": 3169.1,
-        "callbackTimeMs": 3171.400000035763
+        "timestampMs": 3180.2,
+        "callbackTimeMs": 3182.600000023842
       },
       {
-        "timestampMs": 3185.9,
-        "callbackTimeMs": 3187.100000023842
+        "timestampMs": 3196.9,
+        "callbackTimeMs": 3199.300000011921
       },
       {
-        "timestampMs": 3202.5,
-        "callbackTimeMs": 3204.300000011921
+        "timestampMs": 3213.6,
+        "callbackTimeMs": 3215
       },
       {
-        "timestampMs": 3219.1,
-        "callbackTimeMs": 3221
+        "timestampMs": 3230.2,
+        "callbackTimeMs": 3233.400000035763
       },
       {
-        "timestampMs": 3235.8,
-        "callbackTimeMs": 3237.699999988079
+        "timestampMs": 3246.9,
+        "callbackTimeMs": 3249.800000011921
       },
       {
-        "timestampMs": 3252.5,
-        "callbackTimeMs": 3253.800000011921
+        "timestampMs": 3263.6,
+        "callbackTimeMs": 3265.5
       },
       {
-        "timestampMs": 3269.1,
-        "callbackTimeMs": 3270
+        "timestampMs": 3280.2,
+        "callbackTimeMs": 3282.7000000476837
       },
       {
-        "timestampMs": 3285.8,
-        "callbackTimeMs": 3288.5
+        "timestampMs": 3296.9,
+        "callbackTimeMs": 3297.7000000476837
       },
       {
-        "timestampMs": 3302.5,
-        "callbackTimeMs": 3304.600000023842
+        "timestampMs": 3313.6,
+        "callbackTimeMs": 3316.300000011921
       },
       {
-        "timestampMs": 3319.1,
-        "callbackTimeMs": 3320.699999988079
+        "timestampMs": 3330.2,
+        "callbackTimeMs": 3331.300000011921
       },
       {
-        "timestampMs": 3335.8,
-        "callbackTimeMs": 3336.600000023842
+        "timestampMs": 3346.9,
+        "callbackTimeMs": 3349.7000000476837
       },
       {
-        "timestampMs": 3352.5,
-        "callbackTimeMs": 3354.400000035763
+        "timestampMs": 3363.6,
+        "callbackTimeMs": 3365.300000011921
       },
       {
-        "timestampMs": 3369.2,
-        "callbackTimeMs": 3371.5
+        "timestampMs": 3380.2,
+        "callbackTimeMs": 3383.5
       },
       {
-        "timestampMs": 3385.8,
-        "callbackTimeMs": 3387.100000023842
+        "timestampMs": 3396.9,
+        "callbackTimeMs": 3398.7000000476837
       },
       {
-        "timestampMs": 3402.5,
-        "callbackTimeMs": 3403.300000011921
+        "timestampMs": 3413.6,
+        "callbackTimeMs": 3416.300000011921
       },
       {
-        "timestampMs": 3419.2,
-        "callbackTimeMs": 3421.5
+        "timestampMs": 3430.2,
+        "callbackTimeMs": 3433
       },
       {
-        "timestampMs": 3435.7,
-        "callbackTimeMs": 3437.800000011921
+        "timestampMs": 3446.9,
+        "callbackTimeMs": 3448.800000011921
       },
       {
-        "timestampMs": 3452.5,
-        "callbackTimeMs": 3453.699999988079
+        "timestampMs": 3463.6,
+        "callbackTimeMs": 3466.7000000476837
       },
       {
-        "timestampMs": 3469.1,
-        "callbackTimeMs": 3470.699999988079
+        "timestampMs": 3480.2,
+        "callbackTimeMs": 3482
       },
       {
-        "timestampMs": 3485.8,
-        "callbackTimeMs": 3487.800000011921
+        "timestampMs": 3496.9,
+        "callbackTimeMs": 3499.7000000476837
       },
       {
-        "timestampMs": 3502.5,
-        "callbackTimeMs": 3504.5
+        "timestampMs": 3513.6,
+        "callbackTimeMs": 3514.600000023842
       },
       {
-        "timestampMs": 3519.1,
-        "callbackTimeMs": 3520.800000011921
+        "timestampMs": 3530.3,
+        "callbackTimeMs": 3531.900000035763
       },
       {
-        "timestampMs": 3535.8,
-        "callbackTimeMs": 3537
+        "timestampMs": 3546.9,
+        "callbackTimeMs": 3549.300000011921
       },
       {
-        "timestampMs": 3552.5,
-        "callbackTimeMs": 3554.800000011921
+        "timestampMs": 3563.6,
+        "callbackTimeMs": 3565.800000011921
       },
       {
-        "timestampMs": 3569.2,
-        "callbackTimeMs": 3571.100000023842
+        "timestampMs": 3580.2,
+        "callbackTimeMs": 3583.100000023842
       },
       {
-        "timestampMs": 3585.7,
-        "callbackTimeMs": 3587
+        "timestampMs": 3596.9,
+        "callbackTimeMs": 3600.400000035763
       },
       {
-        "timestampMs": 3602.4,
-        "callbackTimeMs": 3604
+        "timestampMs": 3613.6,
+        "callbackTimeMs": 3616.100000023842
       },
       {
-        "timestampMs": 3619.1,
-        "callbackTimeMs": 3620.600000023842
+        "timestampMs": 3630.2,
+        "callbackTimeMs": 3633.300000011921
       },
       {
-        "timestampMs": 3635.8,
-        "callbackTimeMs": 3636.400000035763
+        "timestampMs": 3646.9,
+        "callbackTimeMs": 3649.7000000476837
       },
       {
-        "timestampMs": 3652.5,
-        "callbackTimeMs": 3653.400000035763
+        "timestampMs": 3663.6,
+        "callbackTimeMs": 3665.600000023842
       },
       {
-        "timestampMs": 3669.1,
-        "callbackTimeMs": 3669.900000035763
+        "timestampMs": 3680.2,
+        "callbackTimeMs": 3682.400000035763
       },
       {
-        "timestampMs": 3685.8,
-        "callbackTimeMs": 3687.300000011921
+        "timestampMs": 3696.9,
+        "callbackTimeMs": 3698.400000035763
       },
       {
-        "timestampMs": 3702.5,
-        "callbackTimeMs": 3704.100000023842
+        "timestampMs": 3713.6,
+        "callbackTimeMs": 3716.600000023842
       },
       {
-        "timestampMs": 3719.1,
-        "callbackTimeMs": 3720.100000023842
+        "timestampMs": 3730.2,
+        "callbackTimeMs": 3731.300000011921
       },
       {
-        "timestampMs": 3735.8,
-        "callbackTimeMs": 3737.199999988079
+        "timestampMs": 3746.9,
+        "callbackTimeMs": 3749.100000023842
       },
       {
-        "timestampMs": 3752.5,
-        "callbackTimeMs": 3754
+        "timestampMs": 3763.5,
+        "callbackTimeMs": 3764.7000000476837
       },
       {
-        "timestampMs": 3769.2,
-        "callbackTimeMs": 3770.699999988079
+        "timestampMs": 3780.2,
+        "callbackTimeMs": 3783
       },
       {
-        "timestampMs": 3785.7,
-        "callbackTimeMs": 3786.699999988079
+        "timestampMs": 3796.9,
+        "callbackTimeMs": 3798.7000000476837
       },
       {
-        "timestampMs": 3802.5,
-        "callbackTimeMs": 3803.800000011921
+        "timestampMs": 3813.5,
+        "callbackTimeMs": 3815
       },
       {
-        "timestampMs": 3819.1,
-        "callbackTimeMs": 3820.800000011921
+        "timestampMs": 3830.2,
+        "callbackTimeMs": 3833.400000035763
       },
       {
-        "timestampMs": 3835.8,
-        "callbackTimeMs": 3837.100000023842
+        "timestampMs": 3846.9,
+        "callbackTimeMs": 3850.2000000476837
       },
       {
-        "timestampMs": 3852.5,
-        "callbackTimeMs": 3853.400000035763
+        "timestampMs": 3863.6,
+        "callbackTimeMs": 3866.600000023842
       },
       {
-        "timestampMs": 3869.2,
-        "callbackTimeMs": 3869.5
+        "timestampMs": 3880.2,
+        "callbackTimeMs": 3882
       },
       {
-        "timestampMs": 3885.8,
-        "callbackTimeMs": 3887.300000011921
+        "timestampMs": 3896.9,
+        "callbackTimeMs": 3900.100000023842
       },
       {
-        "timestampMs": 3902.5,
-        "callbackTimeMs": 3902.900000035763
+        "timestampMs": 3913.6,
+        "callbackTimeMs": 3916.800000011921
       },
       {
-        "timestampMs": 3919.1,
-        "callbackTimeMs": 3920.100000023842
+        "timestampMs": 3930.2,
+        "callbackTimeMs": 3931.900000035763
       },
       {
-        "timestampMs": 3935.7,
-        "callbackTimeMs": 3936.300000011921
+        "timestampMs": 3946.8,
+        "callbackTimeMs": 3949.800000011921
       },
       {
-        "timestampMs": 3952.4,
-        "callbackTimeMs": 3953.900000035763
+        "timestampMs": 3963.6,
+        "callbackTimeMs": 3964.7000000476837
       },
       {
-        "timestampMs": 3969.1,
-        "callbackTimeMs": 3970.600000023842
+        "timestampMs": 3980.2,
+        "callbackTimeMs": 3982.600000023842
       },
       {
-        "timestampMs": 3985.7,
-        "callbackTimeMs": 3986.900000035763
+        "timestampMs": 3996.8,
+        "callbackTimeMs": 4000
       },
       {
-        "timestampMs": 4002.4,
-        "callbackTimeMs": 4003.5
+        "timestampMs": 4013.6,
+        "callbackTimeMs": 4015.100000023842
       },
       {
-        "timestampMs": 4019.1,
-        "callbackTimeMs": 4019.5
+        "timestampMs": 4030.2,
+        "callbackTimeMs": 4033.400000035763
       },
       {
-        "timestampMs": 4035.8,
-        "callbackTimeMs": 4037.300000011921
+        "timestampMs": 4046.9,
+        "callbackTimeMs": 4049.5
       },
       {
-        "timestampMs": 4052.4,
-        "callbackTimeMs": 4053.5
+        "timestampMs": 4063.6,
+        "callbackTimeMs": 4066.600000023842
       },
       {
-        "timestampMs": 4069.1,
-        "callbackTimeMs": 4069.900000035763
+        "timestampMs": 4080.2,
+        "callbackTimeMs": 4082.400000035763
       },
       {
-        "timestampMs": 4085.8,
-        "callbackTimeMs": 4086.300000011921
+        "timestampMs": 4096.8,
+        "callbackTimeMs": 4099.800000011921
       },
       {
-        "timestampMs": 4102.5,
-        "callbackTimeMs": 4103.900000035763
+        "timestampMs": 4113.5,
+        "callbackTimeMs": 4116.400000035763
       },
       {
-        "timestampMs": 4119.1,
-        "callbackTimeMs": 4120.199999988079
+        "timestampMs": 4130.2,
+        "callbackTimeMs": 4133.400000035763
       },
       {
-        "timestampMs": 4135.7,
-        "callbackTimeMs": 4136.699999988079
+        "timestampMs": 4146.9,
+        "callbackTimeMs": 4149.900000035763
       },
       {
-        "timestampMs": 4152.4,
-        "callbackTimeMs": 4153.900000035763
+        "timestampMs": 4163.5,
+        "callbackTimeMs": 4165.200000047684
       },
       {
-        "timestampMs": 4169.1,
-        "callbackTimeMs": 4170.900000035763
+        "timestampMs": 4180.2,
+        "callbackTimeMs": 4183.300000011921
       },
       {
-        "timestampMs": 4185.8,
-        "callbackTimeMs": 4187.5
+        "timestampMs": 4196.8,
+        "callbackTimeMs": 4199.300000011921
       },
       {
-        "timestampMs": 4202.5,
-        "callbackTimeMs": 4204.400000035763
+        "timestampMs": 4213.6,
+        "callbackTimeMs": 4214.800000011921
       },
       {
-        "timestampMs": 4219.1,
-        "callbackTimeMs": 4220.600000023842
+        "timestampMs": 4230.2,
+        "callbackTimeMs": 4233.400000035763
       },
       {
-        "timestampMs": 4235.7,
-        "callbackTimeMs": 4237.800000011921
+        "timestampMs": 4246.8,
+        "callbackTimeMs": 4249.100000023842
       },
       {
-        "timestampMs": 4252.4,
-        "callbackTimeMs": 4269.600000023842
+        "timestampMs": 4263.5,
+        "callbackTimeMs": 4266.600000023842
       },
       {
-        "timestampMs": 4269.1,
-        "callbackTimeMs": 4269.900000035763
+        "timestampMs": 4280.2,
+        "callbackTimeMs": 4281.900000035763
       },
       {
-        "timestampMs": 4285.7,
-        "callbackTimeMs": 4286.600000023842
+        "timestampMs": 4296.9,
+        "callbackTimeMs": 4299.900000035763
+      },
+      {
+        "timestampMs": 4313.5,
+        "callbackTimeMs": 4316.600000023842
+      },
+      {
+        "timestampMs": 4330.2,
+        "callbackTimeMs": 4332.800000011921
+      },
+      {
+        "timestampMs": 4346.9,
+        "callbackTimeMs": 4349.400000035763
+      },
+      {
+        "timestampMs": 4363.5,
+        "callbackTimeMs": 4365
+      },
+      {
+        "timestampMs": 4380.2,
+        "callbackTimeMs": 4383.200000047684
+      },
+      {
+        "timestampMs": 4396.8,
+        "callbackTimeMs": 4400.200000047684
+      },
+      {
+        "timestampMs": 4413.5,
+        "callbackTimeMs": 4416.5
+      },
+      {
+        "timestampMs": 4430.2,
+        "callbackTimeMs": 4431.800000011921
+      },
+      {
+        "timestampMs": 4446.9,
+        "callbackTimeMs": 4449.700000047684
+      },
+      {
+        "timestampMs": 4463.5,
+        "callbackTimeMs": 4466.700000047684
+      },
+      {
+        "timestampMs": 4480.1,
+        "callbackTimeMs": 4480.900000035763
+      },
+      {
+        "timestampMs": 4496.8,
+        "callbackTimeMs": 4498.100000023842
       }
     ],
     "phases": [
       {
         "clock": "browser-performance",
-        "timeOriginMs": 1789433275453.7,
+        "timeOriginMs": 1789434438473,
         "name": "logical-overview",
-        "startTimeMs": 133.5,
-        "endTimeMs": 1708.9000000357628,
+        "startTimeMs": 130.70000004768372,
+        "endTimeMs": 1701.5,
         "inputs": {
           "events": {
             "keydown": 1,
@@ -2582,7 +2706,7 @@
             "thrownCalls": 0,
             "unknownByteCalls": 0,
             "specifiedStorageBytes": 0,
-            "submittedDataBytes": 29136,
+            "submittedDataBytes": 32304,
             "largestSubmissionBytes": 22032,
             "synchronousCallMilliseconds": 0
           },
@@ -2593,7 +2717,7 @@
             "thrownCalls": 0,
             "unknownByteCalls": 0,
             "specifiedStorageBytes": 0,
-            "submittedDataBytes": 6816,
+            "submittedDataBytes": 7500,
             "largestSubmissionBytes": 5328,
             "synchronousCallMilliseconds": 0
           }
@@ -2601,10 +2725,10 @@
       },
       {
         "clock": "browser-performance",
-        "timeOriginMs": 1789433275453.7,
+        "timeOriginMs": 1789434438473,
         "name": "logical-expanded",
-        "startTimeMs": 1716.800000011921,
-        "endTimeMs": 4285.699999988079,
+        "startTimeMs": 1708.4000000357628,
+        "endTimeMs": 4498.400000035763,
         "inputs": {
           "events": {
             "keydown": 1,
@@ -2627,53 +2751,53 @@
           {
             "operation": "bufferSubData",
             "target": 34962,
-            "calls": 71,
+            "calls": 53,
             "thrownCalls": 0,
             "unknownByteCalls": 0,
             "specifiedStorageBytes": 0,
-            "submittedDataBytes": 23808432,
-            "largestSubmissionBytes": 470016,
-            "synchronousCallMilliseconds": 2.099999964237213
+            "submittedDataBytes": 74998416,
+            "largestSubmissionBytes": 3952320,
+            "synchronousCallMilliseconds": 209.29999995231628
           },
           {
             "operation": "bufferSubData",
             "target": 34963,
-            "calls": 18,
+            "calls": 15,
             "thrownCalls": 0,
             "unknownByteCalls": 0,
             "specifiedStorageBytes": 0,
-            "submittedDataBytes": 68160,
-            "largestSubmissionBytes": 5328,
-            "synchronousCallMilliseconds": 0
+            "submittedDataBytes": 25308960,
+            "largestSubmissionBytes": 1838352,
+            "synchronousCallMilliseconds": 0.19999998807907104
           },
           {
             "operation": "bufferData",
             "target": 34962,
-            "calls": 9,
+            "calls": 10,
             "thrownCalls": 0,
             "unknownByteCalls": 0,
-            "specifiedStorageBytes": 3497184,
-            "submittedDataBytes": 3497184,
-            "largestSubmissionBytes": 470016,
-            "synchronousCallMilliseconds": 0.4999999403953552
+            "specifiedStorageBytes": 10782720,
+            "submittedDataBytes": 10782720,
+            "largestSubmissionBytes": 4867776,
+            "synchronousCallMilliseconds": 1.199999988079071
           },
           {
             "operation": "bufferData",
             "target": 34963,
-            "calls": 9,
+            "calls": 11,
             "thrownCalls": 0,
             "unknownByteCalls": 0,
-            "specifiedStorageBytes": 845568,
-            "submittedDataBytes": 845568,
-            "largestSubmissionBytes": 113664,
-            "synchronousCallMilliseconds": 0
+            "specifiedStorageBytes": 6005800,
+            "submittedDataBytes": 6005800,
+            "largestSubmissionBytes": 2446096,
+            "synchronousCallMilliseconds": 0.3999999761581421
           }
         ]
       }
     ],
     "unscoped": {
       "clock": "browser-performance",
-      "timeOriginMs": 1789433275453.7,
+      "timeOriginMs": 1789434438473,
       "inputs": {
         "events": {},
         "mapPointerMoves": 0,
@@ -2692,10 +2816,10 @@
           "calls": 2,
           "thrownCalls": 0,
           "unknownByteCalls": 0,
-          "specifiedStorageBytes": 29136,
-          "submittedDataBytes": 29136,
+          "specifiedStorageBytes": 32304,
+          "submittedDataBytes": 32304,
           "largestSubmissionBytes": 22032,
-          "synchronousCallMilliseconds": 0
+          "synchronousCallMilliseconds": 0.10000002384185791
         },
         {
           "operation": "bufferData",
@@ -2703,8 +2827,8 @@
           "calls": 2,
           "thrownCalls": 0,
           "unknownByteCalls": 0,
-          "specifiedStorageBytes": 6816,
-          "submittedDataBytes": 6816,
+          "specifiedStorageBytes": 7500,
+          "submittedDataBytes": 7500,
           "largestSubmissionBytes": 5328,
           "synchronousCallMilliseconds": 0
         }

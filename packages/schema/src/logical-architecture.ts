@@ -17,6 +17,7 @@ export type SemanticRelationshipKind =
 export interface SemanticMember {
   name: string;
   kind: "method" | "property" | "constructor";
+  type?: string;
   signatures: string[];
 }
 
@@ -57,6 +58,7 @@ export interface LogicalArchitectureDocument {
   schemaVersion: "1.0";
   graphId: string;
   revision?: string;
+  snapshotId: string;
   coverage: {
     languages: ["javascript", "typescript"];
     relationshipKinds: SemanticRelationshipKind[];
@@ -86,8 +88,9 @@ function strings(value: unknown, label: string): string[] {
 
 export function parseLogicalArchitecture(value: unknown): LogicalArchitectureDocument {
   const document = record(value, "Logical architecture");
-  if (document.schemaVersion !== "1.0" || typeof document.graphId !== "string") {
-    throw new Error("Logical architecture must be version 1.0 with a graphId.");
+  if (document.schemaVersion !== "1.0" || typeof document.graphId !== "string" ||
+      typeof document.snapshotId !== "string" || document.snapshotId.length === 0) {
+    throw new Error("Logical architecture must be version 1.0 with graphId and snapshotId.");
   }
   if (!Array.isArray(document.entities) || !Array.isArray(document.relationships) ||
       !Array.isArray(document.responsibilities) || !Array.isArray(document.diagnostics)) {

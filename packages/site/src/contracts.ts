@@ -104,6 +104,7 @@ export interface Renderer {
   resize(): void;
   destroy(): void;
   getGraphicsInfo(): Record<string, string | number | boolean | null>;
+  getNodeBounds(): Array<{ id: string; x: number; y: number; width: number; height: number }>;
 }
 
 export interface ViewTransform {
@@ -147,6 +148,7 @@ export interface TopoWindow extends Window {
       positions: Record<string, { x: number; y: number }>;
       nodes: Array<{ id: string; x: number; y: number; width: number; height: number }>;
       viewTransform: ViewTransform;
+      edgeGeometryUpdates: number;
     };
   };
 }

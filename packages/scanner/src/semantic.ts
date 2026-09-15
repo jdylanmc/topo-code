@@ -5,6 +5,7 @@ import type {
   LogicalArchitectureDiagnostic,
   LogicalArchitectureDocument,
   LogicalResponsibility,
+  GraphDocument,
   SemanticEntity,
   SemanticEntityKind,
   SemanticRelationship,
@@ -16,6 +17,7 @@ import ts from "typescript-compiler-api";
 interface SemanticSource {
   absolutePath: string;
   repositoryPath: string;
+  compilerOptions: ts.CompilerOptions;
 }
 
 interface ResponsibilityInput {
@@ -95,11 +97,13 @@ function memberFacts(checker: ts.TypeChecker, declarations: readonly ts.Declarat
       ? checker.getSignaturesOfType(checker.getTypeOfSymbolAtLocation(symbol, member), ts.SignatureKind.Call)
         .map((signature) => checker.signatureToString(signature))
       : [];
+    const type = symbol ? checker.typeToString(checker.getTypeOfSymbolAtLocation(symbol, member)) : undefined;
     return {
       name,
       kind: ts.isConstructorDeclaration(member) ? "constructor" as const :
         ts.isMethodDeclaration(member) || ts.isMethodSignature(member) ? "method" as const : "property" as const,
       signatures,
+      ...(type ? { type } : {}),
     };
   }).sort((left, right) => compareText(left.name, right.name));
   return facts.filter((item, index) =>
@@ -152,20 +156,67 @@ export async function extractLogicalArchitecture(options: {
   root: string;
   graphId: string;
   revision?: string;
+  authoritative: boolean;
+  graph: GraphDocument;
   sources: readonly SemanticSource[];
   responsibilityFile?: string;
 }): Promise<LogicalArchitectureDocument> {
+  const compilerOptions: ts.CompilerOptions = {
+    allowJs: true,
+    checkJs: false,
+    noEmit: true,
+    skipLibCheck: true,
+    module: ts.ModuleKind.NodeNext,
+    moduleResolution: ts.ModuleResolutionKind.NodeNext,
+    target: ts.ScriptTarget.ES2022,
+  };
+  const sourceOptions = new Map(options.sources.map((source) => [
+    path.resolve(source.absolutePath),
+    { ...source.compilerOptions, allowJs: true, noEmit: true, skipLibCheck: true },
+  ]));
+  const nodePath = new Map(options.graph.nodes
+    .filter((node) => node.identity.kind === "path")
+    .map((node) => [node.id, path.resolve(options.root, node.identity.value)]));
+  const evidenceById = new Map(options.graph.evidence.map((item) => [item.id, item]));
+  const resolvedByImport = new Map<string, string>();
+  for (const edge of options.graph.edges) {
+    const target = nodePath.get(edge.targetId);
+    if (!target) continue;
+    for (const evidenceId of edge.provenance.evidenceIds) {
+      const evidence = evidenceById.get(evidenceId);
+      if (evidence?.anchor?.path) {
+        const specifier = evidence.anchor.symbol?.startsWith("import:")
+          ? evidence.anchor.symbol.slice("import:".length)
+          : evidence.anchor.contentPattern;
+        if (!specifier) continue;
+        resolvedByImport.set(
+          `${path.resolve(options.root, evidence.anchor.path)}\0${specifier}`,
+          target,
+        );
+      }
+    }
+  }
+  const extension = (fileName: string): ts.Extension => {
+    if (fileName.endsWith(".tsx")) return ts.Extension.Tsx;
+    if (fileName.endsWith(".jsx")) return ts.Extension.Jsx;
+    if (fileName.endsWith(".js") || fileName.endsWith(".mjs") || fileName.endsWith(".cjs")) return ts.Extension.Js;
+    return ts.Extension.Ts;
+  };
+  const host = ts.createCompilerHost(compilerOptions);
+  host.resolveModuleNames = (moduleNames, containingFile) => moduleNames.map((moduleName) => {
+    const perFileOptions = sourceOptions.get(path.resolve(containingFile)) ?? compilerOptions;
+    const mapped = resolvedByImport.get(`${path.resolve(containingFile)}\0${moduleName}`);
+    if (mapped) return {
+      resolvedFileName: mapped,
+      extension: extension(mapped),
+      isExternalLibraryImport: false,
+    };
+    return ts.resolveModuleName(moduleName, containingFile, perFileOptions, host).resolvedModule;
+  });
   const program = ts.createProgram({
     rootNames: options.sources.map((source) => source.absolutePath),
-    options: {
-      allowJs: true,
-      checkJs: false,
-      noEmit: true,
-      skipLibCheck: true,
-      module: ts.ModuleKind.NodeNext,
-      moduleResolution: ts.ModuleResolutionKind.NodeNext,
-      target: ts.ScriptTarget.ES2022,
-    },
+    options: compilerOptions,
+    host,
   });
   const checker = program.getTypeChecker();
   const sourcePaths = new Set(options.sources.map((source) => path.resolve(source.absolutePath)));
@@ -213,6 +264,13 @@ export async function extractLogicalArchitecture(options: {
         });
       }
       entityByDeclaration.set(item.declaration, id);
+      if (ts.isClassDeclaration(item.declaration) || ts.isInterfaceDeclaration(item.declaration)) {
+        for (const member of item.declaration.members) {
+          if (!member.name) continue;
+          const memberSymbol = canonicalSymbol(checker, checker.getSymbolAtLocation(member.name));
+          if (memberSymbol) entityBySymbol.set(memberSymbol, id);
+        }
+      }
       const repositoryPath = path.relative(options.root, sourceFile.fileName).split(path.sep).join("/");
       anchorToEntity.set(`${repositoryPath}\0${symbol.getName()}`, id);
     }
@@ -289,6 +347,13 @@ export async function extractLogicalArchitecture(options: {
   }
 
   entities.sort((left, right) => compareText(left.id, right.id));
+  if (!options.authoritative) {
+    diagnostics.push({
+      code: "partial-source-inventory",
+      severity: "warning",
+      message: "The underlying scanner result is partial and the logical architecture is not authoritative.",
+    });
+  }
   const unassignedEntityIds = entities.filter((entity) => !assigned.has(entity.id)).map((entity) => entity.id);
   if (options.responsibilityFile && unassignedEntityIds.length > 0) {
     responsibilities.push({
@@ -310,10 +375,12 @@ export async function extractLogicalArchitecture(options: {
     schemaVersion: "1.0",
     graphId: options.graphId,
     ...(options.revision ? { revision: options.revision } : {}),
+    snapshotId: createHash("sha256").update(options.graph.nodes
+      .map((node) => `${node.id}\0${node.fingerprint ?? ""}`).sort(compareText).join("\0")).digest("hex"),
     coverage: {
       languages: ["javascript", "typescript"],
       relationshipKinds: ["calls", "constructs", "type-use", "heritage"],
-      completeSourceInventory: true,
+      completeSourceInventory: options.authoritative,
       runtimeBehavior: false,
     },
     entities,

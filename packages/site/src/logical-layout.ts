@@ -69,12 +69,17 @@ function aggregate(
   document: LogicalArchitectureDocument,
   visible: ReadonlySet<string>,
   ownerByEntity: ReadonlyMap<string, string>,
+  expandedIds: ReadonlySet<string>,
   drilled: boolean,
 ): Array<{ sourceId: string; targetId: string; relationships: SemanticRelationship[] }> {
   const groups = new Map<string, SemanticRelationship[]>();
   for (const relationship of document.relationships) {
-    const sourceId = drilled ? relationship.sourceId : ownerByEntity.get(relationship.sourceId);
-    const targetId = drilled ? relationship.targetId : ownerByEntity.get(relationship.targetId);
+    const sourceOwner = ownerByEntity.get(relationship.sourceId);
+    const targetOwner = ownerByEntity.get(relationship.targetId);
+    const sourceId = drilled || (sourceOwner && expandedIds.has(sourceOwner))
+      ? relationship.sourceId : sourceOwner;
+    const targetId = drilled || (targetOwner && expandedIds.has(targetOwner))
+      ? relationship.targetId : targetOwner;
     if (!sourceId || !targetId || sourceId === targetId || !visible.has(sourceId) || !visible.has(targetId)) continue;
     const key = `${sourceId}\0${targetId}`;
     const members = groups.get(key) ?? [];
@@ -98,43 +103,59 @@ export function createLogicalScene(
   const responsibilities = drilled
     ? document.responsibilities.filter((item) => item.id === state.scopeId)
     : document.responsibilities;
-  const visibleEntities: VisibleEntity[] = [];
+  const nodes: SceneNode[] = [];
   if (drilled) {
-    for (const id of responsibilities[0]?.entityIds ?? []) {
+    for (const [index, id] of (responsibilities[0]?.entityIds ?? []).entries()) {
       const entity = entityById.get(id);
-      if (entity) visibleEntities.push(semanticEntity(entity));
+      if (!entity) continue;
+      const visible = semanticEntity(entity);
+      const fallback = { x: 80 + (index % 3) * 280, y: 70 + Math.floor(index / 3) * 120 };
+      const position = state.positions.get(id) ?? fallback;
+      nodes.push({
+        entity: visible, x: position.x, y: position.y, width: 240, height: 78,
+        selected: state.selectedId === id, focused: false, cycle: false,
+        impacted: state.impactId === id,
+      });
     }
   } else {
-    for (const responsibility of responsibilities) {
-      visibleEntities.push(responsibilityEntity(responsibility, state.expandedIds.has(responsibility.id)));
-      if (state.expandedIds.has(responsibility.id)) {
-        for (const id of responsibility.entityIds) {
+    const stack = state.expandedIds.size > 0;
+    let stackY = 70;
+    for (const [index, responsibility] of responsibilities.entries()) {
+      const expanded = state.expandedIds.has(responsibility.id);
+      const memberRows = Math.ceil(responsibility.entityIds.length / 3);
+      const width = expanded ? 820 : 280;
+      const height = expanded ? Math.max(190, 112 + memberRows * 96) : 112;
+      const fallback = stack
+        ? { x: 80, y: stackY }
+        : { x: 80 + (index % 3) * 360, y: 70 + Math.floor(index / 3) * 170 };
+      const position = state.positions.get(responsibility.id) ?? fallback;
+      nodes.push({
+        entity: responsibilityEntity(responsibility, expanded),
+        x: position.x, y: position.y, width, height,
+        selected: state.selectedId === responsibility.id, focused: false, cycle: false,
+        impacted: state.impactId === responsibility.id,
+      });
+      if (expanded) {
+        for (const [memberIndex, id] of responsibility.entityIds.entries()) {
           const entity = entityById.get(id);
-          if (entity) visibleEntities.push(semanticEntity(entity));
+          if (!entity) continue;
+          const memberFallback = {
+            x: position.x + 20 + (memberIndex % 3) * 260,
+            y: position.y + 88 + Math.floor(memberIndex / 3) * 96,
+          };
+          const memberPosition = state.positions.get(id) ?? memberFallback;
+          nodes.push({
+            entity: semanticEntity(entity),
+            x: memberPosition.x, y: memberPosition.y, width: 240, height: 78,
+            selected: state.selectedId === id, focused: false, cycle: false,
+            impacted: state.impactId === id,
+          });
         }
       }
+      if (stack) stackY += height + 58;
     }
   }
-  const nodes: SceneNode[] = visibleEntities.map((entity, index) => {
-    const owner = entity.kind === "node" ? ownerByEntity.get(entity.id) : undefined;
-    const ownerIndex = owner ? responsibilities.findIndex((item) => item.id === owner) : -1;
-    const column = entity.kind === "container" ? index % 3 : Math.max(0, ownerIndex);
-    const row = entity.kind === "container" ? Math.floor(index / 3) : 1 + visibleEntities.filter((item) =>
-      item.kind === "node" && ownerByEntity.get(item.id) === owner).findIndex((item) => item.id === entity.id);
-    const fallback = { x: 80 + column * 360, y: 70 + row * 170 };
-    const position = state.positions.get(entity.id) ?? fallback;
-    return {
-      entity,
-      x: position.x,
-      y: position.y,
-      width: entity.kind === "container" ? 280 : 240,
-      height: entity.kind === "container" ? 112 : 78,
-      selected: state.selectedId === entity.id,
-      focused: false,
-      cycle: false,
-      impacted: state.impactId === entity.id,
-    };
-  });
+  const visibleEntities = nodes.map((node) => node.entity);
   const nodeById = new Map(nodes.map((node) => [node.entity.id, node]));
   const visible = new Set(nodes.map((node) => node.entity.id));
   const impactTarget = state.impactId
@@ -148,7 +169,7 @@ export function createLogicalScene(
     .filter((item) => impactEntityIds.has(item.targetId))
     .map((item) => visible.has(item.sourceId) ? item.sourceId : ownerByEntity.get(item.sourceId))
     .filter((id): id is string => id !== undefined));
-  const edges: SceneEdge[] = aggregate(document, visible, ownerByEntity, drilled || nodes.every((node) => node.entity.kind === "node"))
+  const edges: SceneEdge[] = aggregate(document, visible, ownerByEntity, state.expandedIds, drilled)
     .map((group) => {
       const source = nodeById.get(group.sourceId)!;
       const target = nodeById.get(group.targetId)!;

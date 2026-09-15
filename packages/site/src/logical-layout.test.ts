@@ -6,6 +6,7 @@ const document: LogicalArchitectureDocument = {
   schemaVersion: "1.0",
   graphId: "repo:test",
   revision: "abc",
+  snapshotId: "snapshot",
   coverage: {
     languages: ["javascript", "typescript"],
     relationshipKinds: ["calls", "constructs", "type-use", "heritage"],
@@ -65,6 +66,13 @@ describe("logical architecture layout", () => {
       expandedIds: new Set(["ra"]), edgeStyle: "curved", positions: new Map(),
     });
     expect(expanded.nodes.map((node) => node.entity.id)).toEqual(["ra", "a", "rb"]);
+    const boundary = expanded.nodes[0]!;
+    const member = expanded.nodes[1]!;
+    expect(member.x).toBeGreaterThan(boundary.x);
+    expect(member.y).toBeGreaterThan(boundary.y);
+    expect(member.x + member.width).toBeLessThan(boundary.x + boundary.width);
+    expect(member.y + member.height).toBeLessThan(boundary.y + boundary.height);
+    expect(expanded.edges[0]).toMatchObject({ sourceId: "a", targetId: "rb" });
     const drilled = createLogicalScene(document, {
       scopeId: "ra", expandedIds: new Set(), edgeStyle: "curved", positions: new Map(),
     });

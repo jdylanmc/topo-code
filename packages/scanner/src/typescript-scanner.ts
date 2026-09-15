@@ -1081,6 +1081,8 @@ export async function scanRepository(
   const logicalArchitecture = await extractLogicalArchitecture({
     root: options.root,
     graphId: graph.graphId,
+    graph,
+    authoritative,
     ...(options.revision ? { revision: options.revision } : {}),
     sources: sortedSources,
     ...(options.responsibilityFile ? { responsibilityFile: options.responsibilityFile } : {}),

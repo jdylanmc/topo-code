@@ -14,7 +14,7 @@ function compareText(left: string, right: string): number {
 }
 
 function positionKey(document: LogicalArchitectureDocument): string {
-  return `topocode:logical-positions:${document.graphId}:${document.revision ?? "working-tree"}`;
+  return `topocode:logical-positions:${document.graphId}:${document.snapshotId}`;
 }
 
 function readPositions(document: LogicalArchitectureDocument): Map<string, { x: number; y: number }> {
@@ -39,6 +39,7 @@ export class LogicalArchitectureApp {
   readonly #root: HTMLElement;
   readonly #positions: Map<string, { x: number; y: number }>;
   readonly #zoomLimits = new ZoomLimits();
+  readonly #quality: LoadedArtifacts["quality"];
   readonly #buttons = new Map<string, HTMLButtonElement>();
   #renderer: Renderer | undefined;
   #state: LogicalViewState;
@@ -47,6 +48,7 @@ export class LogicalArchitectureApp {
     if (!artifacts.logicalArchitecture) throw new Error("Logical architecture artifact is unavailable.");
     this.#root = root;
     this.#document = artifacts.logicalArchitecture;
+    this.#quality = artifacts.quality;
     this.#positions = readPositions(this.#document);
     this.#state = {
       expandedIds: new Set(),
@@ -58,6 +60,7 @@ export class LogicalArchitectureApp {
   async initialize(): Promise<void> {
     this.#root.innerHTML = `
       <main class="app-shell logical-shell">
+        <section class="authority-banner" role="status" tabindex="0" aria-label="Scan completeness warnings" hidden></section>
         <header class="toolbar" aria-label="Logical architecture controls">
           <strong>Logical architecture</strong>
           <span class="truth-badge">Responsibilities: proposed</span>
@@ -101,9 +104,24 @@ export class LogicalArchitectureApp {
       this.#zoomLimits,
     );
     this.#bind();
+    this.#renderAuthority();
     this.#renderDiagnostics();
     this.#refresh(false);
     this.resetView();
+  }
+
+  #renderAuthority(): void {
+    const banner = requiredElement<HTMLElement>(this.#root, ".authority-banner");
+    if (this.#quality.authoritative && this.#document.coverage.completeSourceInventory) return;
+    banner.hidden = false;
+    const strong = document.createElement("strong");
+    strong.textContent = "Non-authoritative logical architecture. ";
+    const detail = document.createElement("span");
+    detail.textContent = [
+      ...this.#quality.warnings,
+      ...this.#document.diagnostics.map((item) => item.message),
+    ].join(" ");
+    banner.append(strong, detail);
   }
 
   #bind(): void {
@@ -283,7 +301,7 @@ export class LogicalArchitectureApp {
     }
     for (const member of entity.members) {
       const item = document.createElement("li");
-      item.textContent = `${member.kind} ${member.name}${member.signatures.length ? `: ${member.signatures.join("; ")}` : ""}`;
+      item.textContent = `${member.kind} ${member.name}${member.type ? `: ${member.type}` : ""}${member.signatures.length ? ` · ${member.signatures.join("; ")}` : ""}`;
       signatures.append(item);
     }
     if (!signatures.childElementCount) signatures.textContent = "No callable signatures or members.";
@@ -335,17 +353,15 @@ export class LogicalArchitectureApp {
     (window as TopoWindow).__TOPO_LOGICAL__ = {
       snapshot: () => {
         if (!this.#renderer) throw new Error("Renderer is not ready.");
-        const scene = createLogicalScene(this.#document, this.#state);
         return {
           ...(this.#state.scopeId ? { scopeId: this.#state.scopeId } : {}),
           ...(this.#state.selectedId ? { selectedId: this.#state.selectedId } : {}),
           ...(this.#state.impactId ? { impactId: this.#state.impactId } : {}),
           edgeStyle: this.#state.edgeStyle,
           positions: Object.fromEntries(this.#positions),
-          nodes: scene.nodes.map((node) => ({
-            id: node.entity.id, x: node.x, y: node.y, width: node.width, height: node.height,
-          })),
+          nodes: this.#renderer.getNodeBounds(),
           viewTransform: this.#renderer.getTransform(),
+          edgeGeometryUpdates: Number(this.#renderer.getGraphicsInfo().edgeGeometryUpdates),
         };
       },
     };
