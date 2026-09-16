@@ -7,33 +7,33 @@ user-invocable: true
 
 # Specify
 
-**Entry:** Human or scoped agent use after Discovery. Consume the full aligned Discovery artifact and produce a complete requirements specification; missing decisions return to Discovery, not invention. Follow the [invocation contract](../setup/INVOCATION.md).
+**Entry:** Human or scoped agent use after Discovery. Consume the full aligned Discovery artifact; produce a complete requirements specification. Return missing decisions to Discovery; do not invent them. Follow the [invocation contract](../setup/INVOCATION.md).
 
-Follow [doctrine selection and application](../doctrine/APPLY.md), preserving the originating task's choices. With none, consider `documentation`, `domain`, and `test-seams` for the relevant portions of the spec. If separately authorized to prepare a documentation PR, require `worktrees` before its changes. Publishing a tracker item alone is not PR creation or implementation permission.
+Follow [doctrine selection and application](../doctrine/APPLY.md); preserve the originating task's choices. With none, consider `documentation`, `domain`, and `test-seams` for relevant spec portions. A separately authorized documentation PR requires `worktrees` before changes. Publishing a tracker item alone grants no PR or implementation permission.
 
 # Specify
 
-Humans and coordinating agents may invoke Specify after [Discovery](../discovery/SKILL.md). It synthesizes a complete product requirements specification from an actual accessible, human-aligned Discovery artifact. Current conversation alone, an agent's assertion of alignment, or an inaccessible link is not sufficient intake. This is specification, not another discovery interview or implementation.
+Humans and coordinating agents may invoke Specify after [Discovery](../discovery/SKILL.md) to synthesize a complete product requirements specification from an accessible, human-aligned Discovery artifact. Conversation alone, an agent's assertion of alignment, or an inaccessible link is insufficient intake. Specify is not another discovery interview or implementation.
 
-Read the configured tracker and triage vocabulary. Only GitHub, Azure DevOps, and local Markdown are supported. If configuration is missing, tell the human to invoke `/setup`; do not run it automatically. If it names an unsupported destination, report that and ask the human to choose a supported destination through Setup without changing the existing configuration.
+Read the configured tracker and triage vocabulary. Support only GitHub, Azure DevOps, and local Markdown. If configuration is missing, tell the human to invoke `/setup`; never run it automatically. For an unsupported destination, report it and ask the human to choose a supported destination through Setup; leave existing configuration unchanged.
 
 ## Process
 
 ### 1. Validate the Discovery source
 
-Read the complete artifact and relevant linked evidence, decisions, and comments. Identify its location, owner, and revision (commit, tracker revision, or timestamp/content identity as available), and the human alignment evidence for that scope. State inaccessible evidence or revision uncertainty rather than claiming it was read. Separate confirmed requirements and agreed choices from assumptions, open questions, and superseded ideas.
+Read the complete artifact and relevant linked evidence, decisions, and comments. Identify its location, owner, revision (commit, tracker revision, or timestamp/content identity as available), and human alignment evidence for that scope. Report inaccessible evidence or revision uncertainty; do not claim unread evidence was read. Separate confirmed requirements and agreed choices from assumptions, open questions, and superseded ideas.
 
-If the artifact is absent, materially incomplete, stale in a way that affects scope, or not human-aligned, return the specific gaps to the Discovery owner for completion. A direct human can use Discovery to supply that source. Do not turn Specify into a substitute interview, infer missing human decisions, or publish an incomplete artifact as ready.
+If the artifact is absent, materially incomplete, stale in a scope-affecting way, or not human-aligned, return specific gaps to the Discovery owner for completion. A direct human can supply that source through Discovery. Do not substitute an interview, infer missing human decisions, or publish an incomplete artifact as ready.
 
 ### 2. Ground requirements and testing expectations
 
-Read relevant domain vocabulary, architectural decisions, and implementation evidence where needed to verify feasibility or current behavior. Product choices belong to the aligned source, not to whatever the code currently does. Surface conflicts rather than silently replacing the human's choices. Include agreed technical decisions only; label new suggestions as proposals.
+Read relevant domain vocabulary, architectural decisions, and implementation evidence as needed to verify feasibility or current behavior. Product choices belong to the aligned source, not current code. Surface conflicts; do not silently replace the human's choices. Include only agreed technical decisions; label new suggestions as proposals.
 
-Recover agreed testing expectations. Prefer existing high-level behavioral seams, and propose new seams only where evidence requires them. Check with the human that any new or changed testing expectations match their intent. Material scope/decision gaps return to the Discovery owner; focused confirmation of a testing proposal is not a new discovery loop.
+Recover agreed testing expectations. Prefer existing high-level behavioral seams; propose new seams only where evidence requires them. Confirm with the human that new or changed testing expectations match their intent. Return material scope/decision gaps to the Discovery owner; focused confirmation of a testing proposal is not a new discovery loop.
 
 ### 3. Produce the complete specification
 
-Use the outline below, scaled to the actual product, not an arbitrary story count. Cover all confirmed requirements without inventing features or quality targets to fill headings. Explicitly mark an inapplicable section with its reason. Keep unresolved nonblocking questions visible with owners and impact; unresolved decisions that prevent implementation block readiness.
+Scale the outline below to the actual product, not an arbitrary story count. Cover all confirmed requirements; do not invent features or quality targets to fill headings. Mark inapplicable sections with reasons. Keep unresolved nonblocking questions visible with owners and impact; unresolved decisions preventing implementation block readiness.
 
 ```markdown
 # <Product/feature>: Requirements specification
@@ -82,18 +82,18 @@ Map requirements and acceptance criteria to source decisions/scenarios and
 agreed verification. Record meaningful source conflicts or coverage gaps.
 ```
 
-Avoid an implementation walkthrough that will drift. Include a precise source path or a decision-rich prototype excerpt only when needed to identify evidence or preserve an agreed contract; label its provenance and revision. Do not replace the full requirements with a tiny dispatch summary.
+Avoid drifting implementation walkthroughs. Include a precise source path or decision-rich prototype excerpt only to identify needed evidence or preserve an agreed contract; label its provenance and revision. Never replace full requirements with a tiny dispatch summary.
 
-Before publication, check the complete spec against the source: scope and decisions preserved, no invented requirements, acceptance coverage complete, references accessible, and testing expectations agreed. Surface human-owned gaps rather than marking them settled.
+Before publication, compare the complete spec with its source: preserve scope and decisions, invent no requirements, cover all acceptance criteria, verify accessible references and agreed testing expectations. Surface human-owned gaps; do not mark them settled.
 
 ### 4. Publish within the configured scope
 
-Publish the complete spec to the configured planning tracker using its provider/type/required-field conventions: [GitHub](../setup/issue-tracker-github.md), [Azure DevOps](../setup/issue-tracker-azure-devops.md), or [local Markdown](../setup/issue-tracker-local.md). Preserve the calling task's publication permissions; a review-only request stops at the proposal. Confirm the exact path and write for local files, or any replacement of an existing artifact. Do not fabricate required provider fields.
+Publish the complete spec to the configured planning tracker using its provider/type/required-field conventions: [GitHub](../setup/issue-tracker-github.md), [Azure DevOps](../setup/issue-tracker-azure-devops.md), or [local Markdown](../setup/issue-tracker-local.md). Preserve the caller's publication permissions; review-only stops at the proposal. Confirm the exact path and write for local files, or any replacement of an existing artifact. Never fabricate required provider fields.
 
-If the complete spec exceeds a tracker limit, obtain approval for an accessible attachment/document destination and link that complete artifact from the item. Verify access and completeness; do not truncate, invent a mandatory summary/full-document split, or silently write repository files.
+If the complete spec exceeds a tracker limit, obtain approval for an accessible attachment/document destination; link the complete artifact from the item. Verify access and completeness. Do not truncate, invent a mandatory summary/full-document split, or silently write repository files.
 
-Apply the configured `ready-for-agent` role only when requirements are complete and actionable, with no unresolved human-owned scope decisions. Otherwise report the blocker to the owner and withhold readiness; a requested draft remains explicitly incomplete. Preserve unrelated metadata and distinguish Azure DevOps tags from workflow states.
+Apply the configured `ready-for-agent` role only to complete, actionable requirements with no unresolved human-owned scope decisions. Otherwise report the blocker to the owner and withhold readiness; a requested draft stays explicitly incomplete. Preserve unrelated metadata; distinguish Azure DevOps tags from workflow states.
 
-For authorized local artifact changes use [Changelog](../changelog/SKILL.md) in the correct repository/component: curated notable `Unreleased` entries following Keep a Changelog 1.1.0, or no entry needed. Include any proposed entry within write approval. No writes for proposals/reviews, commit dumps, automatic versions/releases, or recursive changelog-only entries.
+For authorized local artifact changes, use [Changelog](../changelog/SKILL.md) in the correct repository/component: curated notable `Unreleased` entries following Keep a Changelog 1.1.0, or no entry needed. Include proposed entries within write approval. No writes for proposals/reviews, commit dumps, automatic versions/releases, or recursive changelog-only entries.
 
-Return the actual ID/URL/path, source revision, completeness/readiness, and any open decisions to the caller. Reconcile uncertain publication before retrying. When Joe-mode coordinates the work, return scope and planned breakdown to that owner; it reserves the specification delivery group before ticketing so a ready parent cannot race its children. Publishing a spec does not dispatch Ship, start Joe-mode, or approve [Breakdown Tickets](../breakdown-tickets/SKILL.md).
+Return the actual ID/URL/path, source revision, completeness/readiness, and open decisions to the caller. Reconcile uncertain publication before retrying. Under Joe-mode, return scope and planned breakdown to that owner; it reserves the specification delivery group before ticketing so a ready parent cannot race its children. Publishing a spec does not dispatch Ship, start Joe-mode, or approve [Breakdown Tickets](../breakdown-tickets/SKILL.md).

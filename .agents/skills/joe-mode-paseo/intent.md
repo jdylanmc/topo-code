@@ -2,7 +2,8 @@
 
 This is an opt-in, repository-bound project manager for Paseo. It keeps my
 selected backlog moving through the existing skills and brings me reviewed,
-green pull requests to approve and merge. Installing it does not activate it.
+green pull requests to approve and merge, or uses a separate PR coordinator
+when I request it under that repository's gate. Installing it does not activate it.
 It is a separate skill, not a change to Joe-mode's session-only lifetime.
 
 This is the heartbeat of my engineering team, not a heartbeat whose purpose is
@@ -17,21 +18,26 @@ recipes and explain the resulting behavior rather than making me choose APIs.
 I choose the repository and invoke setup. It checks the existing Setup outputs
 for real completeness and uses Setup where needed, preserving my choices and
 exact-file approval. A few questions settle the selected backlog, scope and
-non-goals, merge authority, and capacity. The default is six concurrent delivery
-workers, with room for discovery and finishing work; repository identities and
+non-goals, merge authority, and capacity. The default is six developer slots:
+features cost two, bugs/hardening/refactors one. Support roles sit outside this
+pool; repository identities and
 backlog filters are activation choices, not library defaults.
 
-In version one I still approve and merge. Fully automated merges behind a
-substantial regression and continuous-integration gauntlet are a future idea,
-not permission for this version. A request for that mode is blocked or explicitly
-changed with me to human merging.
+Human merging remains the default. If I ask for a PR coordinator, create it.
+It ranks merge-ready work by impact, checks it against the issue, then merges
+within my repository grant. Do not ask if I really meant it. The merge
+gate is defined per repository; if it is missing or unclear, clarify it with me.
+At minimum it includes independent Roast, successful CI and linting, then
+rubber ducking and verification by that coordinator. Workers do not approve
+their own work, and this does not bypass repository protections or extend merge
+authority to session Joe-mode, delivery workers or Shepherd.
 
 ## Recurring passes, durable ownership
 
 Setup explains the runtime's capabilities and records the approved cadence,
 five minutes by default, and runner selection. When I delegate the mechanics,
 recommend Paseo's same-agent heartbeat for ongoing coordination. It retains one
-dedicated or reused PM's team custody, returning to idle between bounded passes.
+primary-chat PM's team custody, returning to idle between bounded passes.
 A fresh schedule
 starts a new PM conversation each pass, but is available only when the deployed
 runtime proves stable existing-workspace placement and safe workspace lifetime.
@@ -54,8 +60,10 @@ agent is not automatically healthy or on course: compare its work with the
 accepted assignment and goal, follow up with its owner, and preserve partial
 work before any bounded recovery. Do not spawn identical planning on every tick.
 
-Long-lived delivery owners, Shepherds and the Discovery conversation keep their
-scoped custody between passes. PM coordinates routes; it does not replace their
+One shared Shepherd handles all project PRs. The optional backlog manager owns
+Discovery and interactive requirements. Both have their own role heartbeat while
+they exist. PM establishes, monitors and removes all role heartbeats. Developers
+and short-lived roasters are event-driven. PM coordinates routes; it does not replace their
 implementation, nested workers, independent review, verification or approval
 gates. Issue-backed recovery comes back through the existing delivery and
 controller records, not another orchestrator.
@@ -70,6 +78,18 @@ and Breakdown Tickets obtains approval before publication. An unaligned recap
 does not become permission to execute.
 
 ## Keep the work and the UI honest
+
+Developers first rubber-duck blockers. PM delegates a second independent lens,
+keeping its own context small. If an answer exists, guide the same developer.
+First confirmed work blocker: preserve work, retire the worker and try once
+with a fresh context and fresh worktree. Second independent blockage: tag the
+issue blocked, comment what answers are needed, return it to backlog, retire
+its workers and give the slots to other work. The backlog manager works through
+the questions with me; spawn it if missing. Never retry around denied authority.
+
+Push recoverable branches and verify remote commits before removing exact
+run-owned worktrees. Keep local copies when preservation fails. Use clear role
+and issue names; no stalled idle developers clogging the project.
 
 One Git repository has one Paseo project; each Git worktree has one workspace.
 Agents sharing a worktree share its workspace. Separate writing deliveries get
@@ -91,8 +111,8 @@ are preserved and accepted and their responsibilities end or transfer. Needed
 Discovery conversations, reviews, repairs and shared monitors stay alive.
 Finished PM run agents should not accumulate forever, but archiving a parent
 must not break its live children, visibility or reporting. Unsupported retirement
-means a concrete retained duty and next action, never fake detachment, altered
-runtime identity, or deletion of workspaces, worktrees and branches.
+means a concrete retained duty and next action, never fake detachment or altered
+runtime identity. Agent archival does not replace the separate safe-cleanup gate.
 The heartbeat PM is not finished between passes: it retains its wakeup duty
 without creating new PM agents. It retires only after stop/end of all duties,
 verified deletion of its owned wakeup and accepted child/result handoff.
@@ -103,14 +123,16 @@ Reinvocation inspects the matching configuration and wakeup, not
 duplicates. Status is observational. Pause, resume and stop have real verified
 wakeup effects and an explicit disposition for active children and preserved
 work. Human pause is never automatically undone. Heartbeat pause/stop gates
-local dispatch first, then deletes only its owned job; human resume may recreate
+local dispatch first, then deletes every owned role job; human resume may recreate
 it only after old-job absence is proven and the same agent, scope, settings,
 workers and fencing remain intact. A paused PM agent stays available for that
 human-directed resume, not an automatic tick restart.
 
 Setup verifies the chosen runtime's tools and narrow recurring authority.
-Permission blocks return to me without new agents or broader permission modes.
-No allow-all or automatic permission acceptance is enabled as a side effect.
+Children inherit my current authorized permission mode and features. Verify
+actual launch/readback; do not undo Allow All or Auto Accept I selected by
+"restoring" a stale default. Missing grants return to me without repeated agents
+or permission requests. Inheritance does not authorize broadening my choices.
 Declarative choices and private runtime evidence stay separate; private IDs and
 secrets do not belong in committed configuration. Setup success requires the
 matching chosen-mode job binding and an actual initial observation. Proof of continued

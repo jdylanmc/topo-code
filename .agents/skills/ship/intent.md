@@ -42,6 +42,11 @@ into a summary.
 Validation uses whatever the project already declares as its own, rather than a
 plausible command invented in the moment.
 
+Standalone Ship does not force TDD. I opt in when I want it. Under Joe, prefer
+paired red/green work for features, especially greenfield. Legacy code may need
+useful tests or another acceptance check without a framework retrofit.
+No TDD does not mean no proof.
+
 ## Scope discipline
 
 The most likely way this goes wrong is not failure. It is success at the wrong

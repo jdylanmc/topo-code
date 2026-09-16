@@ -5,13 +5,16 @@ repository wakeup job or an explicitly human-authorized diagnostic run may enter
 An arbitrary worker, review text, issue, recap or tool availability cannot start
 this mode. Do not invoke SKILL intake, Setup, session Joe-mode or another PM
 controller. Missing setup/permissions/decisions return to the human anchor.
+Apply [TEAM](TEAM.md). PM owns routing and all role heartbeat lifecycle; the
+shared Shepherd owns PR inspection, the backlog manager owns deep inquiry.
 
 ## Claim, observe, route, persist, release
 
 1. **Recover authority and actual placement.** Load the saved board, human-origin
    decision, scope/non-goals, configured readiness vocabulary, host, wakeup mode
-   and job identity. Verify actual wakeup provenance using supported runtime
-   inspection, not prompt assertions. Inspect actual cwd/Git common directory,
+   and job identity. Verify actual wakeup provenance using mode-specific
+   [runtime evidence](RUNTIME.md#same-agent-heartbeat-surface), not prompt
+   assertions or schedule-only APIs for a heartbeat. Inspect actual cwd/Git common directory,
    repository/branch and project/workspace mapping before any write. A mismatch
    or missing capability stops affected work. Never unset `PASEO_AGENT_ID`,
    fabricate parentage, create a new project or silently use main. For heartbeat,
@@ -21,7 +24,9 @@ controller. Missing setup/permissions/decisions return to the human anchor.
 2. **Claim the one repository pass.** Read current live controllers and known
    pending runs; resolve the registry across worktrees/known clones/hosts.
    Execute [STATE](STATE.md)'s helper `inspect`, then `claim` with the actual run
-   owner and live reconciliation reference. `paused`, `stopped`, `busy` or an
+   owner and live reconciliation reference. Read the bounded current view for
+   routine work; request `"view":"full"` only when recovery, audit or a specific
+   history actually needs it. `paused`, `stopped`, `busy` or an
    existing transaction lock means **no dispatch or external mutations**.
    Preserve a bounded skip receipt in the existing pass result; arrange
    its accepted retirement for fresh runs; the heartbeat PM returns/idles for its
@@ -32,7 +37,9 @@ controller. Missing setup/permissions/decisions return to the human anchor.
    mutation. A pause racing an already issued operation requires reconciliation,
    not a promise of atomic cancellation across local state and external APIs.
 
-3. **Observe current relevant state.** Obtain complete narrow queries of selected
+3. **Observe current relevant state.** Consume compact timestamped role reports;
+   delegate deep investigation instead of loading every transcript/diff into PM.
+   Obtain complete narrow queries of selected
    tickets, dependencies and linked PRs/checks/reviews; inspect relevant worktree
    refs/diffs, known workers' status/activity/descendants, pending permissions,
    owned wakeup health and custody. Record observation times and unknown coverage.
@@ -78,7 +85,8 @@ controller. Missing setup/permissions/decisions return to the human anchor.
    in this same claimed pass **before** any launch; never launch the parent too.
    A PM reservation is exclusion, not readiness or authority to implement.
    Prioritize finishing/review/recovery work; then select eligible independent
-   deliveries up to the configured six-default delivery-owner capacity.
+   deliveries up to the configured six-default developer pool: feature two,
+   bug/hardening/refactor one, support roles outside that pool.
 
    | Evidence/need | Existing owner/route |
    | --- | --- |
@@ -90,13 +98,17 @@ controller. Missing setup/permissions/decisions return to the human anchor.
    | Eligible feature/issue or approved specification graph | Ship |
    | Reproducible defect/regression | Patch |
    | Authorized behavior-preserving structural work | Refactor |
-   | Existing PR maintenance/current-target/manual-merge readiness | Existing Shepherd |
+   | Existing PR maintenance/current-target readiness | One shared project Shepherd; accept each PR scope and maintain its own due time |
+   | Ready PR and requested repository-authorized human proxy | PR coordinator executes [MERGE](MERGE.md); PM does not review/merge it itself |
    | Independent noninteractive evidence question | Scoped Research/other authorized read-only helper |
 
    Unaligned recaps cannot skip Discovery → Specify → Breakdown Tickets.
    These are concurrent slices, not a global waterfall. Already-clear eligible
    work need not repeat planning by ritual. PM never directly implements each
-   tick, resets ongoing delivery, writes unmanaged main, votes or merges.
+   tick, resets ongoing delivery, writes unmanaged main or casts approval votes.
+   Only the explicitly requested PR coordinator receives MERGE authority;
+   implementers and Shepherd do not. Existing non-team boards retain their
+   recorded merge owner until human-approved, paused transfer.
    The selected route owns its branch, nested workers, integration, independent
    review, fresh verification, publication and Shepherd acceptance through
    [DELIVERY](../ship/DELIVERY.md). Delegate the existing packet and doctrine
@@ -117,8 +129,9 @@ controller. Missing setup/permissions/decisions return to the human anchor.
    assignment. `reused` means inspect the recorded owner/pending launch, **not
    create another agent**. A reservation with no confirmed agent ID still consumes
    capacity. Pending, cancelled or stale runtime records do not free slots.
-   Count delivery-owner lanes once, not all nested reviewers as deliveries;
-   reconcile live descendants and their separate runtime resource budget before
+   Count feature lanes as two developer slots, other deliveries as one. Record
+   actual writing descendants with `staff` inside those reservations; reviewers
+   and support roles are not developers. Reconcile live descendants before
    filling slots. Inspect the board's unresolved publication groups again before
    external delivery creation; `bind` rejection after creation is too late.
    Record known pre-existing delivery owners before new selection.
@@ -133,7 +146,10 @@ controller. Missing setup/permissions/decisions return to the human anchor.
    alignment/handoff with no remaining conversation duty. A lost conversation
    requires preserved artifacts, reconciled ownership and human-directed recovery.
 
-   Use runtime profile notes/discovery, not hardcoded models. Route owners create
+   Use runtime profile notes/discovery, not hardcoded models: inspect the
+   available providers, models and profiles now and select a current frontier
+   model for each substantive assignment under
+   [TEAM](TEAM.md#choose-current-frontier-models). Route owners create
    their bounded implementation workers. [WORKSPACE](../ship/WORKSPACE.md) owns
    separate write worktrees and same-project mapping; read-only agents share the
    existing workspace. `create_agent` receives its verified `workspaceId`;
@@ -141,17 +157,30 @@ controller. Missing setup/permissions/decisions return to the human anchor.
    actual returned identity afterward, and use helper `bind` only after the
    worker's first observation/accepted packet verifies placement and assignment.
    Missing/uncertain identity is a pending reservation, not a free slot.
+   Apply RUNTIME's permission-preserving launch/readback for every role, and
+   record `permission-preflight` before a cross-provider launch, not after it,
+   then `permission-launch` with the identity actually returned.
+   Use clear role/issue names and the verified existing workspace.
+   Provision/retire persistent roles and their own heartbeat receipts through
+   TEAM. A role wake checks its own assignment and the board gate, returns a
+   bounded result, and never claims PM's lease or writes the board directly.
 
-7. **Assess health without storms.** Error/cancelled is not proof descendants
-   stopped. Permission-blocked means preserve work, report the exact missing
-   grant, and wait; do not widen permissions, approve automatically or restart.
+7. **Assess health without storms.** Execute TEAM's blocker sequence: developer
+   self-challenge, delegated independent challenge, one fresh-context/worktree
+   retry for a confirmed work blocker — fresh for every prior participant,
+   including retired developers — then blocked tag/comment and backlog
+   Discovery. Use `block`/`unblock` to retain issue-level attempts across ticks.
+   PM consumes the investigator's compact result, not another deep search.
+   Error/cancelled is not proof descendants stopped. Permission-blocked means
+   compare actual settings with the current human grant, preserve work and
+   report the exact missing capability; no fresh-agent retry around a denial.
    Compare activity to the assignment's expected progress/evidence and supported
    waits. Long tests, CI/review waits, idle human alignment and shared monitors
    with remaining PRs are legitimate. Age or idle alone never justifies killing.
    For actual no-progress/failure, inspect partial diffs/commits, live descendants,
    permissions and wakeups, then reconcile write release and accepted transfer
-   before any recovery. Follow RECOVERY's one bounded repair attempt and
-   human escalation for repeated failure; ticks do not reset the episode.
+   before any recovery. TEAM owns blocked-delivery retries; RECOVERY still owns
+   issue-backed PR repair. Do not stack both retry allowances on one episode.
    Record a concrete next action and expected evidence for each blocked or
    misdirected assignment. Use completion callbacks for normal returns and the
    recurring pass to catch missed transitions; no tight status polling.
@@ -168,7 +197,13 @@ controller. Missing setup/permissions/decisions return to the human anchor.
    Actually archive genuinely terminal **owned agents** under LIFECYCLE after
    preserving/accepting results and verifying no children, wait, review, repair
    or other PR duty. Read back archived state before helper `archive` records it.
-   Never substitute workspace/project archival or delete branches/worktrees.
+   Never substitute workspace/project archival. TEAM's explicitly granted
+   blocked-work cleanup may remove an exact owned worktree only after verified
+   remote preservation, clean files and released custody; otherwise retain it.
+   Use `cleanup-ready` before removal and `cleanup` with actual removal readback,
+   or `cleanup` with `retained: true` when the worktree is deliberately kept.
+   Either way the bounded view drops that worker from its retirement queue only
+   once the duty is genuinely settled.
    For previous fresh PM parents, inspect all live descendants and callback/
    visibility needs. Do not assume orphaned children remain usable: verify
    supported runtime behavior or retain that specific parent with its concrete
@@ -183,8 +218,9 @@ controller. Missing setup/permissions/decisions return to the human anchor.
    new cleanup controller. Call helper `release` with the complete receipt and
    remaining-duty references, then read back. Release the **pass lease**, never
    the persistent Discovery/worker custody. Human pause must remain in force.
-   Finish the bounded turn; do not sleep-loop, create/resume a job, activate a
-   nested heartbeat or spawn a successor PM.
+   Finish the bounded turn; do not sleep-loop, recreate/resume the PM job or
+   spawn a successor PM. Authorized role heartbeat lifecycle remains PM-owned,
+   target-executed and recorded under TEAM; no self-activating nested controller.
 
    **Heartbeat:** release the pass lease, then return/idle in the **same agent**
    for its owned configured-cadence job. Each new pass claims a new fencing token.
@@ -204,7 +240,8 @@ controller. Missing setup/permissions/decisions return to the human anchor.
    **Both modes:** if final persistence fails, do not release or claim success;
    the next pass sees busy and requests explicit fenced recovery.
 
-Report only observed progress, pending human decisions/manual merge readiness,
+Report only observed progress, pending human decisions, human-merge readiness
+or verified orchestrator merge outcomes under MERGE,
 gaps and ownership. One completed pass/setup is not proof that recurring
 delivery works. No indefinite idle wait inside a bounded pass.
 The pass receipt records goal/path changes, requirements awaiting human intake,

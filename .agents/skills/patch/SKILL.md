@@ -71,7 +71,10 @@ Record what each experiment rules in or out. A failed hypothesis is new evidence
 
 ## 4. Repair only when authorized
 
-Use [tdd](../tdd/SKILL.md) to turn the minimized reproduction into a failing test at the real boundary. A shallow test that cannot reproduce the actual interaction gives false confidence. Pass the established diagnosis and Patch return owner; TDD must not restart Patch or create another delivery.
+Use one developer; no mandatory paired TDD or test-first workflow. Turn the
+reproduction into useful regression coverage where a real test seam exists.
+Invoke [tdd](../tdd/SKILL.md) only when selected, retaining this Patch owner.
+A shallow test that cannot reproduce the actual interaction gives false confidence.
 
 If no suitable test boundary exists, document that limitation and retain the reproduction as evidence. Discuss the missing boundary rather than adding unrelated architecture or pretending the bug is covered.
 

@@ -26,7 +26,13 @@ Load the packet's full doctrine texts through [Doctrine](../doctrine/SKILL.md) b
 
 ## Execute within the task
 
-Implement the complete bounded outcome using the selected route's discipline and TDD where applicable. Patch repairs the proven cause; Refactor preserves behavior; Ship satisfies its feature/specification criteria. Trace behavior to the responsible interfaces; preserve unrelated changes. Record the actual task start/result rather than assuming the last commit is the entire task.
+Implement the complete bounded outcome using the selected route's discipline.
+Standalone Ship is TDD opt-in; Joe prefers it for features. Patch and Refactor
+do not require a red/green pair or test-first order. Honor the caller's declared
+testing choice and developer-slot reservation. Patch repairs the proven cause;
+Refactor preserves behavior; Ship satisfies its feature/specification criteria.
+Trace behavior to the responsible interfaces; preserve unrelated changes.
+Record the actual task start/result rather than assuming the last commit is the entire task.
 
 Use focused checks while iterating and the repository-required checks for the completed scope. Preserve real red/green evidence when TDD applies. Do not substitute a self-reported status for test output or hide a missing environment.
 

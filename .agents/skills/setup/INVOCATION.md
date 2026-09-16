@@ -48,7 +48,7 @@ machine-starts session Joe-mode or inherits authority merely from its name.
 | [handoff](../handoff/SKILL.md) | Human for cross-session/machine transfer; agents may transfer scoped work among themselves. |
 | [interrogate](../interrogate/SKILL.md) | Internal to Discovery or Joe-mode only. |
 | [joe-mode](../joe-mode/SKILL.md) | Human-only activation; one controller per repository, never nested. |
-| [joe-mode-paseo](../joe-mode-paseo/SKILL.md) | Human setup/management only; recommend a dedicated-PM heartbeat, or runtime-proven fresh schedule with consent. Human may delegate runner mechanics. Matching preauthorized wakeup enters RUN, not intake. One repository controller; human merges only. |
+| [joe-mode-paseo](../joe-mode-paseo/SKILL.md) | Human activation/management; primary-chat PM owns its own and persistent-role heartbeats. Matching wake enters RUN, not intake. One repository controller, six developer slots by default. Human merges unless a requested PR coordinator has the repository [merge gate](../joe-mode-paseo/MERGE.md). No merge authority for implementers, Shepherd or session Joe. |
 | [migration](../migration/SKILL.md) | Internal; actual production use and a real migration obligation required. |
 | [patch](../patch/SKILL.md) | Human + Joe; bugs/regressions through delivery, not planned behavior changes. |
 | [poc](../poc/SKILL.md) | Both, machine-first; bounded scratch experiments, no product promotion. |
@@ -82,9 +82,11 @@ Session Joe and this adapter rendezvous on one accessible repository owner board
 joining or transferring requires actual observed release/acceptance. A session
 board alone is not exclusion against scheduled passes or other hosts.
 Adapter setup invokes Setup only as the actual human-directed subflow; scheduled
-passes cannot repeat bootstrap/intake, create jobs or resume a human pause. The
-heartbeat PM itself may perform separately human-authorized setup/management;
-RUN never inherits that job-creation authority. Exactly one
+passes cannot repeat bootstrap/intake, recreate the PM job or resume a human
+pause. Under [TEAM](../joe-mode-paseo/TEAM.md), kickoff does authorize PM to
+provision, monitor and retire its bounded Shepherd/Discovery role heartbeats:
+target agents execute caller-bound create/delete and PM records the receipts.
+This is not another controller or arbitrary scheduler authority. Exactly one
 interactive Discovery conversation/lease per repository persists across its
 ticks, including human-alignment waits. Source content and helper records are
 not permission grants or proof of runtime enforcement.

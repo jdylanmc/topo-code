@@ -8,9 +8,10 @@ progress checks, follow-up prompts, isolated implementations and independent
 review. Its [schedules guide](https://paseo.sh/docs/schedules.md) distinguishes
 heartbeats for reassessing ongoing work from fresh agents for recurring jobs.
 
-For this ongoing engineering team, recommend **one dedicated repository PM with
-a heartbeat**, five minutes by default and an explicitly recorded minute-step
-cron. The retained agent is the coordinator, not a keepalive for a user's chat.
+For this ongoing engineering team, use **the primary human chat as PM with a
+heartbeat**, five minutes by default and an explicitly recorded minute-step
+cron. PM provisions the shared Shepherd and optional backlog manager's own
+heartbeats under [TEAM](TEAM.md); each target executes its own create/delete.
 Each prompt executes RUN once, using Joe-mode's decisions and shared board.
 Completion callbacks handle normal progress; recurring passes catch missed
 returns, stalls, scope drift, new requirements and changes to the backlog path.
@@ -23,11 +24,12 @@ invent SDK scheduling methods or install a new long-running service merely to
 wrap an available tool.
 
 A heartbeat **does not repair its own dead PM agent** or survive every provider,
-permission or host failure. Inspect the bound agent and job when resuming, report
+permission or host failure. Reconcile the bound agent and wakeup evidence when resuming, report
 the observation gap, and require explicit fenced takeover if the PM is lost.
 Do not claim perpetual supervision from a stored cron record.
 
-The following is primary-source review, not a live runtime experiment. Consult the current
+The legacy scheduling notes below are primary-source review. The permission
+section also records a bounded live probe, not a rollout. Consult the current
 [official index](https://paseo.sh/llms.txt),
 [orchestration](https://paseo.sh/docs/orchestration.md),
 [workflows](https://paseo.sh/docs/orchestration-workflows.md),
@@ -73,20 +75,53 @@ Current discovered MCP exposes `create_heartbeat` (cron, prompt, optional name,
 timezone, maxRuns, expiresIn) and `delete_heartbeat` (id), **not** a target-agent
 creation argument or `pause_heartbeat`/`resume_heartbeat`.
 
-Use MCP create/delete only for this mode. The dedicated/reused PM agent must
+Use MCP create/delete only for this mode. The actual target role must
 call them in its human-authorized setup/management subflow; bootstrap/reviewer
 calls would bind to the wrong agent. Never alter `PASEO_AGENT_ID` or fake detach.
-Inspect the owned schedule record (`inspect_schedule`, `list_schedules`,
-`schedule_logs` where supported) and join its observed agent target to actual
-agent/workspace/Git identity. The helper's `kind: "heartbeat"` and flattened
-binding are observations of that join, **not API creation fields**. Failed,
-partial or unavailable inspection cannot prove absence or safe replacement.
+**Do not use schedule APIs to verify heartbeats.** The current
+[MCP reference](https://paseo.sh/docs/mcp.md) limits schedule listing, inspection,
+logs, pause/resume and run-once to new-agent schedules. At source
+**174055a63c4651bff2a5ab5a316e8d7a403a3444**, inspected 2026-09-14,
+[the MCP handlers](https://github.com/getpaseo/paseo/blob/174055a63c4651bff2a5ab5a316e8d7a403a3444/packages/server/src/server/agent/tools/paseo-tools.ts#L2568-L2683)
+return the created heartbeat summary, filter agent-target jobs out of
+`list_schedules`, and reject them in `inspect_schedule`.
+
+Use the successful **creation receipt** as configuration evidence. Verify its
+actual `id`, `target.type: "agent"`, `target.agentId`, `status: "active"`,
+`prompt`, `cadence.expression`/timezone, `nextRunAt`, `expiresAt` and `maxRuns`
+against the approved request. Join its target to the actual PM's current
+agent/workspace/project/cwd/Git observations. Runtime settings belong to that
+agent, not a fresh-schedule config. The helper's flattened `kind`, `enabled`,
+`cron` and mapping are this verified join, **not API creation fields**.
+Save the full request/receipt and human decision in the existing private packet.
+
+A complete creation receipt plus actual initial backlog/ownership observation
+is sufficient to enable the local board. Do not delete a successfully configured
+heartbeat merely because schedule inspection rejects it. This proves
+**configured**, not **recurring operation verified**. Later actual wakeups in
+the same PM conversation, with runtime provenance and bounded-pass receipts,
+establish recurring delivery. A copied prompt or saved cron is not a wakeup.
+Status uses those receipts and current agent state, with observation gaps stated;
+do not fabricate a heartbeat-list/inspect API or require one to finish setup.
+
+For adoption/recovery, inspect the saved operation receipt and actual caller
+identity, pending changes and received wakeups. A stale receipt alone does not
+prove a heartbeat is still active. If a creation response was lost or the job's
+current identity/state is uncertain, keep the board gated and ask the human or
+use a separately verified heartbeat-specific runtime surface. An empty schedule
+list or a schedule-only rejection proves neither heartbeat absence nor failure.
+Do not create another job to probe the uncertainty.
 
 Pause/stop closes the local board gate **before** deleting the exact owned
 heartbeat; queued prompts must return without dispatch. Keep the PM agent for
 pause/resume and unresolved duties. A human may recreate only after complete
-old-job absence, released/fenced old pass and preserved target/scope/settings
-are verified. Reconcile uncertain delete/create responses before any retry.
+acknowledged deletion of the exact old ID, released/fenced old pass and preserved
+target/scope/settings are verified. `delete_heartbeat` returns `{success: true}`
+after deleting the caller-owned heartbeat at the source above; preserve that
+receipt as deletion evidence without a second schedule query. A transport error,
+generic not-found or wrong-target error is not that acknowledgement. Reconcile
+uncertain delete/create responses through supported heartbeat-specific evidence
+or the human before retry/replacement.
 Preserve absolute expiry and remaining run budget when applicable; recreation
 must not silently extend the original grant. Stop/end permits retirement only
 after owned-wakeup absence and accepted transfer/end of all children/reporting.
@@ -95,8 +130,8 @@ after owned-wakeup absence and accepted transfer/end of all children/reporting.
 
 Before any job creation, identify the actual daemon version and supported
 schemas/source behavior, actual PM placement and granted capabilities below.
-After creating/adopting the one job while locally paused, verify its stored
-binding and initial observation before enabling claims. Subsequent receipts
+After creating/adopting the one job while locally paused, verify its mode-specific
+binding evidence and initial observation before enabling claims. Subsequent receipts
 alone prove recurring delivery; future results are not precreation evidence.
 
 1. **Fresh only:** same explicit cwd resolves each fresh scheduled run to the **existing**
@@ -106,14 +141,14 @@ alone prove recurring delivery; future results are not precreation evidence.
    Use only supported settings verified against that runtime; do not guess an
    `archiveOnFinish` parameter from a different surface's implementation.
 3. **Heartbeat only:** the human explicitly chose this conversation/lifetime mode.
-   Verify the dedicated/reused PM agent is already in the one correct existing
+   Verify the primary/reused PM agent is already in the one correct existing
    workspace/project/cwd, not a disposable bootstrap/reviewer, and the supported
-   API binds the caller. After creation/adoption, verify the actual stored target
+   API binds the caller. After creation, verify the receipt's actual target
    equals that agent. Same-agent delivery must not provision/retire workspaces per tick. This mode
    does not need fresh-workspace-factory proof, but must prove actual agent
    binding and safe ongoing lifetime on the deployed host.
 4. **Both modes:** PM passes can read/write the same durable board, inspect known agents,
-   descendants, permissions and schedule state, and preserve/report results
+   descendants, permissions and mode-specific wakeup evidence, and preserve/report results
    with narrow human-granted tools. Scheduler availability is not tool access.
 5. **Both modes:** parent/child archival and callback visibility are known, or each still-needed
    parent is explicitly retained with a bounded role. `archive_agent` interrupts
@@ -129,3 +164,92 @@ alone prove recurring delivery; future results are not precreation evidence.
 Evidence strings in the local helper are references, **not proof**. Unknown
 mapping, access or retirement behavior stays unknown. Installation and local
 tests can succeed while runtime activation remains blocked.
+
+## Permission-preserving dispatch
+
+Inspect the invoking parent's live provider, `currentModeId` and permission
+features. Record the actual human grant and later UI changes/revocations, not
+just the setup-era mode. A feature such as `auto_accept` is separate from
+`allow-all`. Never infer either from a mode label alone.
+
+Before every role/worker launch:
+
+1. Inspect provider capabilities, available models and configured profiles.
+   Choose a current frontier model for substantive work by discovery, not a
+   remembered name. Profiles may select model/reasoning, but may not silently
+   replace the human's permission choice.
+2. For the same provider, pass the authorized `settings.modeId` and permission
+   `settings.features` explicitly before the initial prompt. Do not copy
+   unrelated provider features blindly. Carry narrower task limits in the packet.
+3. For a different target provider, compare the actual target policy with the
+   parent's authorized one and record STATE's `permission-preflight` before the
+   launch: `equivalent` when the target expresses the same meaning, or a
+   human-authorized mapping for a genuine difference. Plan the exact workspace
+   and worktree there; the child's ID cannot exist yet. After creation record
+   `permission-launch` with the ID the runtime actually returned, so the plan
+   binds to that one child in that one worktree. Ambiguous or escalating
+   mappings wait for the human. Fabricated matching snapshots or launch receipts
+   are never mapping evidence, and no mapping transfers approvals, credentials
+   or provider policy.
+4. Read child mode/features after startup and workflow initialization. Join its
+   actual ID/workspace/cwd to the assignment. Bind only after readback matches
+   the recorded plan. A mismatch holds its reservation and affected work;
+   diagnose once, not a permission storm. Do not call a broad mode "drift"
+   merely because an old default was narrower.
+5. Respect later human changes. Verify provenance; if a recorded grant and live
+   settings disagree without a known human change, ask once rather than
+   downgrade, upgrade or replay approval. Pause affected child work for a
+   revocation. A parent mode change does not magically update existing children.
+
+Do not claim individual approvals, credentials or provider-specific policy
+transfer across sessions. Cross-provider launch needs an explicit equivalent
+policy supported by the target, with human approval for any difference.
+No equivalent capability: queue it and report the precise missing choice.
+Never edit global config, auto-approve a pending request or swap providers to
+work around denial. Chooser-style permission requests may still need a human.
+
+### Deployed 0.7.2 evidence
+
+Inspected installed Paseo **0.7.2** on 2026-09-15. Corresponding upstream tag:
+[`9400a49`](https://github.com/getpaseo/paseo/tree/9400a49af670fdb5db4af58e73f8df98588dbea9).
+Inspected compiled paths below are under the installed server's
+`dist/server/server/`; the tag identifies the release, not a source-map proof:
+
+- `agent/create-agent-mode.js` and `agent/provider-snapshot-manager.js`:
+  same-provider omitted mode inherits the parent's current mode. This is not
+  blanket settings inheritance.
+- `agent/providers/acp-agent.js`: an unattended parent can supply omitted
+  `auto_accept`; explicit false is needed when prompting is intended.
+  Auto Accept handles allowed non-chooser permission requests independently of
+  Copilot's Allow All setting. It does not drain existing pending requests.
+- `agent/providers/copilot-acp-agent.js`: `allow-all` maps to Copilot's
+  `allow_all` session option. Leaving it turns that option off.
+- `agent/tools/paseo-tools.js`: creation maps `settings.modeId` and
+  `settings.features` before the initial prompt. Heartbeat creation binds the
+  caller; deletion checks that same owner. Named MCP creation is replace-by-name
+  for that target, not permission to retry unknown outcomes.
+
+A disposable same-provider child received explicit Agent mode plus
+`features.auto_accept: true`, matching its parent's observed settings.
+Child readback matched; a constant-output shell call succeeded without a pending
+request. It created one self-targeted heartbeat with expiry before its next
+scheduled tick, deleted the exact ID successfully, then was archived.
+This proves that explicit configuration and target-bound create/delete worked
+on that host. It does **not** prove automatic inheritance, recurring wakes,
+cross-provider equivalence or production rollout. Recheck deployed capabilities.
+
+A second bounded probe on 2026-09-15 used two current frontier models through
+the same provider. Both children received the parent's actual Agent mode with
+`auto_accept`, which their readbacks matched; no pending permission request
+appeared. A delivery child and an independent investigator each reported the
+same missing input, and a distinct fresh agent on a fresh worktree confirmed the
+second blocker. One self-bound timer fired on its target and that same caller
+deleted it with an acknowledged success receipt. All four probe agents were
+archived with verified closed/archived state.
+
+That probe proves these **primitives** on that host. It does not prove board-helper
+integration, nested launches beneath a route owner, a six-slot pool over long
+runs, pause/resume across all three role heartbeats, or cross-provider policy
+equivalence. Agent plus `auto_accept` is also not Allow All, and no observed
+native-provider bypass has been shown equivalent to it; never infer a wider
+grant from these results.
