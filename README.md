@@ -170,8 +170,8 @@ YARN_NPM_REGISTRY_SERVER=https://registry.npmjs.org corepack yarn install --immu
 
 **`corepack yarn test:regression` is the authoritative local and CI gate.** It runs:
 
-1. `yarn check`: all workspace typechecks, the root build, root and workspace
-   unit/integration tests, and both licence checks.
+1. `yarn check`: ESLint, all product workspace typechecks, the root build, root
+   and workspace unit/integration tests, and both licence checks.
 2. `yarn workspace @topo/site test:browser`: the entire production Playwright
    suite, including newly added tests selected by its existing configuration.
 
@@ -192,6 +192,51 @@ checks exit **nonzero**; the first failed gate stops later gates. Browser startu
 or port conflicts are failures, not skips. Fix the reported cause and rerun the
 same command. CI installs dependencies immutably and a real browser before
 invoking this identical gate.
+
+### Linting
+
+Run `corepack yarn lint` for the correctness-only ESLint baseline. It also runs
+first in `yarn check`/`yarn test:regression`; CI shows a dedicated lint step before
+browser installation. Any lint error or warning fails the command.
+
+The baseline covers maintained package source, tests (including browser tests),
+configuration, root scripts, benchmark harnesses, and lint tooling itself.
+The root lint contract test derives eligible source files from Git's tracked
+inventory and compares them with actual ESLint file results, so an overly broad
+exclusion cannot silently remove a maintained package from coverage. JSX/TSX
+syntax is parsed for correctness checks; this adds no framework or runtime.
+Rules catch mistakes such as debugger statements, duplicate branches, constant
+fallback expressions, unsafe optional chaining, and broken Promise executors.
+Formatting, unused-code cleanup, and type-aware lint rules are deliberately not
+part of this initial baseline; TypeScript remains responsible for type checking.
+The baseline also leaves existing concise Promise callbacks and deliberate
+cleanup-error propagation unchanged rather than enabling
+`no-promise-executor-return` or `no-unsafe-finally` and rewriting working code.
+
+`eslint.config.mjs` loads the private `tools/eslint-config` workspace. This isolates
+the parser's TypeScript 6.0.3 compiler API: `@typescript-eslint/parser@8.70.0`
+requires TypeScript `>=4.8.4 <6.1.0`, while TypeScript 7 exposes native/unstable
+APIs rather than the legacy JavaScript compiler API. Product build/typecheck
+dependencies remain on TypeScript 7; ESLint 9 supports the existing Node 22+
+requirement. The tooling workspace is development-only, not a shipped package.
+
+Explicit lint exclusions preserve copied `.agents/` skills, `.skill-log/`,
+the entire archived `experiments/` tree, and recorded `benchmarks/results/`
+evidence without rewriting historical bytes. Generated schema validators,
+benchmark fixtures (`benchmarks/.generated/`), local
+`.joe-mode/` and `.playwright-mcp/` captures, dependencies (`node_modules/`,
+`.yarn/`), and build/test output (`dist/`, `build/`, `coverage/`,
+`playwright-report/`, `test-results/`) are also excluded. These are lint
+exclusions, not changes to source-control or preservation policy.
+
+The entire `.topo/` workspace is also deliberately outside this code-lint scope,
+including any executable content. It is **not** wholly generated or disposable:
+authored configuration, metadata and report evidence retain their independent
+source-control lifecycles; only `.topo/cache/` is Git-ignored as regenerable cache.
+See the [workspace lifecycle](./docs/workspace.md). This lint limitation neither
+changes that policy nor expands the product's authoring contract.
+
+### Focused checks
 
 For a faster non-browser iteration, use `corepack yarn check`; it is **not** the
 complete regression gate. To check orchestration alone, use
@@ -216,8 +261,10 @@ test, FPS result, real-repository benchmark or universal performance guarantee.
 
 ### Package and licence checks
 
-The root check requires every landed package to define `build`, `typecheck`, and
-`test` scripts. A missing script or failed package command fails the check.
+The root check requires every product package under `packages/` to define
+`build`, `typecheck`, and `test` scripts. A missing script or failed package
+command fails the check. The lint-only workspace under `tools/` is exercised by
+`yarn lint` and the root lint contract tests instead.
 
 Every shipped third-party dependency must have an exact range, SPDX licence
 identifier, and evidence URL in `dependency-licenses.json`. Production dependency attribution includes the actual installed transitive

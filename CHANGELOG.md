@@ -7,6 +7,9 @@ does not currently publish versioned releases.
 
 ### Added
 
+- Add `yarn lint` correctness checks for maintained source, tests and tooling,
+  including the regression and CI gates, while excluding copied skills,
+  historical experiment evidence and generated output. See #38.
 - Preserve the runnable Archify wrapper prototype, original research and licensed
   artifacts, product direction, and portable verification harness; no production
   integration. See [findings](https://github.com/jdylanmc/topo-code/issues/34#issuecomment-5689439517)
