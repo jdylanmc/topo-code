@@ -19,5 +19,7 @@ jobs:
           node-version-file: .node-version
       - run: corepack enable
       - run: yarn install --immutable
+      - name: ESLint correctness baseline
+        run: yarn lint
       - run: yarn workspace @topo/site exec playwright install --with-deps chromium
       - run: yarn test:regression

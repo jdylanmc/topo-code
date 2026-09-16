@@ -30,6 +30,7 @@ async function runRegression(context, failingGate = "") {
       scripts: {
         "test:regression": manifest.scripts["test:regression"],
         check: manifest.scripts.check,
+        lint: "node record.mjs lint",
         typecheck: "node record.mjs typecheck",
         build: "node record.mjs build",
         test: "node record.mjs test",
@@ -91,6 +92,7 @@ test("regression runs every root gate before the production browser suite", asyn
   const result = await runRegression(context);
   assert.equal(result.status, 0, result.output);
   assert.deepEqual(result.gates, [
+    "lint",
     "typecheck",
     "build",
     "test",
@@ -100,11 +102,12 @@ test("regression runs every root gate before the production browser suite", asyn
 });
 
 for (const [gate, expectedGates] of [
-  ["typecheck", ["typecheck"]],
-  ["build", ["typecheck", "build"]],
-  ["test", ["typecheck", "build", "test"]],
-  ["licenses:check", ["typecheck", "build", "test", "licenses:check"]],
-  ["browser", ["typecheck", "build", "test", "licenses:check", "browser"]],
+  ["lint", ["lint"]],
+  ["typecheck", ["lint", "typecheck"]],
+  ["build", ["lint", "typecheck", "build"]],
+  ["test", ["lint", "typecheck", "build", "test"]],
+  ["licenses:check", ["lint", "typecheck", "build", "test", "licenses:check"]],
+  ["browser", ["lint", "typecheck", "build", "test", "licenses:check", "browser"]],
 ]) {
   test(`regression propagates ${gate} failure and stops subsequent gates`, async (context) => {
     const result = await runRegression(context, gate);
