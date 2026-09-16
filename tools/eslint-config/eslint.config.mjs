@@ -14,11 +14,12 @@ export default [
       ".skill-log/**",
       "experiments/**",
       "benchmarks/results/**",
+      // Workspace artifacts have independent lifecycles, outside this code-lint scope.
+      "**/.topo/**",
       // Generated code, local captures, dependencies, and build/test output.
       "**/node_modules/**",
       ".yarn/**",
       ".joe-mode/**",
-      "**/.topo/**",
       ".playwright-mcp/**",
       "benchmarks/.generated/**",
       "packages/schema/src/generated/**",
@@ -57,6 +58,11 @@ export default [
       "use-isnan": "error",
       "valid-typeof": "error",
     },
+  },
+  {
+    name: "topo/jsx-syntax",
+    files: ["*.jsx", "{packages,scripts,benchmarks,tools}/**/*.jsx"],
+    languageOptions: { parserOptions: { ecmaFeatures: { jsx: true } } },
   },
   {
     name: "topo/typescript-syntax",

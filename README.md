@@ -201,6 +201,10 @@ browser installation. Any lint error or warning fails the command.
 
 The baseline covers maintained package source, tests (including browser tests),
 configuration, root scripts, benchmark harnesses, and lint tooling itself.
+The root lint contract test derives eligible source files from Git's tracked
+inventory and compares them with actual ESLint file results, so an overly broad
+exclusion cannot silently remove a maintained package from coverage. JSX/TSX
+syntax is parsed for correctness checks; this adds no framework or runtime.
 Rules catch mistakes such as debugger statements, duplicate branches, constant
 fallback expressions, unsafe optional chaining, and broken Promise executors.
 Formatting, unused-code cleanup, and type-aware lint rules are deliberately not
@@ -219,11 +223,18 @@ requirement. The tooling workspace is development-only, not a shipped package.
 Explicit lint exclusions preserve copied `.agents/` skills, `.skill-log/`,
 the entire archived `experiments/` tree, and recorded `benchmarks/results/`
 evidence without rewriting historical bytes. Generated schema validators,
-benchmark fixtures (`benchmarks/.generated/`), `.topo/` site output, local
+benchmark fixtures (`benchmarks/.generated/`), local
 `.joe-mode/` and `.playwright-mcp/` captures, dependencies (`node_modules/`,
 `.yarn/`), and build/test output (`dist/`, `build/`, `coverage/`,
 `playwright-report/`, `test-results/`) are also excluded. These are lint
 exclusions, not changes to source-control or preservation policy.
+
+The entire `.topo/` workspace is also deliberately outside this code-lint scope,
+including any executable content. It is **not** wholly generated or disposable:
+authored configuration, metadata and report evidence retain their independent
+source-control lifecycles; only `.topo/cache/` is Git-ignored as regenerable cache.
+See the [workspace lifecycle](./docs/workspace.md). This lint limitation neither
+changes that policy nor expands the product's authoring contract.
 
 ### Focused checks
 
