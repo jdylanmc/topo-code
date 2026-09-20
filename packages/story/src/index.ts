@@ -229,6 +229,7 @@ function validateStoryDocument(value: unknown): string | undefined {
     return "sections must be a nonempty array";
   }
   if (!Array.isArray(value.connections)) return "connections must be an array";
+  const diagramFamily = value.diagramFamily ?? "architecture";
   const sourceGrounded = value.classification !== "capability-demo";
   if (sourceGrounded && value.anchors.length === 0) {
     return "source-grounded stories must define at least one anchor";
@@ -288,6 +289,12 @@ function validateStoryDocument(value: unknown): string | undefined {
     }
     if (connectionValue.label !== undefined && !nonemptyString(connectionValue.label)) {
       return `connections[${index}].label must be nonempty`;
+    }
+    if (
+      (diagramFamily === "sequence" || diagramFamily === "dataflow") &&
+      connectionValue.label === undefined
+    ) {
+      return `${diagramFamily} connections[${index}].label is required`;
     }
   }
   return undefined;

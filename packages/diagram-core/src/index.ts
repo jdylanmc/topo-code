@@ -9,7 +9,11 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { ResolvedStoryDocument, StoryArtifact } from "@topo/story";
+import type {
+  ResolvedStoryDocument,
+  StoryArtifact,
+  StoryConnection,
+} from "@topo/story";
 import { verifyVendoredArchifyIntegrity } from "./integrity.js";
 
 export {
@@ -410,6 +414,16 @@ function workflowSpec(story: ResolvedStoryDocument): ArchifyWorkflow {
   };
 }
 
+function requiredConnectionLabel(
+  connection: StoryConnection,
+  family: "sequence" | "dataflow",
+): string {
+  if (connection.label === undefined) {
+    throw new Error(`${family} connections require a nonempty label`);
+  }
+  return connection.label;
+}
+
 function sequenceSpec(story: ResolvedStoryDocument): ArchifySequence {
   const participantIds = new Map(
     story.document.sections.map((section) => [
@@ -442,7 +456,7 @@ function sequenceSpec(story: ResolvedStoryDocument): ArchifySequence {
       from: participantIds.get(connection.from)!,
       to: participantIds.get(connection.to)!,
       y: 180 + index * 100,
-      label: connection.label ?? "then",
+      label: requiredConnectionLabel(connection, "sequence"),
     })),
   };
 }
@@ -482,7 +496,7 @@ function dataflowSpec(story: ResolvedStoryDocument): ArchifyDataflow {
       ),
       from: nodeIds.get(connection.from)!,
       to: nodeIds.get(connection.to)!,
-      label: connection.label ?? "then",
+      label: requiredConnectionLabel(connection, "dataflow"),
     })),
   };
 }

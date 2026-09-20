@@ -7,6 +7,12 @@ optional `symbol`, and optional symbol-scoped `pattern` values. Source line
 ranges and excerpts are resolved from the current working tree at preview time
 and are never stored in the authored document.
 
+The optional `diagramFamily` selects `architecture`, `workflow`, `sequence`,
+`dataflow`, or `lifecycle`; omission retains the legacy Architecture behavior.
+Sequence and Dataflow connections require a nonempty `label` because their
+native schemas require explicit relationship meaning. Architecture, Workflow,
+and Lifecycle connections may omit labels, and Topocode does not invent them.
+
 Scanning renders every committed story and composes the catalogue:
 
 ```sh
