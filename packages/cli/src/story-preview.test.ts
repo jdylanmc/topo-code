@@ -48,10 +48,12 @@ function story(
   }, null, 2)}\n`;
 }
 
-function workflowStory(): string {
+function familyStory(
+  diagramFamily: "workflow" | "sequence",
+): string {
   return `${JSON.stringify({
     schemaVersion: "1.0",
-    diagramFamily: "workflow",
+    diagramFamily,
     id: "checkout",
     title: "Checkout",
     summary: "Checkout reaches payment.",
@@ -150,7 +152,7 @@ afterEach(async () => {
 
 describe("story preview", () => {
   it("renders a committed workflow story with native workflow semantics", async () => {
-    const { root, documentPath } = await fixture(workflowStory());
+    const { root, documentPath } = await fixture(familyStory("workflow"));
 
     const result = await previewStory(root, documentPath);
     const contents = await readFile(result.outputPath, "utf8");
@@ -158,6 +160,17 @@ describe("story preview", () => {
     expect(contents).toContain('data-composition-frame-kind="lane"');
     expect(contents).toContain("Receive request");
     expect(contents).toContain("Charge payment");
+  });
+
+  it("renders a committed sequence story with native sequence semantics", async () => {
+    const { root, documentPath } = await fixture(familyStory("sequence"));
+
+    const result = await previewStory(root, documentPath);
+    const contents = await readFile(result.outputPath, "utf8");
+
+    expect(contents).toContain('data-composition-edge-from="request"');
+    expect(contents).toContain('data-composition-edge-to="charge"');
+    expect(contents).toContain('stroke-dasharray="3,7"');
   });
 
   it("renders a committed story equivalently twice through diagram-core", async () => {
