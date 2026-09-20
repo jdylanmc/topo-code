@@ -55,7 +55,7 @@ function familyStory(
     | "sequence"
     | "dataflow"
     | "lifecycle",
-  connectionLabel: string | undefined = "then",
+  connectionLabel: string | null = "then",
 ): string {
   return `${JSON.stringify({
     schemaVersion: "1.0",
@@ -86,7 +86,7 @@ function familyStory(
     connections: [{
       from: "request",
       to: "charge",
-      ...(connectionLabel === undefined ? {} : { label: connectionLabel }),
+      ...(connectionLabel === null ? {} : { label: connectionLabel }),
     }],
   }, null, 2)}\n`;
 }
@@ -202,6 +202,35 @@ describe("story preview", () => {
 
     expect(contents).toContain('data-edge-label="carries meaning"');
     expect(contents).toContain(">carries meaning</text>");
+  });
+
+  it.each([
+    "architecture",
+    "workflow",
+    "lifecycle",
+  ] as const)("does not invent a label for unlabeled %s relationships", async (
+    family,
+  ) => {
+    const { root, documentPath } = await fixture(familyStory(family, null));
+
+    const result = await previewStory(root, documentPath);
+    const contents = await readFile(result.outputPath, "utf8");
+
+    expect(contents).not.toContain('data-edge-label="then"');
+    expect(contents).not.toContain(">then</text>");
+  });
+
+  it.each([
+    "sequence",
+    "dataflow",
+  ] as const)("rejects unlabeled %s relationships instead of inventing text", async (
+    family,
+  ) => {
+    const { root, documentPath } = await fixture(familyStory(family, null));
+
+    await expect(previewStory(root, documentPath)).rejects.toThrow(
+      new RegExp(`${family}.*label|required.*label`, "i"),
+    );
   });
 
   it("renders a committed workflow story with native workflow semantics", async () => {
