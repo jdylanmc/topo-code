@@ -9,6 +9,7 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
 import { initializeWorkspace, loadConfig } from "@topo/workspace";
@@ -22,6 +23,7 @@ import {
 
 const execute = promisify(execFile);
 const directories: string[] = [];
+const repositoryRoot = fileURLToPath(new URL("../../../", import.meta.url));
 
 async function repository(): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "topo-catalogue-"));
@@ -92,6 +94,32 @@ afterEach(async () => {
 });
 
 describe("generated catalogue", () => {
+  it("includes a source-grounded Workflow story for the authoring loop", async () => {
+    const stories = await buildCatalogueStories(repositoryRoot);
+    const workflow = stories.find(({ document }) =>
+      document.diagramFamily === "workflow" &&
+      document.classification !== "capability-demo"
+    );
+    const narrative = workflow?.document.sections
+      .flatMap(({ title, body }) => [title, body])
+      .join(" ")
+      .toLowerCase();
+
+    expect(workflow).toBeDefined();
+    expect(workflow?.document.anchors.length).toBeGreaterThan(0);
+    expect(workflow?.document.sections.every(
+      ({ anchorIds }) => anchorIds.length > 0,
+    )).toBe(true);
+    expect(narrative).toMatch(/author/);
+    expect(narrative).toMatch(/validat/);
+    expect(narrative).toMatch(/stale/);
+    expect(narrative).toMatch(/repair/);
+    expect(narrative).toMatch(/preview/);
+    expect(workflow?.contents).toContain(
+      'data-composition-frame-kind="lane"',
+    );
+  });
+
   it("keeps a coherent explorer-only landing page with zero stories", async () => {
     const root = await repository();
     const stories = await buildCatalogueStories(root);
