@@ -85,6 +85,33 @@ function familyStory(
   }, null, 2)}\n`;
 }
 
+function capabilityDemoStory(): string {
+  return `${JSON.stringify({
+    schemaVersion: "1.0",
+    diagramFamily: "workflow",
+    classification: "capability-demo",
+    id: "workflow-demo",
+    title: "Workflow capability",
+    summary: "A conceptual workflow demonstrating native rendering.",
+    anchors: [],
+    sections: [
+      {
+        id: "start",
+        title: "Start",
+        body: "Begin the conceptual flow.",
+        anchorIds: [],
+      },
+      {
+        id: "finish",
+        title: "Finish",
+        body: "Complete the conceptual flow.",
+        anchorIds: [],
+      },
+    ],
+    connections: [{ from: "start", to: "finish", label: "then" }],
+  }, null, 2)}\n`;
+}
+
 async function commit(root: string, message: string): Promise<void> {
   await execute("git", ["-C", root, "add", "."]);
   await execute("git", [
@@ -193,6 +220,17 @@ describe("story preview", () => {
     expect(contents).toContain("01 / Checkout");
     expect(contents).toContain("02 / Interruptions + recovery");
     expect(contents).toContain("03 / Outcomes");
+  });
+
+  it("previews an explicitly non-source-grounded capability demo", async () => {
+    const { root, documentPath } = await fixture(capabilityDemoStory());
+
+    const result = await previewStory(root, documentPath);
+    const contents = await readFile(result.outputPath, "utf8");
+
+    expect(result.storyId).toBe("workflow-demo");
+    expect(contents).toContain('data-composition-frame-kind="lane"');
+    expect(contents).toContain("Workflow capability");
   });
 
   it("renders a committed story equivalently twice through diagram-core", async () => {
