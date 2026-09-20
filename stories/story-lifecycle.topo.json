@@ -4,7 +4,7 @@
   "classification": "source-grounded",
   "id": "story-lifecycle",
   "title": "The lifecycle of a Topocode story",
-  "summary": "See how authored story data becomes valid source-grounded content, detects source drift, recovers, renders, and joins a static bundle.",
+  "summary": "See how authored story data becomes valid source-grounded content, detects source drift, is updated by an author, renders, and joins a static bundle.",
   "category": "Topocode internals",
   "anchors": [
     {
@@ -31,6 +31,10 @@
       "id": "bundle",
       "path": "packages/cli/src/bundle.ts",
       "symbol": "bundleSite"
+    },
+    {
+      "id": "authoring-guide",
+      "path": "docs/story-authoring.md"
     }
   ],
   "sections": [
@@ -54,9 +58,9 @@
     },
     {
       "id": "repaired",
-      "title": "Repaired",
-      "body": "After stale paths, symbols, or patterns are repaired, the story must validate again.",
-      "anchorIds": ["validate", "stale"]
+      "title": "Author updated",
+      "body": "After validation reports stale evidence, an author updates the affected paths, symbols, or patterns before validating again.",
+      "anchorIds": ["authoring-guide", "validate"]
     },
     {
       "id": "rendered",
@@ -74,7 +78,7 @@
   "connections": [
     { "from": "draft", "to": "valid", "label": "validate" },
     { "from": "valid", "to": "stale", "label": "source changes" },
-    { "from": "stale", "to": "repaired", "label": "repair anchors" },
+    { "from": "stale", "to": "repaired", "label": "author updates anchors" },
     { "from": "repaired", "to": "rendered", "label": "validate again" },
     { "from": "rendered", "to": "bundled", "label": "publish" }
   ]

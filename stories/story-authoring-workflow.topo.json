@@ -4,7 +4,7 @@
   "classification": "source-grounded",
   "id": "story-authoring-workflow",
   "title": "How a Topocode story reaches preview",
-  "summary": "Follow a source-grounded story from authoring through validation, stale-source repair, and committed preview.",
+  "summary": "Follow a source-grounded story from authoring through validation, manual stale-anchor updates, and committed preview.",
   "category": "Topocode internals",
   "anchors": [
     {
@@ -26,6 +26,10 @@
       "id": "preview",
       "path": "packages/cli/src/story-preview.ts",
       "symbol": "previewStory"
+    },
+    {
+      "id": "authoring-guide",
+      "path": "docs/story-authoring.md"
     }
   ],
   "sections": [
@@ -49,9 +53,9 @@
     },
     {
       "id": "repair",
-      "title": "Repair stale anchors",
-      "body": "Update stale paths, symbols, or patterns and validate the repaired story again.",
-      "anchorIds": ["validate", "stale"]
+      "title": "Update stale anchors",
+      "body": "After validation reports stale evidence, an author updates the affected paths, symbols, or patterns and runs validation again.",
+      "anchorIds": ["authoring-guide", "validate"]
     },
     {
       "id": "preview",
@@ -63,7 +67,7 @@
   "connections": [
     { "from": "author", "to": "validate", "label": "validate" },
     { "from": "validate", "to": "detect-stale", "label": "check snapshot" },
-    { "from": "detect-stale", "to": "repair", "label": "repair if stale" },
+    { "from": "detect-stale", "to": "repair", "label": "author updates evidence" },
     { "from": "repair", "to": "preview", "label": "preview when valid" }
   ]
 }
