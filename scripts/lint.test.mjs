@@ -19,7 +19,7 @@ test("actual lint results cover the eligible tracked source inventory", async (c
     /\.(?:[cm]?[jt]s|[jt]sx)$/.test(file)
     && (!file.includes("/") || /^(packages|scripts|benchmarks|tools)\//.test(file))
     && !/(^|\/)(node_modules|\.topo|dist|build|coverage|playwright-report|test-results)\//.test(file)
-    && !/^(benchmarks\/(results|\.generated)|packages\/schema\/src\/generated)\//.test(file),
+    && !/^(benchmarks\/(results|\.generated)|packages\/schema\/src\/generated|packages\/[^/]+\/vendor)\//.test(file),
   ).sort();
   const actual = (await eslint.lintFiles("."))
     .map(({ filePath }) => path.relative(repository, filePath).split(path.sep).join("/"))
