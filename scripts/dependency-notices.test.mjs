@@ -140,37 +140,6 @@ test("walks hoisted dependencies through workspace references", async (context) 
     dependencies: { runtime: "1.0.0" },
   });
 
-  test("copies viewer and font notices into the built site", async (context) => {
-    const root = await createFixture(context);
-    await mkdir(path.join(root, "packages", "site", "dist"), { recursive: true });
-    await writeFile(path.join(root, "LICENSE"), "Topocode MIT\n");
-    await createBundledLicenseFixtures(root);
-    await writeThirdPartyNotices({ rootDirectory: root });
-
-    await copyThirdPartyNoticesToSite({ rootDirectory: root });
-
-    assert.equal(
-      await readFile(
-        path.join(root, "packages", "site", "dist", "ARCHIFY_LICENSE.txt"),
-        "utf8",
-      ),
-      "Archify MIT License\n",
-    );
-    assert.equal(
-      await readFile(
-        path.join(root, "packages", "site", "dist", "JETBRAINS_MONO_LICENSE.txt"),
-        "utf8",
-      ),
-      "SIL OPEN FONT LICENSE Version 1.1\n",
-    );
-    assert.match(
-      await readFile(
-        path.join(root, "packages", "site", "dist", "THIRD_PARTY_NOTICES.txt"),
-        "utf8",
-      ),
-      /Archify third-party notices/,
-    );
-  });
   await createPackage(root, "runtime", {
     name: "runtime",
     version: "1.0.0",
@@ -191,6 +160,38 @@ test("walks hoisted dependencies through workspace references", async (context) 
   assert.match(notices, /Shipped dependency count: 1/);
   assert.match(notices, /----- BEGIN LICENSE -----\nlicense\n----- END LICENSE -----/);
   assert.equal(notices.includes(root), false);
+});
+
+test("copies viewer and font notices into the built site", async (context) => {
+  const root = await createFixture(context);
+  await mkdir(path.join(root, "packages", "site", "dist"), { recursive: true });
+  await writeFile(path.join(root, "LICENSE"), "Topocode MIT\n");
+  await createBundledLicenseFixtures(root);
+  await writeThirdPartyNotices({ rootDirectory: root });
+
+  await copyThirdPartyNoticesToSite({ rootDirectory: root });
+
+  assert.equal(
+    await readFile(
+      path.join(root, "packages", "site", "dist", "ARCHIFY_LICENSE.txt"),
+      "utf8",
+    ),
+    "Archify MIT License\n",
+  );
+  assert.equal(
+    await readFile(
+      path.join(root, "packages", "site", "dist", "JETBRAINS_MONO_LICENSE.txt"),
+      "utf8",
+    ),
+    "SIL OPEN FONT LICENSE Version 1.1\n",
+  );
+  assert.match(
+    await readFile(
+      path.join(root, "packages", "site", "dist", "THIRD_PARTY_NOTICES.txt"),
+      "utf8",
+    ),
+    /Archify third-party notices/,
+  );
 });
 
 test("includes aliases, transitives, required peers, and installed optional deps", async (context) => {
