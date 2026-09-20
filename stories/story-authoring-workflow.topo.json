@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "1.0",
+  "diagramFamily": "workflow",
+  "classification": "source-grounded",
+  "id": "story-authoring-workflow",
+  "title": "How a Topocode story reaches preview",
+  "summary": "Follow a source-grounded story from authoring through validation, stale-source repair, and committed preview.",
+  "category": "Topocode internals",
+  "anchors": [
+    {
+      "id": "parse",
+      "path": "packages/story/src/index.ts",
+      "symbol": "parseStoryDocument"
+    },
+    {
+      "id": "validate",
+      "path": "packages/cli/src/story-validation.ts",
+      "symbol": "validateStory"
+    },
+    {
+      "id": "stale",
+      "path": "packages/cli/src/source-snapshot.ts",
+      "symbol": "assertSourceSnapshot"
+    },
+    {
+      "id": "preview",
+      "path": "packages/cli/src/story-preview.ts",
+      "symbol": "previewStory"
+    }
+  ],
+  "sections": [
+    {
+      "id": "author",
+      "title": "Author the story",
+      "body": "Write the story document with explicit narrative sections and repository source anchors.",
+      "anchorIds": ["parse"]
+    },
+    {
+      "id": "validate",
+      "title": "Validate the evidence",
+      "body": "Parse the document and resolve every source anchor before accepting it as factual.",
+      "anchorIds": ["validate"]
+    },
+    {
+      "id": "detect-stale",
+      "title": "Detect stale source",
+      "body": "Reject the result if an anchored source file changes during validation.",
+      "anchorIds": ["stale"]
+    },
+    {
+      "id": "repair",
+      "title": "Repair stale anchors",
+      "body": "Update stale paths, symbols, or patterns and validate the repaired story again.",
+      "anchorIds": ["validate", "stale"]
+    },
+    {
+      "id": "preview",
+      "title": "Preview the committed story",
+      "body": "Render the validated committed story through diagram-core and publish its local preview.",
+      "anchorIds": ["preview"]
+    }
+  ],
+  "connections": [
+    { "from": "author", "to": "validate", "label": "validate" },
+    { "from": "validate", "to": "detect-stale", "label": "check snapshot" },
+    { "from": "detect-stale", "to": "repair", "label": "repair if stale" },
+    { "from": "repair", "to": "preview", "label": "preview when valid" }
+  ]
+}
