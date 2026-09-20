@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "1.0",
+  "id": "missing-pattern",
+  "title": "Missing pattern",
+  "summary": "Broken pattern anchor fixture.",
+  "anchors": [{ "id": "broken", "path": "src/checkout.ts", "symbol": "submitCheckout", "pattern": "refund(order)" }],
+  "sections": [{ "id": "broken", "title": "Broken", "body": "Broken.", "anchorIds": ["broken"] }],
+  "connections": []
+}

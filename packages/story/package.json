@@ -1,31 +1,32 @@
 {
-  "name": "@topo/diagram-core",
+  "name": "@topo/story",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "files": [
     "dist",
-    "vendored",
-    "integrity-baseline.json",
-    "LICENSE",
-    "THIRD_PARTY_NOTICES.md"
+    "story.schema.json"
   ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    }
+    },
+    "./story.schema.json": "./story.schema.json"
   },
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc -b --pretty false",
-    "test": "tsc -b && node --test test/*.test.mjs"
+    "test": "vitest run"
   },
   "dependencies": {
-    "@topo/story": "workspace:*"
+    "typescript-compiler-api": "npm:typescript@^6.0.0"
   },
   "devDependencies": {
     "@types/node": "^22",
-    "typescript": "^7.0.2"
+    "ajv": "8.17.1",
+    "typescript": "^7.0.2",
+    "vite": "8.2.2",
+    "vitest": "^5.0.0"
   }
 }

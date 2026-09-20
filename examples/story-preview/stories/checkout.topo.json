@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "1.0",
+  "id": "checkout",
+  "title": "Checkout request",
+  "summary": "A checkout request is validated before payment is charged.",
+  "anchors": [
+    {
+      "id": "submit-checkout",
+      "path": "examples/story-preview/src/checkout.ts",
+      "symbol": "submitCheckout",
+      "pattern": "charge(order)"
+    },
+    {
+      "id": "charge-order",
+      "path": "examples/story-preview/src/checkout.ts",
+      "symbol": "charge"
+    }
+  ],
+  "sections": [
+    {
+      "id": "submit",
+      "title": "Submit checkout",
+      "body": "The request is validated before the payment boundary is called.",
+      "anchorIds": ["submit-checkout"]
+    },
+    {
+      "id": "charge",
+      "title": "Charge order",
+      "body": "The payment boundary returns the charged order identity.",
+      "anchorIds": ["charge-order"]
+    }
+  ],
+  "connections": [
+    {
+      "from": "submit",
+      "to": "charge",
+      "label": "charges"
+    }
+  ]
+}

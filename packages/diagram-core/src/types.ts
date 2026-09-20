@@ -16,8 +16,8 @@ export interface Artifact {
   readonly mediaType: "text/html";
   readonly contents: string;
   readonly renderer: {
-    readonly name: "@topo/diagram-core-placeholder";
-    readonly pin: "stub";
+    readonly name: string;
+    readonly pin: string;
     readonly sha256: string;
   };
 }

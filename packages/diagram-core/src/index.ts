@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import type { ResolvedStoryDocument, StoryArtifact } from "@topo/story";
 import { verifyPinnedArtifactIntegrity } from "./integrity.js";
 import type { Artifact, RenderInput } from "./types.js";
 
@@ -42,4 +43,49 @@ export function render(input: RenderInput): Artifact {
       sha256: integrity.sha256,
     },
   };
+}
+
+export function renderStory(story: ResolvedStoryDocument): StoryArtifact {
+  const anchors = new Map(story.anchors.map((anchor) => [anchor.id, anchor]));
+  return render({
+    title: story.document.title,
+    document: {
+      schemaVersion: story.document.schemaVersion,
+      id: story.document.id,
+      summary: story.document.summary,
+      source: {
+        revision: story.source.revision,
+        dirty: story.source.dirty,
+      },
+      nodes: story.document.sections.map((section) => ({
+        id: section.id,
+        title: section.title,
+        body: section.body,
+        anchors: section.anchorIds.map((anchorId) => {
+          const anchor = anchors.get(anchorId);
+          if (anchor === undefined) {
+            throw new Error(
+              `Resolved story is missing anchor "${anchorId}" for section "${section.id}"`,
+            );
+          }
+          return {
+            id: anchor.id,
+            path: anchor.path,
+            symbol: anchor.symbol ?? null,
+            pattern: anchor.pattern ?? null,
+            location: {
+              startLine: anchor.location.startLine,
+              endLine: anchor.location.endLine,
+            },
+            excerpt: anchor.excerpt,
+          };
+        }),
+      })),
+      edges: story.document.connections.map((connection) => ({
+        from: connection.from,
+        to: connection.to,
+        label: connection.label ?? null,
+      })),
+    },
+  });
 }

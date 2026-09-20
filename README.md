@@ -33,6 +33,8 @@ From this checkout, with Node.js 22+ and Corepack:
 corepack yarn install --immutable
 corepack yarn build
 corepack yarn topo scan /absolute/path/to/a/typescript-repository
+corepack yarn topo preview /absolute/path/to/a/typescript-repository \
+  /absolute/path/to/a/typescript-repository/stories/example.topo.json
 corepack yarn topo serve /absolute/path/to/a/typescript-repository
 ```
 
@@ -42,6 +44,11 @@ The site is compiled once; rescanning replaces its data without rebuilding it.
 These static commands upload nothing and install nothing in the scanned repository.
 WebGL support is required. If initialization fails, the site shows an actionable
 error; it does not switch to another renderer.
+
+The optional `topo preview` step renders one committed, source-grounded story
+under `/stories/<story-id>/` without replacing the explorer at `/`. See the
+[story contract, anchor behavior, and reproducibility method](./docs/story-preview.md)
+and the [committed example](./examples/story-preview/stories/checkout.topo.json).
 
 To open on a responsibility-first logical architecture with compiler-backed
 entities, signatures, members, and static dependents, supply an explicit

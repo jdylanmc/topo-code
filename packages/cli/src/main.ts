@@ -10,6 +10,7 @@ import { initializeWorkspace, isMissing, workspacePath } from "@topo/workspace";
 import { runEnrichment } from "./enrichment.js";
 import { generateArtifacts, ingestReports } from "./pipeline.js";
 import { serveSite } from "./server.js";
+import { previewStory } from "./story-preview.js";
 
 const execute = promisify(execFile);
 const HELP = `Topocode: local, deterministic repository maps
@@ -18,6 +19,7 @@ const HELP = `Topocode: local, deterministic repository maps
   topo scan [repository] [--allow-partial] [--responsibilities path]
   topo ingest <repository> <report.json> [more.json ...]
   topo enrich [repository]
+  topo preview <repository> <story>
   topo serve [repository] [--port 4173]
 
 Requires a Git repository and Node.js 22 or newer.
@@ -70,11 +72,11 @@ export async function runCli(args: string[]): Promise<number> {
     console.log(HELP);
     return 0;
   }
-  if (!["init", "scan", "ingest", "enrich", "serve"].includes(command)) throw new Error(`Unknown command: ${command}`);
+  if (!["init", "scan", "ingest", "enrich", "preview", "serve"].includes(command)) throw new Error(`Unknown command: ${command}`);
   if (values.port !== undefined && command !== "serve") throw new Error("--port is only valid with serve");
   if (values["allow-partial"] !== undefined && command !== "scan") throw new Error("--allow-partial is only valid with scan");
   if (values.responsibilities !== undefined && command !== "scan") throw new Error("--responsibilities is only valid with scan");
-  if (command !== "ingest" && positionals.length > 2) throw new Error(`Too many arguments for ${command}`);
+  if (!["ingest", "preview"].includes(command) && positionals.length > 2) throw new Error(`Too many arguments for ${command}`);
   const root = resolve(positionals[1] ?? ".");
   if (command === "init") {
     const result = await initializeWorkspace(root);
@@ -92,6 +94,24 @@ export async function runCli(args: string[]): Promise<number> {
     };
     process.once("SIGINT", stop);
     process.once("SIGTERM", stop);
+    return 0;
+  }
+  if (command === "preview") {
+    if (positionals.length !== 3) {
+      throw new Error("preview requires a repository and one story document");
+    }
+    const result = await previewStory(root, resolve(positionals[2]!));
+    if (result.source.dirty) {
+      console.warn(
+        "Rendering against uncommitted source changes; anchors describe the working tree, not only HEAD.",
+      );
+    }
+    console.log(
+      `Rendered ${result.documentPath} with ${result.renderer.name} (${result.renderer.pin})`,
+    );
+    console.log(
+      `Story generated at ${result.outputPath}; run topo serve "${root}" and open /stories/${result.storyId}/`,
+    );
     return 0;
   }
   if (command === "enrich") {

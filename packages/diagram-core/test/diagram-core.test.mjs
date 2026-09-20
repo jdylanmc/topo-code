@@ -13,6 +13,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import {
   render,
+  renderStory,
   verifyPinnedArtifactIntegrity,
 } from "@topo/diagram-core";
 
@@ -41,6 +42,46 @@ test("accepts the committed integrity baseline", () => {
 
   assert.equal(integrity.artifact, "vendored/archify-placeholder.html");
   assert.match(integrity.sha256, /^[0-9a-f]{64}$/);
+});
+
+test("adapts a resolved story only at the diagram-core boundary", () => {
+  const story = {
+    documentPath: "stories/checkout.topo.json",
+    source: { revision: "abc123", dirty: false },
+    document: {
+      schemaVersion: "1.0",
+      id: "checkout",
+      title: "Checkout",
+      summary: "Checkout flow.",
+      anchors: [{
+        id: "submit",
+        path: "src/checkout.ts",
+        symbol: "submitCheckout",
+        pattern: "charge(order)",
+      }],
+      sections: [{
+        id: "submit-step",
+        title: "Submit",
+        body: "Charge the order.",
+        anchorIds: ["submit"],
+      }],
+      connections: [],
+    },
+    anchors: [{
+      id: "submit",
+      path: "src/checkout.ts",
+      symbol: "submitCheckout",
+      pattern: "charge(order)",
+      location: { startLine: 3, endLine: 3 },
+      excerpt: "charge(order)",
+    }],
+  };
+
+  const first = renderStory(story);
+  const second = renderStory(story);
+  assert.deepEqual(second, first);
+  assert.match(first.contents, /"startLine":3/);
+  assert.match(first.contents, /"id":"submit-step"/);
 });
 
 test("rejects a tampered pinned artifact", async (context) => {

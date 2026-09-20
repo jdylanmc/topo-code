@@ -2,13 +2,10 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "composite": true,
-    "lib": ["ES2022"],
     "outDir": "dist",
     "rootDir": "src",
     "types": ["node"]
   },
-  "references": [
-    {"path": "../story"}
-  ],
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"]
 }

@@ -180,7 +180,12 @@ export async function serveSite(root: string, port = 4173): Promise<{ server: Se
       if (pathname.includes("\\") || pathname.includes("\0") || pathname.split("/").some((part) => part.startsWith("."))) {
         throw new HttpError(403, "Forbidden path");
       }
-      const requested = resolve(directory, `.${pathname === "/" ? "/index.html" : pathname}`);
+      const requestedPath = pathname === "/"
+        ? "/index.html"
+        : pathname.endsWith("/")
+          ? `${pathname}index.html`
+          : pathname;
+      const requested = resolve(directory, `.${requestedPath}`);
       if (!contained(directory, requested)) throw new HttpError(403, "Forbidden path");
 
       try {

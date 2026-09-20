@@ -7,6 +7,9 @@ does not currently publish versioned releases.
 
 ### Added
 
+- Preview committed renderer-independent architecture stories with source anchors,
+  explicit validation failures, atomic renderer output, and the existing local
+  server. See #42.
 - Add `yarn lint` correctness checks for maintained source, tests and tooling,
   including the regression and CI gates, while excluding copied skills,
   historical experiment evidence and generated output. See #38.
