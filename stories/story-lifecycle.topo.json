@@ -1,0 +1,81 @@
+{
+  "schemaVersion": "1.0",
+  "diagramFamily": "lifecycle",
+  "classification": "source-grounded",
+  "id": "story-lifecycle",
+  "title": "The lifecycle of a Topocode story",
+  "summary": "See how authored story data becomes valid source-grounded content, detects source drift, recovers, renders, and joins a static bundle.",
+  "category": "Topocode internals",
+  "anchors": [
+    {
+      "id": "parse",
+      "path": "packages/story/src/index.ts",
+      "symbol": "parseStoryDocument"
+    },
+    {
+      "id": "validate",
+      "path": "packages/cli/src/story-validation.ts",
+      "symbol": "validateStory"
+    },
+    {
+      "id": "stale",
+      "path": "packages/cli/src/source-snapshot.ts",
+      "symbol": "assertSourceSnapshot"
+    },
+    {
+      "id": "render",
+      "path": "packages/diagram-core/src/index.ts",
+      "symbol": "renderStory"
+    },
+    {
+      "id": "bundle",
+      "path": "packages/cli/src/bundle.ts",
+      "symbol": "bundleSite"
+    }
+  ],
+  "sections": [
+    {
+      "id": "draft",
+      "title": "Draft",
+      "body": "An author starts with story data that must pass the strict parser before it is valid.",
+      "anchorIds": ["parse"]
+    },
+    {
+      "id": "valid",
+      "title": "Valid",
+      "body": "Validation resolves every declared source anchor against a stable repository snapshot.",
+      "anchorIds": ["validate"]
+    },
+    {
+      "id": "stale",
+      "title": "Stale",
+      "body": "The story is rejected as stale when its captured source changes before validation or publication completes.",
+      "anchorIds": ["stale"]
+    },
+    {
+      "id": "repaired",
+      "title": "Repaired",
+      "body": "After stale paths, symbols, or patterns are repaired, the story must validate again.",
+      "anchorIds": ["validate", "stale"]
+    },
+    {
+      "id": "rendered",
+      "title": "Rendered",
+      "body": "The resolved story renders through the integrity-checked diagram-core boundary.",
+      "anchorIds": ["render"]
+    },
+    {
+      "id": "bundled",
+      "title": "Bundled",
+      "body": "The generated story joins the catalogue and explorer in the static site bundle.",
+      "anchorIds": ["bundle"]
+    }
+  ],
+  "connections": [
+    { "from": "draft", "to": "valid", "label": "validate" },
+    { "from": "valid", "to": "stale", "label": "source changes" },
+    { "from": "stale", "to": "repaired", "label": "repair anchors" },
+    { "from": "repaired", "to": "rendered", "label": "validate again" },
+    { "from": "rendered", "to": "bundled", "label": "publish" }
+  ]
+}

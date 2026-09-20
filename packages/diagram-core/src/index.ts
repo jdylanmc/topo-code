@@ -156,7 +156,7 @@ interface ArchifyLifecycle {
     readonly id: string;
     readonly type: "start" | "active" | "success";
     readonly label: string;
-    readonly lane: "main";
+    readonly lane: "main" | "terminal";
     readonly col: number;
   }[];
   readonly transitions: readonly {
@@ -480,7 +480,10 @@ function lifecycleSpec(story: ResolvedStoryDocument): ArchifyLifecycle {
       quality_profile: "standard",
       locale: "en",
     },
-    lanes: [{ id: "main", label: story.document.title }],
+    lanes: [
+      { id: "main", label: story.document.title },
+      { id: "terminal", label: "Outcomes" },
+    ],
     states: story.document.sections.map((section, index) => ({
       id: stateIds.get(section.id)!,
       type: index === 0
@@ -489,8 +492,10 @@ function lifecycleSpec(story: ResolvedStoryDocument): ArchifyLifecycle {
           ? "success"
           : "active",
       label: section.title,
-      lane: "main",
-      col: index,
+      lane: index === story.document.sections.length - 1
+        ? "terminal"
+        : "main",
+      col: index === story.document.sections.length - 1 ? 0 : index,
     })),
     transitions: story.document.connections.map((connection, index) => ({
       id: stableId(
