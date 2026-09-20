@@ -38,7 +38,7 @@ interface ArchifyArchitecture {
   readonly diagram_type: "architecture";
   readonly meta: {
     readonly title: string;
-    readonly quality_profile: "showcase";
+    readonly quality_profile: "standard";
     readonly locale: "en";
     readonly viewBox: readonly [number, number];
     readonly repository: {
@@ -52,9 +52,9 @@ interface ArchifyArchitecture {
     readonly id: string;
     readonly from: string;
     readonly to: string;
-    readonly fromSide: "right";
-    readonly toSide: "right";
-    readonly via: readonly (readonly [number, number])[];
+    readonly fromSide?: "left" | "right" | "top" | "bottom";
+    readonly toSide?: "left" | "right" | "top" | "bottom";
+    readonly via?: readonly (readonly [number, number])[];
   }[];
 }
 
@@ -106,7 +106,8 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
       componentId(section.id),
     ]),
   );
-  const components = story.document.sections.map((section, index) => {
+  const sections = story.document.sections;
+  const resolved = sections.map((section) => {
     const sectionAnchors = section.anchorIds
       .map((anchorId) => anchors.get(anchorId))
       .filter((anchor): anchor is NonNullable<typeof anchor> => anchor !== undefined);
@@ -121,15 +122,40 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
       section.title.length * 11 + 80,
       sublabel.length * 9 + 80,
     );
+    return { section, sectionAnchors, sublabel, width };
+  });
+  // Lay components out in a snake grid (rows of 3-4, left-to-right then
+  // right-to-left) so consecutive sections stay adjacent and connections read
+  // as a clean flow without a tall vertical column.
+  const perRow = sections.length <= 4
+    ? Math.max(1, sections.length)
+    : Math.min(4, Math.ceil(sections.length / 2));
+  const boxWidth = Math.max(280, ...resolved.map((entry) => entry.width));
+  const boxHeight = 130;
+  const columnGap = 90;
+  const rowGap = 150;
+  const margin = 80;
+  const cellOf = (index: number) => {
+    const row = Math.floor(index / perRow);
+    const positionInRow = index % perRow;
+    // Reverse odd rows so the sequence snakes and stays adjacent at the wrap.
+    const column = row % 2 === 0 ? positionInRow : perRow - 1 - positionInRow;
+    return { row, column };
+  };
+  const components = resolved.map(({ section, sectionAnchors, sublabel }, index) => {
+    const { row, column } = cellOf(index);
     return {
       id: componentIds.get(section.id)!,
-      type: index === story.document.sections.length - 1
+      type: index === sections.length - 1
         ? "frontend" as const
         : "backend" as const,
       label: section.title,
       sublabel,
-      pos: [80, 80 + index * 190] as const,
-      size: [width, 110] as const,
+      pos: [
+        margin + column * (boxWidth + columnGap),
+        margin + row * (boxHeight + rowGap),
+      ] as const,
+      size: [boxWidth, boxHeight] as const,
       sources: sectionAnchors.map((anchor) => ({
         path: anchor.path,
         line: anchor.location.startLine,
@@ -137,23 +163,25 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
       })),
     };
   });
-  const rightEdge = Math.max(
-    ...components.map((component) => component.pos[0] + component.size[0]),
-  );
+  const rowCount = Math.max(1, Math.ceil(sections.length / perRow));
+  const gridBottom = margin + rowCount * boxHeight + (rowCount - 1) * rowGap;
+  const laneBase = gridBottom + 60;
+  const laneGap = 40;
   const viewBoxWidth = Math.max(
     800,
-    rightEdge + 180 + story.document.connections.length * 32,
+    margin * 2 + perRow * boxWidth + (perRow - 1) * columnGap,
   );
   const viewBoxHeight = Math.max(
     500,
-    ...components.map((component) => component.pos[1] + component.size[1] + 80),
+    gridBottom + margin,
+    laneBase + story.document.connections.length * laneGap + margin,
   );
   return {
     schema_version: 1,
     diagram_type: "architecture",
     meta: {
       title: story.document.title,
-      quality_profile: "showcase",
+      quality_profile: "standard",
       locale: "en",
       viewBox: [viewBoxWidth, viewBoxHeight],
       repository: {
@@ -162,28 +190,44 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
       },
     },
     components,
+    // Adjacent grid cells route directly; non-adjacent endpoints detour through
+    // a dedicated lane below the grid so an edge never crosses another node.
     connections: story.document.connections.map((connection, index) => {
-      const fromIndex = story.document.sections.findIndex(
-        (section) => section.id === connection.from,
-      );
-      const toIndex = story.document.sections.findIndex(
-        (section) => section.id === connection.to,
-      );
-      const lane = rightEdge + 80 + index * 32;
-      const fromY = components[fromIndex]!.pos[1] + 55;
-      const toY = components[toIndex]!.pos[1] + 55;
-      return {
+      const fromIndex = sections.findIndex((s) => s.id === connection.from);
+      const toIndex = sections.findIndex((s) => s.id === connection.to);
+      const from = cellOf(fromIndex);
+      const to = cellOf(toIndex);
+      const deltaRow = to.row - from.row;
+      const deltaColumn = to.column - from.column;
+      const base = {
         id: stableId(
           "connection",
           `${index}\0${connection.from}\0${connection.to}`,
         ),
         from: componentIds.get(connection.from)!,
         to: componentIds.get(connection.to)!,
-        fromSide: "right",
-        toSide: "right",
-        via: fromIndex === toIndex
-          ? [[lane, fromY], [lane, fromY + 80], [rightEdge, fromY + 80]]
-          : [[lane, fromY], [lane, toY]],
+      };
+      const adjacent = Math.abs(deltaRow) + Math.abs(deltaColumn) === 1;
+      if (adjacent) {
+        const vertical = deltaRow !== 0;
+        return {
+          ...base,
+          fromSide: vertical
+            ? (deltaRow > 0 ? "bottom" as const : "top" as const)
+            : (deltaColumn > 0 ? "right" as const : "left" as const),
+          toSide: vertical
+            ? (deltaRow > 0 ? "top" as const : "bottom" as const)
+            : (deltaColumn > 0 ? "left" as const : "right" as const),
+        };
+      }
+      const fromX = components[fromIndex]!.pos[0] + boxWidth / 2;
+      const toX = components[toIndex]!.pos[0] + boxWidth / 2;
+      const lane = laneBase + index * laneGap;
+      return {
+        ...base,
+        fromSide: "bottom" as const,
+        toSide: "bottom" as const,
+        via: [[fromX, lane], [toX, lane]] as const,
       };
     }),
   };
@@ -226,7 +270,7 @@ export function renderStory(story: ResolvedStoryDocument): StoryArtifact {
       "--repo-root",
       story.repositoryRoot,
       "--quality",
-      "showcase",
+      "standard",
       "--json",
     ], {
       encoding: "utf8",
