@@ -11,6 +11,7 @@ import { runEnrichment } from "./enrichment.js";
 import { generateArtifacts, ingestReports } from "./pipeline.js";
 import { serveSite } from "./server.js";
 import { previewStory } from "./story-preview.js";
+import { buildCatalogueStories, writeCatalogue } from "./catalogue.js";
 
 const execute = promisify(execFile);
 const HELP = `Topocode: local, deterministic repository maps
@@ -100,7 +101,9 @@ export async function runCli(args: string[]): Promise<number> {
     if (positionals.length !== 3) {
       throw new Error("preview requires a repository and one story document");
     }
+    const stories = await buildCatalogueStories(root);
     const result = await previewStory(root, resolve(positionals[2]!));
+    await writeCatalogue(root, stories, (await initializeWorkspace(root)).config.catalogue);
     if (result.source.dirty) {
       console.warn(
         "Rendering against uncommitted source changes; anchors describe the working tree, not only HEAD.",
@@ -132,10 +135,17 @@ export async function runCli(args: string[]): Promise<number> {
   validateConfiguredModules(config.modules);
   const assets = await siteAssets();
   const state = await sourceState(root);
+  const stories = await buildCatalogueStories(root);
   if (command === "ingest") {
     if (positionals.length < 3) throw new Error("ingest requires a repository and at least one report file");
     if (state.dirty) throw new Error("Report ingestion requires clean source files at the scanned revision; .topo artifacts are excluded.");
-    const result = await ingestReports(root, positionals.slice(2).map((path) => resolve(path)), assets, state.revision);
+    const result = await ingestReports(
+      root,
+      positionals.slice(2).map((path) => resolve(path)),
+      assets,
+      state.revision,
+      stories,
+    );
     for (const warning of result.warnings) console.warn(warning);
     console.log(`Ingested ${result.dashboard.inputs.length} reports; ${result.dashboard.metrics.length} metrics, ${result.dashboard.findings.length} findings`);
     return 0;
@@ -153,7 +163,13 @@ export async function runCli(args: string[]): Promise<number> {
     ...(values.responsibilities ? { responsibilityFile: resolve(values.responsibilities) } : {}),
   });
   if ((await sourceState(root)).revision !== state.revision) throw new Error("Repository revision changed during scan; retry");
-  const artifacts = await generateArtifacts(root, result.graph, assets, result.logicalArchitecture);
+  const artifacts = await generateArtifacts(
+    root,
+    result.graph,
+    assets,
+    result.logicalArchitecture,
+    stories,
+  );
   for (const diagnostic of result.diagnostics) console.warn(`${diagnostic.severity}: ${diagnostic.code}: ${diagnostic.message}`);
   for (const warning of artifacts.layout.warnings) console.warn(`layout: ${warning.code}: ${warning.message}`);
   for (const warning of artifacts.warnings) console.warn(warning);

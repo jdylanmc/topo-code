@@ -22,7 +22,7 @@ export async function commit(repository: string, message: string, ...paths: stri
   return (await execute("git", ["rev-parse", "HEAD"], { cwd: repository })).stdout.trim();
 }
 
-async function stop(server: ChildProcess): Promise<void> {
+export async function stopTopoServer(server: ChildProcess): Promise<void> {
   if (!server.pid || server.exitCode !== null || server.signalCode !== null) return;
   await new Promise<void>((done, reject) => {
     const deadline = setTimeout(() => server.kill("SIGKILL"), 5_000);
@@ -34,6 +34,54 @@ async function stop(server: ChildProcess): Promise<void> {
     server.once("error", reject);
     server.kill("SIGTERM");
   });
+}
+
+export async function startTopoServer(
+  repository: string,
+  args: readonly string[],
+): Promise<{ server: ChildProcess; url: string }> {
+  const server = spawn(process.execPath, [entry, "serve", ...args], {
+    cwd: repository,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let output = "";
+  let errors = "";
+  server.stderr!.on("data", (chunk: Buffer) => {
+    errors += chunk.toString();
+  });
+  const url = await new Promise<string>((ready, reject) => {
+    const deadline = setTimeout(() => {
+      reject(
+        new Error(`topo serve did not announce readiness:\n${output}\n${errors}`),
+      );
+    }, 10_000);
+    server.once("error", (error) => {
+      clearTimeout(deadline);
+      reject(error);
+    });
+    server.once("exit", (code, signal) => {
+      clearTimeout(deadline);
+      reject(
+        new Error(
+          `topo serve exited before readiness (${code ?? signal}):\n${errors}`,
+        ),
+      );
+    });
+    server.stdout!.on("data", (chunk: Buffer) => {
+      output += chunk.toString();
+      const match = /^Topocode: (http:\/\/127\.0\.0\.1:\d+)$/m.exec(output);
+      if (match) {
+        clearTimeout(deadline);
+        ready(match[1]!);
+      }
+    });
+  });
+  const response = await fetch(url, { signal: AbortSignal.timeout(5_000) });
+  if (!response.ok) {
+    await stopTopoServer(server);
+    throw new Error(`topo serve readiness returned HTTP ${response.status}`);
+  }
+  return { server, url };
 }
 
 export const test = base.extend<{
@@ -58,34 +106,14 @@ export const test = base.extend<{
     try {
       await use(async () => {
         if (server) throw new Error("This fixture owns only one topo serve process");
-        server = spawn(process.execPath, [entry, "serve", "--port", "0"], {
-          cwd: repository, stdio: ["ignore", "pipe", "pipe"],
-        });
-        let output = "";
-        let errors = "";
-        server.stderr!.on("data", (chunk: Buffer) => { errors += chunk.toString(); });
-        const url = await new Promise<string>((ready, reject) => {
-          const deadline = setTimeout(() => {
-            reject(new Error(`topo serve did not announce readiness:\n${output}\n${errors}`));
-          }, 10_000);
-          server!.once("error", (error) => { clearTimeout(deadline); reject(error); });
-          server!.once("exit", (code, signal) => {
-            clearTimeout(deadline);
-            reject(new Error(`topo serve exited before readiness (${code ?? signal}):\n${errors}`));
-          });
-          server!.stdout!.on("data", (chunk: Buffer) => {
-            output += chunk.toString();
-            const match = /^Topocode: (http:\/\/127\.0\.0\.1:\d+)$/m.exec(output);
-            if (match) { clearTimeout(deadline); ready(match[1]!); }
-          });
-        });
-        const response = await fetch(url, { signal: AbortSignal.timeout(5_000) });
-        if (!response.ok) throw new Error(`topo serve readiness returned HTTP ${response.status}`);
+        const started = await startTopoServer(repository, ["--port", "0"]);
+        server = started.server;
+        const { url } = started;
         return url;
       });
     } finally {
       await page.goto("about:blank").finally(async () => {
-        if (server) await stop(server);
+        if (server) await stopTopoServer(server);
       });
     }
   },

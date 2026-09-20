@@ -79,7 +79,7 @@ test("production CLI serves the responsibility-first logical architecture workfl
   expect(result.stderr).toBe("");
 
   const url = await startSite();
-  await page.goto(url);
+  await page.goto(`${url}/explorer/`);
   await page.evaluate(() => window.__TOPO_READY__);
   await expect(page.locator("canvas.topo-webgl")).toBeVisible();
   await expect(page.getByText("Responsibilities: proposed")).toBeVisible();
@@ -223,7 +223,7 @@ test("logical mode preserves partial-scan warnings and coverage", async ({
   await expect(topo(repository, "scan", ".", "--allow-partial", "--responsibilities", "responsibilities.json"))
     .rejects.toMatchObject({ code: 2 });
   const url = await startSite();
-  await page.goto(url);
+  await page.goto(`${url}/explorer/`);
   await page.evaluate(() => window.__TOPO_READY__);
   await expect(page.getByText("Non-authoritative logical architecture.")).toBeVisible();
   const logical = await page.evaluate(async () => (await fetch("./data.json")).json());
@@ -256,7 +256,7 @@ test("logical positions ignore incompatible revision and grouping namespaces", a
   await commit(repository, "Position namespace fixture", "package.json", "index.ts", "responsibilities.json");
   await topo(repository, "scan", ".", "--responsibilities", "responsibilities.json");
   const url = await startSite();
-  await page.goto(url);
+  await page.goto(`${url}/explorer/`);
   await page.evaluate(() => window.__TOPO_READY__);
   const firstDocument = await page.evaluate(async () => (await fetch("./data.json")).json());
   const firstNamespace = firstDocument.logicalArchitecture.positionNamespaceId;

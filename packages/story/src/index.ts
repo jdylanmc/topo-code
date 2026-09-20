@@ -27,6 +27,7 @@ export interface StoryDocument {
   readonly id: string;
   readonly title: string;
   readonly summary: string;
+  readonly category?: string;
   readonly anchors: readonly SourceAnchor[];
   readonly sections: readonly StorySection[];
   readonly connections: readonly StoryConnection[];
@@ -191,6 +192,7 @@ function validateStoryDocument(value: unknown): string | undefined {
   const rootKeys = exactKeys(
     value,
     ["schemaVersion", "id", "title", "summary", "anchors", "sections", "connections"],
+    ["category"],
   );
   if (rootKeys) return rootKeys;
   if (value.schemaVersion !== "1.0") return 'schemaVersion must be "1.0"';
@@ -199,6 +201,9 @@ function validateStoryDocument(value: unknown): string | undefined {
   }
   if (!nonemptyString(value.title)) return "title must be nonempty";
   if (!nonemptyString(value.summary)) return "summary must be nonempty";
+  if (value.category !== undefined && !nonemptyString(value.category)) {
+    return "category must be nonempty";
+  }
   if (!Array.isArray(value.anchors)) return "anchors must be an array";
   if (!Array.isArray(value.sections) || value.sections.length === 0) {
     return "sections must be a nonempty array";

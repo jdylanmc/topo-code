@@ -38,8 +38,10 @@ async function selectFile(page: Page, path: string): Promise<void> {
 }
 
 async function load(page: Page, url: string) {
-  const dataResponse = page.waitForResponse((response) => new URL(response.url()).pathname === "/data.json");
-  const response = await page.goto(url);
+  const dataResponse = page.waitForResponse(
+    (response) => new URL(response.url()).pathname === "/explorer/data.json",
+  );
+  const response = await page.goto(`${url}/explorer/`);
   expect(response?.status()).toBe(200);
   expect(response?.headers()["content-security-policy"]).toContain("script-src 'self'");
   expect(response?.headers()["content-security-policy"]).not.toContain("'unsafe-eval'");
@@ -268,7 +270,9 @@ test("target-repository CLI journey preserves evidence and intent through a comm
     await expect(readdir(join(repository, "node_modules"))).rejects.toMatchObject({ code: "ENOENT" });
     expect((await execute("git", ["diff", "--exit-code", "HEAD"], { cwd: repository })).stdout).toBe("");
     expect((await execute("git", ["diff", "--cached", "--exit-code"], { cwd: repository })).stdout).toBe("");
-    expect(requests.filter((request) => new URL(request).pathname === "/data.json")).toHaveLength(3);
+    expect(requests.filter(
+      (request) => new URL(request).pathname === "/explorer/data.json",
+    )).toHaveLength(3);
     expect(requests.every((request) => new URL(request).origin === url)).toBe(true);
     expect(errors).toEqual([]);
   });

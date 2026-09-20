@@ -17,6 +17,7 @@ function validStory(): StoryDocument {
     id: "checkout",
     title: "Checkout flow",
     summary: "How checkout reaches payment.",
+    category: "Journeys",
     anchors: [{
       id: "submit",
       path: "src/checkout.ts",
@@ -34,6 +35,20 @@ function validStory(): StoryDocument {
 }
 
 describe("story document contract", () => {
+  it("accepts an optional catalogue category", () => {
+    expect(parseStoryDocument(
+      JSON.stringify(validStory()),
+      "stories/checkout.topo.json",
+    ).category).toBe("Journeys");
+  });
+
+  it("rejects an empty catalogue category", () => {
+    expect(() => parseStoryDocument(
+      JSON.stringify({ ...validStory(), category: "" }),
+      "stories/checkout.topo.json",
+    )).toThrow("category must be nonempty");
+  });
+
   it("publishes a renderer-independent JSON schema", async () => {
     const schema = JSON.parse(await readFile(schemaPath, "utf8"));
     const validate = new Ajv2020({ strict: true }).compile(schema);

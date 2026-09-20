@@ -64,7 +64,7 @@ async function enrich(repository: string): Promise<void> {
 }
 
 async function ready(page: Page, url: string): Promise<void> {
-  const response = await page.goto(`${url}/?scope=all`);
+  const response = await page.goto(`${url}/explorer/?scope=all`);
   expect(response?.headers()["content-security-policy"]).not.toContain("'unsafe-eval'");
   await page.evaluate(() => window.__TOPO_READY__);
   await expect(page.locator("canvas.topo-webgl")).toBeVisible();
