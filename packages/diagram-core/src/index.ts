@@ -30,7 +30,7 @@ interface ArchifyComponent {
   readonly sublabel: string;
   readonly pos: readonly [number, number];
   readonly size: readonly [number, number];
-  readonly sources: readonly ArchifySource[];
+  readonly sources?: readonly ArchifySource[];
 }
 
 interface ArchifyArchitecture {
@@ -266,11 +266,15 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
         margin + row * (boxHeight + rowGap),
       ] as const,
       size: [boxWidth, boxHeight] as const,
-      sources: sectionAnchors.map((anchor) => ({
-        path: anchor.path,
-        line: anchor.location.startLine,
-        end_line: anchor.location.endLine,
-      })),
+      ...(sectionAnchors.length === 0
+        ? {}
+        : {
+            sources: sectionAnchors.map((anchor) => ({
+              path: anchor.path,
+              line: anchor.location.startLine,
+              end_line: anchor.location.endLine,
+            })),
+          }),
     };
   });
   const rowCount = Math.max(1, Math.ceil(sections.length / perRow));

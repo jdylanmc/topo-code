@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "1.0",
+  "diagramFamily": "lifecycle",
+  "classification": "capability-demo",
+  "id": "lifecycle-capability",
+  "title": "Lifecycle capability",
+  "summary": "A conceptual example of states and transitions; it does not describe Topocode source.",
+  "anchors": [],
+  "sections": [
+    {
+      "id": "created",
+      "title": "Created",
+      "body": "Enter the conceptual lifecycle.",
+      "anchorIds": []
+    },
+    {
+      "id": "active",
+      "title": "Active",
+      "body": "Continue through an active state.",
+      "anchorIds": []
+    },
+    {
+      "id": "complete",
+      "title": "Complete",
+      "body": "Reach the conceptual outcome.",
+      "anchorIds": []
+    }
+  ],
+  "connections": [
+    { "from": "created", "to": "active", "label": "begin" },
+    { "from": "active", "to": "complete", "label": "finish" }
+  ]
+}

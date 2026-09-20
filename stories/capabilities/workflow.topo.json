@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "1.0",
+  "diagramFamily": "workflow",
+  "classification": "capability-demo",
+  "id": "workflow-capability",
+  "title": "Workflow capability",
+  "summary": "A conceptual example of ordered work in a native workflow lane; it does not describe Topocode source.",
+  "anchors": [],
+  "sections": [
+    {
+      "id": "request",
+      "title": "Receive request",
+      "body": "Begin a conceptual workflow.",
+      "anchorIds": []
+    },
+    {
+      "id": "complete",
+      "title": "Complete work",
+      "body": "Finish the conceptual workflow.",
+      "anchorIds": []
+    }
+  ],
+  "connections": [
+    { "from": "request", "to": "complete", "label": "then" }
+  ]
+}
