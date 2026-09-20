@@ -28,21 +28,33 @@ async function story(
   id: string,
   title: string,
   category?: string,
+  options?: {
+    anchor?: { id: string; path: string; symbol: string };
+    section?: { id: string; title: string; body: string };
+  },
 ): Promise<void> {
   const directory = join(repository, "stories", path);
   await mkdir(directory, { recursive: true });
+  const anchor = options?.anchor ?? {
+    id: "source",
+    path: "source.ts",
+    symbol: "value",
+  };
+  const section = options?.section ?? {
+    id: "section",
+    title: "Source",
+    body: "Follow the source.",
+  };
   await writeFile(join(directory, `${id}.topo.json`), `${JSON.stringify({
     schemaVersion: "1.0",
     id,
     title,
     summary: `${title} summary.`,
     ...(category === undefined ? {} : { category }),
-    anchors: [{ id: "source", path: "source.ts", symbol: "value" }],
+    anchors: [anchor],
     sections: [{
-      id: "section",
-      title: "Source",
-      body: "Follow the source.",
-      anchorIds: ["source"],
+      ...section,
+      anchorIds: [anchor.id],
     }],
     connections: [],
   }, null, 2)}\n`);
@@ -111,4 +123,71 @@ test("configured catalogue selects stories and retains the explorer on an explic
   await page.getByRole("link", { name: /Dependency atlas/ }).click();
   await page.evaluate(() => window.__TOPO_READY__);
   await expect(page.locator("canvas.topo-webgl")).toBeVisible();
+});
+
+test("linked story nodes keep durable focus across drill-down, reload, direct open, and return", async ({
+  page,
+  repository,
+  startSite,
+}) => {
+  await sourceFixture(repository);
+  await writeFile(
+    join(repository, "detail.ts"),
+    "export function inspectOrder() {\n  return 'evidence';\n}\n",
+  );
+  await story(repository, "journeys", "overview", "Order overview", undefined, {
+    anchor: { id: "detail-source", path: "detail.ts", symbol: "inspectOrder" },
+    section: {
+      id: "order-detail",
+      title: "Inspect order details",
+      body: "Drill into the order evidence.",
+    },
+  });
+  await story(repository, "journeys", "detail", "Order detail", undefined, {
+    anchor: { id: "detail-source", path: "detail.ts", symbol: "inspectOrder" },
+    section: {
+      id: "evidence",
+      title: "Order code evidence",
+      body: "Read the implementation evidence.",
+    },
+  });
+  await commit(repository, "Linked stories", "detail.ts", "stories");
+  await topo(repository, "scan");
+
+  const url = await startSite();
+  await page.goto(`${url}/stories/overview/`);
+  await expect(page.getByRole("heading", { name: "Order overview" })).toBeVisible();
+  await page.getByRole("link", { name: "Open Order detail: Order code evidence" }).click();
+
+  await expect(page).toHaveURL(
+    `${url}/stories/detail/?focus=evidence&from=overview&fromFocus=order-detail`,
+  );
+  await expect(page.getByRole("heading", { name: "Order detail" })).toBeVisible();
+  await expect(page.locator('[data-node-id="evidence"]')).toHaveAttribute("aria-current", "true");
+  await expect(page.locator("iframe")).toHaveAttribute("src", "viewer.html#focus=evidence");
+  const evidence = await page.locator("iframe").contentFrame()
+    .locator("#topo-diagram").textContent();
+  expect(JSON.parse(evidence ?? "{}").nodes[0].anchors[0]).toMatchObject({
+    path: "detail.ts",
+    symbol: "inspectOrder",
+    excerpt: expect.stringContaining("inspectOrder"),
+  });
+
+  await page.reload();
+  await expect(page.locator('[data-node-id="evidence"]')).toHaveAttribute("aria-current", "true");
+  await expect(page.locator("iframe")).toHaveAttribute("src", "viewer.html#focus=evidence");
+
+  await page.goto(`${url}/stories/detail/?focus=evidence`);
+  await expect(page.locator('[data-node-id="evidence"]')).toHaveAttribute("aria-current", "true");
+
+  await page.goto(
+    `${url}/stories/detail/?focus=evidence&from=overview&fromFocus=order-detail`,
+  );
+  await page.getByRole("link", { name: "Return to Order overview" }).click();
+  await expect(page).toHaveURL(`${url}/stories/overview/?focus=order-detail`);
+  await expect(page.locator('[data-node-id="order-detail"]')).toHaveAttribute("aria-current", "true");
+  await expect(page.locator("iframe")).toHaveAttribute(
+    "src",
+    "viewer.html#focus=order-detail",
+  );
 });

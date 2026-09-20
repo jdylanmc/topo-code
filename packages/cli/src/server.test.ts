@@ -63,6 +63,7 @@ it("serves only generated site data on loopback with explicit errors", async () 
   expect(response.status).toBe(200);
   expect(await response.text()).toContain("Topo");
   expect(response.headers.get("content-security-policy")).toContain("connect-src 'self'");
+  expect(response.headers.get("content-security-policy")).toContain("frame-ancestors 'none'");
   expect(await (await fetch(`${url}/data.json`)).json()).toEqual({ ok: true });
   expect(await (await fetch(`${url}/explorer/data.json`)).json()).toEqual({ ok: true });
   expect((await fetch(`${url}/not-found`)).status).toBe(404);
@@ -81,6 +82,21 @@ it("serves only generated site data on loopback with explicit errors", async () 
     req.on("error", reject);
     req.end();
   })).toBe(403);
+});
+it("allows only generated story viewers to be embedded by the same origin", async () => {
+  const { url, root } = await setup();
+  await mkdir(join(root, ".topo/cache/site/stories/example"), { recursive: true });
+  await writeFile(
+    join(root, ".topo/cache/site/stories/example/viewer.html"),
+    "<!doctype html><title>Viewer</title>",
+  );
+
+  const viewer = await fetch(`${url}/stories/example/viewer.html`);
+  expect(viewer.status).toBe(200);
+  expect(viewer.headers.get("content-security-policy"))
+    .toContain("frame-ancestors 'self'");
+  expect((await fetch(`${url}/stories/example/`)).headers.get("content-security-policy"))
+    .toContain("frame-ancestors 'none'");
 });
 it("rejects missing sites and invalid ports rather than starting an empty server", async () => {
   const { root } = await setup();

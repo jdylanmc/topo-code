@@ -234,6 +234,237 @@ interface CatalogueEntry {
   readonly href: string;
 }
 
+interface StoryLink {
+  readonly sourceNodeId: string;
+  readonly targetStoryId: string;
+  readonly targetStoryTitle: string;
+  readonly targetNodeId: string;
+  readonly targetNodeTitle: string;
+}
+
+const STORY_NAVIGATION_SCRIPT = `(() => {
+  const frame = document.querySelector("iframe[data-story-viewer]");
+  if (!(frame instanceof HTMLIFrameElement)) return;
+  const storyId = document.body.dataset.storyId;
+  if (!storyId) return;
+  const nodeLinks = [...document.querySelectorAll("[data-node-id]")];
+  const crossLinks = [...document.querySelectorAll("[data-cross-story]")];
+  const params = new URLSearchParams(window.location.search);
+
+  function setFocus(nodeId) {
+    for (const link of nodeLinks) {
+      if (link.getAttribute("data-node-id") === nodeId) {
+        link.setAttribute("aria-current", "true");
+      } else {
+        link.removeAttribute("aria-current");
+      }
+    }
+    frame.src = "viewer.html" + (nodeId ? "#focus=" + encodeURIComponent(nodeId) : "");
+  }
+
+  function rememberFocus(nodeId) {
+    const url = new URL(window.location.href);
+    if (nodeId) url.searchParams.set("focus", nodeId);
+    else url.searchParams.delete("focus");
+    window.history.replaceState(null, "", url);
+    setFocus(nodeId);
+  }
+
+  function follow(link) {
+    const sourceNodeId = link.getAttribute("data-source-node");
+    if (sourceNodeId) {
+      const current = new URL(window.location.href);
+      current.searchParams.set("focus", sourceNodeId);
+      current.searchParams.delete("from");
+      current.searchParams.delete("fromFocus");
+      window.history.replaceState(null, "", current);
+    }
+    window.location.assign(link.href);
+  }
+
+  for (const link of crossLinks) {
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      follow(link);
+    });
+  }
+
+  const returnLink = document.querySelector("[data-return]");
+  const from = params.get("from");
+  const fromFocus = params.get("fromFocus");
+  if (returnLink instanceof HTMLAnchorElement && from && fromFocus) {
+    const source = document.querySelector('[data-story-id="' + CSS.escape(from) + '"]');
+    if (source instanceof HTMLAnchorElement) {
+      returnLink.hidden = false;
+      returnLink.textContent = "Return to " + source.textContent;
+      returnLink.href = "../" + encodeURIComponent(from) + "/?focus=" + encodeURIComponent(fromFocus);
+    }
+  }
+
+  frame.addEventListener("load", () => {
+    const child = frame.contentWindow;
+    const childDocument = frame.contentDocument;
+    if (!child || !childDocument) return;
+    const syncSelectedNode = () => {
+      const focus = new URLSearchParams(child.location.hash.replace(/^#/, "")).get("focus");
+      if (!focus) return;
+      const candidates = crossLinks.filter((link) => link.getAttribute("data-source-node") === focus);
+      rememberFocus(focus);
+      if (candidates.length === 1) follow(candidates[0]);
+    };
+    childDocument.addEventListener("click", () => setTimeout(syncSelectedNode));
+    childDocument.addEventListener("keyup", () => setTimeout(syncSelectedNode));
+  });
+
+  setFocus(params.get("focus") || "");
+})();\n`;
+
+function anchorKey(anchor: StoryDocument["anchors"][number]): string {
+  return JSON.stringify([anchor.path, anchor.symbol ?? null, anchor.pattern ?? null]);
+}
+
+function storyLinks(stories: readonly CatalogueStory[]): Map<string, StoryLink[]> {
+  const destinations = new Map<string, {
+    storyId: string;
+    storyTitle: string;
+    nodeId: string;
+    nodeTitle: string;
+  }[]>();
+  for (const { document } of stories) {
+    const anchors = new Map(document.anchors.map((anchor) => [anchor.id, anchor]));
+    for (const section of document.sections) {
+      for (const anchorId of section.anchorIds) {
+        const anchor = anchors.get(anchorId);
+        if (!anchor) continue;
+        const key = anchorKey(anchor);
+        const values = destinations.get(key) ?? [];
+        values.push({
+          storyId: document.id,
+          storyTitle: document.title,
+          nodeId: section.id,
+          nodeTitle: section.title,
+        });
+        destinations.set(key, values);
+      }
+    }
+  }
+  const result = new Map<string, StoryLink[]>();
+  for (const { document } of stories) {
+    const anchors = new Map(document.anchors.map((anchor) => [anchor.id, anchor]));
+    const links: StoryLink[] = [];
+    const seen = new Set<string>();
+    for (const section of document.sections) {
+      for (const anchorId of section.anchorIds) {
+        const anchor = anchors.get(anchorId);
+        if (!anchor) continue;
+        for (const target of destinations.get(anchorKey(anchor)) ?? []) {
+          if (target.storyId === document.id) continue;
+          const key = `${section.id}\0${target.storyId}\0${target.nodeId}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          links.push({
+            sourceNodeId: section.id,
+            targetStoryId: target.storyId,
+            targetStoryTitle: target.storyTitle,
+            targetNodeId: target.nodeId,
+            targetNodeTitle: target.nodeTitle,
+          });
+        }
+      }
+    }
+    result.set(document.id, links);
+  }
+  return result;
+}
+
+export function renderStoryWrapper(
+  story: CatalogueStory,
+  stories: readonly CatalogueStory[],
+  links: readonly StoryLink[],
+): string {
+  const linksByNode = new Map<string, StoryLink[]>();
+  for (const link of links) {
+    const values = linksByNode.get(link.sourceNodeId) ?? [];
+    values.push(link);
+    linksByNode.set(link.sourceNodeId, values);
+  }
+
+  const storyNavigation = stories.map(({ document }) =>
+    `<a data-story-id="${escapeHtml(document.id)}" href="../${encodeURIComponent(document.id)}/">${escapeHtml(document.title)}</a>`,
+  ).join("\n");
+  const nodes = story.document.sections.map((section) => {
+    const crossLinks = (linksByNode.get(section.id) ?? []).map((link) =>
+      `<a data-cross-story data-source-node="${escapeHtml(section.id)}" href="../${encodeURIComponent(link.targetStoryId)}/?focus=${encodeURIComponent(link.targetNodeId)}&amp;from=${encodeURIComponent(story.document.id)}&amp;fromFocus=${encodeURIComponent(section.id)}">Open ${escapeHtml(link.targetStoryTitle)}: ${escapeHtml(link.targetNodeTitle)}</a>`,
+    ).join("");
+    return `<li>
+      <a data-node-id="${escapeHtml(section.id)}" href="?focus=${encodeURIComponent(section.id)}">${escapeHtml(section.title)}</a>
+      ${crossLinks}
+    </li>`;
+  }).join("\n");
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="${escapeHtml(story.document.summary)}" />
+    <title>${escapeHtml(story.document.title)}</title>
+    <style>
+      :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: #09111f; color: #e5edf7; }
+      header { display: grid; gap: 0.65rem; padding: 1rem 1.25rem; border-bottom: 1px solid #29364a; }
+      h1, h2, p { margin: 0; }
+      nav, ul { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 0; padding: 0; list-style: none; }
+      a { color: #7dd3fc; }
+      [data-node-id][aria-current="true"] { color: white; font-weight: bold; }
+      li { display: grid; gap: 0.35rem; padding: 0.65rem; background: #111c2e; border-radius: 0.5rem; }
+      .story-shell { display: grid; grid-template-columns: minmax(14rem, 20rem) 1fr; min-height: calc(100vh - 11rem); }
+      aside { padding: 1rem; border-right: 1px solid #29364a; }
+      iframe { width: 100%; min-height: calc(100vh - 11rem); border: 0; background: white; }
+    </style>
+  </head>
+  <body data-story-id="${escapeHtml(story.document.id)}">
+    <header>
+      <nav aria-label="Architecture stories"><a href="../../">All stories</a>${storyNavigation}</nav>
+      <h1>${escapeHtml(story.document.title)}</h1>
+      <p>${escapeHtml(story.document.summary)}</p>
+      <a data-return hidden></a>
+    </header>
+    <main class="story-shell">
+      <aside aria-label="Story nodes"><h2>Story nodes</h2><ul>${nodes}</ul></aside>
+      <iframe data-story-viewer title="${escapeHtml(story.document.title)} rendered story" src="viewer.html"></iframe>
+    </main>
+    <script src="../../story-navigation.js"></script>
+  </body>
+</html>
+`;
+}
+
+export async function writeStoryPage(
+  root: string,
+  story: CatalogueStory,
+  stories: readonly CatalogueStory[] = [story],
+): Promise<void> {
+  const links = storyLinks(stories);
+  await Promise.all([
+    writeGenerated(
+      root,
+      "cache/site/story-navigation.js",
+      STORY_NAVIGATION_SCRIPT,
+    ),
+    writeGenerated(
+      root,
+      `cache/site/stories/${story.document.id}/index.html`,
+      renderStoryWrapper(story, stories, links.get(story.document.id) ?? []),
+    ),
+    writeGenerated(
+      root,
+      `cache/site/stories/${story.document.id}/viewer.html`,
+      story.contents,
+    ),
+  ]);
+}
+
 function orderedCategories(
   entries: readonly CatalogueEntry[],
   configured: readonly string[],
@@ -373,17 +604,29 @@ export async function writeCatalogue(
   stories: readonly CatalogueStory[],
   config: WorkspaceCatalogueConfig | undefined,
 ): Promise<void> {
+  const links = storyLinks(stories);
   await Promise.all([
     writeGenerated(
       root,
       "cache/site/index.html",
       renderCataloguePage(stories, config),
     ),
-    ...stories.map((story) =>
+    writeGenerated(
+      root,
+      "cache/site/story-navigation.js",
+      STORY_NAVIGATION_SCRIPT,
+    ),
+    ...stories.flatMap((story) => [
       writeGenerated(
         root,
         `cache/site/stories/${story.document.id}/index.html`,
+        renderStoryWrapper(story, stories, links.get(story.document.id) ?? []),
+      ),
+      writeGenerated(
+        root,
+        `cache/site/stories/${story.document.id}/viewer.html`,
         story.contents,
-      )),
+      ),
+    ]),
   ]);
 }

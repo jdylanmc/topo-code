@@ -13,7 +13,7 @@ import {
   assertSourceSnapshot,
   captureSourceSnapshot,
 } from "./source-snapshot.js";
-import { repositoryState } from "./catalogue.js";
+import { repositoryState, writeStoryPage } from "./catalogue.js";
 
 const execute = promisify(execFile);
 
@@ -148,8 +148,34 @@ export async function previewStory(
       `${documentPath}: renderer returned unsupported artifact ${artifact.kind} (${artifact.mediaType})`,
     );
   }
-  const outputName = `cache/site/stories/${document.id}/index.html`;
-  await writeGenerated(root, outputName, artifact.contents);
+  const outputName = `cache/site/stories/${document.id}/viewer.html`;
+  const story = {
+    document,
+    documentPath,
+    contents: artifact.contents,
+    renderer: {
+      name: artifact.renderer.name,
+      pin: artifact.renderer.pin,
+    },
+  };
+  const wrapperPath = await workspacePath(
+    root,
+    `cache/site/stories/${document.id}/index.html`,
+  );
+  try {
+    if (!(await stat(wrapperPath)).isFile()) {
+      throw new Error("Story wrapper is not a file");
+    }
+    await writeGenerated(root, outputName, artifact.contents);
+  } catch (error) {
+    if (
+      !isMissing(error) &&
+      !(error instanceof Error && error.message === "Story wrapper is not a file")
+    ) {
+      throw error;
+    }
+    await writeStoryPage(root, story);
+  }
   return {
     storyId: document.id,
     documentPath,

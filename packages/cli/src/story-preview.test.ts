@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import {
+  mkdir,
   mkdtemp,
   readFile,
   rm,
@@ -271,5 +272,21 @@ describe("story preview", () => {
     const response = await fetch(`${server.url}/stories/checkout/`);
     expect(response.status).toBe(200);
     expect(await response.text()).toContain("Checkout");
+  });
+
+  it("refreshes the viewer without replacing an existing linked wrapper", async () => {
+    const { root, documentPath } = await fixture();
+    const wrapperPath = join(root, ".topo/cache/site/stories/checkout/index.html");
+    await mkdir(join(root, ".topo/cache/site/stories/checkout"), { recursive: true });
+    await writeFile(wrapperPath, "<!doctype html><title>Linked wrapper</title>");
+
+    await previewStory(root, documentPath);
+
+    expect(await readFile(wrapperPath, "utf8"))
+      .toBe("<!doctype html><title>Linked wrapper</title>");
+    expect(await readFile(
+      join(root, ".topo/cache/site/stories/checkout/viewer.html"),
+      "utf8",
+    )).toContain('"startLine":2');
   });
 });

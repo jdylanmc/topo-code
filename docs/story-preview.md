@@ -14,10 +14,11 @@ corepack yarn topo scan /absolute/path/to/repository
 corepack yarn topo serve /absolute/path/to/repository
 ```
 
-Each story is written to `.topo/cache/site/stories/<story-id>/index.html`.
-The catalogue is served at `/`, and the explorer remains available at
-`/explorer/`. Use `topo preview` to refresh a specific committed story without
-rescanning:
+Each story wrapper is written to
+`.topo/cache/site/stories/<story-id>/index.html`, with the unmodified renderer
+artifact at `viewer.html`. The catalogue is served at `/`, and the explorer
+remains available at `/explorer/`. Use `topo preview` to refresh a specific
+committed story's viewer without rescanning:
 
 ```sh
 corepack yarn topo preview /absolute/path/to/repository \
