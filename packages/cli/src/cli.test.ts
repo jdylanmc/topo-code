@@ -227,7 +227,9 @@ describe("documented CLI workflow", () => {
 
   it("rejects unknown commands and misplaced options", async () => {
     await expect(cli("unknown")).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining("Unknown command") });
+    await expect(cli("story", "unknown")).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining("Unknown command") });
     await expect(cli("scan", "--port", "1234")).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining("only valid with serve") });
     expect((await cli("--help")).stdout).toContain("topo scan");
+    expect((await cli("--help")).stdout).toContain("topo story validate");
   });
 });

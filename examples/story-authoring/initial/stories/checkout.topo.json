@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "1.0",
+  "id": "checkout",
+  "title": "Checkout request",
+  "summary": "A checkout request records an audit event before charging payment.",
+  "category": "Request journeys",
+  "anchors": [
+    {
+      "id": "submit-checkout",
+      "path": "src/checkout.ts",
+      "symbol": "submitCheckout",
+      "pattern": "charge(order)"
+    },
+    {
+      "id": "charge-order",
+      "path": "src/checkout.ts",
+      "symbol": "charge"
+    },
+    {
+      "id": "audit-order",
+      "path": "src/checkout.ts",
+      "symbol": "recordAudit"
+    }
+  ],
+  "sections": [
+    {
+      "id": "submit",
+      "title": "Submit checkout",
+      "body": "The checkout entry point records the request and then charges it.",
+      "anchorIds": ["submit-checkout"]
+    },
+    {
+      "id": "charge",
+      "title": "Charge payment",
+      "body": "The local payment boundary returns the charged order identity.",
+      "anchorIds": ["charge-order"]
+    },
+    {
+      "id": "audit",
+      "title": "Record audit evidence",
+      "body": "Audit recording remains part of the checkout entry point.",
+      "anchorIds": ["audit-order"]
+    }
+  ],
+  "connections": [
+    {
+      "from": "submit",
+      "to": "charge",
+      "label": "charges"
+    },
+    {
+      "from": "submit",
+      "to": "audit",
+      "label": "records"
+    }
+  ]
+}
