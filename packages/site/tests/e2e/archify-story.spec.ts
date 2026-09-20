@@ -94,6 +94,13 @@ test("actual gallery story text remains readable at a desktop viewport", async (
     bounds: { left: number; right: number; top: number; bottom: number };
     frame: { width: number; height: number };
   }[] = [];
+  const outsidePage: {
+    story: string;
+    count: number;
+    firstText: string;
+    bounds: { left: number; right: number; top: number; bottom: number };
+    viewport: { width: number; height: number };
+  }[] = [];
   try {
     for (const story of galleryStories) {
       await page.goto(`${url}/stories/${story.id}/`);
@@ -102,6 +109,18 @@ test("actual gallery story text remains readable at a desktop viewport", async (
       await expect(diagram).toBeVisible();
       const iframeScale = await page.locator("[data-story-viewer]").evaluate(
         (iframe) => iframe.getBoundingClientRect().height / iframe.offsetHeight,
+      );
+      const iframePlacement = await page.locator("[data-story-viewer]").evaluate(
+        (iframe) => {
+          const bounds = iframe.getBoundingClientRect();
+          return {
+            left: bounds.left,
+            top: bounds.top,
+            scaleX: bounds.width / iframe.offsetWidth,
+            scaleY: bounds.height / iframe.offsetHeight,
+            viewport: { width: window.innerWidth, height: window.innerHeight },
+          };
+        },
       );
       const measurements = await diagram.locator("text").evaluateAll((elements) =>
         elements.flatMap((element) => {
@@ -151,6 +170,34 @@ test("actual gallery story text remains readable at a desktop viewport", async (
           bounds,
           frame,
         })));
+      const offscreen = measurements.map(({ bounds, text }) => ({
+        text,
+        bounds: {
+          left: iframePlacement.left + bounds.left * iframePlacement.scaleX,
+          right: iframePlacement.left + bounds.right * iframePlacement.scaleX,
+          top: iframePlacement.top + bounds.top * iframePlacement.scaleY,
+          bottom: iframePlacement.top + bounds.bottom * iframePlacement.scaleY,
+        },
+      })).filter(({ bounds }) =>
+        bounds.left < 0 ||
+        bounds.right > iframePlacement.viewport.width ||
+        bounds.top < 0 ||
+        bounds.bottom > iframePlacement.viewport.height
+      );
+      if (offscreen.length > 0) {
+        outsidePage.push({
+          story: story.id,
+          count: offscreen.length,
+          firstText: offscreen[0]!.text,
+          bounds: {
+            left: Math.min(...offscreen.map(({ bounds }) => bounds.left)),
+            right: Math.max(...offscreen.map(({ bounds }) => bounds.right)),
+            top: Math.min(...offscreen.map(({ bounds }) => bounds.top)),
+            bottom: Math.max(...offscreen.map(({ bounds }) => bounds.bottom)),
+          },
+          viewport: iframePlacement.viewport,
+        });
+      }
       expect.soft(
         Math.min(...measurements.map(({ effectiveFontSize }) =>
           effectiveFontSize * iframeScale
@@ -159,7 +206,54 @@ test("actual gallery story text remains readable at a desktop viewport", async (
       ).toBeGreaterThanOrEqual(12);
     }
     expect(clipped).toEqual([]);
-    expect(outsideFrame).toEqual([]);
+    expect.soft(outsideFrame).toEqual([]);
+    expect(outsidePage).toEqual([]);
+  } finally {
+    await page.goto("about:blank");
+    await stopTopoServer(server);
+  }
+});
+
+test("actual Architecture SVG export preserves authored labels", async ({
+  page,
+  repository,
+}) => {
+  await writeActualGalleryFixture(repository);
+  const document = JSON.parse(
+    await readFile(
+      join(projectRoot, "stories/topo-architecture.topo.json"),
+      "utf8",
+    ),
+  ) as {
+    sections: { title: string }[];
+    connections: { label?: string }[];
+  };
+  const authoredLabels = [
+    ...document.sections.map(({ title }) => title),
+    ...document.connections.flatMap(({ label }) => label ? [label] : []),
+  ];
+
+  const { server, url } = await startTopoServer(repository, ["--port", "0"]);
+  try {
+    await page.goto(`${url}/stories/topo-architecture/`);
+    const viewer = page.frameLocator("[data-story-viewer]");
+    const diagram = viewer.locator('svg[role="img"]');
+    await expect(diagram).toBeVisible();
+    const liveText = await diagram.locator("text").allTextContents();
+    for (const label of authoredLabels) {
+      expect(liveText, `live diagram: ${label}`).toContain(label);
+    }
+
+    await viewer.getByRole("button", { name: "Export diagram" }).click();
+    const downloadEvent = page.waitForEvent("download");
+    await viewer.locator('button[data-format="svg"]').click();
+    const download = await downloadEvent;
+    const downloadPath = await download.path();
+    expect(downloadPath).not.toBeNull();
+    const exportedSvg = await readFile(downloadPath!, "utf8");
+    for (const label of authoredLabels) {
+      expect(exportedSvg, `SVG export: ${label}`).toContain(label);
+    }
   } finally {
     await page.goto("about:blank");
     await stopTopoServer(server);
