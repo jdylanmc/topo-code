@@ -45,6 +45,7 @@ interface ArchifyArchitecture {
     readonly quality_profile: "standard";
     readonly locale: "en";
     readonly viewBox: readonly [number, number];
+    readonly legend: { readonly mode: "hidden" };
     readonly repository?: {
       readonly url: string;
       readonly revision: string;
@@ -71,6 +72,7 @@ interface ArchifyWorkflow {
     readonly title: string;
     readonly quality_profile: "standard";
     readonly locale: "en";
+    readonly legend: { readonly mode: "hidden" };
   };
   readonly lanes: readonly {
     readonly id: string;
@@ -103,6 +105,7 @@ interface ArchifySequence {
     readonly title: string;
     readonly quality_profile: "standard";
     readonly locale: "en";
+    readonly legend: { readonly mode: "hidden" };
     readonly column_fit: "spread";
   };
   readonly participants: readonly {
@@ -127,6 +130,7 @@ interface ArchifyDataflow {
     readonly title: string;
     readonly quality_profile: "standard";
     readonly locale: "en";
+    readonly legend: { readonly mode: "hidden" };
   };
   readonly stages: readonly {
     readonly label: string;
@@ -154,6 +158,7 @@ interface ArchifyLifecycle {
     readonly title: string;
     readonly quality_profile: "standard";
     readonly locale: "en";
+    readonly legend: { readonly mode: "hidden" };
   };
   readonly lanes: readonly {
     readonly id: string;
@@ -246,13 +251,11 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
   // Lay components out in a snake grid (rows of 3-4, left-to-right then
   // right-to-left) so consecutive sections stay adjacent and connections read
   // as a clean flow without a tall vertical column.
-  const perRow = sections.length <= 4
-    ? Math.max(1, sections.length)
-    : Math.min(4, Math.ceil(sections.length / 2));
+  const perRow = Math.min(2, Math.max(1, sections.length));
   const boxWidth = Math.max(280, ...resolved.map((entry) => entry.width));
   const boxHeight = 130;
   const columnGap = 90;
-  const rowGap = 150;
+  const rowGap = 80;
   const margin = 80;
   const cellOf = (index: number) => {
     const row = Math.floor(index / perRow);
@@ -307,6 +310,7 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
       quality_profile: "standard",
       locale: "en",
       viewBox: [viewBoxWidth, viewBoxHeight],
+      legend: { mode: "hidden" },
       ...(story.document.classification === "capability-demo"
         ? {}
         : {
@@ -379,6 +383,7 @@ function workflowSpec(story: ResolvedStoryDocument): ArchifyWorkflow {
       title: story.document.title,
       quality_profile: "standard",
       locale: "en",
+      legend: { mode: "hidden" },
     },
     lanes: [{ id: laneId, label: story.document.title }],
     nodes: story.document.sections.map((section, index) => {
@@ -438,6 +443,7 @@ function sequenceSpec(story: ResolvedStoryDocument): ArchifySequence {
       title: story.document.title,
       quality_profile: "standard",
       locale: "en",
+      legend: { mode: "hidden" },
       column_fit: "spread",
     },
     participants: story.document.sections.map((section, index) => ({
@@ -475,6 +481,7 @@ function dataflowSpec(story: ResolvedStoryDocument): ArchifyDataflow {
       title: story.document.title,
       quality_profile: "standard",
       locale: "en",
+      legend: { mode: "hidden" },
     },
     stages: story.document.sections.map((section) => ({
       label: section.title,
@@ -540,6 +547,7 @@ function lifecycleSpec(story: ResolvedStoryDocument): ArchifyLifecycle {
       title: story.document.title,
       quality_profile: "standard",
       locale: "en",
+      legend: { mode: "hidden" },
     },
     lanes: [
       { id: "main", label: story.document.title },
@@ -610,17 +618,37 @@ function commandError(error: unknown): Error {
     : new Error(`Archify rendering failed: ${String(error)}`);
 }
 
-function improveWorkflowReadability(contents: string): string {
+function improveStoryReadability(
+  contents: string,
+  family: "architecture" | "workflow" | "lifecycle",
+): string {
   const headEnd = "</head>";
   if (!contents.includes(headEnd)) {
-    throw new Error("Archify Workflow output is missing its closing head element");
+    throw new Error(`Archify ${family} output is missing its closing head element`);
   }
-  const style = `<style data-topo-workflow-readability>
-svg g[data-detail="context"][data-edge-from] > text {
+  const rules = family === "architecture"
+    ? `
+svg [data-source-evidence-beacon] { display: none; }
+svg text[data-node-label],
+svg text[data-detail="context"],
+svg g[data-edge-from] > text { font-size: 16px; }`
+    : family === "workflow"
+      ? `
+svg text[data-node-label],
+svg text[font-size="10"][font-weight="600"],
+svg g[data-edge-from] > text {
   font-family: ui-sans-serif, system-ui, sans-serif;
   font-size: 14px;
   font-weight: 600;
-}
+}`
+      : `
+svg text[data-node-label],
+svg text[font-size="10"][font-weight="600"],
+svg g[data-edge-from] > text {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 13px;
+}`;
+  const style = `<style data-topo-story-readability>${rules}
 </style>`;
   return contents.replace(headEnd, `${style}\n${headEnd}`);
 }
@@ -669,11 +697,17 @@ export function renderStory(story: ResolvedStoryDocument): StoryArtifact {
     return {
       kind: "html",
       mediaType: "text/html",
-      contents: family === "workflow"
-        ? improveWorkflowReadability(contents)
+      contents: family === "architecture" ||
+          family === "workflow" ||
+          family === "lifecycle"
+        ? improveStoryReadability(contents, family)
         : contents,
       renderer: {
-        name: family === "workflow" ? "archify+topocode" : "archify",
+        name: family === "architecture" ||
+            family === "workflow" ||
+            family === "lifecycle"
+          ? "archify+topocode"
+          : "archify",
         pin: integrity.version,
         sha256: integrity.archiveSha256,
       },
