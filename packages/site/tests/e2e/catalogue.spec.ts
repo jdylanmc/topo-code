@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { expect } from "@playwright/test";
 import {
   commit,
+  startStaticServer,
   startTopoServer,
   stopTopoServer,
   test,
@@ -79,6 +80,59 @@ test("topo serve uses the default port for an explorer-only catalogue", async ({
   } finally {
     await page.goto("about:blank");
     await stopTopoServer(server);
+  }
+});
+
+test("bundled catalogue, story, and explorer run under a static base path", async ({
+  page,
+  repository,
+}) => {
+  await sourceFixture(repository);
+  await story(repository, "checkout", "checkout", "Checkout");
+  await commit(repository, "Story", "stories");
+  await topo(repository, "scan");
+  const output = join(repository, ".topo/deploy");
+  await topo(
+    repository,
+    "bundle",
+    repository,
+    "--output",
+    output,
+    "--base-path",
+    "/published/topo/",
+  );
+  const { server, url } = await startStaticServer(output);
+  try {
+    const baseUrl = `${url}/published/topo/`;
+    await page.goto(baseUrl);
+    await expect(page.getByRole("heading", { name: "Topocode" })).toBeVisible();
+    await page.getByRole("link", { name: /Checkout/ }).click();
+    await expect(page).toHaveURL(`${baseUrl}stories/checkout/`);
+    await expect(page.getByRole("heading", { name: "Checkout" })).toBeVisible();
+    await page.goto(baseUrl);
+    await page.getByRole("link", { name: /Explore the repository/ }).click();
+    await page.evaluate(() => window.__TOPO_READY__);
+    await expect(page.locator("canvas.topo-webgl")).toBeVisible();
+
+    const notices = await readFile(
+      join(output, "published/topo/THIRD_PARTY_NOTICES.txt"),
+      "utf8",
+    );
+    expect(notices).toContain("MIT License");
+    expect(notices).toContain("SIL OPEN FONT LICENSE Version 1.1");
+    expect(await readFile(
+      join(output, "published/topo/ARCHIFY_LICENSE.txt"),
+      "utf8",
+    )).toContain("MIT License");
+    expect(await readFile(
+      join(output, "published/topo/JETBRAINS_MONO_LICENSE.txt"),
+      "utf8",
+    )).toContain("SIL OPEN FONT LICENSE Version 1.1");
+  } finally {
+    await page.goto("about:blank");
+    await new Promise<void>((done, reject) => {
+      server.close((error) => error ? reject(error) : done());
+    });
   }
 });
 

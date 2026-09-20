@@ -1,6 +1,7 @@
 import { execFile, spawn, type ChildProcess } from "node:child_process";
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { createServer, type Server } from "node:http";
+import { mkdir, mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { test as base } from "@playwright/test";
@@ -82,6 +83,62 @@ export async function startTopoServer(
     throw new Error(`topo serve readiness returned HTTP ${response.status}`);
   }
   return { server, url };
+}
+
+const STATIC_MIME: Readonly<Record<string, string>> = {
+  ".css": "text/css; charset=utf-8",
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".txt": "text/plain; charset=utf-8",
+  ".woff2": "font/woff2",
+};
+
+export async function startStaticServer(
+  directory: string,
+): Promise<{ server: Server; url: string }> {
+  const root = resolve(directory);
+  const server = createServer((request, response) => {
+    void (async () => {
+      const pathname = decodeURIComponent(
+        new URL(request.url ?? "/", "http://127.0.0.1").pathname,
+      );
+      const requested = resolve(
+        root,
+        `.${pathname.endsWith("/") ? `${pathname}index.html` : pathname}`,
+      );
+      const rel = relative(root, requested);
+      if (
+        isAbsolute(rel) ||
+        rel === ".." ||
+        rel.startsWith(`..${sep}`) ||
+        !(await stat(requested)).isFile()
+      ) {
+        response.writeHead(404).end("Not found");
+        return;
+      }
+      const content = await readFile(requested);
+      response.setHeader(
+        "Content-Type",
+        STATIC_MIME[extname(requested)] ?? "application/octet-stream",
+      );
+      response.setHeader("Content-Length", content.length);
+      response.writeHead(200).end(content);
+    })().catch(() => response.writeHead(404).end("Not found"));
+  });
+  await new Promise<void>((ready, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      server.off("error", reject);
+      ready();
+    });
+  });
+  const address = server.address();
+  if (!address || typeof address === "string") {
+    throw new Error("Static server did not bind a TCP address");
+  }
+  return { server, url: `http://127.0.0.1:${address.port}` };
 }
 
 export const test = base.extend<{

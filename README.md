@@ -45,6 +45,23 @@ These static commands upload nothing and install nothing in the scanned reposito
 WebGL support is required. If initialization fails, the site shows an actionable
 error; it does not switch to another renderer.
 
+To create deployable static files with no Topocode server process:
+
+```sh
+corepack yarn topo bundle /absolute/path/to/repository \
+  --output /absolute/path/to/deploy-root \
+  --base-path /architecture/
+```
+
+Serve `--output` with any static file server and open the configured base path
+(for example `/architecture/`). The default output is `.topo/bundle` and the
+default base path is `/`. A base path must be `/` or an absolute URL path ending
+in `/`; Topocode writes that path beneath the output root so all relative
+catalogue, story, explorer, and asset URLs remain host-independent. The bundle
+includes Topocode, Archify MIT, third-party, and JetBrains Mono SIL OFL 1.1
+notices. Deployment, upload, public URLs, and authentication remain the hosting
+owner's responsibility.
+
 `topo scan` renders every committed source-grounded story under
 `/stories/<story-id>/`; `topo story validate` checks an uncommitted authored
 draft, and `topo story preview` refreshes one committed story. The explorer

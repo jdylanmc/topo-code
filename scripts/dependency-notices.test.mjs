@@ -41,6 +41,28 @@ async function createWorkspace(root, directory, manifest) {
   );
 }
 
+async function createBundledLicenseFixtures(root) {
+  const directory = path.join(
+    root,
+    "experiments",
+    "archify-wrapper",
+    "licenses",
+  );
+  await mkdir(directory, { recursive: true });
+  await writeFile(
+    path.join(directory, "Archify-MIT.txt"),
+    "Archify MIT License\n",
+  );
+  await writeFile(
+    path.join(directory, "Archify-THIRD-PARTY-NOTICES.md"),
+    "Archify third-party notices\n",
+  );
+  await writeFile(
+    path.join(directory, "JetBrainsMono-OFL.txt"),
+    "SIL OPEN FONT LICENSE Version 1.1\n",
+  );
+}
+
 test("the direct inventory cannot skip external @topo names and shares the license policy", async (context) => {
   const root = await createFixture(context);
   await mkdir(path.join(root, "scripts"));
@@ -116,6 +138,38 @@ test("walks hoisted dependencies through workspace references", async (context) 
   await createWorkspace(root, "library", {
     name: "@topo/library",
     dependencies: { runtime: "1.0.0" },
+  });
+
+  test("copies viewer and font notices into the built site", async (context) => {
+    const root = await createFixture(context);
+    await mkdir(path.join(root, "packages", "site", "dist"), { recursive: true });
+    await writeFile(path.join(root, "LICENSE"), "Topocode MIT\n");
+    await createBundledLicenseFixtures(root);
+    await writeThirdPartyNotices({ rootDirectory: root });
+
+    await copyThirdPartyNoticesToSite({ rootDirectory: root });
+
+    assert.equal(
+      await readFile(
+        path.join(root, "packages", "site", "dist", "ARCHIFY_LICENSE.txt"),
+        "utf8",
+      ),
+      "Archify MIT License\n",
+    );
+    assert.equal(
+      await readFile(
+        path.join(root, "packages", "site", "dist", "JETBRAINS_MONO_LICENSE.txt"),
+        "utf8",
+      ),
+      "SIL OPEN FONT LICENSE Version 1.1\n",
+    );
+    assert.match(
+      await readFile(
+        path.join(root, "packages", "site", "dist", "THIRD_PARTY_NOTICES.txt"),
+        "utf8",
+      ),
+      /Archify third-party notices/,
+    );
   });
   await createPackage(root, "runtime", {
     name: "runtime",
@@ -336,9 +390,10 @@ test("rejects stale notices", async (context) => {
   );
 });
 
-test("copies only a verified notice file into the built site", async (context) => {
+test("copies verified notices into the built site", async (context) => {
   const root = await createFixture(context);
   await writeFile(path.join(root, "LICENSE"), "First-party fixture license\n");
+  await createBundledLicenseFixtures(root);
   await createWorkspace(root, "site", {
     name: "@topo/site",
     dependencies: { runtime: "1.0.0" },
@@ -365,7 +420,20 @@ test("copies only a verified notice file into the built site", async (context) =
       path.join(root, "packages", "site", "dist", "THIRD_PARTY_NOTICES.txt"),
       "utf8",
     ),
-    await readFile(path.join(root, "THIRD_PARTY_NOTICES.txt"), "utf8"),
+    [
+      (await readFile(path.join(root, "THIRD_PARTY_NOTICES.txt"), "utf8")).trimEnd(),
+      "\n\n================================================================================\n",
+      "Embedded Archify viewer\n",
+      "License: MIT\n\n",
+      "Archify MIT License",
+      "\n\n",
+      "Archify third-party notices",
+      "\n\n================================================================================\n",
+      "Embedded JetBrains Mono font subsets\n",
+      "License: SIL OFL 1.1\n\n",
+      "SIL OPEN FONT LICENSE Version 1.1",
+      "\n",
+    ].join(""),
   );
   assert.equal(
     (await readFile(path.join(root, "THIRD_PARTY_NOTICES.txt"), "utf8")).includes(
