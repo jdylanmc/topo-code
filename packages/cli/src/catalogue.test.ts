@@ -59,21 +59,27 @@ async function addStory(
   id: string,
   title: string,
   category?: string,
+  classification?: "source-grounded" | "capability-demo",
 ): Promise<void> {
   const destination = join(root, path);
   await mkdir(dirname(destination), { recursive: true });
+  const capabilityDemo = classification === "capability-demo";
   await writeFile(destination, `${JSON.stringify({
     schemaVersion: "1.0",
     id,
     title,
     summary: `${title} summary.`,
     ...(category === undefined ? {} : { category }),
-    anchors: [{ id: "source", path: "source.ts", symbol: "value" }],
+    ...(classification === undefined ? {} : { classification }),
+    ...(capabilityDemo ? { diagramFamily: "workflow" } : {}),
+    anchors: capabilityDemo
+      ? []
+      : [{ id: "source", path: "source.ts", symbol: "value" }],
     sections: [{
       id: "section",
       title: "Section",
       body: "Story body.",
-      anchorIds: ["source"],
+      anchorIds: capabilityDemo ? [] : ["source"],
     }],
     connections: [],
   }, null, 2)}\n`);
@@ -117,6 +123,34 @@ describe("generated catalogue", () => {
     expect(page).toContain('data-category="Accounts"');
     expect(page).toContain('data-category="Operations"');
     expect(page).toContain('data-category="Stories"');
+  });
+
+  it("places capability demos in a distinct generated catalogue category", async () => {
+    const root = await repository();
+    await addStory(root, "stories/checkout.topo.json", "checkout", "Checkout");
+    await addStory(
+      root,
+      "stories/workflow-demo.topo.json",
+      "workflow-demo",
+      "Workflow capability",
+      "Journeys",
+      "capability-demo",
+    );
+    await commit(root);
+
+    const page = renderCataloguePage(
+      await buildCatalogueStories(root),
+      undefined,
+    );
+
+    expect(page).toContain('data-category="Stories"');
+    expect(page).toContain('data-category="Diagram capabilities"');
+    expect(page.indexOf("Checkout")).toBeLessThan(
+      page.indexOf("Diagram capabilities"),
+    );
+    expect(page.indexOf("Diagram capabilities")).toBeLessThan(
+      page.indexOf("Workflow capability"),
+    );
   });
 
   it("changes category order and presentation from config only", async () => {
