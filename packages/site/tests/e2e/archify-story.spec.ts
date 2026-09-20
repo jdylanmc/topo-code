@@ -260,6 +260,85 @@ test("actual Architecture SVG export preserves authored labels", async ({
   }
 });
 
+test("actual story details remain usable without obscuring authored content", async ({
+  page,
+  repository,
+}) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await writeActualGalleryFixture(repository);
+
+  const { server, url } = await startTopoServer(repository, ["--port", "0"]);
+  try {
+    await page.goto(`${url}/stories/topo-architecture/`);
+    const controls = page.locator("details.story-controls");
+    const summary = controls.locator("summary");
+    await summary.focus();
+    await page.keyboard.press("Enter");
+    await expect(controls).toHaveAttribute("open", "");
+
+    const controlsBounds = await controls.boundingBox();
+    expect(controlsBounds).not.toBeNull();
+    const authoredTitles = [
+      "1. Scan source into a graph",
+      "2. Generate site artifacts",
+      "3. Compose and serve the explorer",
+      "4. Author a source-grounded story",
+      "5. Render at the pinned boundary",
+      "6. Browse the story catalogue",
+      "7. Bundle for static hosting",
+    ];
+    const diagram = page.frameLocator("[data-story-viewer]")
+      .locator('svg[role="img"]');
+    const overlaps: {
+      title: string;
+      titleBounds: { x: number; y: number; width: number; height: number };
+      controlsBounds: { x: number; y: number; width: number; height: number };
+    }[] = [];
+    for (const title of authoredTitles) {
+      const titleBounds = await diagram.locator("text", { hasText: title })
+        .first()
+        .boundingBox();
+      expect(titleBounds, title).not.toBeNull();
+      if (
+        titleBounds &&
+        controlsBounds &&
+        Math.min(titleBounds.x + titleBounds.width, controlsBounds.x + controlsBounds.width) >
+          Math.max(titleBounds.x, controlsBounds.x) &&
+        Math.min(titleBounds.y + titleBounds.height, controlsBounds.y + controlsBounds.height) >
+          Math.max(titleBounds.y, controlsBounds.y)
+      ) {
+        overlaps.push({ title, titleBounds, controlsBounds });
+      }
+    }
+    expect.soft(overlaps).toEqual([]);
+
+    const scanLink = page.locator('[data-node-id="scan"]');
+    await scanLink.focus();
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(`${url}/stories/topo-architecture/?focus=scan`);
+    await expect(controls).not.toHaveAttribute("open", "");
+    await expect(
+      page.frameLocator("[data-story-viewer]").getByText(
+        "packages/scanner/src/typescript-scanner.ts",
+        { exact: true },
+      ),
+    ).toBeVisible();
+
+    await page.goBack();
+    await expect(page).toHaveURL(`${url}/stories/topo-architecture/`);
+    await page.goto(`${url}/stories/topo-architecture/?focus=bundle`);
+    await expect(
+      page.frameLocator("[data-story-viewer]").getByText(
+        "packages/cli/src/bundle.ts",
+        { exact: true },
+      ),
+    ).toBeVisible();
+  } finally {
+    await page.goto("about:blank");
+    await stopTopoServer(server);
+  }
+});
+
 test("story preview renders the real Archify artifact without CSP errors", async ({
   page,
   repository,
