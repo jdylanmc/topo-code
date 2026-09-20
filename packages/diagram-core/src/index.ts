@@ -140,6 +140,33 @@ interface ArchifyDataflow {
   }[];
 }
 
+interface ArchifyLifecycle {
+  readonly schema_version: 1;
+  readonly diagram_type: "lifecycle";
+  readonly meta: {
+    readonly title: string;
+    readonly quality_profile: "standard";
+    readonly locale: "en";
+  };
+  readonly lanes: readonly {
+    readonly id: string;
+    readonly label: string;
+  }[];
+  readonly states: readonly {
+    readonly id: string;
+    readonly type: "start" | "active" | "success";
+    readonly label: string;
+    readonly lane: "main";
+    readonly col: number;
+  }[];
+  readonly transitions: readonly {
+    readonly id: string;
+    readonly from: string;
+    readonly to: string;
+    readonly label?: string;
+  }[];
+}
+
 const packageRoot = fileURLToPath(new URL("../", import.meta.url));
 const archifyCli = path.join(
   packageRoot,
@@ -438,6 +465,45 @@ function dataflowSpec(story: ResolvedStoryDocument): ArchifyDataflow {
   };
 }
 
+function lifecycleSpec(story: ResolvedStoryDocument): ArchifyLifecycle {
+  const stateIds = new Map(
+    story.document.sections.map((section) => [
+      section.id,
+      componentId(section.id),
+    ]),
+  );
+  return {
+    schema_version: 1,
+    diagram_type: "lifecycle",
+    meta: {
+      title: story.document.title,
+      quality_profile: "standard",
+      locale: "en",
+    },
+    lanes: [{ id: "main", label: story.document.title }],
+    states: story.document.sections.map((section, index) => ({
+      id: stateIds.get(section.id)!,
+      type: index === 0
+        ? "start"
+        : index === story.document.sections.length - 1
+          ? "success"
+          : "active",
+      label: section.title,
+      lane: "main",
+      col: index,
+    })),
+    transitions: story.document.connections.map((connection, index) => ({
+      id: stableId(
+        "transition",
+        `${index}\0${connection.from}\0${connection.to}`,
+      ),
+      from: stateIds.get(connection.from)!,
+      to: stateIds.get(connection.to)!,
+      ...(connection.label === undefined ? {} : { label: connection.label }),
+    })),
+  };
+}
+
 function commandError(error: unknown): Error {
   if (
     typeof error === "object" &&
@@ -466,7 +532,9 @@ export function renderStory(story: ResolvedStoryDocument): StoryArtifact {
       ? sequenceSpec(story)
       : family === "dataflow"
         ? dataflowSpec(story)
-      : archifySpec(story);
+        : family === "lifecycle"
+          ? lifecycleSpec(story)
+          : archifySpec(story);
   const temporaryDirectory = mkdtempSync(
     path.join(tmpdir(), "topo-archify-render-"),
   );
