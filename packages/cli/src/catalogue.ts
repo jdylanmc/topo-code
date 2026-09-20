@@ -384,6 +384,11 @@ export function renderStoryWrapper(
   stories: readonly CatalogueStory[],
   links: readonly StoryLink[],
 ): string {
+  const classification =
+    story.document.classification ?? "source-grounded";
+  const classificationLabel = classification === "capability-demo"
+    ? "Capability demo - not source-grounded"
+    : "Source-grounded";
   const linksByNode = new Map<string, StoryLink[]>();
   for (const link of links) {
     const values = linksByNode.get(link.sourceNodeId) ?? [];
@@ -417,6 +422,7 @@ export function renderStoryWrapper(
       body { margin: 0; background: #09111f; color: #e5edf7; }
       header { display: grid; gap: 0.65rem; padding: 1rem 1.25rem; border-bottom: 1px solid #29364a; }
       h1, h2, p { margin: 0; }
+      .classification { color: #a9b7ca; font-size: 0.9rem; font-weight: 600; }
       nav, ul { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 0; padding: 0; list-style: none; }
       a { color: #7dd3fc; }
       [data-node-id][aria-current="true"] { color: white; font-weight: bold; }
@@ -426,10 +432,11 @@ export function renderStoryWrapper(
       iframe { width: 100%; min-height: calc(100vh - 11rem); border: 0; background: white; }
     </style>
   </head>
-  <body data-story-id="${escapeHtml(story.document.id)}">
+  <body data-story-id="${escapeHtml(story.document.id)}" data-story-classification="${classification}">
     <header>
       <nav aria-label="Architecture stories"><a href="../../">All stories</a>${storyNavigation}</nav>
       <h1>${escapeHtml(story.document.title)}</h1>
+      <p class="classification">${classificationLabel}</p>
       <p>${escapeHtml(story.document.summary)}</p>
       <a data-return hidden></a>
     </header>
