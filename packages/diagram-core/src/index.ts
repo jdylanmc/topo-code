@@ -41,7 +41,7 @@ interface ArchifyArchitecture {
     readonly quality_profile: "standard";
     readonly locale: "en";
     readonly viewBox: readonly [number, number];
-    readonly repository: {
+    readonly repository?: {
       readonly url: string;
       readonly revision: string;
       readonly link_mode?: "local-only";
@@ -298,10 +298,14 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
       quality_profile: "standard",
       locale: "en",
       viewBox: [viewBoxWidth, viewBoxHeight],
-      repository: {
-        ...repositoryMetadata(story.repositoryRoot),
-        revision: story.source.revision,
-      },
+      ...(story.document.classification === "capability-demo"
+        ? {}
+        : {
+            repository: {
+              ...repositoryMetadata(story.repositoryRoot),
+              revision: story.source.revision,
+            },
+          }),
     },
     components,
     // Adjacent grid cells route directly; non-adjacent endpoints detour through
@@ -570,7 +574,10 @@ export function renderStory(story: ResolvedStoryDocument): StoryArtifact {
       "standard",
       "--json",
     ];
-    if (family === "architecture") {
+    if (
+      family === "architecture" &&
+      story.document.classification !== "capability-demo"
+    ) {
       args.splice(5, 0, "--repo-root", story.repositoryRoot);
     }
     execFileSync(process.execPath, args, {
