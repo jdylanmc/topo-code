@@ -277,6 +277,24 @@ describe("story preview", () => {
     expect(contents).toContain("03 / Outcomes");
   });
 
+  it("renders a valid lifecycle story with a descriptive state title", async () => {
+    const document = JSON.parse(familyStory("lifecycle")) as {
+      sections: { title: string }[];
+    };
+    document.sections[0]!.title =
+      "This valid authored lifecycle state title is long";
+    const { root, documentPath } = await fixture(
+      `${JSON.stringify(document, null, 2)}\n`,
+    );
+
+    const result = await previewStory(root, documentPath);
+    const contents = await readFile(result.outputPath, "utf8");
+
+    expect(contents).toContain(
+      "This valid authored lifecycle state title is long",
+    );
+  });
+
   it("previews an explicitly non-source-grounded capability demo", async () => {
     const { root, documentPath } = await fixture(capabilityDemoStory());
 
