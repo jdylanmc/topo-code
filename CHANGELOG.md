@@ -7,6 +7,9 @@ does not currently publish versioned releases.
 
 ### Added
 
+- Add a local agent skill and `topo story validate` workflow for creating and
+  identity-preservingly updating authored stories before committed preview.
+  See #46.
 - Add wrapper-owned cross-story node navigation with durable focus and return
   URLs while keeping pinned renderer artifacts unchanged. See #44.
 - Generate one configurable catalogue landing page from every committed story

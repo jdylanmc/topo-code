@@ -46,8 +46,10 @@ WebGL support is required. If initialization fails, the site shows an actionable
 error; it does not switch to another renderer.
 
 `topo scan` renders every committed source-grounded story under
-`/stories/<story-id>/`; `topo preview` remains available to refresh one story
-while authoring. The explorer remains available at `/explorer/`. See the
+`/stories/<story-id>/`; `topo story validate` checks an uncommitted authored
+draft, and `topo story preview` refreshes one committed story. The explorer
+remains available at `/explorer/`. See the
+[local agent authoring workflow](./docs/story-authoring.md),
 [catalogue configuration](./docs/story-catalogue.md), the
 [story contract and anchor behavior](./docs/story-preview.md), and the
 [committed example](./examples/story-preview/stories/checkout.topo.json).

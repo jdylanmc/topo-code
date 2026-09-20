@@ -25,6 +25,18 @@ corepack yarn topo preview /absolute/path/to/repository \
   /absolute/path/to/repository/stories/checkout.topo.json
 ```
 
+`topo story preview` is the authoring-workflow spelling of the same command.
+Before committing a new or updated story, validate its structure and anchors
+against the current working tree without generating output:
+
+```sh
+corepack yarn topo story validate /absolute/path/to/repository \
+  /absolute/path/to/repository/stories/checkout.topo.json
+```
+
+See [local story authoring](./story-authoring.md) for the identity-preserving
+agent workflow and executable branch-change walkthrough.
+
 The story file must be tracked, committed, and unchanged relative to `HEAD`.
 Source files may contain uncommitted changes: the CLI states that the preview
 describes the working tree while retaining the committed revision in rendered
@@ -40,6 +52,10 @@ Missing files, symbols, patterns, invalid documents, unavailable renderers, and
 renderer failures exit nonzero. Rendering completes in memory before the
 generated file is atomically replaced, so renderer failures do not publish a
 partial story.
+
+Successful structure and anchor validation does not establish semantic accuracy
+or complete explanation coverage. It is objective evidence for the author and
+human reviewer, not a staleness or coverage gate.
 
 ## Reproducibility check
 
