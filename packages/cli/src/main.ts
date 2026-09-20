@@ -7,6 +7,7 @@ import { BUILTIN_MODULE_MANIFESTS, validateModuleCatalog } from "@topo/modules";
 import { scanRepository } from "@topo/scanner";
 import { initializeWorkspace, isMissing, workspacePath } from "@topo/workspace";
 import { runEnrichment } from "./enrichment.js";
+import { bundleSite } from "./bundle.js";
 import { generateArtifacts, ingestReports } from "./pipeline.js";
 import { serveSite } from "./server.js";
 import {
@@ -26,6 +27,7 @@ const HELP = `Topocode: local, deterministic repository maps
   topo story validate <repository> <story>
   topo story preview <repository> <story>
   topo serve [repository] [--port 4173]
+  topo bundle [repository] [--output directory] [--base-path /path/]
 
 Requires a Git repository and Node.js 22 or newer.
 Scan is strict by default. --allow-partial publishes a visibly incomplete
@@ -64,6 +66,8 @@ export async function runCli(args: string[]): Promise<number> {
       port: { type: "string" },
       "allow-partial": { type: "boolean" },
       responsibilities: { type: "string" },
+      output: { type: "string" },
+      "base-path": { type: "string" },
     },
   });
   const primaryCommand = positionals[0] ?? "help";
@@ -81,12 +85,15 @@ export async function runCli(args: string[]): Promise<number> {
     "enrich",
     "preview",
     "serve",
+    "bundle",
     "story-validate",
     "story-preview",
   ].includes(command)) {
     throw new Error(`Unknown command: ${positionals.slice(0, 2).join(" ")}`);
   }
   if (values.port !== undefined && command !== "serve") throw new Error("--port is only valid with serve");
+  if (values.output !== undefined && command !== "bundle") throw new Error("--output is only valid with bundle");
+  if (values["base-path"] !== undefined && command !== "bundle") throw new Error("--base-path is only valid with bundle");
   if (values["allow-partial"] !== undefined && command !== "scan") throw new Error("--allow-partial is only valid with scan");
   if (values.responsibilities !== undefined && command !== "scan") throw new Error("--responsibilities is only valid with scan");
   const storyCommand = command === "story-validate" || command === "story-preview";
@@ -113,6 +120,20 @@ export async function runCli(args: string[]): Promise<number> {
     };
     process.once("SIGINT", stop);
     process.once("SIGTERM", stop);
+    return 0;
+  }
+  if (command === "bundle") {
+    const output = values.output === undefined
+      ? await workspacePath(root, "bundle")
+      : resolve(values.output);
+    const result = await bundleSite(root, output, {
+      ...(values["base-path"] === undefined
+        ? {}
+        : { basePath: values["base-path"] }),
+    });
+    console.log(
+      `Bundled static site in ${result.siteDirectory} for ${result.basePath}`,
+    );
     return 0;
   }
   if (command === "story-validate") {

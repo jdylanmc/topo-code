@@ -7,6 +7,9 @@ does not currently publish versioned releases.
 
 ### Added
 
+- Add `topo bundle` for atomically publishing the composed catalogue, stories,
+  explorer, assets, and required notices beneath a configurable deployment
+  base path. See #45.
 - Add a local agent skill and `topo story validate` workflow for creating and
   identity-preservingly updating authored stories before committed preview.
   See #46.

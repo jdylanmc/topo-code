@@ -553,6 +553,28 @@ export async function checkThirdPartyNotices({
   return closure;
 }
 
+export function composeSiteThirdPartyNotices({
+  dependencyNotices,
+  archifyLicense,
+  archifyNotices,
+  fontLicense,
+}) {
+  return [
+    dependencyNotices.trimEnd(),
+    "\n\n================================================================================\n",
+    "Embedded Archify viewer\n",
+    "License: MIT\n\n",
+    archifyLicense.trimEnd(),
+    "\n\n",
+    archifyNotices.trimEnd(),
+    "\n\n================================================================================\n",
+    "Embedded JetBrains Mono font subsets\n",
+    "License: SIL OFL 1.1\n\n",
+    fontLicense.trimEnd(),
+    "\n",
+  ].join("");
+}
+
 export async function copyThirdPartyNoticesToSite({
   rootDirectory = process.cwd(),
 } = {}) {
@@ -567,9 +589,41 @@ export async function copyThirdPartyNoticesToSite({
       `${path.relative(rootDirectory, siteDirectory)} is missing; build the site before --site.`,
     );
   }
-  await copyFile(
-    sourcePath,
+  const bundledLicenses = path.join(
+    rootDirectory,
+    "experiments",
+    "archify-wrapper",
+    "licenses",
+  );
+  const archifyLicense = await readFile(
+    path.join(bundledLicenses, "Archify-MIT.txt"),
+    "utf8",
+  );
+  const archifyNotices = await readFile(
+    path.join(bundledLicenses, "Archify-THIRD-PARTY-NOTICES.md"),
+    "utf8",
+  );
+  const fontLicense = await readFile(
+    path.join(bundledLicenses, "JetBrainsMono-OFL.txt"),
+    "utf8",
+  );
+  const dependencyNotices = await readFile(sourcePath, "utf8");
+  await writeFile(
     path.join(siteDirectory, "THIRD_PARTY_NOTICES.txt"),
+    composeSiteThirdPartyNotices({
+      dependencyNotices,
+      archifyLicense,
+      archifyNotices,
+      fontLicense,
+    }),
+  );
+  await writeFile(
+    path.join(siteDirectory, "ARCHIFY_LICENSE.txt"),
+    archifyLicense,
+  );
+  await writeFile(
+    path.join(siteDirectory, "JETBRAINS_MONO_LICENSE.txt"),
+    fontLicense,
   );
   await copyFile(
     path.join(rootDirectory, "LICENSE"),

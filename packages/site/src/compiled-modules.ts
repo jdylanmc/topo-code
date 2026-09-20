@@ -1,14 +1,11 @@
-import { moduleSupport, type StaticModuleManifest } from "@topo/modules";
+import type { StaticModuleManifest } from "@topo/modules";
+import {
+  CORE_MODULE_SUPPORT,
+  supportedSiteModules,
+} from "./module-support.js";
+
+export { CORE_MODULE_SUPPORT, supportedSiteModules };
 
 declare const __TOPO_SITE_MODULE_MANIFESTS__: readonly StaticModuleManifest[];
 
 export const COMPILED_MODULE_MANIFESTS = __TOPO_SITE_MODULE_MANIFESTS__;
-
-export const CORE_MODULE_SUPPORT = {
-  "@topo/scanner-typescript": { version: "0.0.0", schemaVersion: "1.0" },
-  "@topo/test": { version: "1.0.0", schemaVersion: "1.0" },
-} as const;
-
-export function supportedSiteModules(manifests: readonly StaticModuleManifest[]) {
-  return { ...CORE_MODULE_SUPPORT, ...moduleSupport(manifests) };
-}
