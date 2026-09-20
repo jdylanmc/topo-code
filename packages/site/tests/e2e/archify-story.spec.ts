@@ -1,5 +1,6 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { expect } from "@playwright/test";
 import {
   commit,
@@ -8,6 +9,135 @@ import {
   test,
   topo,
 } from "./helpers/production-cli.js";
+
+const projectRoot = fileURLToPath(new URL("../../../../", import.meta.url));
+const galleryStories = [
+  { path: "stories/topo-architecture.topo.json", id: "topo-architecture" },
+  { path: "stories/story-authoring-workflow.topo.json", id: "story-authoring-workflow" },
+  { path: "stories/story-lifecycle.topo.json", id: "story-lifecycle" },
+  { path: "stories/capabilities/architecture.topo.json", id: "architecture-capability" },
+  { path: "stories/capabilities/workflow.topo.json", id: "workflow-capability" },
+  { path: "stories/capabilities/lifecycle.topo.json", id: "lifecycle-capability" },
+] as const;
+
+async function writeActualGalleryFixture(repository: string): Promise<void> {
+  await writeFile(
+    join(repository, "package.json"),
+    '{"name":"actual-story-gallery-fixture","type":"module"}\n',
+  );
+  const sourceFiles: Readonly<Record<string, string>> = {
+    "packages/scanner/src/typescript-scanner.ts":
+      "export function scanRepository() {}\n",
+    "packages/cli/src/pipeline.ts":
+      "export function generateArtifacts() {}\n",
+    "packages/cli/src/server.ts": [
+      "export function composeSiteData() {}",
+      "export function serveSite() {}",
+      "",
+    ].join("\n"),
+    "packages/story/src/index.ts": [
+      "export function parseStoryDocument() {}",
+      "export function resolveStoryDocument() {}",
+      "",
+    ].join("\n"),
+    "packages/diagram-core/src/index.ts":
+      "export function renderStory() {}\n",
+    "packages/cli/src/catalogue.ts":
+      "export function buildCatalogue() {}\n",
+    "packages/cli/src/bundle.ts":
+      "export function bundleSite() {}\n",
+    "packages/cli/src/story-validation.ts":
+      "export function validateStory() {}\n",
+    "packages/cli/src/source-snapshot.ts":
+      "export function assertSourceSnapshot() {}\n",
+    "packages/cli/src/story-preview.ts":
+      "export function previewStory() {}\n",
+    "docs/story-authoring.md": "# Story authoring\n",
+  };
+  for (const [path, content] of Object.entries(sourceFiles)) {
+    const destination = join(repository, path);
+    await mkdir(dirname(destination), { recursive: true });
+    await writeFile(destination, content);
+  }
+  await commit(repository, "Source", "package.json", "packages", "docs");
+  await topo(repository, "scan");
+
+  for (const story of galleryStories) {
+    const destination = join(repository, story.path);
+    await mkdir(dirname(destination), { recursive: true });
+    await writeFile(destination, await readFile(join(projectRoot, story.path)));
+  }
+  await commit(repository, "Stories", "stories");
+  for (const story of galleryStories) {
+    await topo(
+      repository,
+      "story",
+      "preview",
+      repository,
+      join(repository, story.path),
+    );
+  }
+}
+
+test("actual gallery story text remains readable at a desktop viewport", async ({
+  page,
+  repository,
+}) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await writeActualGalleryFixture(repository);
+
+  const { server, url } = await startTopoServer(repository, ["--port", "0"]);
+  const clipped: { story: string; text: string }[] = [];
+  try {
+    for (const story of galleryStories) {
+      await page.goto(`${url}/stories/${story.id}/`);
+      const viewer = page.frameLocator("[data-story-viewer]");
+      const diagram = viewer.locator('svg[role="img"]');
+      await expect(diagram).toBeVisible();
+      const iframeScale = await page.locator("[data-story-viewer]").evaluate(
+        (iframe) => iframe.getBoundingClientRect().height / iframe.offsetHeight,
+      );
+      const measurements = await diagram.locator("text").evaluateAll((elements) =>
+        elements.flatMap((element) => {
+          const text = element as SVGTextElement;
+          const bounds = text.getBoundingClientRect();
+          const value = text.textContent?.trim() ?? "";
+          if (value.length === 0 || bounds.width === 0 || bounds.height === 0) {
+            return [];
+          }
+          const matrix = text.getScreenCTM();
+          const svgBounds = text.ownerSVGElement!.getBoundingClientRect();
+          return [{
+            effectiveFontSize:
+              Number.parseFloat(getComputedStyle(text).fontSize) *
+              Math.hypot(matrix?.c ?? 0, matrix?.d ?? 0),
+            contained:
+              bounds.left >= svgBounds.left &&
+              bounds.right <= svgBounds.right &&
+              bounds.top >= svgBounds.top &&
+              bounds.bottom <= svgBounds.bottom,
+            text: value,
+          }];
+        })
+      );
+
+      expect(measurements.length, story.id).toBeGreaterThan(0);
+      clipped.push(...measurements
+        .filter(({ contained }) => !contained)
+        .map(({ text }) => ({ story: story.id, text })));
+      expect.soft(
+        Math.min(...measurements.map(({ effectiveFontSize }) =>
+          effectiveFontSize * iframeScale
+        )),
+        story.id,
+      ).toBeGreaterThanOrEqual(12);
+    }
+    expect(clipped).toEqual([]);
+  } finally {
+    await page.goto("about:blank");
+    await stopTopoServer(server);
+  }
+});
 
 test("story preview renders the real Archify artifact without CSP errors", async ({
   page,
