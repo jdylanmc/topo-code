@@ -58,6 +58,37 @@ interface ArchifyArchitecture {
   }[];
 }
 
+interface ArchifyWorkflow {
+  readonly schema_version: 2;
+  readonly diagram_type: "workflow";
+  readonly meta: {
+    readonly title: string;
+    readonly quality_profile: "standard";
+    readonly locale: "en";
+  };
+  readonly lanes: readonly {
+    readonly id: string;
+    readonly label: string;
+  }[];
+  readonly nodes: readonly {
+    readonly id: string;
+    readonly lane: string;
+    readonly col: number;
+    readonly type: "backend" | "frontend";
+    readonly label: string;
+    readonly sublabel: string;
+    readonly width: number;
+    readonly height: number;
+  }[];
+  readonly edges: readonly {
+    readonly id: string;
+    readonly from: string;
+    readonly to: string;
+    readonly label?: string;
+    readonly role: "main";
+  }[];
+}
+
 const packageRoot = fileURLToPath(new URL("../", import.meta.url));
 const archifyCli = path.join(
   packageRoot,
@@ -233,6 +264,52 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
   };
 }
 
+function workflowSpec(story: ResolvedStoryDocument): ArchifyWorkflow {
+  const laneId = "story-flow";
+  const nodeIds = new Map(
+    story.document.sections.map((section) => [
+      section.id,
+      componentId(section.id),
+    ]),
+  );
+  return {
+    schema_version: 2,
+    diagram_type: "workflow",
+    meta: {
+      title: story.document.title,
+      quality_profile: "standard",
+      locale: "en",
+    },
+    lanes: [{ id: laneId, label: story.document.title }],
+    nodes: story.document.sections.map((section, index) => ({
+      id: nodeIds.get(section.id)!,
+      lane: laneId,
+      col: index,
+      type: index === story.document.sections.length - 1
+        ? "frontend"
+        : "backend",
+      label: section.title,
+      sublabel: section.body,
+      width: Math.max(
+        220,
+        section.title.length * 8 + 48,
+        section.body.length * 4 + 48,
+      ),
+      height: 96,
+    })),
+    edges: story.document.connections.map((connection, index) => ({
+      id: stableId(
+        "edge",
+        `${index}\0${connection.from}\0${connection.to}`,
+      ),
+      from: nodeIds.get(connection.from)!,
+      to: nodeIds.get(connection.to)!,
+      ...(connection.label === undefined ? {} : { label: connection.label }),
+      role: "main",
+    })),
+  };
+}
+
 function commandError(error: unknown): Error {
   if (
     typeof error === "object" &&
@@ -254,25 +331,29 @@ function commandError(error: unknown): Error {
 
 export function renderStory(story: ResolvedStoryDocument): StoryArtifact {
   const integrity = verifyVendoredArchifyIntegrity();
+  const family = story.document.diagramFamily ?? "architecture";
+  const spec = family === "workflow" ? workflowSpec(story) : archifySpec(story);
   const temporaryDirectory = mkdtempSync(
     path.join(tmpdir(), "topo-archify-render-"),
   );
   const inputPath = path.join(temporaryDirectory, "story.json");
   const outputPath = path.join(temporaryDirectory, "story.html");
   try {
-    writeFileSync(inputPath, `${JSON.stringify(archifySpec(story), null, 2)}\n`);
-    execFileSync(process.execPath, [
+    writeFileSync(inputPath, `${JSON.stringify(spec, null, 2)}\n`);
+    const args = [
       archifyCli,
       "deliver",
-      "architecture",
+      family,
       inputPath,
       outputPath,
-      "--repo-root",
-      story.repositoryRoot,
       "--quality",
       "standard",
       "--json",
-    ], {
+    ];
+    if (family === "architecture") {
+      args.splice(5, 0, "--repo-root", story.repositoryRoot);
+    }
+    execFileSync(process.execPath, args, {
       encoding: "utf8",
       maxBuffer: 32 * 1024 * 1024,
       stdio: ["ignore", "pipe", "pipe"],

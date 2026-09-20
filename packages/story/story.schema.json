@@ -7,6 +7,9 @@
   "required": ["schemaVersion", "id", "title", "summary", "anchors", "sections", "connections"],
   "properties": {
     "schemaVersion": { "const": "1.0" },
+    "diagramFamily": {
+      "enum": ["architecture", "workflow", "sequence", "dataflow", "lifecycle"]
+    },
     "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
     "title": { "type": "string", "minLength": 1 },
     "summary": { "type": "string", "minLength": 1 },

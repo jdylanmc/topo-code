@@ -23,8 +23,16 @@ export interface StoryConnection {
   readonly label?: string;
 }
 
+export type DiagramFamily =
+  | "architecture"
+  | "workflow"
+  | "sequence"
+  | "dataflow"
+  | "lifecycle";
+
 export interface StoryDocument {
   readonly schemaVersion: "1.0";
+  readonly diagramFamily?: DiagramFamily;
   readonly id: string;
   readonly title: string;
   readonly summary: string;
@@ -184,10 +192,17 @@ function validateStoryDocument(value: unknown): string | undefined {
   const rootKeys = exactKeys(
     value,
     ["schemaVersion", "id", "title", "summary", "anchors", "sections", "connections"],
-    ["category"],
+    ["category", "diagramFamily"],
   );
   if (rootKeys) return rootKeys;
   if (value.schemaVersion !== "1.0") return 'schemaVersion must be "1.0"';
+  if (
+    value.diagramFamily !== undefined &&
+    !["architecture", "workflow", "sequence", "dataflow", "lifecycle"]
+      .includes(String(value.diagramFamily))
+  ) {
+    return "diagramFamily must be a supported native family";
+  }
   if (!nonemptyString(value.id) || !/^[a-z0-9][a-z0-9-]*$/.test(value.id)) {
     return "id must use lowercase letters, digits, and hyphens";
   }
