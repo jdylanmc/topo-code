@@ -89,6 +89,30 @@ interface ArchifyWorkflow {
   }[];
 }
 
+interface ArchifySequence {
+  readonly schema_version: 1;
+  readonly diagram_type: "sequence";
+  readonly meta: {
+    readonly title: string;
+    readonly quality_profile: "standard";
+    readonly locale: "en";
+    readonly column_fit: "spread";
+  };
+  readonly participants: readonly {
+    readonly id: string;
+    readonly type: "backend" | "frontend";
+    readonly label: string;
+    readonly sublabel: string;
+  }[];
+  readonly messages: readonly {
+    readonly id: string;
+    readonly from: string;
+    readonly to: string;
+    readonly y: number;
+    readonly label: string;
+  }[];
+}
+
 const packageRoot = fileURLToPath(new URL("../", import.meta.url));
 const archifyCli = path.join(
   packageRoot,
@@ -310,6 +334,43 @@ function workflowSpec(story: ResolvedStoryDocument): ArchifyWorkflow {
   };
 }
 
+function sequenceSpec(story: ResolvedStoryDocument): ArchifySequence {
+  const participantIds = new Map(
+    story.document.sections.map((section) => [
+      section.id,
+      componentId(section.id),
+    ]),
+  );
+  return {
+    schema_version: 1,
+    diagram_type: "sequence",
+    meta: {
+      title: story.document.title,
+      quality_profile: "standard",
+      locale: "en",
+      column_fit: "spread",
+    },
+    participants: story.document.sections.map((section, index) => ({
+      id: participantIds.get(section.id)!,
+      type: index === story.document.sections.length - 1
+        ? "frontend"
+        : "backend",
+      label: section.title,
+      sublabel: section.body,
+    })),
+    messages: story.document.connections.map((connection, index) => ({
+      id: stableId(
+        "message",
+        `${index}\0${connection.from}\0${connection.to}`,
+      ),
+      from: participantIds.get(connection.from)!,
+      to: participantIds.get(connection.to)!,
+      y: 180 + index * 100,
+      label: connection.label ?? "then",
+    })),
+  };
+}
+
 function commandError(error: unknown): Error {
   if (
     typeof error === "object" &&
@@ -332,7 +393,11 @@ function commandError(error: unknown): Error {
 export function renderStory(story: ResolvedStoryDocument): StoryArtifact {
   const integrity = verifyVendoredArchifyIntegrity();
   const family = story.document.diagramFamily ?? "architecture";
-  const spec = family === "workflow" ? workflowSpec(story) : archifySpec(story);
+  const spec = family === "workflow"
+    ? workflowSpec(story)
+    : family === "sequence"
+      ? sequenceSpec(story)
+      : archifySpec(story);
   const temporaryDirectory = mkdtempSync(
     path.join(tmpdir(), "topo-archify-render-"),
   );
