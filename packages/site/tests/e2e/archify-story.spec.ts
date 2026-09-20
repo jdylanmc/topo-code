@@ -152,11 +152,38 @@ test("workflow story labels remain at least 12px after iframe and SVG scaling", 
     const labels = page.frameLocator("[data-story-viewer]")
       .locator("svg text[data-node-label]");
     await expect(labels).toHaveCount(2);
-    const heights = await labels.evaluateAll((elements) =>
-      elements.map((element) => element.getBoundingClientRect().height)
+    const iframeScale = await page.locator("[data-story-viewer]").evaluate(
+      (iframe) => iframe.getBoundingClientRect().height / iframe.offsetHeight,
+    );
+    const measurements = await labels.evaluateAll((elements) =>
+      elements.map((element) => {
+        const text = element as SVGTextElement;
+        const matrix = text.getScreenCTM();
+        const bounds = text.getBoundingClientRect();
+        const svgBounds = text.ownerSVGElement!.getBoundingClientRect();
+        const fontSize = Number.parseFloat(getComputedStyle(text).fontSize);
+        return {
+          effectiveFontSize:
+            fontSize * Math.hypot(matrix?.c ?? 0, matrix?.d ?? 0),
+          text: text.textContent?.trim() ?? "",
+          visible: bounds.width > 0 && bounds.height > 0,
+          contained:
+            bounds.left >= svgBounds.left &&
+            bounds.right <= svgBounds.right &&
+            bounds.top >= svgBounds.top &&
+            bounds.bottom <= svgBounds.bottom,
+        };
+      })
     );
 
-    expect(Math.min(...heights)).toBeGreaterThanOrEqual(12);
+    expect(measurements.every(({ text }) => text.length > 0)).toBe(true);
+    expect(measurements.every(({ visible }) => visible)).toBe(true);
+    expect(measurements.every(({ contained }) => contained)).toBe(true);
+    expect(
+      Math.min(...measurements.map(({ effectiveFontSize }) =>
+        effectiveFontSize * iframeScale
+      )),
+    ).toBeGreaterThanOrEqual(12);
   } finally {
     await page.goto("about:blank");
     await stopTopoServer(server);
