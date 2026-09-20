@@ -242,6 +242,8 @@ interface StoryLink {
   readonly targetNodeTitle: string;
 }
 
+const CAPABILITY_CATEGORY = "Diagram capabilities";
+
 const STORY_NAVIGATION_SCRIPT = `(() => {
   const frame = document.querySelector("iframe[data-story-viewer]");
   if (!(frame instanceof HTMLIFrameElement)) return;
@@ -471,9 +473,13 @@ function orderedCategories(
   configured: readonly string[],
 ): string[] {
   const categories = new Set(entries.map((entry) => entry.category));
+  const capabilityCategory = categories.delete(CAPABILITY_CATEGORY)
+    ? [CAPABILITY_CATEGORY]
+    : [];
   return [
     ...configured.filter((category) => categories.delete(category)),
     ...[...categories].sort((left, right) => left.localeCompare(right)),
+    ...capabilityCategory,
   ];
 }
 
@@ -506,9 +512,11 @@ export function renderCataloguePage(
       title: document.title,
       summary: document.summary,
       category:
-        overrides[document.id] ??
-        document.category ??
-        defaultCategory(documentPath),
+        document.classification === "capability-demo"
+          ? CAPABILITY_CATEGORY
+          : overrides[document.id] ??
+            document.category ??
+            defaultCategory(documentPath),
       href: `./stories/${document.id}/`,
     })),
   ];
