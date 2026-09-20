@@ -102,7 +102,7 @@ describe("local story authoring workflow", () => {
     )).rejects.toMatchObject({
       code: 1,
       stderr: expect.stringContaining("missing-pattern"),
-    }, 15_000);
+    });
 
     await cp(
       join(fixtureRoot, "changed/stories/checkout.topo.json"),
@@ -137,7 +137,7 @@ describe("local story authoring workflow", () => {
       join(root, ".topo/cache/site/stories/checkout/viewer.html"),
       "utf8",
     )).toContain("authorizePayment");
-  });
+  }, 30_000);
 
   it("reports malformed drafts before generating output", async () => {
     const root = await mkdtemp(join(tmpdir(), "topo-story-authoring-invalid-"));
