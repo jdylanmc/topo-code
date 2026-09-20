@@ -227,3 +227,117 @@ test("workflow story text remains at least 12px after iframe and SVG scaling", a
     await stopTopoServer(server);
   }
 });
+
+test("workflow relationship backdrops clear nodes for varied routes", async ({
+  page,
+  repository,
+}) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await writeFile(
+    join(repository, "package.json"),
+    '{"name":"workflow-routes-fixture","type":"module"}\n',
+  );
+  await writeFile(
+    join(repository, "source.ts"),
+    [
+      "export function validateStory() { return 'valid'; }",
+      "export function repairStory() { return 'repaired'; }",
+      "export function publishStory() { return 'published'; }",
+      "",
+    ].join("\n"),
+  );
+  await commit(repository, "Source", "package.json", "source.ts");
+  await topo(repository, "scan");
+
+  await mkdir(join(repository, "stories"), { recursive: true });
+  const storyPath = join(repository, "stories/workflow-routes.topo.json");
+  await writeFile(storyPath, `${JSON.stringify({
+    schemaVersion: "1.0",
+    diagramFamily: "workflow",
+    id: "workflow-routes",
+    title: "Story repair workflow",
+    summary: "Validate, repair, and publish an authored story.",
+    anchors: [
+      { id: "validate", path: "source.ts", symbol: "validateStory" },
+      { id: "repair", path: "source.ts", symbol: "repairStory" },
+      { id: "publish", path: "source.ts", symbol: "publishStory" },
+    ],
+    sections: [
+      {
+        id: "validate",
+        title: "Validate source anchors",
+        body: "Detect stale source evidence.",
+        anchorIds: ["validate"],
+      },
+      {
+        id: "repair",
+        title: "Repair stale anchors",
+        body: "Update the authored evidence.",
+        anchorIds: ["repair"],
+      },
+      {
+        id: "publish",
+        title: "Publish static bundle",
+        body: "Publish the validated story.",
+        anchorIds: ["publish"],
+      },
+    ],
+    connections: [
+      { from: "validate", to: "repair", label: "reports stale evidence" },
+      { from: "repair", to: "validate", label: "validate again" },
+      { from: "validate", to: "publish", label: "publish after validation" },
+    ],
+  }, null, 2)}\n`);
+  await commit(repository, "Story", "stories/workflow-routes.topo.json");
+  await topo(repository, "story", "preview", repository, storyPath);
+
+  const { server, url } = await startTopoServer(repository, ["--port", "0"]);
+  try {
+    await page.goto(`${url}/stories/workflow-routes/`);
+    const frame = page.frameLocator("[data-story-viewer]");
+    const labels = frame.locator("svg g[data-edge-from] > text");
+    await expect(labels).toHaveCount(3);
+    const iframeScale = await page.locator("[data-story-viewer]").evaluate(
+      (iframe) => iframe.getBoundingClientRect().height / iframe.offsetHeight,
+    );
+    const effectiveSizes = await labels.evaluateAll((elements) =>
+      elements.map((element) => {
+        const text = element as SVGTextElement;
+        const matrix = text.getScreenCTM();
+        return Number.parseFloat(getComputedStyle(text).fontSize) *
+          Math.hypot(matrix?.c ?? 0, matrix?.d ?? 0);
+      })
+    );
+    expect.soft(Math.min(...effectiveSizes) * iframeScale)
+      .toBeGreaterThanOrEqual(12);
+
+    const collisions = await frame.locator('svg[role="img"]').evaluate((svg) => {
+      const nodes = [...svg.querySelectorAll<SVGGraphicsElement>(
+        "g[data-node-id] > rect:not(.c-mask)",
+      )];
+      return [...svg.querySelectorAll<SVGGraphicsElement>(
+        "g[data-edge-from] > rect.c-mask",
+      )].flatMap((mask) => {
+        const maskBounds = mask.getBoundingClientRect();
+        return nodes.flatMap((node) => {
+          const bounds = node.getBoundingClientRect();
+          const width = Math.max(
+            0,
+            Math.min(maskBounds.right, bounds.right) -
+              Math.max(maskBounds.left, bounds.left),
+          );
+          const height = Math.max(
+            0,
+            Math.min(maskBounds.bottom, bounds.bottom) -
+              Math.max(maskBounds.top, bounds.top),
+          );
+          return width > 0 && height > 0 ? [{ width, height }] : [];
+        });
+      });
+    });
+    expect.soft(collisions).toEqual([]);
+  } finally {
+    await page.goto("about:blank");
+    await stopTopoServer(server);
+  }
+});
