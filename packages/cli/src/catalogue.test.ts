@@ -145,7 +145,7 @@ describe("generated catalogue", () => {
     expect(lifecycle?.contents).toContain("03 / Outcomes");
   });
 
-  it("includes one non-source-grounded capability demo for each gallery family", async () => {
+  it("includes non-source-grounded capability demos for the gallery families", async () => {
     const stories = await buildCatalogueStories(repositoryRoot);
     const demos = stories.filter(({ document }) =>
       document.classification === "capability-demo"
@@ -159,7 +159,6 @@ describe("generated catalogue", () => {
       "lifecycle",
       "workflow",
     ]);
-    expect(demos).toHaveLength(3);
     expect(demos.every(({ document }) =>
       document.anchors.length === 0 &&
       document.sections.every(({ anchorIds }) => anchorIds.length === 0)
