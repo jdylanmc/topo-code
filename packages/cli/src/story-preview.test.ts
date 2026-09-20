@@ -72,6 +72,10 @@ async function fixture(document = story()): Promise<{
   const root = await mkdtemp(join(tmpdir(), "topo-story-preview-"));
   directories.push(root);
   await execute("git", ["init", "--quiet", root]);
+  await execute("git", [
+    "-C", root, "remote", "add", "origin",
+    "https://github.com/example/fixture.git",
+  ]);
   await execute("mkdir", ["-p", join(root, "src"), join(root, "stories")]);
   await writeFile(
     join(root, "src/checkout.ts"),
@@ -118,8 +122,9 @@ describe("story preview", () => {
     const secondContents = await readFile(second.outputPath, "utf8");
 
     expect(secondContents).toBe(firstContents);
-    expect(first.renderer.name).toBe("@topo/diagram-core-placeholder");
-    expect(firstContents).toContain('"startLine":2');
+    expect(first.renderer).toEqual({ name: "archify", pin: "2.17.0-dev.1" });
+    expect(firstContents).toContain("<svg");
+    expect(firstContents).toContain("Submit");
   });
 
   it("renders the unchanged contract with a substitute renderer", async () => {
@@ -287,6 +292,6 @@ describe("story preview", () => {
     expect(await readFile(
       join(root, ".topo/cache/site/stories/checkout/viewer.html"),
       "utf8",
-    )).toContain('"startLine":2');
+    )).toContain("Submit");
   });
 });

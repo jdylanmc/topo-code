@@ -1,4 +1,4 @@
-import { randomBytes, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { createServer, type IncomingMessage, type Server } from "node:http";
 import { readFile, realpath, stat } from "node:fs/promises";
 import { extname, isAbsolute, relative, resolve, sep } from "node:path";
@@ -16,6 +16,7 @@ import {
 } from "./views.js";
 
 const MAX_SAVE_BODY = 1024 * 1024;
+const STORY_VIEWER_PATH = /^\/stories\/[^/]+\/viewer\.html$/;
 
 const MIME: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -47,6 +48,41 @@ function safeTokenEqual(actual: string | undefined, expected: string): boolean {
   const left = Buffer.from(actual);
   const right = Buffer.from(expected);
   return left.length === right.length && timingSafeEqual(left, right);
+}
+
+function inlineScriptHashes(content: Buffer): string[] {
+  const html = content.toString("utf8");
+  const hashes: string[] = [];
+  const scripts = /<script\b([^>]*)>([\s\S]*?)<\/script>/gi;
+  for (const match of html.matchAll(scripts)) {
+    if (/\bsrc\s*=/i.test(match[1] ?? "")) continue;
+    hashes.push(
+      `'sha256-${createHash("sha256").update(match[2] ?? "").digest("base64")}'`,
+    );
+  }
+  return hashes;
+}
+
+function contentSecurityPolicy(
+  pathname: string,
+  content?: Buffer,
+): string {
+  const storyViewer = STORY_VIEWER_PATH.test(pathname);
+  const scriptSources = storyViewer && content !== undefined
+    ? ["'self'", ...inlineScriptHashes(content)].join(" ")
+    : "'self'";
+  return [
+    "default-src 'self'",
+    `script-src ${scriptSources}`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data:",
+    ...(storyViewer ? ["font-src 'self' data:"] : []),
+    "connect-src 'self'",
+    "worker-src 'self' blob:",
+    "object-src 'none'",
+    `frame-ancestors ${storyViewer ? "'self'" : "'none'"}`,
+    "base-uri 'none'",
+  ].join("; ");
 }
 
 async function readJsonBody(request: IncomingMessage): Promise<unknown> {
@@ -136,10 +172,7 @@ export async function serveSite(root: string, port = 4173): Promise<{ server: Se
         if (!(error instanceof URIError || error instanceof TypeError)) throw error;
         throw new HttpError(400, "Invalid request path");
       }
-      const frameAncestors = /^\/stories\/[^/]+\/viewer\.html$/.test(pathname)
-        ? "'self'"
-        : "'none'";
-      response.setHeader("Content-Security-Policy", `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; frame-ancestors ${frameAncestors}; base-uri 'none'`);
+      response.setHeader("Content-Security-Policy", contentSecurityPolicy(pathname));
 
       if (
         request.method === "POST" &&
@@ -224,6 +257,12 @@ export async function serveSite(root: string, port = 4173): Promise<{ server: Se
               response.setHeader("X-Topo-Views-Token", viewsToken);
             }
           }
+        }
+        if (STORY_VIEWER_PATH.test(pathname)) {
+          response.setHeader(
+            "Content-Security-Policy",
+            contentSecurityPolicy(pathname, content),
+          );
         }
         response.setHeader("Content-Type", MIME[extname(file)] ?? "application/octet-stream");
         response.setHeader("Content-Length", content.length);

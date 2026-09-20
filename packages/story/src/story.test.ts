@@ -102,6 +102,7 @@ describe("story document contract", () => {
       location: { startLine: 3, endLine: 3 },
       excerpt: "charge(order)",
     });
+    expect(result.repositoryRoot).toBe("/fixture");
   });
 
   it("rejects source anchors that resolve through repository symlinks", async () => {

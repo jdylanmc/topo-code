@@ -45,6 +45,7 @@ export interface ResolvedSourceAnchor extends SourceAnchor {
 export interface ResolvedStoryDocument {
   readonly document: StoryDocument;
   readonly documentPath: string;
+  readonly repositoryRoot: string;
   readonly source: {
     readonly revision: string;
     readonly dirty: boolean;
@@ -113,12 +114,12 @@ export async function resolveStoryDocument(
   loadSource?: (path: string) => Promise<string | undefined>,
 ): Promise<ResolvedStoryDocument> {
   const repositoryRoot =
-    loadSource === undefined ? await realpath(root) : undefined;
+    loadSource === undefined ? await realpath(root) : resolve(root);
   const anchors: ResolvedSourceAnchor[] = [];
   for (const anchor of document.anchors) {
     assertRepositoryPath(root, documentPath, anchor);
     const contents = loadSource === undefined
-      ? await readRepositorySource(repositoryRoot!, documentPath, anchor)
+      ? await readRepositorySource(repositoryRoot, documentPath, anchor)
       : await loadSource(anchor.path);
     if (contents === undefined) {
       throw anchorError(
@@ -130,7 +131,7 @@ export async function resolveStoryDocument(
     }
     anchors.push(resolveAnchor(documentPath, anchor, contents));
   }
-  return { document, documentPath, source, anchors };
+  return { document, documentPath, repositoryRoot, source, anchors };
 }
 
 function invalidDocument(documentPath: string, message: string): StoryDocumentError {

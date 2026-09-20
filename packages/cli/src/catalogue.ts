@@ -407,6 +407,7 @@ export function renderStoryWrapper(
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="${escapeHtml(story.document.summary)}" />
+    <link rel="icon" href="data:," />
     <title>${escapeHtml(story.document.title)}</title>
     <style>
       :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }

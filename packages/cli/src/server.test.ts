@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -88,15 +89,22 @@ it("allows only generated story viewers to be embedded by the same origin", asyn
   await mkdir(join(root, ".topo/cache/site/stories/example"), { recursive: true });
   await writeFile(
     join(root, ".topo/cache/site/stories/example/viewer.html"),
-    "<!doctype html><title>Viewer</title>",
+    "<!doctype html><title>Viewer</title><script>window.ready = true;</script>",
   );
 
   const viewer = await fetch(`${url}/stories/example/viewer.html`);
   expect(viewer.status).toBe(200);
-  expect(viewer.headers.get("content-security-policy"))
-    .toContain("frame-ancestors 'self'");
+  const viewerPolicy = viewer.headers.get("content-security-policy");
+  const scriptHash = createHash("sha256")
+    .update("window.ready = true;")
+    .digest("base64");
+  expect(viewerPolicy).toContain("frame-ancestors 'self'");
+  expect(viewerPolicy).toContain(`'sha256-${scriptHash}'`);
+  expect(viewerPolicy).toContain("font-src 'self' data:");
   expect((await fetch(`${url}/stories/example/`)).headers.get("content-security-policy"))
     .toContain("frame-ancestors 'none'");
+  expect((await fetch(`${url}/stories/example/`)).headers.get("content-security-policy"))
+    .not.toContain("font-src 'self' data:");
 });
 it("rejects missing sites and invalid ports rather than starting an empty server", async () => {
   const { root } = await setup();

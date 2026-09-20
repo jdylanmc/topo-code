@@ -219,13 +219,10 @@ test("linked story nodes keep durable focus across drill-down, reload, direct op
   await expect(page.getByRole("heading", { name: "Order detail" })).toBeVisible();
   await expect(page.locator('[data-node-id="evidence"]')).toHaveAttribute("aria-current", "true");
   await expect(page.locator("iframe")).toHaveAttribute("src", "viewer.html#focus=evidence");
-  const evidence = await page.locator("iframe").contentFrame()
-    .locator("#topo-diagram").textContent();
-  expect(JSON.parse(evidence ?? "{}").nodes[0].anchors[0]).toMatchObject({
-    path: "detail.ts",
-    symbol: "inspectOrder",
-    excerpt: expect.stringContaining("inspectOrder"),
-  });
+  const evidence = page.locator("iframe").contentFrame()
+    .locator('svg [data-node-id="evidence"]');
+  await expect(evidence).toBeVisible();
+  await expect(evidence).toContainText("Order code evidence");
 
   await page.reload();
   await expect(page.locator('[data-node-id="evidence"]')).toHaveAttribute("aria-current", "true");

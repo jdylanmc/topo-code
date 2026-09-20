@@ -153,6 +153,11 @@ export const test = base.extend<{
     try {
       await mkdir(repository);
       await execute("git", ["init", "--quiet"], { cwd: repository });
+      await execute(
+        "git",
+        ["remote", "add", "origin", "https://github.com/example/fixture.git"],
+        { cwd: repository },
+      );
       await use(repository);
     } finally {
       await rm(owned, { recursive: true, force: true });

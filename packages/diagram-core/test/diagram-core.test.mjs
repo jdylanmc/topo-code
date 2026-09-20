@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import {
-  copyFile,
+  cp,
   mkdir,
   mkdtemp,
   readFile,
@@ -9,118 +9,132 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import {
-  render,
   renderStory,
-  verifyPinnedArtifactIntegrity,
+  verifyVendoredArchifyIntegrity,
 } from "@topo/diagram-core";
 
 const packageRoot = fileURLToPath(new URL("../", import.meta.url));
-
-test("exports a typed render boundary that returns an HTML artifact", () => {
-  const artifact = render({
-    title: "Checkout architecture",
-    document: {
-      nodes: [{ id: "client" }, { id: "service" }],
-      edges: [{ from: "client", to: "service" }],
-    },
-  });
-
-  assert.equal(typeof render, "function");
-  assert.equal(typeof verifyPinnedArtifactIntegrity, "function");
-  assert.equal(artifact.kind, "html");
-  assert.equal(artifact.mediaType, "text/html");
-  assert.equal(artifact.renderer.name, "@topo/diagram-core-placeholder");
-  assert.match(artifact.contents, /Checkout architecture/);
-  assert.match(artifact.contents, /"from":"client"/);
-  assert.doesNotMatch(artifact.contents, /\{\{/);
-});
-
-test("substitutes every placeholder and treats $ sequences literally", () => {
-  const artifact = render({
-    title: "A$'B $& $`C",
-    document: { note: "v$`w $& $'x" },
-  });
-
-  assert.doesNotMatch(artifact.contents, /\{\{/);
-  assert.equal(
-    artifact.contents.match(/A\$&#39;B \$&amp; \$`C/g)?.length,
-    2,
-  );
-  assert.match(artifact.contents, /"note":"v\$`w \$& \$'x"/);
-});
+const execute = promisify(execFile);
 
 test("accepts the committed integrity baseline", () => {
-  const integrity = verifyPinnedArtifactIntegrity();
+  const integrity = verifyVendoredArchifyIntegrity();
 
-  assert.equal(integrity.artifact, "vendored/archify-placeholder.html");
-  assert.match(integrity.sha256, /^[0-9a-f]{64}$/);
+  assert.equal(integrity.files, 62);
+  assert.equal(
+    integrity.revision,
+    "d673e8300df60a5c8166abe78787fdc78f6b8000",
+  );
 });
 
-test("adapts a resolved story only at the diagram-core boundary", () => {
+test("renders a resolved story through the vendored Archify CLI", async (context) => {
+  const repositoryRoot = await mkdtemp(path.join(tmpdir(), "topo-story-render-"));
+  context.after(() => rm(repositoryRoot, { recursive: true, force: true }));
+  await writeFile(
+    path.join(repositoryRoot, "source.ts"),
+    "export const client = 'client';\nexport const service = 'service';\n",
+  );
+  await execute("git", ["init", "--quiet"], { cwd: repositoryRoot });
+  await execute(
+    "git",
+    ["remote", "add", "origin", "https://github.com/example/fixture.git"],
+    { cwd: repositoryRoot },
+  );
+  await execute("git", ["add", "source.ts"], { cwd: repositoryRoot });
+  await execute("git", [
+    "-c", "user.name=Fixture",
+    "-c", "user.email=fixture@example.invalid",
+    "-c", "commit.gpgsign=false",
+    "commit", "--quiet", "-m", "Fixture",
+  ], { cwd: repositoryRoot });
+  const revision = (
+    await execute("git", ["rev-parse", "HEAD"], { cwd: repositoryRoot })
+  ).stdout.trim();
   const story = {
     documentPath: "stories/checkout.topo.json",
-    source: { revision: "abc123", dirty: false },
+    repositoryRoot,
+    source: { revision, dirty: false },
     document: {
       schemaVersion: "1.0",
       id: "checkout",
       title: "Checkout",
       summary: "Checkout flow.",
-      anchors: [{
-        id: "submit",
-        path: "src/checkout.ts",
-        symbol: "submitCheckout",
-        pattern: "charge(order)",
-      }],
-      sections: [{
-        id: "submit-step",
-        title: "Submit",
-        body: "Charge the order.",
-        anchorIds: ["submit"],
-      }],
-      connections: [],
+      anchors: [
+        { id: "client", path: "source.ts", symbol: "client" },
+        { id: "service", path: "source.ts", symbol: "service" },
+      ],
+      sections: [
+        {
+          id: "client-step",
+          title: "Checkout client",
+          body: "Starts checkout.",
+          anchorIds: ["client"],
+        },
+        {
+          id: "service-step",
+          title: "Checkout service",
+          body: "Processes checkout.",
+          anchorIds: ["service"],
+        },
+      ],
+      connections: [{ from: "client-step", to: "service-step", label: "submit" }],
     },
-    anchors: [{
-      id: "submit",
-      path: "src/checkout.ts",
-      symbol: "submitCheckout",
-      pattern: "charge(order)",
-      location: { startLine: 3, endLine: 3 },
-      excerpt: "charge(order)",
-    }],
+    anchors: [
+      {
+        id: "client",
+        path: "source.ts",
+        symbol: "client",
+        location: { startLine: 1, endLine: 1 },
+        excerpt: "export const client = 'client';",
+      },
+      {
+        id: "service",
+        path: "source.ts",
+        symbol: "service",
+        location: { startLine: 2, endLine: 2 },
+        excerpt: "export const service = 'service';",
+      },
+    ],
   };
 
   const first = renderStory(story);
   const second = renderStory(story);
   assert.deepEqual(second, first);
-  assert.match(first.contents, /"startLine":3/);
-  assert.match(first.contents, /"id":"submit-step"/);
+  assert.equal(first.renderer.name, "archify");
+  assert.equal(first.renderer.pin, "2.17.0-dev.1");
+  assert.match(first.contents, /<svg\b/);
+  assert.match(first.contents, /Checkout client/);
+  assert.match(first.contents, /Checkout service/);
+  assert.match(first.contents, /Export diagram/);
+  assert.match(first.contents, />Present</);
 });
 
-test("rejects a tampered pinned artifact", async (context) => {
+test("rejects a tampered vendored Archify file", async (context) => {
   const temporaryRoot = await mkdtemp(
     path.join(tmpdir(), "topo-diagram-core-"),
   );
   context.after(() => rm(temporaryRoot, { recursive: true, force: true }));
-  const vendoredDirectory = path.join(temporaryRoot, "vendored");
-  await mkdir(vendoredDirectory);
-  await copyFile(
-    path.join(packageRoot, "integrity-baseline.json"),
-    path.join(temporaryRoot, "integrity-baseline.json"),
+  await mkdir(path.join(temporaryRoot, "vendor"), { recursive: true });
+  await cp(
+    path.join(packageRoot, "vendor", "archify"),
+    path.join(temporaryRoot, "vendor", "archify"),
+    { recursive: true },
   );
-  const fixture = await readFile(
-    path.join(packageRoot, "vendored", "archify-placeholder.html"),
-    "utf8",
+  await cp(
+    path.join(packageRoot, "archify-integrity.json"),
+    path.join(temporaryRoot, "archify-integrity.json"),
   );
   await writeFile(
-    path.join(vendoredDirectory, "archify-placeholder.html"),
-    `${fixture}\n<!-- tampered -->\n`,
+    path.join(temporaryRoot, "vendor", "archify", "LICENSE"),
+    `${await readFile(path.join(packageRoot, "vendor", "archify", "LICENSE"), "utf8")}\ntampered\n`,
   );
 
   assert.throws(
-    () => verifyPinnedArtifactIntegrity(temporaryRoot),
+    () => verifyVendoredArchifyIntegrity(temporaryRoot),
     /integrity failure/,
   );
 });

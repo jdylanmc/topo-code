@@ -13,6 +13,7 @@ export default [
       ".agents/**",
       ".skill-log/**",
       "experiments/**",
+      "packages/diagram-core/vendor/**",
       "benchmarks/results/**",
       // Workspace artifacts have independent lifecycles, outside this code-lint scope.
       "**/.topo/**",
