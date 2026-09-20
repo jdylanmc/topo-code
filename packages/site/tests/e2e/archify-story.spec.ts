@@ -186,6 +186,42 @@ test("workflow story text remains at least 12px after iframe and SVG scaling", a
         effectiveFontSize * iframeScale
       )),
     ).toBeGreaterThanOrEqual(12);
+    const geometry = await page.frameLocator("[data-story-viewer]")
+      .locator('svg[role="img"]')
+      .evaluate((svg) => {
+        const mask = svg.querySelector<SVGGraphicsElement>(
+          'g[data-edge-from="validate"][data-edge-to="preview"] > rect.c-mask',
+        );
+        const nodes = [...svg.querySelectorAll<SVGGraphicsElement>(
+          "g[data-node-id] > rect:not(.c-mask)",
+        )];
+        if (!mask) return { maskPresent: false, nodeCount: nodes.length, overlaps: [] };
+        const maskBounds = mask.getBoundingClientRect();
+        return {
+          maskPresent: maskBounds.width > 0 && maskBounds.height > 0,
+          nodeCount: nodes.length,
+          overlaps: nodes.map((node) => {
+            const bounds = node.getBoundingClientRect();
+            return {
+              width: Math.max(
+                0,
+                Math.min(maskBounds.right, bounds.right) -
+                  Math.max(maskBounds.left, bounds.left),
+              ),
+              height: Math.max(
+                0,
+                Math.min(maskBounds.bottom, bounds.bottom) -
+                  Math.max(maskBounds.top, bounds.top),
+              ),
+            };
+          }),
+        };
+      });
+    expect(geometry.maskPresent).toBe(true);
+    expect(geometry.nodeCount).toBe(2);
+      expect(geometry.overlaps.filter(({ width, height }) =>
+        width > 0 && height > 0
+      )).toEqual([]);
   } finally {
     await page.goto("about:blank");
     await stopTopoServer(server);
