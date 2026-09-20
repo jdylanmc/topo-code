@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "1.0",
+  "id": "missing-file",
+  "title": "Missing file",
+  "summary": "Broken file anchor fixture.",
+  "anchors": [{ "id": "broken", "path": "src/missing.ts" }],
+  "sections": [{ "id": "broken", "title": "Broken", "body": "Broken.", "anchorIds": ["broken"] }],
+  "connections": []
+}

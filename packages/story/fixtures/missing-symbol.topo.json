@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "1.0",
+  "id": "missing-symbol",
+  "title": "Missing symbol",
+  "summary": "Broken symbol anchor fixture.",
+  "anchors": [{ "id": "broken", "path": "src/checkout.ts", "symbol": "missingSymbol" }],
+  "sections": [{ "id": "broken", "title": "Broken", "body": "Broken.", "anchorIds": ["broken"] }],
+  "connections": []
+}

@@ -18,6 +18,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@topo/diagram-core": "workspace:*",
     "@topo/enrichment": "workspace:*",
     "@topo/graph": "workspace:*",
     "@topo/modules": "workspace:*",
@@ -25,6 +26,7 @@
     "@topo/scanner": "workspace:*",
     "@topo/schema": "workspace:*",
     "@topo/site": "workspace:*",
+    "@topo/story": "workspace:*",
     "@topo/views": "workspace:*",
     "@topo/workspace": "workspace:*"
   },

@@ -591,6 +591,7 @@ License: Apache-2.0
 Installed aliases: typescript-compiler-api (npm:typescript@^6.0.0)
 Required by:
 - @topo/scanner -> typescript-compiler-api
+- @topo/story -> typescript-compiler-api
 
 ----- BEGIN LICENSE.txt -----
 Apache License

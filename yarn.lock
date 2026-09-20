@@ -308,6 +308,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@topo/cli@workspace:packages/cli"
   dependencies:
+    "@topo/diagram-core": "workspace:*"
     "@topo/enrichment": "workspace:*"
     "@topo/graph": "workspace:*"
     "@topo/modules": "workspace:*"
@@ -315,6 +316,7 @@ __metadata:
     "@topo/scanner": "workspace:*"
     "@topo/schema": "workspace:*"
     "@topo/site": "workspace:*"
+    "@topo/story": "workspace:*"
     "@topo/views": "workspace:*"
     "@topo/workspace": "workspace:*"
     "@types/node": "npm:^22.20.1"
@@ -326,10 +328,11 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@topo/diagram-core@workspace:packages/diagram-core":
+"@topo/diagram-core@workspace:*, @topo/diagram-core@workspace:packages/diagram-core":
   version: 0.0.0-use.local
   resolution: "@topo/diagram-core@workspace:packages/diagram-core"
   dependencies:
+    "@topo/story": "workspace:*"
     "@types/node": "npm:^22"
     typescript: "npm:^7.0.2"
   languageName: unknown
@@ -431,6 +434,19 @@ __metadata:
     "@types/node": "npm:^22.18.0"
     pixi.js: "npm:^8.13.2"
     typescript: "npm:^7.0.2"
+    vite: "npm:8.2.2"
+    vitest: "npm:^5.0.0"
+  languageName: unknown
+  linkType: soft
+
+"@topo/story@workspace:*, @topo/story@workspace:packages/story":
+  version: 0.0.0-use.local
+  resolution: "@topo/story@workspace:packages/story"
+  dependencies:
+    "@types/node": "npm:^22"
+    ajv: "npm:8.17.1"
+    typescript: "npm:^7.0.2"
+    typescript-compiler-api: "npm:typescript@^6.0.0"
     vite: "npm:8.2.2"
     vitest: "npm:^5.0.0"
   languageName: unknown
