@@ -156,14 +156,15 @@ interface ArchifyLifecycle {
     readonly id: string;
     readonly type: "start" | "active" | "success";
     readonly label: string;
-    readonly lane: "main" | "terminal";
+    readonly lane: "main" | "event" | "terminal";
     readonly col: number;
+    readonly width: number;
   }[];
   readonly transitions: readonly {
     readonly id: string;
     readonly from: string;
     readonly to: string;
-    readonly label?: string;
+    readonly route?: "right-channel";
   }[];
 }
 
@@ -482,21 +483,27 @@ function lifecycleSpec(story: ResolvedStoryDocument): ArchifyLifecycle {
     },
     lanes: [
       { id: "main", label: story.document.title },
+      { id: "event", label: "Interruptions + recovery" },
       { id: "terminal", label: "Outcomes" },
     ],
-    states: story.document.sections.map((section, index) => ({
-      id: stateIds.get(section.id)!,
-      type: index === 0
-        ? "start"
-        : index === story.document.sections.length - 1
-          ? "success"
-          : "active",
-      label: section.title,
-      lane: index === story.document.sections.length - 1
-        ? "terminal"
-        : "main",
-      col: index === story.document.sections.length - 1 ? 0 : index,
-    })),
+    states: story.document.sections.map((section, index) => {
+      const last = index === story.document.sections.length - 1;
+      const event = story.document.sections.length >= 5 &&
+        index >= 2 &&
+        index < story.document.sections.length - 2;
+      return {
+        id: stateIds.get(section.id)!,
+        type: index === 0
+          ? "start"
+          : last
+            ? "success"
+            : "active",
+        label: section.title,
+        lane: last ? "terminal" : event ? "event" : "main",
+        col: last ? 2 : event ? index - 2 : index - Math.max(0, index - 2),
+        width: 118,
+      };
+    }),
     transitions: story.document.connections.map((connection, index) => ({
       id: stableId(
         "transition",
@@ -504,7 +511,9 @@ function lifecycleSpec(story: ResolvedStoryDocument): ArchifyLifecycle {
       ),
       from: stateIds.get(connection.from)!,
       to: stateIds.get(connection.to)!,
-      ...(connection.label === undefined ? {} : { label: connection.label }),
+      ...(index === story.document.connections.length - 1
+        ? { route: "right-channel" as const }
+        : {}),
     })),
   };
 }
