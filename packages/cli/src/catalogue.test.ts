@@ -153,6 +153,40 @@ describe("generated catalogue", () => {
     );
   });
 
+  it("labels factual and capability-demo story wrappers truthfully", async () => {
+    const root = await repository();
+    await addStory(root, "stories/checkout.topo.json", "checkout", "Checkout");
+    await addStory(
+      root,
+      "stories/workflow-demo.topo.json",
+      "workflow-demo",
+      "Workflow capability",
+      undefined,
+      "capability-demo",
+    );
+    await commit(root);
+
+    await writeComposedSite(
+      root,
+      "<!doctype html><title>Explorer</title>",
+      await buildCatalogue(root),
+      undefined,
+    );
+    const factual = await readFile(
+      join(root, ".topo/cache/site/stories/checkout/index.html"),
+      "utf8",
+    );
+    const demo = await readFile(
+      join(root, ".topo/cache/site/stories/workflow-demo/index.html"),
+      "utf8",
+    );
+
+    expect(factual).toContain('data-story-classification="source-grounded"');
+    expect(factual).toContain("Source-grounded");
+    expect(demo).toContain('data-story-classification="capability-demo"');
+    expect(demo).toMatch(/not source-grounded/i);
+  });
+
   it("changes category order and presentation from config only", async () => {
     const root = await repository();
     await addStory(root, "stories/checkout.topo.json", "checkout", "Checkout");
