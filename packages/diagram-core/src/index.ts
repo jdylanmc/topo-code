@@ -551,12 +551,14 @@ function improveWorkflowReadability(contents: string): string {
   }
   const style = `<style data-topo-workflow-readability>
 svg g[data-detail="context"][data-edge-from] > rect.c-mask {
-  transform: scale(1.4);
+  transform: scaleY(1.4);
   transform-box: fill-box;
   transform-origin: center;
 }
 svg g[data-detail="context"][data-edge-from] > text {
+  font-family: ui-sans-serif, system-ui, sans-serif;
   font-size: 11px;
+  font-weight: 600;
 }
 </style>`;
   return contents.replace(headEnd, `${style}\n${headEnd}`);
@@ -610,7 +612,7 @@ export function renderStory(story: ResolvedStoryDocument): StoryArtifact {
         ? improveWorkflowReadability(contents)
         : contents,
       renderer: {
-        name: "archify",
+        name: family === "workflow" ? "archify+topocode" : "archify",
         pin: integrity.version,
         sha256: integrity.archiveSha256,
       },
