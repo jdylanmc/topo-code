@@ -1,18 +1,20 @@
 #!/usr/bin/env node
-import { execFile } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { readFile, readdir, stat } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { parseArgs, promisify } from "node:util";
+import { parseArgs } from "node:util";
 import { BUILTIN_MODULE_MANIFESTS, validateModuleCatalog } from "@topo/modules";
 import { scanRepository } from "@topo/scanner";
 import { initializeWorkspace, isMissing, workspacePath } from "@topo/workspace";
 import { runEnrichment } from "./enrichment.js";
 import { generateArtifacts, ingestReports } from "./pipeline.js";
 import { serveSite } from "./server.js";
-import { buildCatalogue, writeBuiltCatalogue } from "./catalogue.js";
+import {
+  assertCatalogueCurrent,
+  buildCatalogue,
+  writeBuiltCatalogue,
+} from "./catalogue.js";
 
-const execute = promisify(execFile);
 const HELP = `Topocode: local, deterministic repository maps
 
   topo init [repository]
@@ -27,12 +29,6 @@ Scan is strict by default. --allow-partial publishes a visibly incomplete
 preview and exits 2; it never turns partial evidence into success.
 Serve binds only to 127.0.0.1. Config and authored metadata are never overwritten.
 `;
-
-async function sourceState(root: string): Promise<{ revision: string; dirty: boolean }> {
-  const revision = (await execute("git", ["-C", root, "rev-parse", "HEAD"])).stdout.trim();
-  const status = (await execute("git", ["-C", root, "status", "--porcelain", "--untracked-files=all", "--", ".", ":(exclude).topo"])).stdout;
-  return { revision, dirty: status.length > 0 };
-}
 
 async function siteAssets(): Promise<string> {
   const assets = dirname(fileURLToPath(import.meta.resolve("@topo/site/index.html")));
@@ -151,8 +147,8 @@ export async function runCli(args: string[]): Promise<number> {
   const { config } = await initializeWorkspace(root);
   validateConfiguredModules(config.modules);
   const assets = await siteAssets();
-  const state = await sourceState(root);
   const catalogue = await buildCatalogue(root);
+  const state = catalogue.source;
   if (command === "ingest") {
     if (positionals.length < 3) throw new Error("ingest requires a repository and at least one report file");
     if (state.dirty) throw new Error("Report ingestion requires clean source files at the scanned revision; .topo artifacts are excluded.");
@@ -179,7 +175,7 @@ export async function runCli(args: string[]): Promise<number> {
     quality: { allowPartial: values["allow-partial"] ?? false },
     ...(values.responsibilities ? { responsibilityFile: resolve(values.responsibilities) } : {}),
   });
-  if ((await sourceState(root)).revision !== state.revision) throw new Error("Repository revision changed during scan; retry");
+  await assertCatalogueCurrent(root, catalogue);
   const artifacts = await generateArtifacts(
     root,
     result.graph,

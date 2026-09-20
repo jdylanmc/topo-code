@@ -13,6 +13,7 @@ import {
   assertSourceSnapshot,
   captureSourceSnapshot,
 } from "./source-snapshot.js";
+import { repositoryState } from "./catalogue.js";
 
 const execute = promisify(execFile);
 
@@ -33,27 +34,6 @@ export interface StoryPreviewResult {
 const diagramCoreRenderer: StoryRenderer = {
   render: renderStory,
 };
-
-async function sourceState(
-  root: string,
-): Promise<{ revision: string; dirty: boolean }> {
-  const revision = (
-    await execute("git", ["-C", root, "rev-parse", "HEAD"])
-  ).stdout.trim();
-  const status = (
-    await execute("git", [
-      "-C",
-      root,
-      "status",
-      "--porcelain",
-      "--untracked-files=all",
-      "--",
-      ".",
-      ":(exclude).topo",
-    ])
-  ).stdout;
-  return { revision, dirty: status.length > 0 };
-}
 
 function repositoryRelativePath(root: string, path: string): string {
   const absolute = resolve(path);
@@ -126,7 +106,7 @@ export async function previewStory(
     await readCommittedStory(root, documentPath),
     documentPath,
   );
-  const source = await sourceState(root);
+  const source = await repositoryState(root);
   const snapshot = await captureSourceSnapshot(
     root,
     document.anchors.map((anchor) => anchor.path),
@@ -135,7 +115,7 @@ export async function previewStory(
     root,
     document,
     documentPath,
-    source,
+    { revision: source.revision, dirty: source.dirty },
     async (path) => snapshot.get(path),
   );
   if (renderer === null) {
@@ -153,10 +133,11 @@ export async function previewStory(
     );
   }
   await assertSourceSnapshot(root, snapshot);
-  const finalSource = await sourceState(root);
+  const finalSource = await repositoryState(root);
   if (
     finalSource.revision !== source.revision ||
-    finalSource.dirty !== source.dirty
+    finalSource.dirty !== source.dirty ||
+    finalSource.fingerprint !== source.fingerprint
   ) {
     throw new Error(
       `${documentPath}: repository source changed while rendering; retry`,
@@ -173,7 +154,7 @@ export async function previewStory(
     storyId: document.id,
     documentPath,
     outputPath: await workspacePath(root, outputName),
-    source,
+    source: { revision: source.revision, dirty: source.dirty },
     renderer: {
       name: artifact.renderer.name,
       pin: artifact.renderer.pin,

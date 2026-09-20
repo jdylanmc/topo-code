@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
@@ -33,10 +34,13 @@ export interface CatalogueStory {
 export interface BuiltCatalogue {
   readonly stories: readonly CatalogueStory[];
   readonly snapshot: SourceSnapshot;
-  readonly source: {
-    readonly revision: string;
-    readonly dirty: boolean;
-  };
+  readonly source: RepositoryState;
+}
+
+export interface RepositoryState {
+  readonly revision: string;
+  readonly dirty: boolean;
+  readonly fingerprint: string;
 }
 
 const defaultRenderer: StoryRenderer = { render: renderStory };
@@ -63,14 +67,11 @@ function defaultCategory(documentPath: string): string {
   return parts.length > 2 ? titleCase(parts[1]!) : "Stories";
 }
 
-async function sourceState(
-  root: string,
-): Promise<{ revision: string; dirty: boolean }> {
-  const revision = (
-    await execute("git", ["-C", root, "rev-parse", "HEAD"])
-  ).stdout.trim();
-  const status = (
-    await execute("git", [
+export async function repositoryState(root: string): Promise<RepositoryState> {
+  const options = { maxBuffer: 64 * 1024 * 1024 };
+  const [revisionResult, statusResult, diffResult] = await Promise.all([
+    execute("git", ["-C", root, "rev-parse", "HEAD"], options),
+    execute("git", [
       "-C",
       root,
       "status",
@@ -79,9 +80,28 @@ async function sourceState(
       "--",
       ".",
       ":(exclude).topo",
-    ])
-  ).stdout;
-  return { revision, dirty: status.length > 0 };
+    ], options),
+    execute("git", [
+      "-C",
+      root,
+      "diff",
+      "--binary",
+      "HEAD",
+      "--",
+      ".",
+      ":(exclude).topo",
+    ], options),
+  ]);
+  const revision = revisionResult.stdout.trim();
+  const status = statusResult.stdout;
+  const fingerprint = createHash("sha256")
+    .update(revision)
+    .update("\0")
+    .update(status)
+    .update("\0")
+    .update(diffResult.stdout)
+    .digest("hex");
+  return { revision, dirty: status.length > 0, fingerprint };
 }
 
 async function committedStoryPaths(root: string): Promise<string[]> {
@@ -136,7 +156,7 @@ export async function buildCatalogue(
   renderer: StoryRenderer = defaultRenderer,
 ): Promise<BuiltCatalogue> {
   const root = resolve(rootInput);
-  const source = await sourceState(root);
+  const source = await repositoryState(root);
   const paths = await committedStoryPaths(root);
   const documents = await Promise.all(paths.map(async (documentPath) => {
     await assertUnchanged(root, documentPath);
@@ -159,7 +179,7 @@ export async function buildCatalogue(
       root,
       document,
       documentPath,
-      source,
+      { revision: source.revision, dirty: source.dirty },
       async (path) => snapshot.get(path),
     );
     const artifact = await renderer.render(resolved);
@@ -195,10 +215,11 @@ export async function assertCatalogueCurrent(
   catalogue: BuiltCatalogue,
 ): Promise<void> {
   await assertSourceSnapshot(root, catalogue.snapshot);
-  const finalSource = await sourceState(root);
+  const finalSource = await repositoryState(root);
   if (
     finalSource.revision !== catalogue.source.revision ||
-    finalSource.dirty !== catalogue.source.dirty
+    finalSource.dirty !== catalogue.source.dirty ||
+    finalSource.fingerprint !== catalogue.source.fingerprint
   ) {
     throw new Error("Repository source changed while building the catalogue; retry");
   }

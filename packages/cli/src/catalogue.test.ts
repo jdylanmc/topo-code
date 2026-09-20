@@ -222,4 +222,24 @@ describe("generated catalogue", () => {
       join(root, ".topo/cache/site/stories/checkout/index.html"),
     )).rejects.toMatchObject({ code: "ENOENT" });
   });
+
+  it.each([
+    ["a non-anchor source", "other.ts", "export const other = 2;\n"],
+    [
+      "a story document",
+      "stories/checkout.topo.json",
+      '{"schemaVersion":"1.0","id":"changed"}\n',
+    ],
+  ])("rejects %s changing before publication", async (_label, path, contents) => {
+    const root = await repository();
+    await writeFile(join(root, "other.ts"), "export const other = 1;\n");
+    await addStory(root, "stories/checkout.topo.json", "checkout", "Checkout");
+    await commit(root);
+    await writeFile(join(root, "source.ts"), "export const value = 43;\n");
+    const catalogue = await buildCatalogue(root);
+    await writeFile(join(root, path), contents);
+
+    await expect(writeBuiltCatalogue(root, catalogue, undefined))
+      .rejects.toThrow("source changed");
+  });
 });
