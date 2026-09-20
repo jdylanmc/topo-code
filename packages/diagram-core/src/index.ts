@@ -544,6 +544,24 @@ function commandError(error: unknown): Error {
     : new Error(`Archify rendering failed: ${String(error)}`);
 }
 
+function improveWorkflowReadability(contents: string): string {
+  const headEnd = "</head>";
+  if (!contents.includes(headEnd)) {
+    throw new Error("Archify Workflow output is missing its closing head element");
+  }
+  const style = `<style data-topo-workflow-readability>
+svg g[data-detail="context"][data-edge-from] > rect.c-mask {
+  transform: scale(1.4);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+svg g[data-detail="context"][data-edge-from] > text {
+  font-size: 11px;
+}
+</style>`;
+  return contents.replace(headEnd, `${style}\n${headEnd}`);
+}
+
 export function renderStory(story: ResolvedStoryDocument): StoryArtifact {
   const integrity = verifyVendoredArchifyIntegrity();
   const family = story.document.diagramFamily ?? "architecture";
@@ -584,10 +602,13 @@ export function renderStory(story: ResolvedStoryDocument): StoryArtifact {
       maxBuffer: 32 * 1024 * 1024,
       stdio: ["ignore", "pipe", "pipe"],
     });
+    const contents = readFileSync(outputPath, "utf8");
     return {
       kind: "html",
       mediaType: "text/html",
-      contents: readFileSync(outputPath, "utf8"),
+      contents: family === "workflow"
+        ? improveWorkflowReadability(contents)
+        : contents,
       renderer: {
         name: "archify",
         pin: integrity.version,
