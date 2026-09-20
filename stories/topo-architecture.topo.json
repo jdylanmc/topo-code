@@ -1,0 +1,70 @@
+{
+  "schemaVersion": "1.0",
+  "id": "topo-architecture",
+  "title": "How Topocode turns source into an explorable architecture site",
+  "summary": "Topo scans a Git repository into a deterministic graph, generates a static site, serves an explorer, and lets you author source-grounded stories that render through a pinned viewer and bundle for plain static hosting.",
+  "category": "Topocode internals",
+  "anchors": [
+    { "id": "scan", "path": "packages/scanner/src/typescript-scanner.ts", "symbol": "scanRepository" },
+    { "id": "generate", "path": "packages/cli/src/pipeline.ts", "symbol": "generateArtifacts" },
+    { "id": "compose", "path": "packages/cli/src/server.ts", "symbol": "composeSiteData" },
+    { "id": "serve", "path": "packages/cli/src/server.ts", "symbol": "serveSite" },
+    { "id": "parse-story", "path": "packages/story/src/index.ts", "symbol": "parseStoryDocument" },
+    { "id": "resolve-story", "path": "packages/story/src/index.ts", "symbol": "resolveStoryDocument" },
+    { "id": "render", "path": "packages/diagram-core/src/index.ts", "symbol": "renderStory" },
+    { "id": "catalogue", "path": "packages/cli/src/catalogue.ts", "symbol": "buildCatalogue" },
+    { "id": "bundle", "path": "packages/cli/src/bundle.ts", "symbol": "bundleSite" }
+  ],
+  "sections": [
+    {
+      "id": "scan",
+      "title": "1. Scan source into a graph",
+      "body": "The TypeScript scanner walks a Git repository and produces a deterministic graph of files, modules, and relationships \u2014 the raw evidence every later stage builds on.",
+      "anchorIds": ["scan"]
+    },
+    {
+      "id": "generate",
+      "title": "2. Generate site artifacts",
+      "body": "The pipeline turns the scanned graph (and any ingested reports) into the site artifacts \u2014 data, layout, and modules \u2014 written under .topo/cache.",
+      "anchorIds": ["generate"]
+    },
+    {
+      "id": "serve",
+      "title": "3. Compose and serve the explorer",
+      "body": "One composition contract assembles the served payload (including curated views), and a single local server binds 127.0.0.1 to serve the WebGL explorer. Bundling reuses the exact same composition.",
+      "anchorIds": ["compose", "serve"]
+    },
+    {
+      "id": "story",
+      "title": "4. Author a source-grounded story",
+      "body": "A story is authored data: it is parsed against a strict contract, then its path/symbol/pattern anchors are resolved to real source locations \u2014 broken anchors fail loudly instead of rendering misleading evidence.",
+      "anchorIds": ["parse-story", "resolve-story"]
+    },
+    {
+      "id": "render",
+      "title": "5. Render at the pinned boundary",
+      "body": "A resolved story is translated to an artifact only at the @topo/diagram-core boundary, through a pinned, integrity-checked viewer \u2014 the renderer is never mutated by authored content.",
+      "anchorIds": ["render"]
+    },
+    {
+      "id": "catalogue",
+      "title": "6. Browse the story catalogue",
+      "body": "Every authored story plus the retained explorer are gathered, categorized, and published as one generated landing page \u2014 derived, never hand-maintained.",
+      "anchorIds": ["catalogue"]
+    },
+    {
+      "id": "bundle",
+      "title": "7. Bundle for static hosting",
+      "body": "The composed site \u2014 stories, catalogue, explorer, assets, and license notices \u2014 is emitted as deployable static files that any plain file server can host, with no topo process running.",
+      "anchorIds": ["bundle"]
+    }
+  ],
+  "connections": [
+    { "from": "scan", "to": "generate", "label": "feeds" },
+    { "from": "generate", "to": "serve", "label": "composed by" },
+    { "from": "story", "to": "render", "label": "rendered by" },
+    { "from": "render", "to": "catalogue", "label": "listed in" },
+    { "from": "serve", "to": "catalogue", "label": "entry in" },
+    { "from": "catalogue", "to": "bundle", "label": "bundled by" }
+  ]
+}
