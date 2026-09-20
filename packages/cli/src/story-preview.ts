@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { readFile, stat } from "node:fs/promises";
+import { stat } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 import { renderStory } from "@topo/diagram-core";
@@ -9,6 +9,7 @@ import {
   type StoryRenderer,
 } from "@topo/story";
 import { isMissing, workspacePath, writeGenerated } from "@topo/workspace";
+import { readRepositoryRegularFile } from "./repository-file.js";
 
 const execute = promisify(execFile);
 
@@ -110,7 +111,7 @@ export async function previewStory(
     throw new Error("Site is not built; run topo scan first");
   }
   const document = parseStoryDocument(
-    await readFile(documentAbsolute, "utf8"),
+    await readRepositoryRegularFile(root, documentPath, "story document"),
     documentPath,
   );
   const source = await sourceState(root);

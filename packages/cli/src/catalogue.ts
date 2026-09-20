@@ -1,5 +1,4 @@
 import { execFile } from "node:child_process";
-import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
 import { renderStory } from "@topo/diagram-core";
@@ -13,6 +12,7 @@ import {
   writeGenerated,
   type WorkspaceCatalogueConfig,
 } from "@topo/workspace";
+import { readRepositoryRegularFile } from "./repository-file.js";
 
 const execute = promisify(execFile);
 
@@ -108,7 +108,7 @@ export async function buildCatalogueStories(
   const stories = await Promise.all(paths.map(async (documentPath) => {
     await assertUnchanged(root, documentPath);
     const document = parseStoryDocument(
-      await readFile(resolve(root, documentPath), "utf8"),
+      await readRepositoryRegularFile(root, documentPath, "story document"),
       documentPath,
     );
     const resolved = await resolveStoryDocument(

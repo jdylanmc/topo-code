@@ -1,5 +1,12 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, readFile, rm, writeFile, mkdir } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
@@ -159,5 +166,23 @@ describe("generated catalogue", () => {
       .toContain("<title>Explorer</title>");
     expect(await readFile(join(root, ".topo/cache/site/stories/checkout/index.html"), "utf8"))
       .toContain("Checkout");
+  });
+
+  it("rejects a committed story document that resolves through a symlink", async () => {
+    const root = await repository();
+    const outside = await mkdtemp(join(tmpdir(), "topo-catalogue-outside-"));
+    directories.push(outside);
+    await addStory(outside, "external.topo.json", "external", "External");
+    await mkdir(join(root, "stories"));
+    await symlink(
+      join(outside, "external.topo.json"),
+      join(root, "stories/external.topo.json"),
+    );
+    await commit(root);
+
+    await expect(buildCatalogueStories(root)).rejects.toThrow("symlink");
+    await expect(readFile(
+      join(root, ".topo/cache/site/stories/external/index.html"),
+    )).rejects.toMatchObject({ code: "ENOENT" });
   });
 });

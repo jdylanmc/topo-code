@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, realpath, stat } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import ts from "typescript-compiler-api";
 
@@ -109,26 +109,16 @@ export async function resolveStoryDocument(
   document: StoryDocument,
   documentPath: string,
   source: { revision: string; dirty: boolean },
-  loadSource: (path: string) => Promise<string | undefined> = async (path) => {
-    try {
-      return await readFile(resolve(root, path), "utf8");
-    } catch (error) {
-      if (
-        typeof error === "object" &&
-        error !== null &&
-        "code" in error &&
-        error.code === "ENOENT"
-      ) {
-        return undefined;
-      }
-      throw error;
-    }
-  },
+  loadSource?: (path: string) => Promise<string | undefined>,
 ): Promise<ResolvedStoryDocument> {
+  const repositoryRoot =
+    loadSource === undefined ? await realpath(root) : undefined;
   const anchors: ResolvedSourceAnchor[] = [];
   for (const anchor of document.anchors) {
     assertRepositoryPath(root, documentPath, anchor);
-    const contents = await loadSource(anchor.path);
+    const contents = loadSource === undefined
+      ? await readRepositorySource(repositoryRoot!, documentPath, anchor)
+      : await loadSource(anchor.path);
     if (contents === undefined) {
       throw anchorError(
         documentPath,
@@ -201,7 +191,10 @@ function validateStoryDocument(value: unknown): string | undefined {
   }
   if (!nonemptyString(value.title)) return "title must be nonempty";
   if (!nonemptyString(value.summary)) return "summary must be nonempty";
-  if (value.category !== undefined && !nonemptyString(value.category)) {
+  if (
+    value.category !== undefined &&
+    (!nonemptyString(value.category) || value.category.trim().length === 0)
+  ) {
     return "category must be nonempty";
   }
   if (!Array.isArray(value.anchors)) return "anchors must be an array";
@@ -286,6 +279,50 @@ function assertRepositoryPath(
       `source path "${anchor.path}" escapes the repository`,
     );
   }
+}
+
+async function readRepositorySource(
+  repositoryRoot: string,
+  documentPath: string,
+  anchor: SourceAnchor,
+): Promise<string | undefined> {
+  const requested = resolve(repositoryRoot, anchor.path);
+  let actual: string;
+  try {
+    actual = await realpath(requested);
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      "code" in error &&
+      error.code === "ENOENT"
+    ) {
+      return undefined;
+    }
+    throw error;
+  }
+  if (actual !== requested) {
+    throw anchorError(
+      documentPath,
+      anchor.id,
+      "invalid-path",
+      `source path "${anchor.path}" must not resolve through a symlink`,
+    );
+  }
+  const rel = relative(repositoryRoot, actual);
+  if (
+    rel === ".." ||
+    rel.startsWith(`..${sep}`) ||
+    isAbsolute(rel) ||
+    !(await stat(actual)).isFile()
+  ) {
+    throw anchorError(
+      documentPath,
+      anchor.id,
+      "invalid-path",
+      `source path "${anchor.path}" must be a regular file inside the repository`,
+    );
+  }
+  return readFile(actual, "utf8");
 }
 
 function declarationName(node: ts.Node): string | undefined {
