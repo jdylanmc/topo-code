@@ -703,11 +703,7 @@ export function renderStory(story: ResolvedStoryDocument): StoryArtifact {
         ? improveStoryReadability(contents, family)
         : contents,
       renderer: {
-        name: family === "architecture" ||
-            family === "workflow" ||
-            family === "lifecycle"
-          ? "archify+topocode"
-          : "archify",
+        name: "archify",
         pin: integrity.version,
         sha256: integrity.archiveSha256,
       },
