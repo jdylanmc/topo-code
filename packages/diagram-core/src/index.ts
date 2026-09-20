@@ -113,6 +113,33 @@ interface ArchifySequence {
   }[];
 }
 
+interface ArchifyDataflow {
+  readonly schema_version: 1;
+  readonly diagram_type: "dataflow";
+  readonly meta: {
+    readonly title: string;
+    readonly quality_profile: "standard";
+    readonly locale: "en";
+  };
+  readonly stages: readonly {
+    readonly label: string;
+  }[];
+  readonly nodes: readonly {
+    readonly id: string;
+    readonly type: "backend" | "frontend";
+    readonly label: string;
+    readonly sublabel: string;
+    readonly stage: number;
+    readonly row: number;
+  }[];
+  readonly flows: readonly {
+    readonly id: string;
+    readonly from: string;
+    readonly to: string;
+    readonly label: string;
+  }[];
+}
+
 const packageRoot = fileURLToPath(new URL("../", import.meta.url));
 const archifyCli = path.join(
   packageRoot,
@@ -371,6 +398,46 @@ function sequenceSpec(story: ResolvedStoryDocument): ArchifySequence {
   };
 }
 
+function dataflowSpec(story: ResolvedStoryDocument): ArchifyDataflow {
+  const nodeIds = new Map(
+    story.document.sections.map((section) => [
+      section.id,
+      componentId(section.id),
+    ]),
+  );
+  return {
+    schema_version: 1,
+    diagram_type: "dataflow",
+    meta: {
+      title: story.document.title,
+      quality_profile: "standard",
+      locale: "en",
+    },
+    stages: story.document.sections.map((section) => ({
+      label: section.title,
+    })),
+    nodes: story.document.sections.map((section, index) => ({
+      id: nodeIds.get(section.id)!,
+      type: index === story.document.sections.length - 1
+        ? "frontend"
+        : "backend",
+      label: section.title,
+      sublabel: section.body,
+      stage: index,
+      row: 0,
+    })),
+    flows: story.document.connections.map((connection, index) => ({
+      id: stableId(
+        "flow",
+        `${index}\0${connection.from}\0${connection.to}`,
+      ),
+      from: nodeIds.get(connection.from)!,
+      to: nodeIds.get(connection.to)!,
+      label: connection.label ?? "then",
+    })),
+  };
+}
+
 function commandError(error: unknown): Error {
   if (
     typeof error === "object" &&
@@ -397,6 +464,8 @@ export function renderStory(story: ResolvedStoryDocument): StoryArtifact {
     ? workflowSpec(story)
     : family === "sequence"
       ? sequenceSpec(story)
+      : family === "dataflow"
+        ? dataflowSpec(story)
       : archifySpec(story);
   const temporaryDirectory = mkdtempSync(
     path.join(tmpdir(), "topo-archify-render-"),
