@@ -13,8 +13,10 @@ import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
 import { initializeWorkspace, loadConfig } from "@topo/workspace";
 import {
+  buildCatalogue,
   buildCatalogueStories,
   renderCataloguePage,
+  writeBuiltCatalogue,
   writeComposedSite,
 } from "./catalogue.js";
 
@@ -151,12 +153,11 @@ describe("generated catalogue", () => {
     const root = await repository();
     await addStory(root, "stories/checkout.topo.json", "checkout", "Checkout");
     await commit(root);
-    const stories = await buildCatalogueStories(root);
 
     await writeComposedSite(
       root,
       "<!doctype html><html><head><title>Explorer</title></head><body>Map</body></html>",
-      stories,
+      await buildCatalogue(root),
       undefined,
     );
 
@@ -205,5 +206,20 @@ describe("generated catalogue", () => {
         };
       },
     })).rejects.toThrow("source changed");
+  });
+
+  it("rejects an already-dirty source change before publication", async () => {
+    const root = await repository();
+    await addStory(root, "stories/checkout.topo.json", "checkout", "Checkout");
+    await commit(root);
+    await writeFile(join(root, "source.ts"), "export const value = 43;\n");
+    const catalogue = await buildCatalogue(root);
+    await writeFile(join(root, "source.ts"), "export const value = 44;\n");
+
+    await expect(writeBuiltCatalogue(root, catalogue, undefined))
+      .rejects.toThrow("source changed");
+    await expect(readFile(
+      join(root, ".topo/cache/site/stories/checkout/index.html"),
+    )).rejects.toMatchObject({ code: "ENOENT" });
   });
 });

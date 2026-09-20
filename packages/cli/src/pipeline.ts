@@ -51,7 +51,7 @@ import {
 import { serializeSiteBundle } from "./site-bundle.js";
 import {
   writeComposedSite,
-  type CatalogueStory,
+  type BuiltCatalogue,
 } from "./catalogue.js";
 
 async function storedReports(root: string): Promise<unknown[]> {
@@ -70,9 +70,10 @@ async function storedReports(root: string): Promise<unknown[]> {
 async function copySite(
   root: string,
   assets: string,
-  stories: readonly CatalogueStory[],
+  catalogue: BuiltCatalogue | undefined,
   config: Awaited<ReturnType<typeof loadConfig>>,
 ): Promise<void> {
+  const stories = catalogue?.stories ?? [];
   if (!(await stat(join(assets, "index.html"))).isFile()) throw new Error("Built site must contain index.html");
   const expected = new Set([
     "data.json",
@@ -111,7 +112,7 @@ async function copySite(
   }
   await copy("");
   if (explorerIndex === undefined) throw new Error("Built site must contain index.html");
-  await writeComposedSite(root, explorerIndex, stories, config.catalogue);
+  await writeComposedSite(root, explorerIndex, catalogue, config.catalogue);
   await prune("");
 }
 
@@ -159,7 +160,7 @@ export async function generateArtifacts(
   graph: GraphDocument,
   siteAssets: string,
   logicalArchitecture?: LogicalArchitectureDocument,
-  stories: readonly CatalogueStory[] = [],
+  catalogue?: BuiltCatalogue,
 ): Promise<ArtifactGenerationResult> {
   assertGraphDocument(graph);
   return withWorkspaceLock(root, async () => {
@@ -184,7 +185,7 @@ export async function generateArtifacts(
       ...(logicalArchitecture ? { logicalArchitecture } : {}),
       ...(enrichment.enrichment === undefined ? {} : { enrichment: enrichment.enrichment }),
     });
-    await copySite(root, siteAssets, stories, config);
+    await copySite(root, siteAssets, catalogue, config);
     await writeGenerated(root, "graph/graph.json", serializeGraphDocument(composedGraph));
     await writeGenerated(root, "graph/layout.json", serializeLayoutDeterministic(layout.layout));
     await writeGenerated(root, "graph/architecture.json", serializeArchitecture(architecture));
@@ -210,7 +211,7 @@ export async function ingestReports(
   inputPaths: string[],
   siteAssets: string,
   expectedRevision?: string,
-  stories: readonly CatalogueStory[] = [],
+  catalogue?: BuiltCatalogue,
 ): Promise<ReportIngestionResult> {
   if (!inputPaths.length) throw new Error("At least one report file is required");
   await initializeWorkspace(root);
@@ -256,7 +257,7 @@ export async function ingestReports(
         if (await readFile(path, "utf8") !== serialized) throw new Error(`Existing normalized input differs: ${name}`);
       }
     }
-    await copySite(root, siteAssets, stories, config);
+    await copySite(root, siteAssets, catalogue, config);
     await writeGenerated(root, "graph/graph.json", serializeGraphDocument(composedGraph));
     await writeGenerated(root, "graph/layout.json", serializeLayoutDeterministic(layout.layout));
     await writeGenerated(root, "graph/architecture.json", serializeArchitecture(architecture));

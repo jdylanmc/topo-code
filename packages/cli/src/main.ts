@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { execFile } from "node:child_process";
 import { dirname, resolve } from "node:path";
-import { readFile, readdir } from "node:fs/promises";
+import { readFile, readdir, stat } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs, promisify } from "node:util";
 import { BUILTIN_MODULE_MANIFESTS, validateModuleCatalog } from "@topo/modules";
@@ -10,8 +10,7 @@ import { initializeWorkspace, isMissing, workspacePath } from "@topo/workspace";
 import { runEnrichment } from "./enrichment.js";
 import { generateArtifacts, ingestReports } from "./pipeline.js";
 import { serveSite } from "./server.js";
-import { previewStory } from "./story-preview.js";
-import { buildCatalogueStories, writeCatalogue } from "./catalogue.js";
+import { buildCatalogue, writeBuiltCatalogue } from "./catalogue.js";
 
 const execute = promisify(execFile);
 const HELP = `Topocode: local, deterministic repository maps
@@ -101,19 +100,37 @@ export async function runCli(args: string[]): Promise<number> {
     if (positionals.length !== 3) {
       throw new Error("preview requires a repository and one story document");
     }
-    const stories = await buildCatalogueStories(root);
-    const result = await previewStory(root, resolve(positionals[2]!));
-    await writeCatalogue(root, stories, (await initializeWorkspace(root)).config.catalogue);
-    if (result.source.dirty) {
+    try {
+      if (!(await stat(await workspacePath(root, "cache/site/index.html"))).isFile()) {
+        throw new Error("Site index is not a file; run topo scan again");
+      }
+    } catch (error) {
+      if (!isMissing(error)) throw error;
+      throw new Error("Site is not built; run topo scan first");
+    }
+    const catalogue = await buildCatalogue(root);
+    const requested = resolve(positionals[2]!);
+    const selected = catalogue.stories.find(
+      (story) => resolve(root, story.documentPath) === requested,
+    );
+    if (selected === undefined) {
+      throw new Error("preview requires a committed story under stories/");
+    }
+    await writeBuiltCatalogue(
+      root,
+      catalogue,
+      (await initializeWorkspace(root)).config.catalogue,
+    );
+    if (catalogue.source.dirty) {
       console.warn(
         "Rendering against uncommitted source changes; anchors describe the working tree, not only HEAD.",
       );
     }
     console.log(
-      `Rendered ${result.documentPath} with ${result.renderer.name} (${result.renderer.pin})`,
+      `Rendered ${selected.documentPath} with ${selected.renderer.name} (${selected.renderer.pin})`,
     );
     console.log(
-      `Story generated at ${result.outputPath}; run topo serve "${root}" and open /stories/${result.storyId}/`,
+      `Story generated at ${await workspacePath(root, `cache/site/stories/${selected.document.id}/index.html`)}; run topo serve "${root}" and open /stories/${selected.document.id}/`,
     );
     return 0;
   }
@@ -135,7 +152,7 @@ export async function runCli(args: string[]): Promise<number> {
   validateConfiguredModules(config.modules);
   const assets = await siteAssets();
   const state = await sourceState(root);
-  const stories = await buildCatalogueStories(root);
+  const catalogue = await buildCatalogue(root);
   if (command === "ingest") {
     if (positionals.length < 3) throw new Error("ingest requires a repository and at least one report file");
     if (state.dirty) throw new Error("Report ingestion requires clean source files at the scanned revision; .topo artifacts are excluded.");
@@ -144,7 +161,7 @@ export async function runCli(args: string[]): Promise<number> {
       positionals.slice(2).map((path) => resolve(path)),
       assets,
       state.revision,
-      stories,
+      catalogue,
     );
     for (const warning of result.warnings) console.warn(warning);
     console.log(`Ingested ${result.dashboard.inputs.length} reports; ${result.dashboard.metrics.length} metrics, ${result.dashboard.findings.length} findings`);
@@ -168,7 +185,7 @@ export async function runCli(args: string[]): Promise<number> {
     result.graph,
     assets,
     result.logicalArchitecture,
-    stories,
+    catalogue,
   );
   for (const diagnostic of result.diagnostics) console.warn(`${diagnostic.severity}: ${diagnostic.code}: ${diagnostic.message}`);
   for (const warning of artifacts.layout.warnings) console.warn(`layout: ${warning.code}: ${warning.message}`);

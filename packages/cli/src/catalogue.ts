@@ -15,6 +15,7 @@ import {
 import {
   assertSourceSnapshot,
   captureSourceSnapshot,
+  type SourceSnapshot,
 } from "./source-snapshot.js";
 
 const execute = promisify(execFile);
@@ -23,6 +24,19 @@ export interface CatalogueStory {
   readonly document: StoryDocument;
   readonly documentPath: string;
   readonly contents: string;
+  readonly renderer: {
+    readonly name: string;
+    readonly pin: string;
+  };
+}
+
+export interface BuiltCatalogue {
+  readonly stories: readonly CatalogueStory[];
+  readonly snapshot: SourceSnapshot;
+  readonly source: {
+    readonly revision: string;
+    readonly dirty: boolean;
+  };
 }
 
 const defaultRenderer: StoryRenderer = { render: renderStory };
@@ -114,6 +128,13 @@ export async function buildCatalogueStories(
   rootInput: string,
   renderer: StoryRenderer = defaultRenderer,
 ): Promise<CatalogueStory[]> {
+  return [...(await buildCatalogue(rootInput, renderer)).stories];
+}
+
+export async function buildCatalogue(
+  rootInput: string,
+  renderer: StoryRenderer = defaultRenderer,
+): Promise<BuiltCatalogue> {
   const root = resolve(rootInput);
   const source = await sourceState(root);
   const paths = await committedStoryPaths(root);
@@ -147,7 +168,15 @@ export async function buildCatalogueStories(
         `${documentPath}: renderer returned unsupported artifact ${artifact.kind} (${artifact.mediaType})`,
       );
     }
-    return { document, documentPath, contents: artifact.contents };
+    return {
+      document,
+      documentPath,
+      contents: artifact.contents,
+      renderer: {
+        name: artifact.renderer.name,
+        pin: artifact.renderer.pin,
+      },
+    };
   }));
   const seen = new Set<string>();
   for (const story of stories) {
@@ -156,15 +185,23 @@ export async function buildCatalogueStories(
     }
     seen.add(story.document.id);
   }
-  await assertSourceSnapshot(root, snapshot);
+  const catalogue = { stories, snapshot, source };
+  await assertCatalogueCurrent(root, catalogue);
+  return catalogue;
+}
+
+export async function assertCatalogueCurrent(
+  root: string,
+  catalogue: BuiltCatalogue,
+): Promise<void> {
+  await assertSourceSnapshot(root, catalogue.snapshot);
   const finalSource = await sourceState(root);
   if (
-    finalSource.revision !== source.revision ||
-    finalSource.dirty !== source.dirty
+    finalSource.revision !== catalogue.source.revision ||
+    finalSource.dirty !== catalogue.source.dirty
   ) {
     throw new Error("Repository source changed while building the catalogue; retry");
   }
-  return stories;
 }
 
 interface CatalogueEntry {
@@ -288,13 +325,26 @@ function explorerPage(index: string): string {
 export async function writeComposedSite(
   root: string,
   explorerIndex: string,
-  stories: readonly CatalogueStory[],
+  catalogue: BuiltCatalogue | undefined,
   config: WorkspaceCatalogueConfig | undefined,
 ): Promise<void> {
+  if (catalogue !== undefined) {
+    await assertCatalogueCurrent(root, catalogue);
+  }
+  const stories = catalogue?.stories ?? [];
   await Promise.all([
     writeCatalogue(root, stories, config),
     writeGenerated(root, "cache/site/explorer/index.html", explorerPage(explorerIndex)),
   ]);
+}
+
+export async function writeBuiltCatalogue(
+  root: string,
+  catalogue: BuiltCatalogue,
+  config: WorkspaceCatalogueConfig | undefined,
+): Promise<void> {
+  await assertCatalogueCurrent(root, catalogue);
+  await writeCatalogue(root, catalogue.stories, config);
 }
 
 export async function writeCatalogue(
