@@ -92,9 +92,10 @@ workspaces, opaque CSS assets, and partial-result support.
 The scanner discovers every `tsconfig*.json` outside generated/vendor
 directories instead of trusting only a root config. It also reads root
 `package.json` workspace declarations, validates named package manifests, and
-uses package source/export metadata to resolve workspace aliases when
-`node_modules` is absent. Repositories without a TypeScript config use default
-compiler options while each file is parsed independently. Metrics keep
+uses package source/export metadata, including exact exported subpaths, to
+resolve workspace aliases when `node_modules` is absent. Repositories without a
+TypeScript config use default compiler options while each file is parsed
+independently. Metrics keep
 `sourceFileCount` and source `linesOfCode` separate from `assetFileCount` and
 `assetImportCount`.
 

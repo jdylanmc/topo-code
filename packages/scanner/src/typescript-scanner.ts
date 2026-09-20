@@ -393,10 +393,33 @@ function manifestEntryStrings(value: unknown): string[] {
   if (typeof value === "string") {
     return [value];
   }
-  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+  if (Array.isArray(value)) {
+    return value.flatMap(manifestEntryStrings);
+  }
+  if (value === null || typeof value !== "object") {
     return [];
   }
   return Object.values(value).flatMap(manifestEntryStrings);
+}
+
+function workspaceExportStrings(
+  exports: unknown,
+  subpath: string,
+): string[] {
+  if (
+    exports === null ||
+    typeof exports !== "object" ||
+    Array.isArray(exports)
+  ) {
+    return subpath === "." ? manifestEntryStrings(exports) : [];
+  }
+  const entries = Object.entries(exports);
+  if (!entries.some(([key]) => key.startsWith("."))) {
+    return subpath === "." ? manifestEntryStrings(exports) : [];
+  }
+  return manifestEntryStrings(
+    entries.find(([key]) => key === subpath)?.[1],
+  );
 }
 
 function sourceCandidatePaths(
@@ -408,6 +431,10 @@ function sourceCandidatePaths(
       ? ""
       : specifier.slice(workspace.name.length + 1);
   const manifest = workspace.manifest;
+  const exported = workspaceExportStrings(
+    manifest.exports,
+    suffix.length === 0 ? "." : `./${suffix}`,
+  );
   const declared =
     suffix.length === 0
       ? [
@@ -417,7 +444,11 @@ function sourceCandidatePaths(
           ...manifestEntryStrings(manifest.main),
           ...manifestEntryStrings(manifest.types),
         ]
-      : [suffix];
+      : exported.length > 0
+        ? exported
+        : manifest.exports === undefined
+          ? [suffix]
+          : [];
   const bases = [...declared, ...(suffix.length === 0 ? ["src/index"] : [])];
   const candidates = new Set<string>();
   for (const base of bases) {

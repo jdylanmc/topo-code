@@ -412,6 +412,92 @@ describe("@topo/scanner", () => {
     );
   });
 
+  it("resolves exact workspace export subpaths to source", async () => {
+    const root = await temporaryRepository();
+    await write(
+      root,
+      "package.json",
+      JSON.stringify({ private: true, workspaces: ["packages/*"] }),
+    );
+    await write(
+      root,
+      "packages/app/package.json",
+      JSON.stringify({
+        name: "@fixture/app",
+        dependencies: { "@fixture/lib": "workspace:*" },
+      }),
+    );
+    await write(
+      root,
+      "packages/app/tsconfig.json",
+      JSON.stringify({
+        compilerOptions: {
+          module: "NodeNext",
+          moduleResolution: "NodeNext",
+        },
+        include: ["src"],
+      }),
+    );
+    await write(
+      root,
+      "packages/app/src/index.ts",
+      'import { value } from "@fixture/lib/data";\nexport const result = value;\n',
+    );
+    await write(
+      root,
+      "packages/lib/package.json",
+      JSON.stringify({
+        name: "@fixture/lib",
+        exports: {
+          "./data": {
+            types: "./src/data.ts",
+            default: "./dist/data.js",
+          },
+        },
+      }),
+    );
+    await write(
+      root,
+      "packages/lib/tsconfig.json",
+      JSON.stringify({
+        compilerOptions: {
+          module: "NodeNext",
+          moduleResolution: "NodeNext",
+          outDir: "dist",
+          rootDir: "src",
+        },
+        include: ["src"],
+      }),
+    );
+    await write(root, "packages/lib/src/data.ts", "export const value = 1;\n");
+
+    const result = await scanRepository({ root });
+
+    expect(result.authoritative).toBe(true);
+    expect(result.metrics.unresolvedImportCount).toBe(0);
+    expect(result.graph.edges).toContainEqual(
+      expect.objectContaining({
+        sourceId: "path:packages/app/src/index.ts",
+        targetId: "path:packages/lib/src/data.ts",
+        type: "imports",
+      }),
+    );
+
+    await write(
+      root,
+      "packages/app/src/index.ts",
+      'import { value } from "@fixture/lib/missing";\nexport const result = value;\n',
+    );
+    await expect(scanRepository({ root })).rejects.toMatchObject({
+      diagnostics: expect.arrayContaining([
+        expect.objectContaining({
+          code: "unresolved-workspace-import",
+          specifier: "@fixture/lib/missing",
+        }),
+      ]),
+    });
+  });
+
   it("roots resolution at options.root and resolves ESM .js specifiers to .ts", async () => {
     const root = await temporaryRepository();
     await write(

@@ -48,6 +48,8 @@ does not currently publish versioned releases.
 
 ### Fixed
 
+- Resolve exact workspace package export subpaths to scanned source files while
+  preserving strict failures for missing exports. See #63.
 - Catch strict TypeScript errors in browser end-to-end tests and helpers during
   the standard regression gate.
 - Keep scanner tests isolated when temporary storage is inside an ignored
