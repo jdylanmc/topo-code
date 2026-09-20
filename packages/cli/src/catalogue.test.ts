@@ -145,6 +145,32 @@ describe("generated catalogue", () => {
     expect(lifecycle?.contents).toContain("03 / Outcomes");
   });
 
+  it("includes one non-source-grounded capability demo for each gallery family", async () => {
+    const stories = await buildCatalogueStories(repositoryRoot);
+    const demos = stories.filter(({ document }) =>
+      document.classification === "capability-demo"
+    );
+    const byFamily = new Map(
+      demos.map((story) => [story.document.diagramFamily, story]),
+    );
+
+    expect([...byFamily.keys()].sort()).toEqual([
+      "architecture",
+      "lifecycle",
+      "workflow",
+    ]);
+    expect(demos).toHaveLength(3);
+    expect(demos.every(({ document }) =>
+      document.anchors.length === 0 &&
+      document.sections.every(({ anchorIds }) => anchorIds.length === 0)
+    )).toBe(true);
+    expect(byFamily.get("architecture")?.contents).toContain("<svg");
+    expect(byFamily.get("workflow")?.contents).toContain(
+      'data-composition-frame-kind="lane"',
+    );
+    expect(byFamily.get("lifecycle")?.contents).toContain("03 / Outcomes");
+  });
+
   it("keeps a coherent explorer-only landing page with zero stories", async () => {
     const root = await repository();
     const stories = await buildCatalogueStories(root);
