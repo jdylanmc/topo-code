@@ -167,6 +167,7 @@ interface ArchifyLifecycle {
     readonly from: string;
     readonly to: string;
     readonly label?: string;
+    readonly labelDy?: number;
     readonly route?: "right-channel";
   }[];
 }
@@ -485,6 +486,16 @@ function dataflowSpec(story: ResolvedStoryDocument): ArchifyDataflow {
 }
 
 function lifecycleSpec(story: ResolvedStoryDocument): ArchifyLifecycle {
+  const statePlacement = (index: number) => {
+    const last = index === story.document.sections.length - 1;
+    const event = story.document.sections.length >= 5 &&
+      index >= 2 &&
+      index < story.document.sections.length - 2;
+    return {
+      lane: last ? "terminal" as const : event ? "event" as const : "main" as const,
+      col: last ? 2 : event ? index - 2 : index - Math.max(0, index - 2),
+    };
+  };
   const stateIds = new Map(
     story.document.sections.map((section) => [
       section.id,
@@ -506,9 +517,6 @@ function lifecycleSpec(story: ResolvedStoryDocument): ArchifyLifecycle {
     ],
     states: story.document.sections.map((section, index) => {
       const last = index === story.document.sections.length - 1;
-      const event = story.document.sections.length >= 5 &&
-        index >= 2 &&
-        index < story.document.sections.length - 2;
       return {
         id: stateIds.get(section.id)!,
         type: index === 0
@@ -517,23 +525,33 @@ function lifecycleSpec(story: ResolvedStoryDocument): ArchifyLifecycle {
             ? "success"
             : "active",
         label: section.title,
-        lane: last ? "terminal" : event ? "event" : "main",
-        col: last ? 2 : event ? index - 2 : index - Math.max(0, index - 2),
+        ...statePlacement(index),
         width: 118,
       };
     }),
-    transitions: story.document.connections.map((connection, index) => ({
-      id: stableId(
-        "transition",
-        `${index}\0${connection.from}\0${connection.to}`,
-      ),
-      from: stateIds.get(connection.from)!,
-      to: stateIds.get(connection.to)!,
-      ...(connection.label === undefined ? {} : { label: connection.label }),
-      ...(index === story.document.connections.length - 1
-        ? { route: "right-channel" as const }
-        : {}),
-    })),
+    transitions: story.document.connections.map((connection, index) => {
+      const fromIndex = story.document.sections.findIndex(
+        (section) => section.id === connection.from,
+      );
+      const toIndex = story.document.sections.findIndex(
+        (section) => section.id === connection.to,
+      );
+      return {
+        id: stableId(
+          "transition",
+          `${index}\0${connection.from}\0${connection.to}`,
+        ),
+        from: stateIds.get(connection.from)!,
+        to: stateIds.get(connection.to)!,
+        ...(connection.label === undefined ? {} : { label: connection.label }),
+        ...(statePlacement(fromIndex).lane === statePlacement(toIndex).lane
+          ? { labelDy: 55 }
+          : {}),
+        ...(index === story.document.connections.length - 1
+          ? { route: "right-channel" as const }
+          : {}),
+      };
+    }),
   };
 }
 
