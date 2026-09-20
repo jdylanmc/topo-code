@@ -187,4 +187,23 @@ describe("generated catalogue", () => {
       join(root, ".topo/cache/site/stories/external/index.html"),
     )).rejects.toMatchObject({ code: "ENOENT" });
   });
+
+  it("rejects changes between reads in an already-dirty source tree", async () => {
+    const root = await repository();
+    await addStory(root, "stories/checkout.topo.json", "checkout", "Checkout");
+    await commit(root);
+    await writeFile(join(root, "source.ts"), "export const value = 43;\n");
+
+    await expect(buildCatalogueStories(root, {
+      async render() {
+        await writeFile(join(root, "source.ts"), "export const value = 44;\n");
+        return {
+          kind: "html",
+          mediaType: "text/html",
+          contents: "stale",
+          renderer: { name: "mutating-test", pin: "1" },
+        };
+      },
+    })).rejects.toThrow("source changed");
+  });
 });

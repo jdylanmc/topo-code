@@ -184,6 +184,27 @@ describe("story preview", () => {
     expect(received?.anchors[0]?.location.startLine).toBe(3);
   });
 
+  it("publishes nothing when source changes during rendering", async () => {
+    const { root, documentPath } = await fixture();
+    await expect(previewStory(root, documentPath, {
+      async render() {
+        await writeFile(
+          join(root, "src/checkout.ts"),
+          "export function submitCheckout(order: Order) { return refund(order); }\n",
+        );
+        return {
+          kind: "html",
+          mediaType: "text/html",
+          contents: "stale",
+          renderer: { name: "mutating-test", pin: "1" },
+        };
+      },
+    })).rejects.toThrow("source changed");
+    await expect(readFile(
+      join(root, ".topo/cache/site/stories/checkout/index.html"),
+    )).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
   it.each([
     ["missing file", { path: "src/missing.ts" }, "missing-file"],
     ["missing symbol", { symbol: "missingSymbol" }, "missing-symbol"],

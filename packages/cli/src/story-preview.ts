@@ -9,6 +9,10 @@ import {
   type StoryRenderer,
 } from "@topo/story";
 import { isMissing, workspacePath, writeGenerated } from "@topo/workspace";
+import {
+  assertSourceSnapshot,
+  captureSourceSnapshot,
+} from "./source-snapshot.js";
 
 const execute = promisify(execFile);
 
@@ -123,21 +127,17 @@ export async function previewStory(
     documentPath,
   );
   const source = await sourceState(root);
+  const snapshot = await captureSourceSnapshot(
+    root,
+    document.anchors.map((anchor) => anchor.path),
+  );
   const resolved = await resolveStoryDocument(
     root,
     document,
     documentPath,
     source,
+    async (path) => snapshot.get(path),
   );
-  const finalSource = await sourceState(root);
-  if (
-    finalSource.revision !== source.revision ||
-    finalSource.dirty !== source.dirty
-  ) {
-    throw new Error(
-      `${documentPath}: repository source changed while rendering; retry`,
-    );
-  }
   if (renderer === null) {
     throw new Error(
       `${documentPath}: story renderer is unavailable; install or restore @topo/diagram-core`,
@@ -150,6 +150,16 @@ export async function previewStory(
     throw new Error(
       `${documentPath}: renderer failed: ${error instanceof Error ? error.message : String(error)}`,
       { cause: error },
+    );
+  }
+  await assertSourceSnapshot(root, snapshot);
+  const finalSource = await sourceState(root);
+  if (
+    finalSource.revision !== source.revision ||
+    finalSource.dirty !== source.dirty
+  ) {
+    throw new Error(
+      `${documentPath}: repository source changed while rendering; retry`,
     );
   }
   if (artifact.kind !== "html" || artifact.mediaType !== "text/html") {

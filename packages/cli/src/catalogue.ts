@@ -12,6 +12,10 @@ import {
   writeGenerated,
   type WorkspaceCatalogueConfig,
 } from "@topo/workspace";
+import {
+  assertSourceSnapshot,
+  captureSourceSnapshot,
+} from "./source-snapshot.js";
 
 const execute = promisify(execFile);
 
@@ -113,17 +117,29 @@ export async function buildCatalogueStories(
   const root = resolve(rootInput);
   const source = await sourceState(root);
   const paths = await committedStoryPaths(root);
-  const stories = await Promise.all(paths.map(async (documentPath) => {
+  const documents = await Promise.all(paths.map(async (documentPath) => {
     await assertUnchanged(root, documentPath);
     const document = parseStoryDocument(
       await readCommittedStory(root, documentPath),
       documentPath,
     );
+    return { document, documentPath };
+  }));
+  const snapshot = await captureSourceSnapshot(
+    root,
+    documents.flatMap(({ document }) =>
+      document.anchors.map((anchor) => anchor.path)),
+  );
+  const stories = await Promise.all(documents.map(async ({
+    document,
+    documentPath,
+  }) => {
     const resolved = await resolveStoryDocument(
       root,
       document,
       documentPath,
       source,
+      async (path) => snapshot.get(path),
     );
     const artifact = await renderer.render(resolved);
     if (artifact.kind !== "html" || artifact.mediaType !== "text/html") {
@@ -140,6 +156,7 @@ export async function buildCatalogueStories(
     }
     seen.add(story.document.id);
   }
+  await assertSourceSnapshot(root, snapshot);
   const finalSource = await sourceState(root);
   if (
     finalSource.revision !== source.revision ||
