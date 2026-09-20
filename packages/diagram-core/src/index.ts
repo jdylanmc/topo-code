@@ -53,6 +53,7 @@ interface ArchifyArchitecture {
     readonly from: string;
     readonly to: string;
     readonly label?: string;
+    readonly labelDy?: number;
     readonly fromSide?: "left" | "right" | "top" | "bottom";
     readonly toSide?: "left" | "right" | "top" | "bottom";
     readonly via?: readonly (readonly [number, number])[];
@@ -335,6 +336,7 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
         const vertical = deltaRow !== 0;
         return {
           ...base,
+          labelDy: 24,
           fromSide: vertical
             ? (deltaRow > 0 ? "bottom" as const : "top" as const)
             : (deltaColumn > 0 ? "right" as const : "left" as const),
