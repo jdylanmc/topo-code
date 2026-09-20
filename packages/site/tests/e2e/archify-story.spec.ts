@@ -95,7 +95,7 @@ test("story preview renders the real Archify artifact without CSP errors", async
   }
 });
 
-test("workflow story labels remain at least 12px after iframe and SVG scaling", async ({
+test("workflow story text remains at least 12px after iframe and SVG scaling", async ({
   page,
   repository,
 }) => {
@@ -150,8 +150,10 @@ test("workflow story labels remain at least 12px after iframe and SVG scaling", 
   try {
     await page.goto(`${url}/stories/workflow/`);
     const labels = page.frameLocator("[data-story-viewer]")
-      .locator("svg text[data-node-label]");
-    await expect(labels).toHaveCount(2);
+      .locator(
+        "svg text[data-node-label], svg g[data-edge-from] > text",
+      );
+    await expect(labels).toHaveCount(3);
     const iframeScale = await page.locator("[data-story-viewer]").evaluate(
       (iframe) => iframe.getBoundingClientRect().height / iframe.offsetHeight,
     );
