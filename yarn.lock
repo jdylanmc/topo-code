@@ -326,6 +326,15 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@topo/diagram-core@workspace:packages/diagram-core":
+  version: 0.0.0-use.local
+  resolution: "@topo/diagram-core@workspace:packages/diagram-core"
+  dependencies:
+    "@types/node": "npm:^22"
+    typescript: "npm:^7.0.2"
+  languageName: unknown
+  linkType: soft
+
 "@topo/enrichment@workspace:*, @topo/enrichment@workspace:packages/enrichment":
   version: 0.0.0-use.local
   resolution: "@topo/enrichment@workspace:packages/enrichment"
