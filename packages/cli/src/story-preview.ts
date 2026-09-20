@@ -9,7 +9,6 @@ import {
   type StoryRenderer,
 } from "@topo/story";
 import { isMissing, workspacePath, writeGenerated } from "@topo/workspace";
-import { readRepositoryRegularFile } from "./repository-file.js";
 
 const execute = promisify(execFile);
 
@@ -92,6 +91,15 @@ async function assertCommittedStory(root: string, documentPath: string): Promise
   }
 }
 
+async function readCommittedStory(
+  root: string,
+  documentPath: string,
+): Promise<string> {
+  return (
+    await execute("git", ["-C", root, "show", `HEAD:${documentPath}`])
+  ).stdout;
+}
+
 export async function previewStory(
   rootInput: string,
   documentInput: string,
@@ -111,7 +119,7 @@ export async function previewStory(
     throw new Error("Site is not built; run topo scan first");
   }
   const document = parseStoryDocument(
-    await readRepositoryRegularFile(root, documentPath, "story document"),
+    await readCommittedStory(root, documentPath),
     documentPath,
   );
   const source = await sourceState(root);
@@ -121,6 +129,15 @@ export async function previewStory(
     documentPath,
     source,
   );
+  const finalSource = await sourceState(root);
+  if (
+    finalSource.revision !== source.revision ||
+    finalSource.dirty !== source.dirty
+  ) {
+    throw new Error(
+      `${documentPath}: repository source changed while rendering; retry`,
+    );
+  }
   if (renderer === null) {
     throw new Error(
       `${documentPath}: story renderer is unavailable; install or restore @topo/diagram-core`,

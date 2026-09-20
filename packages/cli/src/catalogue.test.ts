@@ -180,7 +180,9 @@ describe("generated catalogue", () => {
     );
     await commit(root);
 
-    await expect(buildCatalogueStories(root)).rejects.toThrow("symlink");
+    await expect(buildCatalogueStories(root)).rejects.toThrow(
+      "invalid story document",
+    );
     await expect(readFile(
       join(root, ".topo/cache/site/stories/external/index.html"),
     )).rejects.toMatchObject({ code: "ENOENT" });

@@ -12,7 +12,6 @@ import {
   writeGenerated,
   type WorkspaceCatalogueConfig,
 } from "@topo/workspace";
-import { readRepositoryRegularFile } from "./repository-file.js";
 
 const execute = promisify(execFile);
 
@@ -98,6 +97,15 @@ async function assertUnchanged(
   }
 }
 
+async function readCommittedStory(
+  root: string,
+  documentPath: string,
+): Promise<string> {
+  return (
+    await execute("git", ["-C", root, "show", `HEAD:${documentPath}`])
+  ).stdout;
+}
+
 export async function buildCatalogueStories(
   rootInput: string,
   renderer: StoryRenderer = defaultRenderer,
@@ -108,7 +116,7 @@ export async function buildCatalogueStories(
   const stories = await Promise.all(paths.map(async (documentPath) => {
     await assertUnchanged(root, documentPath);
     const document = parseStoryDocument(
-      await readRepositoryRegularFile(root, documentPath, "story document"),
+      await readCommittedStory(root, documentPath),
       documentPath,
     );
     const resolved = await resolveStoryDocument(
@@ -131,6 +139,13 @@ export async function buildCatalogueStories(
       throw new Error(`Duplicate story id: ${story.document.id}`);
     }
     seen.add(story.document.id);
+  }
+  const finalSource = await sourceState(root);
+  if (
+    finalSource.revision !== source.revision ||
+    finalSource.dirty !== source.dirty
+  ) {
+    throw new Error("Repository source changed while building the catalogue; retry");
   }
   return stories;
 }

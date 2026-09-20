@@ -318,28 +318,45 @@ async function readRepositorySource(
       `source path "${anchor.path}" must be a regular file inside the repository`,
     );
   }
+  const initial = await stat(requested);
+  if (!initial.isFile()) {
+    throw anchorError(
+      documentPath,
+      anchor.id,
+      "invalid-path",
+      `source path "${anchor.path}" must be a regular file inside the repository`,
+    );
+  }
   const handle = await open(
     requested,
     constants.O_RDONLY | constants.O_NOFOLLOW,
   );
   try {
     const opened = await handle.stat();
-    if (!opened.isFile()) {
+    if (
+      !opened.isFile() ||
+      opened.dev !== initial.dev ||
+      opened.ino !== initial.ino
+    ) {
       throw anchorError(
         documentPath,
         anchor.id,
         "invalid-path",
-        `source path "${anchor.path}" must be a regular file inside the repository`,
+        `source path "${anchor.path}" changed before it was read`,
       );
     }
     const contents = await handle.readFile("utf8");
+    const openedAfter = await handle.stat();
     const currentActual = await realpath(requested);
     const current = await stat(requested);
     if (
       currentActual !== requested ||
       !current.isFile() ||
       current.dev !== opened.dev ||
-      current.ino !== opened.ino
+      current.ino !== opened.ino ||
+      openedAfter.size !== opened.size ||
+      openedAfter.mtimeMs !== opened.mtimeMs ||
+      openedAfter.ctimeMs !== opened.ctimeMs
     ) {
       throw anchorError(
         documentPath,
