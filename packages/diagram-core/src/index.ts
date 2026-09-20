@@ -107,28 +107,34 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
     ]),
   );
   const components = story.document.sections.map((section, index) => {
-    const anchorId = section.anchorIds[0];
-    const anchor = anchorId === undefined ? undefined : anchors.get(anchorId);
-    if (anchor === undefined) {
-      throw new Error(
-        `Resolved story is missing a source anchor for section "${section.id}"`,
-      );
-    }
-    const width = Math.max(280, section.title.length * 11 + 80);
+    const sectionAnchors = section.anchorIds
+      .map((anchorId) => anchors.get(anchorId))
+      .filter((anchor): anchor is NonNullable<typeof anchor> => anchor !== undefined);
+    const primary = sectionAnchors[0];
+    // Short, legible sublabel (a code reference), never the full narrative body:
+    // Archify enforces a per-component minimum-legibility width.
+    const sublabel = primary === undefined
+      ? ""
+      : primary.symbol ?? primary.path.split("/").pop() ?? primary.path;
+    const width = Math.max(
+      280,
+      section.title.length * 11 + 80,
+      sublabel.length * 9 + 80,
+    );
     return {
       id: componentIds.get(section.id)!,
       type: index === story.document.sections.length - 1
         ? "frontend" as const
         : "backend" as const,
       label: section.title,
-      sublabel: section.body,
+      sublabel,
       pos: [80, 80 + index * 190] as const,
       size: [width, 110] as const,
-      sources: [{
+      sources: sectionAnchors.map((anchor) => ({
         path: anchor.path,
         line: anchor.location.startLine,
         end_line: anchor.location.endLine,
-      }],
+      })),
     };
   });
   const rightEdge = Math.max(
