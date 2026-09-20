@@ -111,6 +111,13 @@ Desired cadence becomes effective only after readback.
   binding/bounds before delete/recreate. Verify deletion before replacement—no
   competing monitors. Record non-atomic gap; verify replacement, persist new ID.
   Inspect uncertain deletion/creation before retry, never blindly duplicate.
+- **Orca automations:** follow the [native adapter contract](../joe-mode-orca/RUNTIME.md)
+  and the running CLI's automation guide. Use the exact existing workspace and
+  owned automation ID; verify changed cadence, unchanged target/provider/prompt,
+  effective enabled state and run binding. Session reuse may fall back to a
+  fresh terminal, so it never proves same-agent custody. Disable and read back
+  an ended job, reconcile in-flight runs and preserve history; deletion is a
+  separate approved operation, not a substitute for stopping a live observer.
 
 Failed/uncertain update: inspect stored state. Retain/report old cadence if
 running; **monitoring stopped** if removed but replacement failed. Never claim

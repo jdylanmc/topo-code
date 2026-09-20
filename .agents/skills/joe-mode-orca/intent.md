@@ -1,0 +1,3 @@
+# Intent: joe-mode-orca
+
+Joe-mode-Orca is my opt-in, repository-bound engineering team coordinator running on Orca. It moves my selected backlog toward my goal through the existing Joe workflows, preserves explicit ownership, isolated work, independent review, capacity limits and human decisions, and surfaces blockers and questions in the coordinator conversation. Orca supplies supervised workers, task and message lifecycle, and explicitly enabled recurring execution. Human merging is the default; only a separately requested PR coordinator may merge under an explicit repository gate. Installing the skill never activates it, and pause or stop preserves work without silently restarting the team.

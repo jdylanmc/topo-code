@@ -62,6 +62,17 @@ main, project-per-worker, or permission widening. Deliberate inheritance of
 human-selected Allow All is not a placement workaround; follow the actual
 [permission contract](../joe-mode-paseo/RUNTIME.md#permission-preserving-dispatch).
 
+## Orca placement, when used
+
+Use the [Orca runtime contract](../joe-mode-orca/RUNTIME.md) and
+version-matched `orca-cli`/`orchestration` guides. Record the actual execution
+host, repository, full worktree selector, Git path/branch/base and Task/Dispatch
+identity. Orca lineage and a terminal title do not establish Git isolation. Use
+a separate worktree for each independent writer; read-only workers may share an
+owned checkout. Reuse the exact existing workspace for recurring work, never
+create another worktree on each tick. Unsupported placement blocks writes; it
+does not authorize a local substitute for a remote worker.
+
 ## Preserve resources at retirement
 
 Agent archival follows LIFECYCLE, not Git/UI cleanup. Before separately authorized

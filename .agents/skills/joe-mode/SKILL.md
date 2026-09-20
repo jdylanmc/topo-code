@@ -12,7 +12,8 @@ by default, feature two, bug/hardening/refactor one; support roles are separate.
 Prefer TDD for features, with useful legacy exceptions. Delegate blocker
 investigation, retry one confirmed work blocker with fresh context/worktree,
 then return repeated blockers to the single backlog manager. Session Joe has
-no recurring heartbeat; the Paseo adapter alone owns that runtime extension.
+no recurring heartbeat; separately enabled Paseo or Orca adapters own their
+respective recurring runtime extensions.
 
 Hand the human pull requests to review. Loop existing skills, not a second implementation process. The human-authored [intent](intent.md) defines the purpose.
 
@@ -20,15 +21,18 @@ Use [Doctrine](../doctrine/SKILL.md) under the [common application contract](../
 
 Joe-mode starts only when requested and stays active in this session until paused or stopped. Route subsequent turns within the anchor. A side question does not stop work; explicit redirection does. Bounded workers must not activate another Joe-mode controller. Follow the [invocation contract](../setup/INVOCATION.md): one controller per repository, not per issue, branch, worktree, or selected scope.
 
-The separate human-enabled [Paseo PM adapter](../joe-mode-paseo/SKILL.md)
-does not extend this session mode's lifetime. Before taking repository control,
-reconcile its saved activation, wakeup job and current pass on the **same owner
-board**. Join an existing logical controller or arrange observed release and
-acknowledged transfer; an idle gap between scheduled passes is not absence of
-ownership. Preserve its paused/stopped state, persistent Discovery lane and
-delivery/recovery custody. Unknown cross-session/host ownership blocks competing
-dispatch. The adapter may reuse the routing sections below only within its
-separate human grant and RUN contract, never by invoking another Joe controller.
+The separate human-enabled [Paseo PM adapter](../joe-mode-paseo/SKILL.md) and
+[Orca team adapter](../joe-mode-orca/SKILL.md) do not create another logical
+controller or extend this session mode's lifetime. Before taking repository
+control, reconcile their ownership on the **same owner board**, including
+Paseo's saved activation/wakeup/pass and Orca's actual Run, coordinator,
+Dispatches and owned automations. Join an existing logical controller or arrange
+observed release and acknowledged transfer; an idle gap between scheduled
+passes is not absence of ownership. Preserve paused/stopped state, persistent
+Discovery lane and delivery/recovery custody. Unknown cross-session/host
+ownership blocks competing dispatch. An adapter may reuse the routing sections
+below only within its separate human grant and RUN contract, never by invoking
+another Joe controller.
 
 Kickoff authorizes ordinary delivery of selected in-scope work: repairs, commits, PR publication, review, and shepherding. Do not ask again at routine transitions. Preserve explicit narrower requests, human product decisions, scope changes, and every planning/recording approval gate. Never delegate human approval or merging.
 Record each delivery's narrow monitoring/recovery authority in the
@@ -106,7 +110,8 @@ Shepherd for all accepted PR scopes and one optional backlog manager for deep
 inquiry. Disposable roasters and blocker investigators return compact evidence.
 Each route retains integration; do not launch competing workers beneath it.
 Do not delegate this controller. The optional PR coordinator requires the
-separately human-enabled Paseo merge contract; session Joe grants no merge power.
+separately human-enabled adapter's repository merge contract; session Joe grants
+no merge power.
 
 ## 3. Refresh the relevant backlog
 

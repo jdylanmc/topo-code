@@ -3,6 +3,18 @@
 Shared Joe team contract. Not another entrypoint or controller. The human starts
 Joe-mode; the PM routes work under that grant. Paseo adds durable role heartbeats.
 
+## Runtime-specific mechanics
+
+The roles, capacity, discovery, review, human-wait, recovery and preservation
+rules here apply to every Joe adapter. References below to Paseo's STATE
+operations, agent-bound heartbeats, permission APIs and workspace registration
+describe Paseo mechanics, not prerequisites for other runtimes. The [Orca
+adapter](../joe-mode-orca/SKILL.md) uses its [RUNTIME](../joe-mode-orca/RUNTIME.md)
+and [RUN](../joe-mode-orca/RUN.md) for native bindings, durable owner records,
+messaging, permission verification, recurrence and release. Those contracts
+preserve the same policy without invoking Paseo's helpers or inventing
+equivalent APIs.
+
 ## Roles and developer slots
 
 | Role | Job | Lifetime |

@@ -10,6 +10,12 @@ Load the owning contracts without replacing their gates:
 [RECOVERY](../shepherd/RECOVERY.md) for issue-backed Joe continuation.
 Keep cadence/episode facts in this custody record.
 
+For [Orca-owned work](../joe-mode-orca/RUNTIME.md), use the native Run,
+Task/Dispatch, workspace, permission and worker-release contract rather than
+Paseo-specific APIs below. Preserve the same acceptance, no-overlap and
+preservation gates. Native accepted settlement is not proof of artifact
+acceptance; release never substitutes for worktree cleanup.
+
 ## Record distinct facts
 
 Record observable facts, evidence pointers, observation times, and explicit

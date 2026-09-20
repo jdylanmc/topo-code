@@ -11,8 +11,10 @@ Own one published pull request (PR) beyond a green snapshot. Follow the common [
 
 One PR scope per ordinary invocation. Under Joe's
 [TEAM](../joe-mode-paseo/TEAM.md), one shared Shepherd accepts all project PR
-scopes, with separate owners, observations and due times. PM owns its heartbeat
-lifecycle; the bound Shepherd executes create/delete and returns receipts.
+scopes, with separate owners, observations and due times. PM owns its wakeup
+lifecycle: in Paseo the bound Shepherd executes heartbeat create/delete and
+returns receipts; in Orca use the adapter's
+[native recurring contract](../joe-mode-orca/RUNTIME.md), not Paseo APIs.
 Runtime sharing preserves explicit assignments,
 sole owners and per-PR cadence. Load/execute [LIFECYCLE](../squadron/LIFECYCLE.md)
 for accepted custody/recovery/retirement; idle proves no end of maintenance.

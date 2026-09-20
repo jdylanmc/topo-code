@@ -29,9 +29,9 @@ Markdown file cannot be read.
 task. **Internal** means a helper, not a direct human command. **Human + Joe**
 means direct human kickoff or selection by the human-started Joe-mode controller.
 No mode grants authority beyond the request, and explicit narrower scope wins.
-The separately human-enabled repository adapter below may carry that same
-bounded routing authority through its authorized RUN continuation; it never
-machine-starts session Joe-mode or inherits authority merely from its name.
+The separately human-enabled repository adapters below may carry that same
+bounded routing authority through their authorized RUN continuations; they never
+machine-start session Joe-mode or inherit authority merely from their names.
 
 | Skill | Entry contract |
 | --- | --- |
@@ -48,6 +48,7 @@ machine-starts session Joe-mode or inherits authority merely from its name.
 | [handoff](../handoff/SKILL.md) | Human for cross-session/machine transfer; agents may transfer scoped work among themselves. |
 | [interrogate](../interrogate/SKILL.md) | Internal to Discovery or Joe-mode only. |
 | [joe-mode](../joe-mode/SKILL.md) | Human-only activation; one controller per repository, never nested. |
+| [joe-mode-orca](../joe-mode-orca/SKILL.md) | Human activation/management; native Orca Runs, Tasks and supervised workers under one repository controller. Explicitly authorized automations enter bounded RUN only after ownership and workspace gates. Human merges unless a separately requested PR coordinator holds the repository merge grant. |
 | [joe-mode-paseo](../joe-mode-paseo/SKILL.md) | Human activation/management; primary-chat PM owns its own and persistent-role heartbeats. Matching wake enters RUN, not intake. One repository controller, six developer slots by default. Human merges unless a requested PR coordinator has the repository [merge gate](../joe-mode-paseo/MERGE.md). No merge authority for implementers, Shepherd or session Joe. |
 | [migration](../migration/SKILL.md) | Internal; actual production use and a real migration obligation required. |
 | [patch](../patch/SKILL.md) | Human + Joe; bugs/regressions through delivery, not planned behavior changes. |
@@ -78,9 +79,10 @@ contracts (including Ship, Patch, Refactor and bounded recovery). Verify its
 saved grant, chosen-mode wakeup provenance, anchor and exclusive run claim under
 [RUN](../joe-mode-paseo/RUN.md) before accepting its packet. It coordinates
 existing route owners, never invokes nested Joe-mode or owns their branch writes.
-Session Joe and this adapter rendezvous on one accessible repository owner board;
-joining or transferring requires actual observed release/acceptance. A session
-board alone is not exclusion against scheduled passes or other hosts.
+Session Joe and the Paseo and Orca adapters rendezvous on one accessible
+repository owner board; joining or transferring requires actual observed
+release/acceptance. A session board alone is not exclusion against scheduled
+passes, an Orca Run, or other hosts.
 Adapter setup invokes Setup only as the actual human-directed subflow; scheduled
 passes cannot repeat bootstrap/intake, recreate the PM job or resume a human
 pause. Under [TEAM](../joe-mode-paseo/TEAM.md), kickoff does authorize PM to
