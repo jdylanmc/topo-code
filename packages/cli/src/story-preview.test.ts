@@ -49,7 +49,7 @@ function story(
 }
 
 function familyStory(
-  diagramFamily: "workflow" | "sequence" | "dataflow",
+  diagramFamily: "workflow" | "sequence" | "dataflow" | "lifecycle",
 ): string {
   return `${JSON.stringify({
     schemaVersion: "1.0",
@@ -182,6 +182,17 @@ describe("story preview", () => {
     expect(contents).toContain('data-composition-frame-kind="stage"');
     expect(contents).toContain("01 / Receive request");
     expect(contents).toContain("02 / Charge payment");
+  });
+
+  it("renders a committed lifecycle story with native lifecycle bands", async () => {
+    const { root, documentPath } = await fixture(familyStory("lifecycle"));
+
+    const result = await previewStory(root, documentPath);
+    const contents = await readFile(result.outputPath, "utf8");
+
+    expect(contents).toContain("01 / Checkout");
+    expect(contents).toContain("02 / Interruptions + recovery");
+    expect(contents).toContain("03 / Outcomes");
   });
 
   it("renders a committed story equivalently twice through diagram-core", async () => {
