@@ -7,6 +7,9 @@ does not currently publish versioned releases.
 
 ### Added
 
+- Render authored architecture stories through the pinned, integrity-checked
+  Archify runtime, including Content Security Policy-compatible live previews
+  and static bundles. See #41.
 - Add `topo bundle` for atomically publishing the composed catalogue, stories,
   explorer, assets, and required notices beneath a configurable deployment
   base path. See #45.

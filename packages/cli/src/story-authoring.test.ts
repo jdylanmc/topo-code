@@ -51,6 +51,10 @@ describe("local story authoring workflow", () => {
     const root = await mkdtemp(join(tmpdir(), "topo-story-authoring-"));
     directories.push(root);
     await execute("git", ["init", "--quiet", root]);
+    await execute("git", [
+      "-C", root, "remote", "add", "origin",
+      "https://github.com/example/fixture.git",
+    ]);
     await mkdir(join(root, "src"), { recursive: true });
     await cp(
       join(fixtureRoot, "initial/src/checkout.ts"),
@@ -136,7 +140,7 @@ describe("local story authoring workflow", () => {
     expect(await readFile(
       join(root, ".topo/cache/site/stories/checkout/viewer.html"),
       "utf8",
-    )).toContain("authorizePayment");
+    )).toContain("Charge payment");
   }, 30_000);
 
   it("reports malformed drafts before generating output", async () => {

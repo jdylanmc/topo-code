@@ -589,19 +589,26 @@ export async function copyThirdPartyNoticesToSite({
       `${path.relative(rootDirectory, siteDirectory)} is missing; build the site before --site.`,
     );
   }
+  const archifyDirectory = path.join(
+    rootDirectory,
+    "packages",
+    "diagram-core",
+    "vendor",
+    "archify",
+  );
+  const archifyLicense = await readFile(
+    path.join(archifyDirectory, "LICENSE"),
+    "utf8",
+  );
+  const archifyNotices = await readFile(
+    path.join(archifyDirectory, "THIRD_PARTY_NOTICES.md"),
+    "utf8",
+  );
   const bundledLicenses = path.join(
     rootDirectory,
     "experiments",
     "archify-wrapper",
     "licenses",
-  );
-  const archifyLicense = await readFile(
-    path.join(bundledLicenses, "Archify-MIT.txt"),
-    "utf8",
-  );
-  const archifyNotices = await readFile(
-    path.join(bundledLicenses, "Archify-THIRD-PARTY-NOTICES.md"),
-    "utf8",
   );
   const fontLicense = await readFile(
     path.join(bundledLicenses, "JetBrainsMono-OFL.txt"),

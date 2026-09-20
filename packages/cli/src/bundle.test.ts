@@ -38,6 +38,11 @@ async function repository(): Promise<string> {
   await writeFile(join(root, "package.json"), '{"name":"fixture","type":"module"}\n');
   await writeFile(join(root, "source.ts"), "export const value = 42;\n");
   await execute("git", ["init", "--quiet"], { cwd: root });
+  await execute(
+    "git",
+    ["remote", "add", "origin", "https://github.com/example/fixture.git"],
+    { cwd: root },
+  );
   await execute("git", ["add", "."], { cwd: root });
   await execute("git", [
     "-c", "user.name=Fixture",

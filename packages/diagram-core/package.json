@@ -5,8 +5,8 @@
   "type": "module",
   "files": [
     "dist",
-    "vendored",
-    "integrity-baseline.json",
+    "vendor",
+    "archify-integrity.json",
     "LICENSE",
     "THIRD_PARTY_NOTICES.md"
   ],

@@ -27,6 +27,10 @@ async function repository(): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "topo-catalogue-"));
   directories.push(root);
   await execute("git", ["init", "--quiet", root]);
+  await execute("git", [
+    "-C", root, "remote", "add", "origin",
+    "https://github.com/example/fixture.git",
+  ]);
   await writeFile(join(root, "source.ts"), "export const value = 42;\n");
   await commit(root);
   await initializeWorkspace(root);

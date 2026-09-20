@@ -1,7 +1,9 @@
 # Third-party notices
 
-This first increment contains no third-party Archify source or assets.
+This package vendors Archify 2.17.0-dev.1 at revision
+`d673e8300df60a5c8166abe78787fdc78f6b8000`.
 
-TODO(#41): Replace the placeholder fixture with the pinned Archify files and
-retain their required license, notice, font, brand attribution, and trademark
-texts verbatim.
+The complete upstream license and notices are retained verbatim in:
+
+- `vendor/archify/LICENSE`
+- `vendor/archify/THIRD_PARTY_NOTICES.md`

@@ -42,23 +42,31 @@ async function createWorkspace(root, directory, manifest) {
 }
 
 async function createBundledLicenseFixtures(root) {
-  const directory = path.join(
+  const archifyDirectory = path.join(
+    root,
+    "packages",
+    "diagram-core",
+    "vendor",
+    "archify",
+  );
+  await mkdir(archifyDirectory, { recursive: true });
+  await writeFile(
+    path.join(archifyDirectory, "LICENSE"),
+    "Archify MIT License\n",
+  );
+  await writeFile(
+    path.join(archifyDirectory, "THIRD_PARTY_NOTICES.md"),
+    "Archify third-party notices\n",
+  );
+  const fontDirectory = path.join(
     root,
     "experiments",
     "archify-wrapper",
     "licenses",
   );
-  await mkdir(directory, { recursive: true });
+  await mkdir(fontDirectory, { recursive: true });
   await writeFile(
-    path.join(directory, "Archify-MIT.txt"),
-    "Archify MIT License\n",
-  );
-  await writeFile(
-    path.join(directory, "Archify-THIRD-PARTY-NOTICES.md"),
-    "Archify third-party notices\n",
-  );
-  await writeFile(
-    path.join(directory, "JetBrainsMono-OFL.txt"),
+    path.join(fontDirectory, "JetBrainsMono-OFL.txt"),
     "SIL OPEN FONT LICENSE Version 1.1\n",
   );
 }
