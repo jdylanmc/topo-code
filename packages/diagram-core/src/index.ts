@@ -52,6 +52,7 @@ interface ArchifyArchitecture {
     readonly id: string;
     readonly from: string;
     readonly to: string;
+    readonly label?: string;
     readonly fromSide?: "left" | "right" | "top" | "bottom";
     readonly toSide?: "left" | "right" | "top" | "bottom";
     readonly via?: readonly (readonly [number, number])[];
@@ -165,6 +166,7 @@ interface ArchifyLifecycle {
     readonly id: string;
     readonly from: string;
     readonly to: string;
+    readonly label?: string;
     readonly route?: "right-channel";
   }[];
 }
@@ -325,6 +327,7 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
         ),
         from: componentIds.get(connection.from)!,
         to: componentIds.get(connection.to)!,
+        ...(connection.label === undefined ? {} : { label: connection.label }),
       };
       const adjacent = Math.abs(deltaRow) + Math.abs(deltaColumn) === 1;
       if (adjacent) {
@@ -526,6 +529,7 @@ function lifecycleSpec(story: ResolvedStoryDocument): ArchifyLifecycle {
       ),
       from: stateIds.get(connection.from)!,
       to: stateIds.get(connection.to)!,
+      ...(connection.label === undefined ? {} : { label: connection.label }),
       ...(index === story.document.connections.length - 1
         ? { route: "right-channel" as const }
         : {}),
