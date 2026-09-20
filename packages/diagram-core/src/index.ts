@@ -376,11 +376,10 @@ function workflowSpec(story: ResolvedStoryDocument): ArchifyWorkflow {
         ? "frontend"
         : "backend",
       label: section.title,
-      sublabel: section.body,
+      sublabel: "",
       width: Math.max(
-        220,
-        section.title.length * 8 + 48,
-        section.body.length * 4 + 48,
+        128,
+        section.title.length * 7 + 24,
       ),
       height: 96,
     })),

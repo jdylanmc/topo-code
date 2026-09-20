@@ -430,6 +430,10 @@ export function renderStoryWrapper(
       .story-shell { display: grid; grid-template-columns: minmax(14rem, 20rem) 1fr; min-height: calc(100vh - 11rem); }
       aside { padding: 1rem; border-right: 1px solid #29364a; }
       iframe { width: 100%; min-height: calc(100vh - 11rem); border: 0; background: white; }
+      @media (max-width: 70rem) {
+        .story-shell { grid-template-columns: 1fr; }
+        aside { border-right: 0; border-bottom: 1px solid #29364a; }
+      }
     </style>
   </head>
   <body data-story-id="${escapeHtml(story.document.id)}" data-story-classification="${classification}">
