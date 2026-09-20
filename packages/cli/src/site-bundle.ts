@@ -14,6 +14,7 @@ import {
 import {
   assertGraphDocument,
   assertLayoutDocument,
+  parseLogicalArchitecture,
   serializeGraphDocument,
   serializeJson,
   serializeLogicalArchitecture,
@@ -109,6 +110,26 @@ export function parseSiteBundleForEnrichment(value: unknown): Omit<SiteBundle, "
     requireRecord(envelope.dashboard, "Generated site dashboard is malformed; run topo scan before enrichment");
   }
   const curatedViews = parseCuratedViewsSnapshot(envelope.curatedViews);
+  let logicalArchitecture: LogicalArchitectureDocument | undefined;
+  if (envelope.logicalArchitecture !== undefined) {
+    try {
+      logicalArchitecture = parseLogicalArchitecture(
+        envelope.logicalArchitecture,
+      );
+      if (
+        logicalArchitecture.graphId !== envelope.graph.graphId ||
+        logicalArchitecture.revision !== envelope.graph.repository.revision
+      ) {
+        throw new Error(
+          "Artifact graph or revision does not match the loaded graph.",
+        );
+      }
+    } catch (error) {
+      throw new Error(
+        `Generated site logicalArchitecture is malformed; run topo scan before enrichment: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
   const additionalFields: Record<string, JsonValue> = {};
   for (const [name, child] of Object.entries(envelope)) {
     if (!CORE_KEYS.has(name)) additionalFields[name] = child as JsonValue;
@@ -120,9 +141,7 @@ export function parseSiteBundleForEnrichment(value: unknown): Omit<SiteBundle, "
     architecture,
     dashboard: envelope.dashboard as DashboardDocument | null,
     curatedViews,
-    ...(envelope.logicalArchitecture === undefined
-      ? {}
-      : { logicalArchitecture: envelope.logicalArchitecture as LogicalArchitectureDocument }),
+    ...(logicalArchitecture === undefined ? {} : { logicalArchitecture }),
     additionalFields,
   };
 }

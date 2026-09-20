@@ -11,10 +11,16 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
-import { createGraphDocument } from "@topo/schema";
+import { createGraphDocument, createPathNodeId } from "@topo/schema";
 import { initializeWorkspace } from "@topo/workspace";
 import { bundleSite } from "./bundle.js";
 import { generateArtifacts } from "./pipeline.js";
+import { serveSite } from "./server.js";
+import {
+  graphFromSiteBundle,
+  graphHash,
+  saveCuratedView,
+} from "./views.js";
 
 const execute = promisify(execFile);
 const directories: string[] = [];
@@ -67,7 +73,13 @@ async function writeCachedSite(root: string): Promise<void> {
       revision,
     },
     modules: [],
-    nodes: [],
+    nodes: [{
+      id: createPathNodeId("source.ts"),
+      kind: "file",
+      label: "source.ts",
+      identity: { kind: "path", value: "source.ts" },
+      fingerprint: "sha256:fixture",
+    }],
     edges: [],
   }), assets);
 }
@@ -117,6 +129,78 @@ describe("static site bundle", () => {
       "Generated site data.json is invalid JSON",
     );
     await expect(readdir(output)).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("bundles the same current curated views exposed by the live server", async () => {
+    const root = await repository();
+    await writeCachedSite(root);
+    const cached = JSON.parse(
+      await readFile(join(root, ".topo/cache/site/data.json"), "utf8"),
+    ) as unknown;
+    const graph = graphFromSiteBundle(cached);
+    await saveCuratedView(root, {
+      definition: {
+        schemaVersion: "1.0",
+        id: "saved-view",
+        name: "Saved view",
+        provenance: "human",
+        pathRules: [],
+        includes: [{ kind: "node", path: "source.ts" }],
+        excludes: [],
+        pins: [],
+        expandedPaths: [],
+      },
+      expectedRevision: null,
+      expectedGraphHash: graphHash(graph),
+      review: false,
+    }, async () => graph);
+
+    const liveServer = await serveSite(root, 0);
+    let live: { curatedViews: { views: { definition: { id: string } }[] } };
+    try {
+      live = await (
+        await fetch(`${liveServer.url}/explorer/data.json`)
+      ).json() as typeof live;
+    } finally {
+      await new Promise<void>((done, reject) => {
+        liveServer.server.close((error) => error ? reject(error) : done());
+      });
+    }
+
+    const output = join(await temp("topo-bundle-parent-"), "site");
+    const result = await bundleSite(root, output);
+    const bundled = JSON.parse(
+      await readFile(join(result.siteDirectory, "explorer/data.json"), "utf8"),
+    ) as typeof live;
+
+    expect(live.curatedViews.views.map(({ definition }) => definition.id))
+      .toEqual(["saved-view"]);
+    expect(bundled).toEqual(live);
+  });
+
+  it("preserves a working bundle when logical architecture is malformed", async () => {
+    const root = await repository();
+    await writeCachedSite(root);
+    const output = join(await temp("topo-bundle-parent-"), "site");
+    const first = await bundleSite(root, output);
+    const working = await readFile(
+      join(first.siteDirectory, "explorer/data.json"),
+      "utf8",
+    );
+    const dataPath = join(root, ".topo/cache/site/data.json");
+    const malformed = JSON.parse(await readFile(dataPath, "utf8"));
+    await writeFile(
+      dataPath,
+      `${JSON.stringify({ ...malformed, logicalArchitecture: {} })}\n`,
+    );
+
+    await expect(bundleSite(root, output)).rejects.toThrow(
+      "logicalArchitecture",
+    );
+    expect(await readFile(
+      join(first.siteDirectory, "explorer/data.json"),
+      "utf8",
+    )).toBe(working);
   });
 
   it("preserves an existing bundle when story rendering fails", async () => {

@@ -98,6 +98,19 @@ async function editingGraph(root: string, input: unknown): Promise<GraphDocument
   return graph;
 }
 
+export async function composeSiteData(
+  root: string,
+  input: unknown,
+): Promise<string | undefined> {
+  const graph = await editingGraph(root, input);
+  if (!graph) return undefined;
+  assertGraphDocument(graph);
+  return augmentSiteBundle(
+    input,
+    (await buildCuratedViews(root, graph)).snapshot,
+  );
+}
+
 export async function serveSite(root: string, port = 4173): Promise<{ server: Server; url: string }> {
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error("Port must be an integer from 0 to 65535");
   const index = await workspacePath(root, "cache/site/index.html");
@@ -203,10 +216,9 @@ export async function serveSite(root: string, port = 4173): Promise<{ server: Se
         let content = await readFile(file);
         if (file === dataPath) {
           const data = parseSiteData(content);
-          const graph = await editingGraph(root, data);
-          if (graph) {
-            assertGraphDocument(graph);
-            content = Buffer.from(augmentSiteBundle(data, (await buildCuratedViews(root, graph)).snapshot));
+          const composed = await composeSiteData(root, data);
+          if (composed !== undefined) {
+            content = Buffer.from(composed);
             const origin = request.headers.origin;
             if (origin === undefined || origin === `http://${expectedHost}`) {
               response.setHeader("X-Topo-Views-Token", viewsToken);

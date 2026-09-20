@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 import {
-  copyFile,
   cp,
   mkdir,
   mkdtemp,
@@ -8,11 +7,13 @@ import {
   rename,
   rm,
   stat,
+  writeFile,
 } from "node:fs/promises";
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { isMissing, loadConfig, workspacePath } from "@topo/workspace";
 import { assertCatalogueCurrent, buildCatalogue, writeBuiltCatalogue } from "./catalogue.js";
 import { parseSiteBundleForEnrichment } from "./site-bundle.js";
+import { composeSiteData } from "./server.js";
 
 export interface BundleSiteOptions {
   readonly basePath?: string;
@@ -77,7 +78,7 @@ async function readRequiredNotice(
 async function validateComposedSite(
   root: string,
   sourceDirectory: string,
-): Promise<void> {
+): Promise<string> {
   const dataPath = join(sourceDirectory, "data.json");
   let value: unknown;
   try {
@@ -90,7 +91,13 @@ async function validateComposedSite(
       cause: error,
     });
   }
-  const bundle = parseSiteBundleForEnrichment(value);
+  const composed = await composeSiteData(root, value);
+  if (composed === undefined) {
+    throw new Error("Generated site is not associated with this Topocode workspace");
+  }
+  const bundle = parseSiteBundleForEnrichment(
+    JSON.parse(composed) as unknown,
+  );
   const catalogue = await buildCatalogue(root);
   if (bundle.graph.repository.revision !== catalogue.source.revision) {
     throw new Error("Generated site is stale relative to HEAD; run topo scan first");
@@ -113,6 +120,7 @@ async function validateComposedSite(
       "Built site license notices do not cover the embedded viewer and font; run corepack yarn build in the Topocode checkout.",
     );
   }
+  return composed;
 }
 
 export async function bundleSite(
@@ -130,7 +138,7 @@ export async function bundleSite(
   ) {
     throw new Error("Bundle output must be outside .topo/cache/site");
   }
-  await validateComposedSite(root, sourceDirectory);
+  const composedData = await validateComposedSite(root, sourceDirectory);
 
   const outputParent = dirname(outputDirectory);
   await mkdir(outputParent, { recursive: true });
@@ -152,10 +160,10 @@ export async function bundleSite(
       await mkdir(stagedSite, { recursive: true });
     }
     await cp(sourceDirectory, stagedSite, { recursive: true });
-    await copyFile(
-      join(stagedSite, "data.json"),
-      join(stagedSite, "explorer", "data.json"),
-    );
+    await Promise.all([
+      writeFile(join(stagedSite, "data.json"), composedData),
+      writeFile(join(stagedSite, "explorer", "data.json"), composedData),
+    ]);
     if (await exists(outputDirectory)) {
       await rename(outputDirectory, backup);
       movedExisting = true;
