@@ -120,6 +120,31 @@ describe("generated catalogue", () => {
     );
   });
 
+  it("includes a source-grounded Lifecycle story for story states", async () => {
+    const stories = await buildCatalogueStories(repositoryRoot);
+    const lifecycle = stories.find(({ document }) =>
+      document.diagramFamily === "lifecycle" &&
+      document.classification !== "capability-demo"
+    );
+    const narrative = lifecycle?.document.sections
+      .flatMap(({ title, body }) => [title, body])
+      .join(" ")
+      .toLowerCase();
+
+    expect(lifecycle).toBeDefined();
+    expect(lifecycle?.document.anchors.length).toBeGreaterThan(0);
+    expect(lifecycle?.document.sections.every(
+      ({ anchorIds }) => anchorIds.length > 0,
+    )).toBe(true);
+    expect(narrative).toMatch(/draft/);
+    expect(narrative).toMatch(/valid/);
+    expect(narrative).toMatch(/stale/);
+    expect(narrative).toMatch(/repair/);
+    expect(narrative).toMatch(/render/);
+    expect(narrative).toMatch(/bundl/);
+    expect(lifecycle?.contents).toContain("03 / Outcomes");
+  });
+
   it("keeps a coherent explorer-only landing page with zero stories", async () => {
     const root = await repository();
     const stories = await buildCatalogueStories(root);
