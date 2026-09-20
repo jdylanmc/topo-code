@@ -1,8 +1,13 @@
+import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
+import { once } from "node:events";
 import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { request } from "node:http";
+import { createConnection } from "node:net";
+import { setTimeout as delay } from "node:timers/promises";
+import { fileURLToPath } from "node:url";
 import { afterEach, expect, it } from "vitest";
 import { createGraphDocument, createPathNodeId } from "@topo/schema";
 import { initializeWorkspace, withWorkspaceLock, writeGenerated } from "@topo/workspace";
@@ -10,6 +15,7 @@ import { serveSite } from "./server.js";
 
 const directories: string[] = [];
 const servers: Awaited<ReturnType<typeof serveSite>>[] = [];
+const entry = fileURLToPath(new URL("../dist/main.js", import.meta.url));
 afterEach(async () => {
   for (const { server } of servers.splice(0)) await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
   for (const directory of directories.splice(0)) await rm(directory, { recursive: true });
@@ -45,6 +51,64 @@ async function editableSetup() {
   servers.push(server);
   return { ...server, root };
 }
+
+it("exits cleanly on SIGTERM with an incomplete client request", async () => {
+  const root = await mkdtemp(join(tmpdir(), "topo-server-shutdown-test-"));
+  directories.push(root);
+  await initializeWorkspace(root);
+  await writeGenerated(root, "cache/site/index.html", "<!doctype html><title>Topo</title>");
+  await writeGenerated(root, "cache/site/data.json", '{"ok":true}');
+  const child = spawn(process.execPath, [entry, "serve", "--port", "0"], {
+    cwd: root,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let stderr = "";
+  child.stderr.on("data", (chunk: Buffer) => {
+    stderr += chunk.toString();
+  });
+  let socket: ReturnType<typeof createConnection> | undefined;
+  try {
+    const url = await new Promise<string>((resolveUrl, reject) => {
+      let stdout = "";
+      const timeout = setTimeout(
+        () => reject(new Error(`serve did not start:\n${stdout}\n${stderr}`)),
+        5_000,
+      );
+      child.once("error", reject);
+      child.stdout.on("data", (chunk: Buffer) => {
+        stdout += chunk.toString();
+        const match = /^Topocode: (http:\/\/127\.0\.0\.1:\d+)$/m.exec(stdout);
+        if (match) {
+          clearTimeout(timeout);
+          resolveUrl(match[1]!);
+        }
+      });
+    });
+    const address = new URL(url);
+    socket = createConnection(Number(address.port), address.hostname);
+    await once(socket, "connect");
+    socket.write(`GET / HTTP/1.1\r\nHost: ${address.host}\r\n`);
+    await delay(50);
+
+    const startedAt = performance.now();
+    child.kill("SIGTERM");
+    const exit = await Promise.race([
+      once(child, "exit").then(([code, signal]) => ({ code, signal })),
+      delay(5_000).then(() => null),
+    ]);
+
+    expect(
+      exit,
+      `serve PID ${child.pid} remained alive ${Math.round(performance.now() - startedAt)}ms after SIGTERM with an incomplete HTTP request\n${stderr}`,
+    ).toEqual({ code: 0, signal: null });
+  } finally {
+    socket?.destroy();
+    if (child.exitCode === null && child.signalCode === null) {
+      child.kill("SIGKILL");
+      await once(child, "exit");
+    }
+  }
+}, 7_000);
 function definition() {
   return {
     schemaVersion: "1.0",
