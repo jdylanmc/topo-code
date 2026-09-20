@@ -1,4 +1,12 @@
-import { readFile } from "node:fs/promises";
+import {
+  mkdtemp,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import { describe, expect, it } from "vitest";
@@ -17,6 +25,7 @@ function validStory(): StoryDocument {
     id: "checkout",
     title: "Checkout flow",
     summary: "How checkout reaches payment.",
+    category: "Journeys",
     anchors: [{
       id: "submit",
       path: "src/checkout.ts",
@@ -34,6 +43,31 @@ function validStory(): StoryDocument {
 }
 
 describe("story document contract", () => {
+  it("accepts an optional catalogue category", () => {
+    expect(parseStoryDocument(
+      JSON.stringify(validStory()),
+      "stories/checkout.topo.json",
+    ).category).toBe("Journeys");
+  });
+
+  it("rejects an empty catalogue category", () => {
+    expect(() => parseStoryDocument(
+      JSON.stringify({ ...validStory(), category: "" }),
+      "stories/checkout.topo.json",
+    )).toThrow("category must be nonempty");
+  });
+
+  it("rejects a whitespace-only catalogue category in code and schema", async () => {
+    const invalid = { ...validStory(), category: "   " };
+    expect(() => parseStoryDocument(
+      JSON.stringify(invalid),
+      "stories/checkout.topo.json",
+    )).toThrow("category must be nonempty");
+    const schema = JSON.parse(await readFile(schemaPath, "utf8"));
+    const validate = new Ajv2020({ strict: true }).compile(schema);
+    expect(validate(invalid)).toBe(false);
+  });
+
   it("publishes a renderer-independent JSON schema", async () => {
     const schema = JSON.parse(await readFile(schemaPath, "utf8"));
     const validate = new Ajv2020({ strict: true }).compile(schema);
@@ -68,6 +102,33 @@ describe("story document contract", () => {
       location: { startLine: 3, endLine: 3 },
       excerpt: "charge(order)",
     });
+  });
+
+  it("rejects source anchors that resolve through repository symlinks", async () => {
+    const root = await mkdtemp(join(tmpdir(), "topo-story-root-"));
+    const outside = await mkdtemp(join(tmpdir(), "topo-story-outside-"));
+    try {
+      await writeFile(join(outside, "secret.ts"), "export const secret = 42;\n");
+      await symlink(join(outside, "secret.ts"), join(root, "linked.ts"));
+      await expect(resolveStoryDocument(
+        root,
+        {
+          ...validStory(),
+          anchors: [{ id: "linked", path: "linked.ts", symbol: "secret" }],
+          sections: [{
+            id: "linked",
+            title: "Linked",
+            body: "Must stay inside the repository.",
+            anchorIds: ["linked"],
+          }],
+        },
+        "stories/linked.topo.json",
+        { revision: "abc123", dirty: false },
+      )).rejects.toThrow("symlink");
+    } finally {
+      await rm(root, { recursive: true });
+      await rm(outside, { recursive: true });
+    }
   });
 
   it.each([

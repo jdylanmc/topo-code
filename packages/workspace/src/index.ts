@@ -12,11 +12,25 @@ export interface WorkspaceEnrichmentConfig {
   timeoutMs?: number;
 }
 
+export interface WorkspaceCatalogueConfig {
+  title?: string;
+  description?: string;
+  accentColor?: string;
+  categoryOrder?: string[];
+  storyCategories?: Record<string, string>;
+  explorer?: {
+    title?: string;
+    summary?: string;
+    category?: string;
+  };
+}
+
 export interface WorkspaceConfig {
   schemaVersion: "1.0";
   repositoryId: string;
   modules: string[];
   enrichment?: WorkspaceEnrichmentConfig;
+  catalogue?: WorkspaceCatalogueConfig;
 }
 
 export function isMissing(error: unknown): boolean {
@@ -25,6 +39,130 @@ export function isMissing(error: unknown): boolean {
 
 function isExists(error: unknown): boolean {
   return error instanceof Error && "code" in error && error.code === "EEXIST";
+}
+
+function optionalNonemptyString(
+  value: unknown,
+  name: string,
+): string | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new Error(`Workspace catalogue ${name} must be a nonempty string`);
+  }
+  return value;
+}
+
+function parseCatalogueConfig(input: unknown): WorkspaceCatalogueConfig {
+  if (typeof input !== "object" || input === null || Array.isArray(input)) {
+    throw new Error("Workspace catalogue must be an object");
+  }
+  const value = input as Record<string, unknown>;
+  const title = optionalNonemptyString(value.title, "title");
+  const description = optionalNonemptyString(value.description, "description");
+  const accentColor = optionalNonemptyString(value.accentColor, "accentColor");
+  if (accentColor !== undefined && !/^#[0-9a-fA-F]{6}$/.test(accentColor)) {
+    throw new Error("Workspace catalogue accentColor must be a six-digit hex color");
+  }
+  let categoryOrder: string[] | undefined;
+  if (value.categoryOrder !== undefined) {
+    if (
+      !Array.isArray(value.categoryOrder) ||
+      !value.categoryOrder.every(
+        (item): item is string =>
+          typeof item === "string" && item.trim().length > 0,
+      ) ||
+      new Set(value.categoryOrder).size !== value.categoryOrder.length
+    ) {
+      throw new Error(
+        "Workspace catalogue categoryOrder must contain distinct nonempty strings",
+      );
+    }
+    categoryOrder = [...value.categoryOrder];
+  }
+  let storyCategories: Record<string, string> | undefined;
+  if (value.storyCategories !== undefined) {
+    if (
+      typeof value.storyCategories !== "object" ||
+      value.storyCategories === null ||
+      Array.isArray(value.storyCategories)
+    ) {
+      throw new Error("Workspace catalogue storyCategories must be an object");
+    }
+    const entries = Object.entries(value.storyCategories);
+    if (
+      entries.some(
+        ([id, category]) =>
+          !/^[a-z0-9][a-z0-9-]*$/.test(id) ||
+          typeof category !== "string" ||
+          category.trim().length === 0,
+      )
+    ) {
+      throw new Error(
+        "Workspace catalogue storyCategories must map story ids to nonempty strings",
+      );
+    }
+    storyCategories = Object.fromEntries(entries);
+  }
+  let explorer: WorkspaceCatalogueConfig["explorer"];
+  if (value.explorer !== undefined) {
+    if (
+      typeof value.explorer !== "object" ||
+      value.explorer === null ||
+      Array.isArray(value.explorer)
+    ) {
+      throw new Error("Workspace catalogue explorer must be an object");
+    }
+    const configured = value.explorer as Record<string, unknown>;
+    const unknown = Object.keys(configured).filter(
+      (key) => !["title", "summary", "category"].includes(key),
+    );
+    if (unknown.length) {
+      throw new Error(
+        `Unknown workspace catalogue explorer keys: ${unknown.join(", ")}`,
+      );
+    }
+    const explorerTitle = optionalNonemptyString(
+      configured.title,
+      "explorer title",
+    );
+    const explorerSummary = optionalNonemptyString(
+      configured.summary,
+      "explorer summary",
+    );
+    const explorerCategory = optionalNonemptyString(
+      configured.category,
+      "explorer category",
+    );
+    explorer = {
+      ...(explorerTitle === undefined ? {} : { title: explorerTitle }),
+      ...(explorerSummary === undefined ? {} : { summary: explorerSummary }),
+      ...(explorerCategory === undefined
+        ? {}
+        : { category: explorerCategory }),
+    };
+  }
+  const unknown = Object.keys(value).filter(
+    (key) =>
+      ![
+        "title",
+        "description",
+        "accentColor",
+        "categoryOrder",
+        "storyCategories",
+        "explorer",
+      ].includes(key),
+  );
+  if (unknown.length) {
+    throw new Error(`Unknown workspace catalogue keys: ${unknown.join(", ")}`);
+  }
+  return {
+    ...(title === undefined ? {} : { title }),
+    ...(description === undefined ? {} : { description }),
+    ...(accentColor === undefined ? {} : { accentColor }),
+    ...(categoryOrder === undefined ? {} : { categoryOrder }),
+    ...(storyCategories === undefined ? {} : { storyCategories }),
+    ...(explorer === undefined ? {} : { explorer }),
+  };
 }
 
 export function parseConfig(input: unknown): WorkspaceConfig {
@@ -77,8 +215,19 @@ export function parseConfig(input: unknown): WorkspaceConfig {
       ...(configured.timeoutMs === undefined ? {} : { timeoutMs: configured.timeoutMs }),
     };
   }
+  const catalogue =
+    value.catalogue === undefined
+      ? undefined
+      : parseCatalogueConfig(value.catalogue);
   const unknown = Object.keys(value).filter(
-    (key) => !["schemaVersion", "repositoryId", "modules", "enrichment"].includes(key),
+    (key) =>
+      ![
+        "schemaVersion",
+        "repositoryId",
+        "modules",
+        "enrichment",
+        "catalogue",
+      ].includes(key),
   );
   if (unknown.length) throw new Error(`Unknown workspace config keys: ${unknown.join(", ")}`);
   return {
@@ -86,6 +235,7 @@ export function parseConfig(input: unknown): WorkspaceConfig {
     repositoryId: value.repositoryId,
     modules: [...value.modules],
     ...(enrichment === undefined ? {} : { enrichment }),
+    ...(catalogue === undefined ? {} : { catalogue }),
   };
 }
 

@@ -51,7 +51,9 @@ const test = base.extend<{ repository: string; localUrl: string }>({
 });
 
 async function ready(page: Page, url: string): Promise<void> {
-  await page.goto(url);
+  const destination = new URL(url);
+  destination.pathname = "/explorer/";
+  await page.goto(destination.href);
   await page.evaluate(() => window.__TOPO_READY__);
 }
 

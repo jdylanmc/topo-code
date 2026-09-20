@@ -77,6 +77,53 @@ describe("workspace lifecycle", () => {
     }
   });
 
+  it("parses bounded catalogue presentation and categorization", () => {
+    expect(parseConfig({
+      schemaVersion: "1.0",
+      repositoryId: "fixture",
+      modules: [],
+      catalogue: {
+        title: "Architecture journeys",
+        description: "Start with a story or inspect the complete map.",
+        accentColor: "#7c3aed",
+        categoryOrder: ["Journeys", "Reference"],
+        storyCategories: { checkout: "Journeys" },
+        explorer: {
+          title: "Repository explorer",
+          summary: "Browse every discovered dependency.",
+          category: "Reference",
+        },
+      },
+    }).catalogue).toEqual({
+      title: "Architecture journeys",
+      description: "Start with a story or inspect the complete map.",
+      accentColor: "#7c3aed",
+      categoryOrder: ["Journeys", "Reference"],
+      storyCategories: { checkout: "Journeys" },
+      explorer: {
+        title: "Repository explorer",
+        summary: "Browse every discovered dependency.",
+        category: "Reference",
+      },
+    });
+  });
+
+  it.each([
+    { catalogue: [], error: "catalogue must be an object" },
+    { catalogue: { accentColor: "purple" }, error: "accentColor" },
+    { catalogue: { categoryOrder: ["Stories", "Stories"] }, error: "categoryOrder" },
+    { catalogue: { storyCategories: { checkout: "" } }, error: "storyCategories" },
+    { catalogue: { explorer: { title: "Map", extra: true } }, error: "explorer keys" },
+    { catalogue: { extra: true }, error: "catalogue keys" },
+  ])("rejects invalid catalogue config: $error", ({ catalogue, error }) => {
+    expect(() => parseConfig({
+      schemaVersion: "1.0",
+      repositoryId: "fixture",
+      modules: [],
+      catalogue,
+    })).toThrow(error);
+  });
+
   it("writes only generated paths and refuses symlink/traversal targets", async () => {
     const root = await fixture();
     await initializeWorkspace(root);

@@ -33,22 +33,24 @@ From this checkout, with Node.js 22+ and Corepack:
 corepack yarn install --immutable
 corepack yarn build
 corepack yarn topo scan /absolute/path/to/a/typescript-repository
-corepack yarn topo preview /absolute/path/to/a/typescript-repository \
-  /absolute/path/to/a/typescript-repository/stories/example.topo.json
 corepack yarn topo serve /absolute/path/to/a/typescript-repository
 ```
 
-Open the printed `http://127.0.0.1:4173` address. Expand directories, inspect file
-dependencies, toggle externals, and navigate the WebGL map with pointer or keyboard.
+Open the printed `http://127.0.0.1:4173` address. The generated catalogue lists
+every committed `stories/**/*.topo.json` document and the repository explorer.
+Open the explorer to expand directories, inspect file dependencies, toggle
+externals, and navigate the WebGL map with pointer or keyboard.
 The site is compiled once; rescanning replaces its data without rebuilding it.
 These static commands upload nothing and install nothing in the scanned repository.
 WebGL support is required. If initialization fails, the site shows an actionable
 error; it does not switch to another renderer.
 
-The optional `topo preview` step renders one committed, source-grounded story
-under `/stories/<story-id>/` without replacing the explorer at `/`. See the
-[story contract, anchor behavior, and reproducibility method](./docs/story-preview.md)
-and the [committed example](./examples/story-preview/stories/checkout.topo.json).
+`topo scan` renders every committed source-grounded story under
+`/stories/<story-id>/`; `topo preview` remains available to refresh one story
+while authoring. The explorer remains available at `/explorer/`. See the
+[catalogue configuration](./docs/story-catalogue.md), the
+[story contract and anchor behavior](./docs/story-preview.md), and the
+[committed example](./examples/story-preview/stories/checkout.topo.json).
 
 To open on a responsibility-first logical architecture with compiler-backed
 entities, signatures, members, and static dependents, supply an explicit

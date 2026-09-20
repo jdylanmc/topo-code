@@ -3,6 +3,7 @@
   "id": "checkout",
   "title": "Checkout request",
   "summary": "A checkout request is validated before payment is charged.",
+  "category": "Request journeys",
   "anchors": [
     {
       "id": "submit-checkout",

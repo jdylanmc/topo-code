@@ -7,6 +7,9 @@ does not currently publish versioned releases.
 
 ### Added
 
+- Generate one configurable catalogue landing page from every committed story
+  plus the retained repository explorer, including coherent empty repositories.
+  See #43.
 - Preview committed renderer-independent architecture stories with source anchors,
   explicit validation failures, atomic renderer output, and the existing local
   server. See #42.

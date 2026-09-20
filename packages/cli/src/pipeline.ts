@@ -49,6 +49,10 @@ import {
   serializeCuratedViewsSnapshot,
 } from "./views.js";
 import { serializeSiteBundle } from "./site-bundle.js";
+import {
+  writeComposedSite,
+  type BuiltCatalogue,
+} from "./catalogue.js";
 
 async function storedReports(root: string): Promise<unknown[]> {
   const directory = await workspacePath(root, "reports/inputs");
@@ -63,15 +67,31 @@ async function storedReports(root: string): Promise<unknown[]> {
   }));
 }
 
-async function copySite(root: string, assets: string): Promise<void> {
+async function copySite(
+  root: string,
+  assets: string,
+  catalogue: BuiltCatalogue | undefined,
+  config: Awaited<ReturnType<typeof loadConfig>>,
+): Promise<void> {
+  const stories = catalogue?.stories ?? [];
   if (!(await stat(join(assets, "index.html"))).isFile()) throw new Error("Built site must contain index.html");
-  const expected = new Set(["data.json"]);
+  const expected = new Set([
+    "data.json",
+    "index.html",
+    "explorer/index.html",
+    ...stories.map(({ document }) => `stories/${document.id}/index.html`),
+  ]);
+  let explorerIndex: string | undefined;
   async function copy(relative: string) {
     const entries = await readdir(join(assets, relative), { withFileTypes: true });
     for (const entry of entries) {
       const name = relative ? `${relative}/${entry.name}` : entry.name;
       if (entry.isDirectory()) await copy(name);
       else if (entry.isFile()) {
+        if (name === "index.html") {
+          explorerIndex = await readFile(join(assets, name), "utf8");
+          continue;
+        }
         expected.add(name);
         await writeGenerated(root, `cache/site/${name}`, await readFile(join(assets, name)));
       } else throw new Error(`Unsupported site asset type: ${name}`);
@@ -91,6 +111,8 @@ async function copySite(root: string, assets: string): Promise<void> {
     }
   }
   await copy("");
+  if (explorerIndex === undefined) throw new Error("Built site must contain index.html");
+  await writeComposedSite(root, explorerIndex, catalogue, config.catalogue);
   await prune("");
 }
 
@@ -138,6 +160,7 @@ export async function generateArtifacts(
   graph: GraphDocument,
   siteAssets: string,
   logicalArchitecture?: LogicalArchitectureDocument,
+  catalogue?: BuiltCatalogue,
 ): Promise<ArtifactGenerationResult> {
   assertGraphDocument(graph);
   return withWorkspaceLock(root, async () => {
@@ -162,7 +185,7 @@ export async function generateArtifacts(
       ...(logicalArchitecture ? { logicalArchitecture } : {}),
       ...(enrichment.enrichment === undefined ? {} : { enrichment: enrichment.enrichment }),
     });
-    await copySite(root, siteAssets);
+    await copySite(root, siteAssets, catalogue, config);
     await writeGenerated(root, "graph/graph.json", serializeGraphDocument(composedGraph));
     await writeGenerated(root, "graph/layout.json", serializeLayoutDeterministic(layout.layout));
     await writeGenerated(root, "graph/architecture.json", serializeArchitecture(architecture));
@@ -188,6 +211,7 @@ export async function ingestReports(
   inputPaths: string[],
   siteAssets: string,
   expectedRevision?: string,
+  catalogue?: BuiltCatalogue,
 ): Promise<ReportIngestionResult> {
   if (!inputPaths.length) throw new Error("At least one report file is required");
   await initializeWorkspace(root);
@@ -233,7 +257,7 @@ export async function ingestReports(
         if (await readFile(path, "utf8") !== serialized) throw new Error(`Existing normalized input differs: ${name}`);
       }
     }
-    await copySite(root, siteAssets);
+    await copySite(root, siteAssets, catalogue, config);
     await writeGenerated(root, "graph/graph.json", serializeGraphDocument(composedGraph));
     await writeGenerated(root, "graph/layout.json", serializeLayoutDeterministic(layout.layout));
     await writeGenerated(root, "graph/architecture.json", serializeArchitecture(architecture));

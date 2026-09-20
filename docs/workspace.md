@@ -54,6 +54,11 @@ and [commentary contract](./enrichment-contract.md). A repository command can us
 its provider's network/account and its normal user permissions; it is not
 sandboxed by Topocode.
 
+Optional `catalogue` configuration changes the generated landing page's title,
+description, accent color, category order, per-story category overrides, and
+explorer card. It cannot add executable extensions or replace the explorer.
+See the [story catalogue walkthrough](./story-catalogue.md).
+
 ## Layout and authored pins
 
 Generated positions live in `graph/layout.json`; the global default view is

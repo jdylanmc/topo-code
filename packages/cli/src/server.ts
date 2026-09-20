@@ -125,7 +125,10 @@ export async function serveSite(root: string, port = 4173): Promise<{ server: Se
         throw new HttpError(400, "Invalid request path");
       }
 
-      if (request.method === "POST" && pathname === "/__topo/views") {
+      if (
+        request.method === "POST" &&
+        ["/__topo/views", "/explorer/__topo/views"].includes(pathname)
+      ) {
         const expectedOrigin = `http://${expectedHost}`;
         if (request.headers.origin !== expectedOrigin) throw new HttpError(403, "Invalid origin");
         if (!safeTokenEqual(
@@ -180,7 +183,9 @@ export async function serveSite(root: string, port = 4173): Promise<{ server: Se
       if (pathname.includes("\\") || pathname.includes("\0") || pathname.split("/").some((part) => part.startsWith("."))) {
         throw new HttpError(403, "Forbidden path");
       }
-      const requestedPath = pathname === "/"
+      const requestedPath = pathname === "/explorer/data.json"
+        ? "/data.json"
+        : pathname === "/"
         ? "/index.html"
         : pathname.endsWith("/")
           ? `${pathname}index.html`

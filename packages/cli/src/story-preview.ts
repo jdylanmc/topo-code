@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { readFile, stat } from "node:fs/promises";
+import { stat } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 import { renderStory } from "@topo/diagram-core";
@@ -9,6 +9,11 @@ import {
   type StoryRenderer,
 } from "@topo/story";
 import { isMissing, workspacePath, writeGenerated } from "@topo/workspace";
+import {
+  assertSourceSnapshot,
+  captureSourceSnapshot,
+} from "./source-snapshot.js";
+import { repositoryState } from "./catalogue.js";
 
 const execute = promisify(execFile);
 
@@ -29,27 +34,6 @@ export interface StoryPreviewResult {
 const diagramCoreRenderer: StoryRenderer = {
   render: renderStory,
 };
-
-async function sourceState(
-  root: string,
-): Promise<{ revision: string; dirty: boolean }> {
-  const revision = (
-    await execute("git", ["-C", root, "rev-parse", "HEAD"])
-  ).stdout.trim();
-  const status = (
-    await execute("git", [
-      "-C",
-      root,
-      "status",
-      "--porcelain",
-      "--untracked-files=all",
-      "--",
-      ".",
-      ":(exclude).topo",
-    ])
-  ).stdout;
-  return { revision, dirty: status.length > 0 };
-}
 
 function repositoryRelativePath(root: string, path: string): string {
   const absolute = resolve(path);
@@ -91,6 +75,15 @@ async function assertCommittedStory(root: string, documentPath: string): Promise
   }
 }
 
+async function readCommittedStory(
+  root: string,
+  documentPath: string,
+): Promise<string> {
+  return (
+    await execute("git", ["-C", root, "show", `HEAD:${documentPath}`])
+  ).stdout;
+}
+
 export async function previewStory(
   rootInput: string,
   documentInput: string,
@@ -110,15 +103,20 @@ export async function previewStory(
     throw new Error("Site is not built; run topo scan first");
   }
   const document = parseStoryDocument(
-    await readFile(documentAbsolute, "utf8"),
+    await readCommittedStory(root, documentPath),
     documentPath,
   );
-  const source = await sourceState(root);
+  const source = await repositoryState(root);
+  const snapshot = await captureSourceSnapshot(
+    root,
+    document.anchors.map((anchor) => anchor.path),
+  );
   const resolved = await resolveStoryDocument(
     root,
     document,
     documentPath,
-    source,
+    { revision: source.revision, dirty: source.dirty },
+    async (path) => snapshot.get(path),
   );
   if (renderer === null) {
     throw new Error(
@@ -134,6 +132,17 @@ export async function previewStory(
       { cause: error },
     );
   }
+  await assertSourceSnapshot(root, snapshot);
+  const finalSource = await repositoryState(root);
+  if (
+    finalSource.revision !== source.revision ||
+    finalSource.dirty !== source.dirty ||
+    finalSource.fingerprint !== source.fingerprint
+  ) {
+    throw new Error(
+      `${documentPath}: repository source changed while rendering; retry`,
+    );
+  }
   if (artifact.kind !== "html" || artifact.mediaType !== "text/html") {
     throw new Error(
       `${documentPath}: renderer returned unsupported artifact ${artifact.kind} (${artifact.mediaType})`,
@@ -145,7 +154,7 @@ export async function previewStory(
     storyId: document.id,
     documentPath,
     outputPath: await workspacePath(root, outputName),
-    source,
+    source: { revision: source.revision, dirty: source.dirty },
     renderer: {
       name: artifact.renderer.name,
       pin: artifact.renderer.pin,

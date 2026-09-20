@@ -1,18 +1,20 @@
 #!/usr/bin/env node
-import { execFile } from "node:child_process";
 import { dirname, resolve } from "node:path";
-import { readFile, readdir } from "node:fs/promises";
+import { readFile, readdir, stat } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { parseArgs, promisify } from "node:util";
+import { parseArgs } from "node:util";
 import { BUILTIN_MODULE_MANIFESTS, validateModuleCatalog } from "@topo/modules";
 import { scanRepository } from "@topo/scanner";
 import { initializeWorkspace, isMissing, workspacePath } from "@topo/workspace";
 import { runEnrichment } from "./enrichment.js";
 import { generateArtifacts, ingestReports } from "./pipeline.js";
 import { serveSite } from "./server.js";
-import { previewStory } from "./story-preview.js";
+import {
+  assertCatalogueCurrent,
+  buildCatalogue,
+  writeBuiltCatalogue,
+} from "./catalogue.js";
 
-const execute = promisify(execFile);
 const HELP = `Topocode: local, deterministic repository maps
 
   topo init [repository]
@@ -27,12 +29,6 @@ Scan is strict by default. --allow-partial publishes a visibly incomplete
 preview and exits 2; it never turns partial evidence into success.
 Serve binds only to 127.0.0.1. Config and authored metadata are never overwritten.
 `;
-
-async function sourceState(root: string): Promise<{ revision: string; dirty: boolean }> {
-  const revision = (await execute("git", ["-C", root, "rev-parse", "HEAD"])).stdout.trim();
-  const status = (await execute("git", ["-C", root, "status", "--porcelain", "--untracked-files=all", "--", ".", ":(exclude).topo"])).stdout;
-  return { revision, dirty: status.length > 0 };
-}
 
 async function siteAssets(): Promise<string> {
   const assets = dirname(fileURLToPath(import.meta.resolve("@topo/site/index.html")));
@@ -100,17 +96,37 @@ export async function runCli(args: string[]): Promise<number> {
     if (positionals.length !== 3) {
       throw new Error("preview requires a repository and one story document");
     }
-    const result = await previewStory(root, resolve(positionals[2]!));
-    if (result.source.dirty) {
+    try {
+      if (!(await stat(await workspacePath(root, "cache/site/index.html"))).isFile()) {
+        throw new Error("Site index is not a file; run topo scan again");
+      }
+    } catch (error) {
+      if (!isMissing(error)) throw error;
+      throw new Error("Site is not built; run topo scan first");
+    }
+    const catalogue = await buildCatalogue(root);
+    const requested = resolve(positionals[2]!);
+    const selected = catalogue.stories.find(
+      (story) => resolve(root, story.documentPath) === requested,
+    );
+    if (selected === undefined) {
+      throw new Error("preview requires a committed story under stories/");
+    }
+    await writeBuiltCatalogue(
+      root,
+      catalogue,
+      (await initializeWorkspace(root)).config.catalogue,
+    );
+    if (catalogue.source.dirty) {
       console.warn(
         "Rendering against uncommitted source changes; anchors describe the working tree, not only HEAD.",
       );
     }
     console.log(
-      `Rendered ${result.documentPath} with ${result.renderer.name} (${result.renderer.pin})`,
+      `Rendered ${selected.documentPath} with ${selected.renderer.name} (${selected.renderer.pin})`,
     );
     console.log(
-      `Story generated at ${result.outputPath}; run topo serve "${root}" and open /stories/${result.storyId}/`,
+      `Story generated at ${await workspacePath(root, `cache/site/stories/${selected.document.id}/index.html`)}; run topo serve "${root}" and open /stories/${selected.document.id}/`,
     );
     return 0;
   }
@@ -131,11 +147,18 @@ export async function runCli(args: string[]): Promise<number> {
   const { config } = await initializeWorkspace(root);
   validateConfiguredModules(config.modules);
   const assets = await siteAssets();
-  const state = await sourceState(root);
+  const catalogue = await buildCatalogue(root);
+  const state = catalogue.source;
   if (command === "ingest") {
     if (positionals.length < 3) throw new Error("ingest requires a repository and at least one report file");
     if (state.dirty) throw new Error("Report ingestion requires clean source files at the scanned revision; .topo artifacts are excluded.");
-    const result = await ingestReports(root, positionals.slice(2).map((path) => resolve(path)), assets, state.revision);
+    const result = await ingestReports(
+      root,
+      positionals.slice(2).map((path) => resolve(path)),
+      assets,
+      state.revision,
+      catalogue,
+    );
     for (const warning of result.warnings) console.warn(warning);
     console.log(`Ingested ${result.dashboard.inputs.length} reports; ${result.dashboard.metrics.length} metrics, ${result.dashboard.findings.length} findings`);
     return 0;
@@ -152,8 +175,14 @@ export async function runCli(args: string[]): Promise<number> {
     quality: { allowPartial: values["allow-partial"] ?? false },
     ...(values.responsibilities ? { responsibilityFile: resolve(values.responsibilities) } : {}),
   });
-  if ((await sourceState(root)).revision !== state.revision) throw new Error("Repository revision changed during scan; retry");
-  const artifacts = await generateArtifacts(root, result.graph, assets, result.logicalArchitecture);
+  await assertCatalogueCurrent(root, catalogue);
+  const artifacts = await generateArtifacts(
+    root,
+    result.graph,
+    assets,
+    result.logicalArchitecture,
+    catalogue,
+  );
   for (const diagnostic of result.diagnostics) console.warn(`${diagnostic.severity}: ${diagnostic.code}: ${diagnostic.message}`);
   for (const warning of artifacts.layout.warnings) console.warn(`layout: ${warning.code}: ${warning.message}`);
   for (const warning of artifacts.warnings) console.warn(warning);

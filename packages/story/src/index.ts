@@ -1,4 +1,5 @@
-import { readFile } from "node:fs/promises";
+import { constants } from "node:fs";
+import { open, realpath, stat } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import ts from "typescript-compiler-api";
 
@@ -27,6 +28,7 @@ export interface StoryDocument {
   readonly id: string;
   readonly title: string;
   readonly summary: string;
+  readonly category?: string;
   readonly anchors: readonly SourceAnchor[];
   readonly sections: readonly StorySection[];
   readonly connections: readonly StoryConnection[];
@@ -108,26 +110,16 @@ export async function resolveStoryDocument(
   document: StoryDocument,
   documentPath: string,
   source: { revision: string; dirty: boolean },
-  loadSource: (path: string) => Promise<string | undefined> = async (path) => {
-    try {
-      return await readFile(resolve(root, path), "utf8");
-    } catch (error) {
-      if (
-        typeof error === "object" &&
-        error !== null &&
-        "code" in error &&
-        error.code === "ENOENT"
-      ) {
-        return undefined;
-      }
-      throw error;
-    }
-  },
+  loadSource?: (path: string) => Promise<string | undefined>,
 ): Promise<ResolvedStoryDocument> {
+  const repositoryRoot =
+    loadSource === undefined ? await realpath(root) : undefined;
   const anchors: ResolvedSourceAnchor[] = [];
   for (const anchor of document.anchors) {
     assertRepositoryPath(root, documentPath, anchor);
-    const contents = await loadSource(anchor.path);
+    const contents = loadSource === undefined
+      ? await readRepositorySource(repositoryRoot!, documentPath, anchor)
+      : await loadSource(anchor.path);
     if (contents === undefined) {
       throw anchorError(
         documentPath,
@@ -191,6 +183,7 @@ function validateStoryDocument(value: unknown): string | undefined {
   const rootKeys = exactKeys(
     value,
     ["schemaVersion", "id", "title", "summary", "anchors", "sections", "connections"],
+    ["category"],
   );
   if (rootKeys) return rootKeys;
   if (value.schemaVersion !== "1.0") return 'schemaVersion must be "1.0"';
@@ -199,6 +192,12 @@ function validateStoryDocument(value: unknown): string | undefined {
   }
   if (!nonemptyString(value.title)) return "title must be nonempty";
   if (!nonemptyString(value.summary)) return "summary must be nonempty";
+  if (
+    value.category !== undefined &&
+    (!nonemptyString(value.category) || value.category.trim().length === 0)
+  ) {
+    return "category must be nonempty";
+  }
   if (!Array.isArray(value.anchors)) return "anchors must be an array";
   if (!Array.isArray(value.sections) || value.sections.length === 0) {
     return "sections must be a nonempty array";
@@ -280,6 +279,95 @@ function assertRepositoryPath(
       "invalid-path",
       `source path "${anchor.path}" escapes the repository`,
     );
+  }
+}
+
+async function readRepositorySource(
+  repositoryRoot: string,
+  documentPath: string,
+  anchor: SourceAnchor,
+): Promise<string | undefined> {
+  const requested = resolve(repositoryRoot, anchor.path);
+  let actual: string;
+  try {
+    actual = await realpath(requested);
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      "code" in error &&
+      error.code === "ENOENT"
+    ) {
+      return undefined;
+    }
+    throw error;
+  }
+  if (actual !== requested) {
+    throw anchorError(
+      documentPath,
+      anchor.id,
+      "invalid-path",
+      `source path "${anchor.path}" must not resolve through a symlink`,
+    );
+  }
+  const rel = relative(repositoryRoot, actual);
+  if (rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
+    throw anchorError(
+      documentPath,
+      anchor.id,
+      "invalid-path",
+      `source path "${anchor.path}" must be a regular file inside the repository`,
+    );
+  }
+  const initial = await stat(requested);
+  if (!initial.isFile()) {
+    throw anchorError(
+      documentPath,
+      anchor.id,
+      "invalid-path",
+      `source path "${anchor.path}" must be a regular file inside the repository`,
+    );
+  }
+  const handle = await open(
+    requested,
+    constants.O_RDONLY | constants.O_NOFOLLOW,
+  );
+  try {
+    const opened = await handle.stat();
+    if (
+      !opened.isFile() ||
+      opened.dev !== initial.dev ||
+      opened.ino !== initial.ino
+    ) {
+      throw anchorError(
+        documentPath,
+        anchor.id,
+        "invalid-path",
+        `source path "${anchor.path}" changed before it was read`,
+      );
+    }
+    const contents = await handle.readFile("utf8");
+    const openedAfter = await handle.stat();
+    const currentActual = await realpath(requested);
+    const current = await stat(requested);
+    if (
+      currentActual !== requested ||
+      !current.isFile() ||
+      current.dev !== opened.dev ||
+      current.ino !== opened.ino ||
+      openedAfter.size !== opened.size ||
+      openedAfter.mtimeMs !== opened.mtimeMs ||
+      openedAfter.ctimeMs !== opened.ctimeMs
+    ) {
+      throw anchorError(
+        documentPath,
+        anchor.id,
+        "invalid-path",
+        `source path "${anchor.path}" changed while it was being read`,
+      );
+    }
+    return contents;
+  } finally {
+    await handle.close();
   }
 }
 
