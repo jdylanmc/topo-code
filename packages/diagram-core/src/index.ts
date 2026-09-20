@@ -30,13 +30,14 @@ export function render(input: RenderInput): Artifact {
   );
   const template = readFileSync(fixturePath, "utf8");
   const document = JSON.stringify(input.document).replaceAll("<", "\\u003c");
+  const title = escapeHtml(input.title);
 
   return {
     kind: "html",
     mediaType: "text/html",
     contents: template
-      .replace("{{TITLE}}", escapeHtml(input.title))
-      .replace("{{DOCUMENT}}", document),
+      .replaceAll("{{TITLE}}", () => title)
+      .replaceAll("{{DOCUMENT}}", () => document),
     renderer: {
       name: "@topo/diagram-core-placeholder",
       pin: "stub",
