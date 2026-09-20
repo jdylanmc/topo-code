@@ -30,9 +30,12 @@ export type DiagramFamily =
   | "dataflow"
   | "lifecycle";
 
+export type StoryClassification = "source-grounded" | "capability-demo";
+
 export interface StoryDocument {
   readonly schemaVersion: "1.0";
   readonly diagramFamily?: DiagramFamily;
+  readonly classification?: StoryClassification;
   readonly id: string;
   readonly title: string;
   readonly summary: string;
@@ -192,7 +195,7 @@ function validateStoryDocument(value: unknown): string | undefined {
   const rootKeys = exactKeys(
     value,
     ["schemaVersion", "id", "title", "summary", "anchors", "sections", "connections"],
-    ["category", "diagramFamily"],
+    ["category", "diagramFamily", "classification"],
   );
   if (rootKeys) return rootKeys;
   if (value.schemaVersion !== "1.0") return 'schemaVersion must be "1.0"';
@@ -202,6 +205,13 @@ function validateStoryDocument(value: unknown): string | undefined {
       .includes(String(value.diagramFamily))
   ) {
     return "diagramFamily must be a supported native family";
+  }
+  if (
+    value.classification !== undefined &&
+    value.classification !== "source-grounded" &&
+    value.classification !== "capability-demo"
+  ) {
+    return "classification must be source-grounded or capability-demo";
   }
   if (!nonemptyString(value.id) || !/^[a-z0-9][a-z0-9-]*$/.test(value.id)) {
     return "id must use lowercase letters, digits, and hyphens";
@@ -219,6 +229,10 @@ function validateStoryDocument(value: unknown): string | undefined {
     return "sections must be a nonempty array";
   }
   if (!Array.isArray(value.connections)) return "connections must be an array";
+  const sourceGrounded = value.classification !== "capability-demo";
+  if (sourceGrounded && value.anchors.length === 0) {
+    return "source-grounded stories must define at least one anchor";
+  }
 
   const anchorIds = new Set<string>();
   for (const [index, anchorValue] of value.anchors.entries()) {
@@ -254,6 +268,9 @@ function validateStoryDocument(value: unknown): string | undefined {
     if (!nonemptyString(sectionValue.body)) return `sections[${index}].body must be nonempty`;
     if (!uniqueStrings(sectionValue.anchorIds)) {
       return `sections[${index}].anchorIds must contain unique nonempty strings`;
+    }
+    if (sourceGrounded && sectionValue.anchorIds.length === 0) {
+      return `sections[${index}].anchorIds must reference source evidence`;
     }
     const missingAnchor = sectionValue.anchorIds.find((id) => !anchorIds.has(id));
     if (missingAnchor) return `sections[${index}] references unknown anchor "${missingAnchor}"`;
