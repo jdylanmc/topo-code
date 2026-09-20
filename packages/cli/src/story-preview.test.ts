@@ -49,7 +49,13 @@ function story(
 }
 
 function familyStory(
-  diagramFamily: "workflow" | "sequence" | "dataflow" | "lifecycle",
+  diagramFamily:
+    | "architecture"
+    | "workflow"
+    | "sequence"
+    | "dataflow"
+    | "lifecycle",
+  connectionLabel: string | undefined = "then",
 ): string {
   return `${JSON.stringify({
     schemaVersion: "1.0",
@@ -80,7 +86,7 @@ function familyStory(
     connections: [{
       from: "request",
       to: "charge",
-      label: "then",
+      ...(connectionLabel === undefined ? {} : { label: connectionLabel }),
     }],
   }, null, 2)}\n`;
 }
@@ -178,6 +184,26 @@ afterEach(async () => {
 });
 
 describe("story preview", () => {
+  it.each([
+    "architecture",
+    "workflow",
+    "sequence",
+    "dataflow",
+    "lifecycle",
+  ] as const)("preserves authored relationship labels for %s stories", async (
+    family,
+  ) => {
+    const { root, documentPath } = await fixture(
+      familyStory(family, "carries meaning"),
+    );
+
+    const result = await previewStory(root, documentPath);
+    const contents = await readFile(result.outputPath, "utf8");
+
+    expect(contents).toContain('data-edge-label="carries meaning"');
+    expect(contents).toContain(">carries meaning</text>");
+  });
+
   it("renders a committed workflow story with native workflow semantics", async () => {
     const { root, documentPath } = await fixture(familyStory("workflow"));
 
