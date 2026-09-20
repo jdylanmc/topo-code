@@ -1,4 +1,5 @@
-import { readFile, realpath, stat } from "node:fs/promises";
+import { constants } from "node:fs";
+import { open, realpath, stat } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 
 export async function readRepositoryRegularFile(
@@ -20,8 +21,30 @@ export async function readRepositoryRegularFile(
       `${repositoryPath}: ${label} must not resolve through a symlink or outside the repository`,
     );
   }
-  if (!(await stat(actual)).isFile()) {
-    throw new Error(`${repositoryPath}: ${label} must be a regular file`);
+  const handle = await open(
+    requested,
+    constants.O_RDONLY | constants.O_NOFOLLOW,
+  );
+  try {
+    const opened = await handle.stat();
+    if (!opened.isFile()) {
+      throw new Error(`${repositoryPath}: ${label} must be a regular file`);
+    }
+    const contents = await handle.readFile("utf8");
+    const currentActual = await realpath(requested);
+    const current = await stat(requested);
+    if (
+      currentActual !== requested ||
+      !current.isFile() ||
+      current.dev !== opened.dev ||
+      current.ino !== opened.ino
+    ) {
+      throw new Error(
+        `${repositoryPath}: ${label} changed while it was being read`,
+      );
+    }
+    return contents;
+  } finally {
+    await handle.close();
   }
-  return readFile(actual, "utf8");
 }

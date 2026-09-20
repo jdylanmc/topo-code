@@ -1,4 +1,5 @@
-import { readFile, realpath, stat } from "node:fs/promises";
+import { constants } from "node:fs";
+import { open, realpath, stat } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import ts from "typescript-compiler-api";
 
@@ -309,12 +310,7 @@ async function readRepositorySource(
     );
   }
   const rel = relative(repositoryRoot, actual);
-  if (
-    rel === ".." ||
-    rel.startsWith(`..${sep}`) ||
-    isAbsolute(rel) ||
-    !(await stat(actual)).isFile()
-  ) {
+  if (rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
     throw anchorError(
       documentPath,
       anchor.id,
@@ -322,7 +318,40 @@ async function readRepositorySource(
       `source path "${anchor.path}" must be a regular file inside the repository`,
     );
   }
-  return readFile(actual, "utf8");
+  const handle = await open(
+    requested,
+    constants.O_RDONLY | constants.O_NOFOLLOW,
+  );
+  try {
+    const opened = await handle.stat();
+    if (!opened.isFile()) {
+      throw anchorError(
+        documentPath,
+        anchor.id,
+        "invalid-path",
+        `source path "${anchor.path}" must be a regular file inside the repository`,
+      );
+    }
+    const contents = await handle.readFile("utf8");
+    const currentActual = await realpath(requested);
+    const current = await stat(requested);
+    if (
+      currentActual !== requested ||
+      !current.isFile() ||
+      current.dev !== opened.dev ||
+      current.ino !== opened.ino
+    ) {
+      throw anchorError(
+        documentPath,
+        anchor.id,
+        "invalid-path",
+        `source path "${anchor.path}" changed while it was being read`,
+      );
+    }
+    return contents;
+  } finally {
+    await handle.close();
+  }
 }
 
 function declarationName(node: ts.Node): string | undefined {
