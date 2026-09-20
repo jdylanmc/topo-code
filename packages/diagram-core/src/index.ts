@@ -502,14 +502,29 @@ function dataflowSpec(story: ResolvedStoryDocument): ArchifyDataflow {
 }
 
 function lifecycleSpec(story: ResolvedStoryDocument): ArchifyLifecycle {
-  const statePlacement = (index: number) => {
+  const statePlacement = (index: number, width = 118) => {
     const last = index === story.document.sections.length - 1;
     const event = story.document.sections.length >= 5 &&
       index >= 2 &&
       index < story.document.sections.length - 2;
+    const lane = last ? "terminal" as const : event ? "event" as const : "main" as const;
+    const defaultCol = last ? 2 : event ? index - 2 : index - Math.max(0, index - 2);
+    const centers = lane === "main"
+      ? [94, 248, 402, 556, 710]
+      : [402, 556, 710];
+    const col = centers
+      .map((center, candidate) => ({
+        candidate,
+        distance: Math.abs(candidate - defaultCol),
+        capacity: 2 * Math.min(center - 32, 948 - center),
+      }))
+      .filter(({ capacity }) => capacity >= width)
+      .sort((left, right) =>
+        left.distance - right.distance || left.candidate - right.candidate
+      )[0]?.candidate ?? defaultCol;
     return {
-      lane: last ? "terminal" as const : event ? "event" as const : "main" as const,
-      col: last ? 2 : event ? index - 2 : index - Math.max(0, index - 2),
+      lane,
+      col,
     };
   };
   const stateIds = new Map(
@@ -533,6 +548,11 @@ function lifecycleSpec(story: ResolvedStoryDocument): ArchifyLifecycle {
     ],
     states: story.document.sections.map((section, index) => {
       const last = index === story.document.sections.length - 1;
+      const labelUnits = Array.from(section.title).reduce(
+        (total, character) => total + (character.codePointAt(0)! > 0xff ? 2 : 1),
+        0,
+      );
+      const width = Math.max(118, Math.ceil(labelUnits * 6.2));
       return {
         id: stateIds.get(section.id)!,
         type: index === 0
@@ -541,8 +561,8 @@ function lifecycleSpec(story: ResolvedStoryDocument): ArchifyLifecycle {
             ? "success"
             : "active",
         label: section.title,
-        ...statePlacement(index),
-        width: 118,
+        ...statePlacement(index, width),
+        width,
       };
     }),
     transitions: story.document.connections.map((connection, index) => {
