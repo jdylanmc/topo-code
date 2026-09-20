@@ -5,6 +5,28 @@ import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
 import { loadBuiltCliServer } from "./helpers/built-cli.js";
 
+function composeSiteThirdPartyNotices(input: {
+  dependencyNotices: string;
+  archifyLicense: string;
+  archifyNotices: string;
+  fontLicense: string;
+}): string {
+  return [
+    input.dependencyNotices.trimEnd(),
+    "\n\n================================================================================\n",
+    "Embedded Archify viewer\n",
+    "License: MIT\n\n",
+    input.archifyLicense.trimEnd(),
+    "\n\n",
+    input.archifyNotices.trimEnd(),
+    "\n\n================================================================================\n",
+    "Embedded JetBrains Mono font subsets\n",
+    "License: SIL OFL 1.1\n\n",
+    input.fontLicense.trimEnd(),
+    "\n",
+  ].join("");
+}
+
 const { serveSite } = await loadBuiltCliServer();
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 
@@ -28,8 +50,15 @@ test("WebGL works through the actual production HTTP server", async ({ page }) =
     await expect(page.locator("svg, [data-renderer]")).toHaveCount(0);
     expect(await page.evaluate(() => window.__TOPO_BENCHMARK__!.snapshot().renderer)).toBe("webgl");
     expect(errors).toEqual([]);
+    const bundledLicenses = join(root, "experiments", "archify-wrapper", "licenses");
+    const expectedNotices = composeSiteThirdPartyNotices({
+      dependencyNotices: await readFile(join(root, "THIRD_PARTY_NOTICES.txt"), "utf8"),
+      archifyLicense: await readFile(join(bundledLicenses, "Archify-MIT.txt"), "utf8"),
+      archifyNotices: await readFile(join(bundledLicenses, "Archify-THIRD-PARTY-NOTICES.md"), "utf8"),
+      fontLicense: await readFile(join(bundledLicenses, "JetBrainsMono-OFL.txt"), "utf8"),
+    });
     expect(await (await fetch(`${url}/THIRD_PARTY_NOTICES.txt`)).text()).toBe(
-      await readFile(join(root, "THIRD_PARTY_NOTICES.txt"), "utf8"),
+      expectedNotices,
     );
     expect(await (await fetch(`${url}/LICENSE.txt`)).text()).toBe(
       await readFile(join(root, "LICENSE"), "utf8"),

@@ -553,6 +553,28 @@ export async function checkThirdPartyNotices({
   return closure;
 }
 
+export function composeSiteThirdPartyNotices({
+  dependencyNotices,
+  archifyLicense,
+  archifyNotices,
+  fontLicense,
+}) {
+  return [
+    dependencyNotices.trimEnd(),
+    "\n\n================================================================================\n",
+    "Embedded Archify viewer\n",
+    "License: MIT\n\n",
+    archifyLicense.trimEnd(),
+    "\n\n",
+    archifyNotices.trimEnd(),
+    "\n\n================================================================================\n",
+    "Embedded JetBrains Mono font subsets\n",
+    "License: SIL OFL 1.1\n\n",
+    fontLicense.trimEnd(),
+    "\n",
+  ].join("");
+}
+
 export async function copyThirdPartyNoticesToSite({
   rootDirectory = process.cwd(),
 } = {}) {
@@ -588,20 +610,12 @@ export async function copyThirdPartyNoticesToSite({
   const dependencyNotices = await readFile(sourcePath, "utf8");
   await writeFile(
     path.join(siteDirectory, "THIRD_PARTY_NOTICES.txt"),
-    [
-      dependencyNotices.trimEnd(),
-      "\n\n================================================================================\n",
-      "Embedded Archify viewer\n",
-      "License: MIT\n\n",
-      archifyLicense.trimEnd(),
-      "\n\n",
-      archifyNotices.trimEnd(),
-      "\n\n================================================================================\n",
-      "Embedded JetBrains Mono font subsets\n",
-      "License: SIL OFL 1.1\n\n",
-      fontLicense.trimEnd(),
-      "\n",
-    ].join(""),
+    composeSiteThirdPartyNotices({
+      dependencyNotices,
+      archifyLicense,
+      archifyNotices,
+      fontLicense,
+    }),
   );
   await writeFile(
     path.join(siteDirectory, "ARCHIFY_LICENSE.txt"),
