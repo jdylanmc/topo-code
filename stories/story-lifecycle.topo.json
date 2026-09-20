@@ -4,7 +4,7 @@
   "classification": "source-grounded",
   "id": "story-lifecycle",
   "title": "The lifecycle of a Topocode story",
-  "summary": "See how authored story data becomes valid source-grounded content, detects source drift, is updated by an author, renders, and joins a static bundle.",
+  "summary": "See how authored story data becomes valid source-grounded content, detects source drift, is repaired by an author, renders, and joins a static bundle.",
   "category": "Topocode internals",
   "anchors": [
     {
@@ -58,8 +58,8 @@
     },
     {
       "id": "repaired",
-      "title": "Author updated",
-      "body": "After validation reports stale evidence, an author updates the affected paths, symbols, or patterns before validating again.",
+      "title": "Author repaired",
+      "body": "After validation reports stale evidence, an author repairs the affected paths, symbols, or patterns before validating again.",
       "anchorIds": ["authoring-guide", "validate"]
     },
     {
