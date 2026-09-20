@@ -48,6 +48,41 @@ function story(
   }, null, 2)}\n`;
 }
 
+function workflowStory(): string {
+  return `${JSON.stringify({
+    schemaVersion: "1.0",
+    diagramFamily: "workflow",
+    id: "checkout",
+    title: "Checkout",
+    summary: "Checkout reaches payment.",
+    anchors: [{
+      id: "submit",
+      path: "src/checkout.ts",
+      symbol: "submitCheckout",
+      pattern: "charge(order)",
+    }],
+    sections: [
+      {
+        id: "request",
+        title: "Receive request",
+        body: "Accept the checkout request.",
+        anchorIds: ["submit"],
+      },
+      {
+        id: "charge",
+        title: "Charge payment",
+        body: "Charge the accepted order.",
+        anchorIds: ["submit"],
+      },
+    ],
+    connections: [{
+      from: "request",
+      to: "charge",
+      label: "then",
+    }],
+  }, null, 2)}\n`;
+}
+
 async function commit(root: string, message: string): Promise<void> {
   await execute("git", ["-C", root, "add", "."]);
   await execute("git", [
@@ -114,6 +149,17 @@ afterEach(async () => {
 });
 
 describe("story preview", () => {
+  it("renders a committed workflow story with native workflow semantics", async () => {
+    const { root, documentPath } = await fixture(workflowStory());
+
+    const result = await previewStory(root, documentPath);
+    const contents = await readFile(result.outputPath, "utf8");
+
+    expect(contents).toContain('data-composition-frame-kind="lane"');
+    expect(contents).toContain("Receive request");
+    expect(contents).toContain("Charge payment");
+  });
+
   it("renders a committed story equivalently twice through diagram-core", async () => {
     const { root, documentPath } = await fixture();
     const first = await previewStory(root, documentPath);
