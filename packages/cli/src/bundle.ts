@@ -10,9 +10,10 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
+import { BUILTIN_MODULE_MANIFESTS } from "@topo/modules";
+import { parseSiteData } from "@topo/site/data";
 import { isMissing, loadConfig, workspacePath } from "@topo/workspace";
 import { assertCatalogueCurrent, buildCatalogue, writeBuiltCatalogue } from "./catalogue.js";
-import { parseSiteBundleForEnrichment } from "./site-bundle.js";
 import { composeSiteData } from "./server.js";
 
 export interface BundleSiteOptions {
@@ -95,8 +96,9 @@ async function validateComposedSite(
   if (composed === undefined) {
     throw new Error("Generated site is not associated with this Topocode workspace");
   }
-  const bundle = parseSiteBundleForEnrichment(
+  const bundle = await parseSiteData(
     JSON.parse(composed) as unknown,
+    BUILTIN_MODULE_MANIFESTS,
   );
   const catalogue = await buildCatalogue(root);
   if (bundle.graph.repository.revision !== catalogue.source.revision) {

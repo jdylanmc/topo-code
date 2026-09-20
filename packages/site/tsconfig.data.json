@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": [
+      "DOM",
+      "DOM.Iterable",
+      "ES2022"
+    ],
+    "outDir": "dist/data-contract",
+    "rootDir": "src",
+    "types": [
+      "vite/client"
+    ]
+  },
+  "include": [
+    "src/contracts.ts",
+    "src/data.ts",
+    "src/module-support.ts"
+  ]
+}

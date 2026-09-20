@@ -7,10 +7,14 @@
     "dist"
   ],
   "exports": {
-    "./index.html": "./dist/index.html"
+    "./index.html": "./dist/index.html",
+    "./data": {
+      "types": "./src/data.ts",
+      "default": "./dist/data-contract/data.js"
+    }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "build": "tsc -p tsconfig.json --noEmit && vite build && tsc -p tsconfig.data.json",
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false && yarn typecheck:browser",
     "typecheck:browser": "tsc -p tsconfig.browser-tests.json --noEmit --pretty false",
     "test": "vitest run --config vitest.config.ts",

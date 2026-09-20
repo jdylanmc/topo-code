@@ -9,6 +9,7 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
 import { createGraphDocument, createPathNodeId } from "@topo/schema";
@@ -23,6 +24,7 @@ import {
 } from "./views.js";
 
 const execute = promisify(execFile);
+const entry = fileURLToPath(new URL("../dist/main.js", import.meta.url));
 const directories: string[] = [];
 
 async function temp(prefix: string): Promise<string> {
@@ -197,6 +199,35 @@ describe("static site bundle", () => {
     await expect(bundleSite(root, output)).rejects.toThrow(
       "logicalArchitecture",
     );
+    expect(await readFile(
+      join(first.siteDirectory, "explorer/data.json"),
+      "utf8",
+    )).toBe(working);
+  });
+
+  it("preserves a working bundle when architecture is malformed", async () => {
+    const root = await repository();
+    await writeCachedSite(root);
+    const output = join(await temp("topo-bundle-parent-"), "site");
+    const first = await bundleSite(root, output);
+    const working = await readFile(
+      join(first.siteDirectory, "explorer/data.json"),
+      "utf8",
+    );
+    const dataPath = join(root, ".topo/cache/site/data.json");
+    const malformed = JSON.parse(await readFile(dataPath, "utf8"));
+    await writeFile(
+      dataPath,
+      `${JSON.stringify({ ...malformed, architecture: {} })}\n`,
+    );
+
+    await expect(execute(
+      process.execPath,
+      [entry, "bundle", root, "--output", output],
+    )).rejects.toMatchObject({
+      code: 1,
+      stderr: expect.stringContaining("architecture.json"),
+    });
     expect(await readFile(
       join(first.siteDirectory, "explorer/data.json"),
       "utf8",
