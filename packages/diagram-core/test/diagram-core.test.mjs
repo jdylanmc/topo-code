@@ -34,6 +34,21 @@ test("exports a typed render boundary that returns an HTML artifact", () => {
   assert.equal(artifact.renderer.name, "@topo/diagram-core-placeholder");
   assert.match(artifact.contents, /Checkout architecture/);
   assert.match(artifact.contents, /"from":"client"/);
+  assert.doesNotMatch(artifact.contents, /\{\{/);
+});
+
+test("substitutes every placeholder and treats $ sequences literally", () => {
+  const artifact = render({
+    title: "A$'B $& $`C",
+    document: { note: "v$`w $& $'x" },
+  });
+
+  assert.doesNotMatch(artifact.contents, /\{\{/);
+  assert.equal(
+    artifact.contents.match(/A\$&#39;B \$&amp; \$`C/g)?.length,
+    2,
+  );
+  assert.match(artifact.contents, /"note":"v\$`w \$& \$'x"/);
 });
 
 test("accepts the committed integrity baseline", () => {
