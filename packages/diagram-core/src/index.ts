@@ -79,6 +79,7 @@ interface ArchifyWorkflow {
     readonly sublabel: string;
     readonly width: number;
     readonly height: number;
+    readonly yOffset: number;
   }[];
   readonly edges: readonly {
     readonly id: string;
@@ -353,6 +354,8 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
 
 function workflowSpec(story: ResolvedStoryDocument): ArchifyWorkflow {
   const laneId = "story-flow";
+  const columns = 2;
+  const rows = Math.ceil(story.document.sections.length / columns);
   const nodeIds = new Map(
     story.document.sections.map((section) => [
       section.id,
@@ -368,21 +371,26 @@ function workflowSpec(story: ResolvedStoryDocument): ArchifyWorkflow {
       locale: "en",
     },
     lanes: [{ id: laneId, label: story.document.title }],
-    nodes: story.document.sections.map((section, index) => ({
-      id: nodeIds.get(section.id)!,
-      lane: laneId,
-      col: index,
-      type: index === story.document.sections.length - 1
-        ? "frontend"
-        : "backend",
-      label: section.title,
-      sublabel: "",
-      width: Math.max(
-        128,
-        section.title.length * 7 + 24,
-      ),
-      height: 96,
-    })),
+    nodes: story.document.sections.map((section, index) => {
+      const row = Math.floor(index / columns);
+      const position = index % columns;
+      return {
+        id: nodeIds.get(section.id)!,
+        lane: laneId,
+        col: row % 2 === 0 ? position : columns - 1 - position,
+        type: index === story.document.sections.length - 1
+          ? "frontend"
+          : "backend",
+        label: section.title,
+        sublabel: "",
+        width: Math.max(
+          128,
+          section.title.length * 7 + 24,
+        ),
+        height: 96,
+        yOffset: (row - (rows - 1) / 2) * 120,
+      };
+    }),
     edges: story.document.connections.map((connection, index) => ({
       id: stableId(
         "edge",
@@ -550,14 +558,9 @@ function improveWorkflowReadability(contents: string): string {
     throw new Error("Archify Workflow output is missing its closing head element");
   }
   const style = `<style data-topo-workflow-readability>
-svg g[data-detail="context"][data-edge-from] > rect.c-mask {
-  transform: scaleY(1.4);
-  transform-box: fill-box;
-  transform-origin: center;
-}
 svg g[data-detail="context"][data-edge-from] > text {
   font-family: ui-sans-serif, system-ui, sans-serif;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 600;
 }
 </style>`;
