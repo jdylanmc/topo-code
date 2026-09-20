@@ -88,6 +88,12 @@ test("actual gallery story text remains readable at a desktop viewport", async (
 
   const { server, url } = await startTopoServer(repository, ["--port", "0"]);
   const clipped: { story: string; text: string }[] = [];
+  const outsideFrame: {
+    story: string;
+    text: string;
+    bounds: { left: number; right: number; top: number; bottom: number };
+    frame: { width: number; height: number };
+  }[] = [];
   try {
     for (const story of galleryStories) {
       await page.goto(`${url}/stories/${story.id}/`);
@@ -116,6 +122,18 @@ test("actual gallery story text remains readable at a desktop viewport", async (
               bounds.right <= svgBounds.right &&
               bounds.top >= svgBounds.top &&
               bounds.bottom <= svgBounds.bottom,
+            inFrame:
+              bounds.left >= 0 &&
+              bounds.right <= window.innerWidth &&
+              bounds.top >= 0 &&
+              bounds.bottom <= window.innerHeight,
+            bounds: {
+              left: bounds.left,
+              right: bounds.right,
+              top: bounds.top,
+              bottom: bounds.bottom,
+            },
+            frame: { width: window.innerWidth, height: window.innerHeight },
             text: value,
           }];
         })
@@ -125,6 +143,14 @@ test("actual gallery story text remains readable at a desktop viewport", async (
       clipped.push(...measurements
         .filter(({ contained }) => !contained)
         .map(({ text }) => ({ story: story.id, text })));
+      outsideFrame.push(...measurements
+        .filter(({ inFrame }) => !inFrame)
+        .map(({ bounds, frame, text }) => ({
+          story: story.id,
+          text,
+          bounds,
+          frame,
+        })));
       expect.soft(
         Math.min(...measurements.map(({ effectiveFontSize }) =>
           effectiveFontSize * iframeScale
@@ -133,6 +159,7 @@ test("actual gallery story text remains readable at a desktop viewport", async (
       ).toBeGreaterThanOrEqual(12);
     }
     expect(clipped).toEqual([]);
+    expect(outsideFrame).toEqual([]);
   } finally {
     await page.goto("about:blank");
     await stopTopoServer(server);
