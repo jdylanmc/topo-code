@@ -7,6 +7,8 @@ does not currently publish versioned releases.
 
 ### Added
 
+- Add wrapper-owned cross-story node navigation with durable focus and return
+  URLs while keeping pinned renderer artifacts unchanged. See #44.
 - Generate one configurable catalogue landing page from every committed story
   plus the retained repository explorer, including coherent empty repositories.
   See #43.

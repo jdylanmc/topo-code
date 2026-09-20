@@ -167,6 +167,10 @@ describe("generated catalogue", () => {
       .toContain("<title>Explorer</title>");
     expect(await readFile(join(root, ".topo/cache/site/stories/checkout/index.html"), "utf8"))
       .toContain("Checkout");
+    expect(await readFile(join(root, ".topo/cache/site/stories/checkout/index.html"), "utf8"))
+      .toContain('data-story-viewer');
+    expect(await readFile(join(root, ".topo/cache/site/stories/checkout/viewer.html"), "utf8"))
+      .toContain("Checkout");
   });
 
   it("rejects a committed story document that resolves through a symlink", async () => {

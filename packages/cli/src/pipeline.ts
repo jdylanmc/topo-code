@@ -79,7 +79,9 @@ async function copySite(
     "data.json",
     "index.html",
     "explorer/index.html",
+    "story-navigation.js",
     ...stories.map(({ document }) => `stories/${document.id}/index.html`),
+    ...stories.map(({ document }) => `stories/${document.id}/viewer.html`),
   ]);
   let explorerIndex: string | undefined;
   async function copy(relative: string) {

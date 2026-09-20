@@ -10,6 +10,14 @@ Stories may declare an optional nonempty `category`. Documents without one use
 the first directory below `stories/`, converted to a title, or `Stories` when
 stored directly in that directory.
 
+Each story opens in a generated wrapper around the pinned renderer artifact.
+Topo derives cross-story node links when sections in different stories cite the
+same path, symbol, and optional pattern. Selecting one of those links records the
+source node in the current history entry, opens the destination with
+`?focus=<section-id>`, and provides a durable return link to the surrounding
+story context. Reloading or opening that wrapper URL directly restores the
+selected node and passes the same focus to the embedded same-origin viewer.
+
 ## Configuration walkthrough
 
 Add only the desired overrides to the authored `.topo/config.json`:

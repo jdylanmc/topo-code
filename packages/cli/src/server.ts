@@ -110,7 +110,6 @@ export async function serveSite(root: string, port = 4173): Promise<{ server: Se
       response.setHeader("X-Content-Type-Options", "nosniff");
       response.setHeader("Referrer-Policy", "no-referrer");
       response.setHeader("Cache-Control", "no-store");
-      response.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; frame-ancestors 'none'; base-uri 'none'");
       const address = server.address();
       const expectedHost = address && typeof address !== "string" ? `127.0.0.1:${address.port}` : "";
       if (!expectedHost || request.headers.host !== expectedHost) {
@@ -124,6 +123,10 @@ export async function serveSite(root: string, port = 4173): Promise<{ server: Se
         if (!(error instanceof URIError || error instanceof TypeError)) throw error;
         throw new HttpError(400, "Invalid request path");
       }
+      const frameAncestors = /^\/stories\/[^/]+\/viewer\.html$/.test(pathname)
+        ? "'self'"
+        : "'none'";
+      response.setHeader("Content-Security-Policy", `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; frame-ancestors ${frameAncestors}; base-uri 'none'`);
 
       if (
         request.method === "POST" &&
