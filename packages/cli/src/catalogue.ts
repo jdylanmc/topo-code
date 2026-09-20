@@ -419,7 +419,7 @@ export function renderStoryWrapper(
     <style>
       :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
       * { box-sizing: border-box; }
-      body { margin: 0; background: #09111f; color: #e5edf7; }
+      body { margin: 0; overflow: hidden; background: #09111f; color: #e5edf7; }
       header { display: grid; gap: 0.65rem; padding: 1rem 1.25rem; border-bottom: 1px solid #29364a; }
       h1, h2, p { margin: 0; }
       .classification { color: #a9b7ca; font-size: 0.9rem; font-weight: 600; }
@@ -427,27 +427,27 @@ export function renderStoryWrapper(
       a { color: #7dd3fc; }
       [data-node-id][aria-current="true"] { color: white; font-weight: bold; }
       li { display: grid; gap: 0.35rem; padding: 0.65rem; background: #111c2e; border-radius: 0.5rem; }
-      .story-shell { display: grid; grid-template-columns: minmax(14rem, 20rem) 1fr; min-height: calc(100vh - 11rem); }
-      aside { padding: 1rem; border-right: 1px solid #29364a; }
-      iframe { width: 100%; min-height: calc(100vh - 11rem); border: 0; background: white; }
-      @media (max-width: 70rem) {
-        .story-shell { grid-template-columns: 1fr; }
-        aside { border-right: 0; border-bottom: 1px solid #29364a; }
-      }
+      .story-controls { position: fixed; z-index: 1; top: 0.75rem; left: 0.75rem; max-width: calc(100vw - 1.5rem); max-height: calc(100vh - 1.5rem); overflow: auto; border: 1px solid #475569; border-radius: 0.5rem; background: #09111f; box-shadow: 0 0.5rem 1.5rem #020617cc; }
+      .story-controls[open] { width: min(30rem, calc(100vw - 1.5rem)); }
+      summary { padding: 0.65rem 0.85rem; color: #7dd3fc; cursor: pointer; font-weight: 700; }
+      .story-controls[open] summary { border-bottom: 1px solid #29364a; }
+      aside { padding: 1rem 1.25rem; }
+      iframe { display: block; width: 100vw; height: 100vh; border: 0; background: white; }
     </style>
   </head>
   <body data-story-id="${escapeHtml(story.document.id)}" data-story-classification="${classification}">
-    <header>
-      <nav aria-label="Architecture stories"><a href="../../">All stories</a>${storyNavigation}</nav>
-      <h1>${escapeHtml(story.document.title)}</h1>
-      <p class="classification">${classificationLabel}</p>
-      <p>${escapeHtml(story.document.summary)}</p>
-      <a data-return hidden></a>
-    </header>
-    <main class="story-shell">
+    <iframe data-story-viewer title="${escapeHtml(story.document.title)} rendered story" src="viewer.html"></iframe>
+    <details class="story-controls">
+      <summary>Story navigation and details</summary>
+      <header>
+        <nav aria-label="Architecture stories"><a href="../../">All stories</a>${storyNavigation}</nav>
+        <h1>${escapeHtml(story.document.title)}</h1>
+        <p class="classification">${classificationLabel}</p>
+        <p>${escapeHtml(story.document.summary)}</p>
+        <a data-return hidden></a>
+      </header>
       <aside aria-label="Story nodes"><h2>Story nodes</h2><ul>${nodes}</ul></aside>
-      <iframe data-story-viewer title="${escapeHtml(story.document.title)} rendered story" src="viewer.html"></iframe>
-    </main>
+    </details>
     <script src="../../story-navigation.js"></script>
   </body>
 </html>
