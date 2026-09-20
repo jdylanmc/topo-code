@@ -32,6 +32,8 @@ export function render(input: RenderInput): Artifact {
   const document = JSON.stringify(input.document).replaceAll("<", "\\u003c");
   const title = escapeHtml(input.title);
 
+  const title = escapeHtml(input.title);
+
   return {
     kind: "html",
     mediaType: "text/html",
