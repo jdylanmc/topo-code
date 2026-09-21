@@ -259,10 +259,12 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
   const boxWidth = Math.max(280, ...resolved.map((entry) => entry.width));
   const boxHeight = 130;
   const relationshipLabelWidth = (label: string) =>
-    Array.from(label).reduce(
-      (total, character) => total + (character.codePointAt(0)! > 0xff ? 2 : 1),
-      0,
-    ) * 21 * 0.6 + 10;
+    Math.ceil(
+      Array.from(label).reduce(
+        (total, character) => total + (character.codePointAt(0)! > 0xff ? 2 : 1),
+        0,
+      ) * 21 * 0.6 + 10,
+    );
   const columnGap = Math.max(
     90,
     ...story.document.connections.flatMap((connection) =>

@@ -165,10 +165,13 @@ it("allows only generated story viewers to be embedded by the same origin", asyn
   expect(viewerPolicy).toContain("frame-ancestors 'self'");
   expect(viewerPolicy).toContain(`'sha256-${scriptHash}'`);
   expect(viewerPolicy).toContain("font-src 'self' data:");
+  expect(viewerPolicy).toContain("img-src 'self' data: blob:");
   expect((await fetch(`${url}/stories/example/`)).headers.get("content-security-policy"))
     .toContain("frame-ancestors 'none'");
   expect((await fetch(`${url}/stories/example/`)).headers.get("content-security-policy"))
     .not.toContain("font-src 'self' data:");
+  expect((await fetch(`${url}/stories/example/`)).headers.get("content-security-policy"))
+    .not.toContain("img-src 'self' data: blob:");
 });
 it("rejects missing sites and invalid ports rather than starting an empty server", async () => {
   const { root } = await setup();

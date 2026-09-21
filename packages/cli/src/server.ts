@@ -75,7 +75,7 @@ function contentSecurityPolicy(
     "default-src 'self'",
     `script-src ${scriptSources}`,
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data:",
+    `img-src 'self' data:${storyViewer ? " blob:" : ""}`,
     ...(storyViewer ? ["font-src 'self' data:"] : []),
     "connect-src 'self'",
     "worker-src 'self' blob:",
