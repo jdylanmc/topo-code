@@ -1,0 +1,133 @@
+{
+  "schemaVersion": "1.0",
+  "diagramFamily": "sequence",
+  "classification": "source-grounded",
+  "id": "story-preview-sequence",
+  "title": "How Topocode previews a committed story",
+  "summary": "Follow the factual story-preview request path from the CLI through committed story loading, validation, source resolution, native rendering, stale-source protection, and generated artifact writes.",
+  "category": "Topocode internals",
+  "anchors": [
+    {
+      "id": "cli-preview",
+      "path": "packages/cli/src/main.ts",
+      "symbol": "runCli",
+      "pattern": "if (command === \"preview\" || command === \"story-preview\")"
+    },
+    {
+      "id": "committed-story",
+      "path": "packages/cli/src/catalogue.ts",
+      "symbol": "readCommittedStory"
+    },
+    {
+      "id": "parse-story",
+      "path": "packages/story/src/index.ts",
+      "symbol": "parseStoryDocument"
+    },
+    {
+      "id": "resolve-story",
+      "path": "packages/story/src/index.ts",
+      "symbol": "resolveStoryDocument"
+    },
+    {
+      "id": "snapshot",
+      "path": "packages/cli/src/source-snapshot.ts",
+      "symbol": "captureSourceSnapshot"
+    },
+    {
+      "id": "render",
+      "path": "packages/diagram-core/src/index.ts",
+      "symbol": "renderStory"
+    },
+    {
+      "id": "stale-guard",
+      "path": "packages/cli/src/catalogue.ts",
+      "symbol": "assertCatalogueCurrent"
+    },
+    {
+      "id": "write-catalogue",
+      "path": "packages/cli/src/catalogue.ts",
+      "symbol": "writeBuiltCatalogue"
+    },
+    {
+      "id": "write-artifact",
+      "path": "packages/workspace/src/index.ts",
+      "symbol": "writeGenerated"
+    }
+  ],
+  "sections": [
+    {
+      "id": "cli-request",
+      "title": "CLI request",
+      "body": "The story preview command checks the built site, requests the committed catalogue, and later selects the requested story.",
+      "anchorIds": ["cli-preview"]
+    },
+    {
+      "id": "committed-story-read",
+      "title": "Committed story",
+      "body": "Catalogue construction enumerates tracked story documents, rejects working-tree changes, and reads each document from HEAD.",
+      "anchorIds": ["committed-story"]
+    },
+    {
+      "id": "parse-validation",
+      "title": "Story contract",
+      "body": "The committed JSON is parsed against the authored story contract before its declared anchors are resolved.",
+      "anchorIds": ["parse-story", "resolve-story"]
+    },
+    {
+      "id": "source-snapshot",
+      "title": "Source evidence",
+      "body": "A stable snapshot captures every declared source path and supplies the contents used to resolve source anchors.",
+      "anchorIds": ["snapshot", "resolve-story"]
+    },
+    {
+      "id": "native-render",
+      "title": "Diagram core",
+      "body": "The resolved Sequence story renders through the pinned native Archify boundary exposed by @topo/diagram-core.",
+      "anchorIds": ["render"]
+    },
+    {
+      "id": "stale-guard",
+      "title": "Stale guard",
+      "body": "Before publication, the catalogue verifies that captured source and repository state still match the rendered evidence.",
+      "anchorIds": ["stale-guard"]
+    },
+    {
+      "id": "artifact-write",
+      "title": "Artifact writer",
+      "body": "The current catalogue writes generated wrappers and native viewer artifacts into the workspace site.",
+      "anchorIds": ["write-catalogue", "write-artifact"]
+    }
+  ],
+  "connections": [
+    {
+      "from": "cli-request",
+      "to": "committed-story-read",
+      "label": "build committed catalogue"
+    },
+    {
+      "from": "committed-story-read",
+      "to": "parse-validation",
+      "label": "parse committed JSON"
+    },
+    {
+      "from": "parse-validation",
+      "to": "source-snapshot",
+      "label": "resolve declared anchors"
+    },
+    {
+      "from": "source-snapshot",
+      "to": "native-render",
+      "label": "render resolved evidence"
+    },
+    {
+      "from": "native-render",
+      "to": "stale-guard",
+      "label": "verify source is current"
+    },
+    {
+      "from": "stale-guard",
+      "to": "artifact-write",
+      "label": "write generated site"
+    }
+  ]
+}
