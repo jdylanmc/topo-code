@@ -34,4 +34,26 @@ describe("Dataflow story catalogue", () => {
       'data-composition-frame-kind="stage"',
     );
   });
+
+  it("renders a separate non-source-grounded native Dataflow capability demo", async () => {
+    const stories = await buildCatalogueStories(repositoryRoot);
+    const story = stories.find(({ document }) =>
+      document.id === "dataflow-capability"
+    );
+
+    expect(story).toBeDefined();
+    expect(story?.document.diagramFamily).toBe("dataflow");
+    expect(story?.document.classification).toBe("capability-demo");
+    expect(story?.document.anchors).toEqual([]);
+    expect(story?.document.sections.every(
+      ({ anchorIds }) => anchorIds.length === 0,
+    )).toBe(true);
+    expect(story?.document.connections.length).toBeGreaterThan(0);
+    expect(story?.document.connections.every(
+      ({ label }) => typeof label === "string" && label.length > 0,
+    )).toBe(true);
+    expect(story?.contents).toContain(
+      'data-composition-frame-kind="stage"',
+    );
+  });
 });
