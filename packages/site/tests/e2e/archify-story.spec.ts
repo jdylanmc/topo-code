@@ -83,7 +83,6 @@ test("actual gallery story text remains readable at a desktop viewport", async (
   page,
   repository,
 }) => {
-  await page.setViewportSize({ width: 1024, height: 768 });
   await writeActualGalleryFixture(repository);
 
   const { server, url } = await startTopoServer(repository, ["--port", "0"]);
@@ -102,7 +101,12 @@ test("actual gallery story text remains readable at a desktop viewport", async (
     viewport: { width: number; height: number };
   }[] = [];
   try {
-    for (const story of galleryStories) {
+    for (const viewport of [
+      { width: 1024, height: 768 },
+      { width: 1280, height: 720 },
+    ]) {
+      await page.setViewportSize(viewport);
+      for (const story of galleryStories) {
       await page.goto(`${url}/stories/${story.id}/`);
       const viewer = page.frameLocator("[data-story-viewer]");
       const diagram = viewer.locator('svg[role="img"]');
@@ -202,8 +206,9 @@ test("actual gallery story text remains readable at a desktop viewport", async (
         Math.min(...measurements.map(({ effectiveFontSize }) =>
           effectiveFontSize * iframeScale
         )),
-        story.id,
+        `${story.id} at ${viewport.width}x${viewport.height}`,
       ).toBeGreaterThanOrEqual(12);
+      }
     }
     expect(clipped).toEqual([]);
     expect.soft(outsideFrame).toEqual([]);
