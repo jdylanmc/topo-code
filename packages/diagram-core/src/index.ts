@@ -58,7 +58,9 @@ interface ArchifyArchitecture {
     readonly from: string;
     readonly to: string;
     readonly label?: string;
+    readonly labelDx?: number;
     readonly labelDy?: number;
+    readonly labelSegment?: number;
     readonly fromSide?: "left" | "right" | "top" | "bottom";
     readonly toSide?: "left" | "right" | "top" | "bottom";
     readonly via?: readonly (readonly [number, number])[];
@@ -94,6 +96,8 @@ interface ArchifyWorkflow {
     readonly from: string;
     readonly to: string;
     readonly label?: string;
+    readonly labelDx?: number;
+    readonly labelDy?: number;
     readonly role: "main";
   }[];
 }
@@ -254,7 +258,19 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
   const perRow = Math.min(2, Math.max(1, sections.length));
   const boxWidth = Math.max(280, ...resolved.map((entry) => entry.width));
   const boxHeight = 130;
-  const columnGap = 90;
+  const relationshipLabelWidth = (label: string) =>
+    Array.from(label).reduce(
+      (total, character) => total + (character.codePointAt(0)! > 0xff ? 2 : 1),
+      0,
+    ) * 21 * 0.6 + 10;
+  const columnGap = Math.max(
+    90,
+    ...story.document.connections.flatMap((connection) =>
+      connection.label === undefined
+        ? []
+        : [relationshipLabelWidth(connection.label) + 24]
+    ),
+  );
   const rowGap = 80;
   const margin = 80;
   const cellOf = (index: number) => {
@@ -344,7 +360,14 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
         const vertical = deltaRow !== 0;
         return {
           ...base,
-          labelDy: 24,
+          ...(vertical
+            ? {
+                labelDx: (from.column === 0 ? 1 : -1) *
+                  (boxWidth / 2 + columnGap / 2),
+              }
+            : {
+                labelDy: boxHeight / 2 + rowGap / 2,
+              }),
           fromSide: vertical
             ? (deltaRow > 0 ? "bottom" as const : "top" as const)
             : (deltaColumn > 0 ? "right" as const : "left" as const),
@@ -361,6 +384,7 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
         fromSide: "bottom" as const,
         toSide: "bottom" as const,
         via: [[fromX, lane], [toX, lane]] as const,
+        labelSegment: 1,
       };
     }),
   };
@@ -370,6 +394,14 @@ function workflowSpec(story: ResolvedStoryDocument): ArchifyWorkflow {
   const laneId = "story-flow";
   const columns = 2;
   const rows = Math.ceil(story.document.sections.length / columns);
+  const cellOf = (index: number) => {
+    const row = Math.floor(index / columns);
+    const position = index % columns;
+    return {
+      row,
+      col: row % 2 === 0 ? position : columns - 1 - position,
+    };
+  };
   const nodeIds = new Map(
     story.document.sections.map((section) => [
       section.id,
@@ -387,12 +419,11 @@ function workflowSpec(story: ResolvedStoryDocument): ArchifyWorkflow {
     },
     lanes: [{ id: laneId, label: story.document.title }],
     nodes: story.document.sections.map((section, index) => {
-      const row = Math.floor(index / columns);
-      const position = index % columns;
+      const { row, col } = cellOf(index);
       return {
         id: nodeIds.get(section.id)!,
         lane: laneId,
-        col: row % 2 === 0 ? position : columns - 1 - position,
+        col,
         type: index === story.document.sections.length - 1
           ? "frontend"
           : "backend",
@@ -403,19 +434,32 @@ function workflowSpec(story: ResolvedStoryDocument): ArchifyWorkflow {
           section.title.length * 7 + 24,
         ),
         height: 96,
-        yOffset: (row - (rows - 1) / 2) * 120,
+        yOffset: (row - (rows - 1) / 2) * 160,
       };
     }),
-    edges: story.document.connections.map((connection, index) => ({
-      id: stableId(
-        "edge",
-        `${index}\0${connection.from}\0${connection.to}`,
-      ),
-      from: nodeIds.get(connection.from)!,
-      to: nodeIds.get(connection.to)!,
-      ...(connection.label === undefined ? {} : { label: connection.label }),
-      role: "main",
-    })),
+    edges: story.document.connections.map((connection, index) => {
+      const fromIndex = story.document.sections.findIndex(
+        (section) => section.id === connection.from,
+      );
+      const toIndex = story.document.sections.findIndex(
+        (section) => section.id === connection.to,
+      );
+      const from = cellOf(fromIndex);
+      const to = cellOf(toIndex);
+      return {
+        id: stableId(
+          "edge",
+          `${index}\0${connection.from}\0${connection.to}`,
+        ),
+        from: nodeIds.get(connection.from)!,
+        to: nodeIds.get(connection.to)!,
+        ...(connection.label === undefined ? {} : { label: connection.label }),
+        ...(from.col === to.col
+          ? { labelDx: from.col === 0 ? -180 : 180 }
+          : { labelDy: 72 }),
+        role: "main",
+      };
+    }),
   };
 }
 
