@@ -124,6 +124,7 @@ interface ArchifySequence {
     readonly to: string;
     readonly y: number;
     readonly label: string;
+    readonly variant?: "return";
   }[];
 }
 
@@ -512,6 +513,9 @@ function sequenceSpec(story: ResolvedStoryDocument): ArchifySequence {
       to: participantIds.get(connection.to)!,
       y: 180 + index * 90,
       label: requiredConnectionLabel(connection, "sequence"),
+      ...(connection.variant === undefined
+        ? {}
+        : { variant: connection.variant }),
     })),
   };
 }

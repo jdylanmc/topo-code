@@ -62,7 +62,8 @@
         "properties": {
           "from": { "type": "string", "minLength": 1 },
           "to": { "type": "string", "minLength": 1 },
-          "label": { "type": "string", "minLength": 1 }
+          "label": { "type": "string", "minLength": 1 },
+          "variant": { "const": "return" }
         }
       }
     }
@@ -112,6 +113,29 @@
               }
             }
           }
+        }
+      },
+      {
+        "if": {
+          "properties": {
+            "connections": {
+              "type": "array",
+              "contains": {
+                "type": "object",
+                "properties": {
+                  "variant": { "const": "return" }
+                },
+                "required": ["variant"]
+              }
+            }
+          },
+          "required": ["connections"]
+        },
+        "then": {
+          "properties": {
+            "diagramFamily": { "const": "sequence" }
+          },
+          "required": ["diagramFamily"]
         }
       }
   ]
