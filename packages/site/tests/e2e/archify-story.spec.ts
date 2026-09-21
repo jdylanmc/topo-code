@@ -222,7 +222,7 @@ test("actual gallery story text remains readable at a desktop viewport", async (
   }
 });
 
-test("actual Architecture SVG export preserves authored labels", async ({
+test("actual Architecture exports preserve canonical geometry and labels", async ({
   page,
   repository,
 }) => {
@@ -262,8 +262,84 @@ test("actual Architecture SVG export preserves authored labels", async ({
     for (const label of authoredLabels) {
       expect(exportedSvg, `SVG export: ${label}`).toContain(label);
     }
+
+    const exportedPage = await page.context().newPage();
+    let svgDimensions: { width: number; height: number } | undefined;
+    try {
+      await exportedPage.setContent(exportedSvg);
+      const exportedDiagram = exportedPage.locator("svg");
+      await expect(exportedDiagram).toBeVisible();
+      svgDimensions = await exportedDiagram.evaluate((svg) => ({
+        width: Number(svg.getAttribute("width")),
+        height: Number(svg.getAttribute("height")),
+      }));
+      await expect(exportedDiagram.locator("g[data-node-id]"))
+        .toHaveCount(document.sections.length);
+      await expect(exportedDiagram.locator("g[data-edge-from]"))
+        .toHaveCount(document.connections.length);
+      const collisions = await exportedDiagram.evaluate((svg) => {
+        const nodes = [...svg.querySelectorAll<SVGGraphicsElement>(
+          "g[data-node-id] > rect:not(.c-mask)",
+        )].map((element) => element.getBoundingClientRect());
+        return [...svg.querySelectorAll<SVGGraphicsElement>(
+          "g[data-edge-from] > text",
+        )].flatMap((label) => {
+          const bounds = label.getBoundingClientRect();
+          return nodes.flatMap((node) => {
+            const width = Math.max(
+              0,
+              Math.min(bounds.right, node.right) -
+                Math.max(bounds.left, node.left),
+            );
+            const height = Math.max(
+              0,
+              Math.min(bounds.bottom, node.bottom) -
+                Math.max(bounds.top, node.top),
+            );
+            return width > 0 && height > 0 ? [{ width, height }] : [];
+          });
+        });
+      });
+      expect(collisions).toEqual([]);
+    } finally {
+      await exportedPage.close();
+    }
+
+    expect(svgDimensions?.width).toBeGreaterThan(0);
+    expect(svgDimensions?.height).toBeGreaterThan(0);
+    await viewer.getByRole("button", { name: "Export diagram" }).click();
+    const pngDownloadEvent = page.waitForEvent("download", { timeout: 30_000 });
+    const pngFailure = viewer
+      .locator('html[data-last-export-error-format="png"]')
+      .waitFor({ state: "attached", timeout: 30_000 })
+      .then(async () => {
+        const receipt = await viewer.locator("html").evaluate((html) => ({
+          format: html.getAttribute("data-last-export-format"),
+          canonical: html.getAttribute("data-last-export-canonical"),
+          exportError: html.getAttribute("data-last-export-error"),
+          exportErrorFormat: html.getAttribute("data-last-export-error-format"),
+        }));
+        throw new Error(`PNG export failed; receipt ${JSON.stringify(receipt)}`);
+      });
+    await viewer.locator('button[data-format="png"]').click();
+    const pngDownload = await Promise.race([pngDownloadEvent, pngFailure]);
+    const pngPath = await pngDownload.path();
+    expect(pngPath).not.toBeNull();
+    const png = await readFile(pngPath!);
+    expect(png.subarray(1, 4).toString("ascii")).toBe("PNG");
+    const pngWidth = png.readUInt32BE(16);
+    const pngHeight = png.readUInt32BE(20);
+    const svgWidth = svgDimensions!.width;
+    const svgHeight = svgDimensions!.height;
+    expect(pngWidth / svgWidth).toBe(pngHeight / svgHeight);
+    expect(pngWidth).toBeGreaterThanOrEqual(svgWidth);
+    await expect(viewer.locator("html"))
+      .toHaveAttribute("data-last-export-format", "png");
+    await expect(viewer.locator("html"))
+      .toHaveAttribute("data-last-export-canonical", "true");
+
   } finally {
-    await page.goto("about:blank");
+    if (!page.isClosed()) await page.goto("about:blank");
     await stopTopoServer(server);
   }
 });
