@@ -260,7 +260,7 @@ test("actual Architecture SVG export preserves authored labels", async ({
   }
 });
 
-test("actual story details remain usable without obscuring authored content", async ({
+test("actual story details restore unobscured authored content", async ({
   page,
   repository,
 }) => {
@@ -272,12 +272,6 @@ test("actual story details remain usable without obscuring authored content", as
     await page.goto(`${url}/stories/topo-architecture/`);
     const controls = page.locator("details.story-controls");
     const summary = controls.locator("summary");
-    await summary.focus();
-    await page.keyboard.press("Enter");
-    await expect(controls).toHaveAttribute("open", "");
-
-    const controlsBounds = await controls.boundingBox();
-    expect(controlsBounds).not.toBeNull();
     const authoredTitles = [
       "1. Scan source into a graph",
       "2. Generate site artifacts",
@@ -287,30 +281,36 @@ test("actual story details remain usable without obscuring authored content", as
       "6. Browse the story catalogue",
       "7. Bundle for static hosting",
     ];
-    const diagram = page.frameLocator("[data-story-viewer]")
-      .locator('svg[role="img"]');
-    const overlaps: {
-      title: string;
-      titleBounds: { x: number; y: number; width: number; height: number };
-      controlsBounds: { x: number; y: number; width: number; height: number };
-    }[] = [];
-    for (const title of authoredTitles) {
-      const titleBounds = await diagram.locator("text", { hasText: title })
-        .first()
-        .boundingBox();
-      expect(titleBounds, title).not.toBeNull();
-      if (
-        titleBounds &&
-        controlsBounds &&
-        Math.min(titleBounds.x + titleBounds.width, controlsBounds.x + controlsBounds.width) >
-          Math.max(titleBounds.x, controlsBounds.x) &&
-        Math.min(titleBounds.y + titleBounds.height, controlsBounds.y + controlsBounds.height) >
-          Math.max(titleBounds.y, controlsBounds.y)
-      ) {
-        overlaps.push({ title, titleBounds, controlsBounds });
+    const overlappingTitles = async () => {
+      const controlsBounds = await controls.boundingBox();
+      expect(controlsBounds).not.toBeNull();
+      const diagram = page.frameLocator("[data-story-viewer]")
+        .locator('svg[role="img"]');
+      const overlaps: string[] = [];
+      for (const title of authoredTitles) {
+        const titleBounds = await diagram.locator("text", { hasText: title })
+          .first()
+          .boundingBox();
+        expect(titleBounds, title).not.toBeNull();
+        if (
+          titleBounds &&
+          controlsBounds &&
+          Math.min(titleBounds.x + titleBounds.width, controlsBounds.x + controlsBounds.width) >
+            Math.max(titleBounds.x, controlsBounds.x) &&
+          Math.min(titleBounds.y + titleBounds.height, controlsBounds.y + controlsBounds.height) >
+            Math.max(titleBounds.y, controlsBounds.y)
+        ) {
+          overlaps.push(title);
+        }
       }
-    }
-    expect.soft(overlaps).toEqual([]);
+      return overlaps;
+    };
+    await expect(controls).not.toHaveAttribute("open", "");
+    expect(await overlappingTitles()).toEqual([]);
+
+    await summary.focus();
+    await page.keyboard.press("Enter");
+    await expect(controls).toHaveAttribute("open", "");
 
     const scanLink = page.locator('[data-node-id="scan"]');
     await scanLink.focus();
@@ -323,9 +323,12 @@ test("actual story details remain usable without obscuring authored content", as
         { exact: true },
       ),
     ).toBeVisible();
+    expect(await overlappingTitles()).toEqual([]);
 
     await page.goBack();
     await expect(page).toHaveURL(`${url}/stories/topo-architecture/`);
+    await expect(controls).not.toHaveAttribute("open", "");
+    expect(await overlappingTitles()).toEqual([]);
     await page.goto(`${url}/stories/topo-architecture/?focus=bundle`);
     await expect(
       page.frameLocator("[data-story-viewer]").getByText(
@@ -333,6 +336,8 @@ test("actual story details remain usable without obscuring authored content", as
         { exact: true },
       ),
     ).toBeVisible();
+    await expect(controls).not.toHaveAttribute("open", "");
+    expect(await overlappingTitles()).toEqual([]);
   } finally {
     await page.goto("about:blank");
     await stopTopoServer(server);
