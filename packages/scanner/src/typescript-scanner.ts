@@ -519,10 +519,13 @@ function resolveGeneratedOutput(
       mapping.outputDirectory,
       resolvedFileName,
     );
-    const source = resolveSourceCandidate(
-      [path.join(mapping.rootDirectory, relativeOutputPath)],
-      sourceByAbsolutePath,
-    );
+    const sourcePath = path.join(mapping.rootDirectory, relativeOutputPath);
+    const source =
+      relativeOutputPath.endsWith(".mjs")
+        ? sourceByAbsolutePath.get(sourcePath.replace(/\.mjs$/u, ".mts"))
+        : relativeOutputPath.endsWith(".cjs")
+          ? sourceByAbsolutePath.get(sourcePath.replace(/\.cjs$/u, ".cts"))
+          : resolveSourceCandidate([sourcePath], sourceByAbsolutePath);
     if (source !== undefined) {
       matches.set(source.absolutePath, {
         source,
