@@ -576,9 +576,11 @@ function resolveCompilerSelectedSource(
     canonicalRoot,
     resolvedFileName,
   );
-  const source = resolveSourceCandidate(candidates, sourceByAbsolutePath);
-  if (source !== undefined) {
-    return { kind: "resolved", source };
+  for (const candidate of candidates) {
+    const source = sourceByAbsolutePath.get(candidate);
+    if (source !== undefined) {
+      return { kind: "resolved", source };
+    }
   }
   for (const candidate of candidates) {
     if (!isWithin(root, candidate)) {
@@ -594,6 +596,40 @@ function resolveCompilerSelectedSource(
     }
   }
   return { kind: "none" };
+}
+
+function canonicalPath(fileName: string): string {
+  const resolved = path.resolve(fileName);
+  const canonical = ts.sys.realpath?.(resolved) ?? resolved;
+  return ts.sys.useCaseSensitiveFileNames
+    ? canonical
+    : canonical.toLowerCase();
+}
+
+function physicalWorkspacePackageState(
+  workspace: WorkspacePackage,
+  containingFile: string,
+): "absent" | "workspace" | "other" {
+  const packageSegments = workspace.name.split("/");
+  let directory = path.dirname(containingFile);
+  while (true) {
+    const packageDirectory = path.join(
+      directory,
+      "node_modules",
+      ...packageSegments,
+    );
+    if (ts.sys.fileExists(path.join(packageDirectory, "package.json"))) {
+      return canonicalPath(packageDirectory) ===
+        canonicalPath(workspace.directory)
+        ? "workspace"
+        : "other";
+    }
+    const parent = path.dirname(directory);
+    if (parent === directory) {
+      return "absent";
+    }
+    directory = parent;
+  }
 }
 
 function createWorkspaceModuleResolutionHost(
@@ -1050,12 +1086,17 @@ export async function scanRepository(
               ? ""
               : specifier.slice(workspace.name.length + 1);
           const exportedSubpath =
-            suffix.length > 0 &&
-            hasExactWorkspaceExport(
-              workspace.manifest.exports,
-              `./${suffix}`,
-            );
-          if (exportedSubpath) {
+            suffix.length === 0
+              ? workspace.manifest.exports !== undefined
+              : hasExactWorkspaceExport(
+                  workspace.manifest.exports,
+                  `./${suffix}`,
+                );
+          const physicalPackage = physicalWorkspacePackageState(
+            workspace,
+            source.absolutePath,
+          );
+          if (exportedSubpath && physicalPackage !== "other") {
             const virtualResolved = resolveWorkspaceModuleName(
               options.root,
               canonicalRoot,
