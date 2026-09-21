@@ -184,7 +184,7 @@ test("Sequence stories remain readable in a plain-server bundle", async ({
     await expect(page.locator("details")).not.toHaveAttribute("open", "");
     await expect(
       page.frameLocator("[data-story-viewer]")
-        .locator('[data-node-id="native-render"]'),
+        .locator('svg g[data-node-id="native-render"]'),
     ).toBeVisible();
   } finally {
     await page.goto("about:blank");
