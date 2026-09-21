@@ -42,54 +42,43 @@
     {
       "id": "repository-source",
       "title": "Repository source",
-      "body": "The scanner walks the repository root to collect the files that provide source evidence.",
+      "body": "Repository files.",
       "anchorIds": ["scan-source"]
     },
     {
-      "id": "scanned-graph",
-      "title": "Scanned graph",
-      "body": "Scanning returns the repository graph together with its logical architecture, diagnostics, metrics, and authority result.",
-      "anchorIds": ["emit-graph"]
-    },
-    {
-      "id": "composed-graph",
-      "title": "Composed graph",
-      "body": "Artifact generation applies the configured modules to the scanned graph before deriving downstream artifacts.",
-      "anchorIds": ["compose-graph"]
+      "id": "scan-compose",
+      "title": "Scan and compose",
+      "body": "Composed graph.",
+      "anchorIds": ["emit-graph", "compose-graph"]
     },
     {
       "id": "site-artifacts",
-      "title": "Layout and site artifacts",
-      "body": "The composed graph is transformed into architecture and layout data, then serialized with the generated site payload.",
+      "title": "Generated artifacts",
+      "body": "Graph, layout, and site.",
       "anchorIds": ["generate-site"]
     },
     {
       "id": "static-bundle",
       "title": "Static site bundle",
-      "body": "After bundle validation, the generated site directory is copied into a staged output for static hosting.",
+      "body": "Validated static files.",
       "anchorIds": ["bundle-site"]
     }
   ],
   "connections": [
     {
       "from": "repository-source",
-      "to": "scanned-graph",
-      "label": "walks files into a graph"
+      "to": "scan-compose",
+      "label": "scans and composes"
     },
     {
-      "from": "scanned-graph",
-      "to": "composed-graph",
-      "label": "applies configured modules"
-    },
-    {
-      "from": "composed-graph",
+      "from": "scan-compose",
       "to": "site-artifacts",
-      "label": "derives layout and site data"
+      "label": "derives artifacts"
     },
     {
       "from": "site-artifacts",
       "to": "static-bundle",
-      "label": "validates and copies generated files"
+      "label": "copies static files"
     }
   ]
 }
