@@ -11,9 +11,10 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
-import type {
-  ResolvedStoryDocument,
-  StoryRenderer,
+import {
+  parseStoryDocument,
+  type ResolvedStoryDocument,
+  type StoryRenderer,
 } from "@topo/story";
 import { initializeWorkspace, writeGenerated } from "@topo/workspace";
 import { serveSite } from "./server.js";
@@ -293,6 +294,47 @@ describe("story preview", () => {
     expect(contents).toContain(
       "This valid authored lifecycle state title is long",
     );
+  });
+
+  it("renders a three-state lifecycle after a descriptive state title", async () => {
+    const document = JSON.parse(familyStory("lifecycle")) as {
+      sections: {
+        id: string;
+        title: string;
+        body: string;
+        anchorIds: string[];
+      }[];
+      connections: {
+        from: string;
+        to: string;
+        label: string;
+      }[];
+    };
+    document.sections[0]!.title =
+      "This valid authored lifecycle state title is long";
+    document.sections.splice(1, 0, {
+      id: "review",
+      title: "Review",
+      body: "Review the accepted request.",
+      anchorIds: ["submit"],
+    });
+    document.connections = [
+      { from: "request", to: "review", label: "next" },
+      { from: "review", to: "charge", label: "complete" },
+    ];
+    expect(parseStoryDocument(JSON.stringify(document)).sections).toHaveLength(3);
+    const { root, documentPath } = await fixture(
+      `${JSON.stringify(document, null, 2)}\n`,
+    );
+
+    const result = await previewStory(root, documentPath);
+    const contents = await readFile(result.outputPath, "utf8");
+
+    expect(contents).toContain(
+      "This valid authored lifecycle state title is long",
+    );
+    expect(contents).toContain("Review");
+    expect(contents).toContain("Charge payment");
   });
 
   it("previews an explicitly non-source-grounded capability demo", async () => {
