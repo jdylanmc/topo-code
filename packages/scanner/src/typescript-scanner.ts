@@ -1028,6 +1028,21 @@ export async function scanRepository(
               specifier,
             });
             continue;
+          } else if (
+            resolved.resolvedFileName
+              .split(path.sep)
+              .includes("node_modules") ||
+            !isWithin(options.root, resolved.resolvedFileName)
+          ) {
+            const locator = externalLocator(specifier);
+            targetId = createExternalNodeId(locator);
+            externalImportCount += 1;
+            nodes.set(targetId, {
+              id: targetId,
+              label: packageName(specifier),
+              kind: "external",
+              identity: { kind: "external", value: locator },
+            });
           }
         } else {
           const suffix =
@@ -1079,19 +1094,21 @@ export async function scanRepository(
             );
           }
         }
-        if (target !== undefined) {
-          targetId = createPathNodeId(target.repositoryPath);
-          localImportCount += 1;
-        } else {
-          unresolvedImportCount += 1;
-          diagnostics.push({
-            code: "unresolved-workspace-import",
-            severity: "error",
-            message: `Could not resolve workspace import "${specifier}" from "${source.repositoryPath}".`,
-            path: source.repositoryPath,
-            specifier,
-          });
-          continue;
+        if (targetId === undefined) {
+          if (target !== undefined) {
+            targetId = createPathNodeId(target.repositoryPath);
+            localImportCount += 1;
+          } else {
+            unresolvedImportCount += 1;
+            diagnostics.push({
+              code: "unresolved-workspace-import",
+              severity: "error",
+              message: `Could not resolve workspace import "${specifier}" from "${source.repositoryPath}".`,
+              path: source.repositoryPath,
+              specifier,
+            });
+            continue;
+          }
         }
       } else if (
         resolved !== undefined &&

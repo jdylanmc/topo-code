@@ -419,6 +419,7 @@ describe("@topo/scanner", () => {
       "package.json",
       JSON.stringify({ private: true, workspaces: ["packages/*"] }),
     );
+    await write(root, ".gitignore", "node_modules/\n");
     await write(
       root,
       "packages/app/package.json",
@@ -549,14 +550,48 @@ describe("@topo/scanner", () => {
       path.join(root, "node_modules/@fixture/lib"),
       "dir",
     );
-    await expect(scanRepository({ root })).rejects.toMatchObject({
-      diagnostics: expect.arrayContaining([
-        expect.objectContaining({
-          code: "unresolved-workspace-import",
-          specifier: "@fixture/lib/data",
-        }),
-      ]),
-    });
+    const outsideExternal = await scanRepository({ root });
+    expect(outsideExternal.metrics.unresolvedImportCount).toBe(0);
+    expect(outsideExternal.metrics.externalImportCount).toBe(1);
+    expect(outsideExternal.graph.edges).toContainEqual(
+      expect.objectContaining({
+        sourceId: "path:packages/app/src/index.ts",
+        targetId: "external:npm:@fixture/lib",
+        type: "imports",
+      }),
+    );
+    expect(outsideExternal.graph.nodes).toContainEqual(
+      expect.objectContaining({
+        id: "external:npm:@fixture/lib",
+        kind: "external",
+      }),
+    );
+
+    await rm(path.join(root, "node_modules"), { recursive: true });
+    await write(
+      root,
+      "node_modules/@fixture/lib/package.json",
+      JSON.stringify({
+        name: "@fixture/lib",
+        type: "module",
+        exports: { "./data": "./data.ts" },
+      }),
+    );
+    await write(
+      root,
+      "node_modules/@fixture/lib/data.ts",
+      "export const value = 'external';\n",
+    );
+    const inRootExternal = await scanRepository({ root });
+    expect(inRootExternal.metrics.unresolvedImportCount).toBe(0);
+    expect(inRootExternal.metrics.externalImportCount).toBe(1);
+    expect(inRootExternal.graph.edges).toContainEqual(
+      expect.objectContaining({
+        sourceId: "path:packages/app/src/index.ts",
+        targetId: "external:npm:@fixture/lib",
+        type: "imports",
+      }),
+    );
 
     await rm(path.join(root, "node_modules"), { recursive: true });
     const unlinked = await scanRepository({ root });
