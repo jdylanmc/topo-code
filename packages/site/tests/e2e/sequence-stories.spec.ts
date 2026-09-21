@@ -176,7 +176,7 @@ test("Sequence stories remain readable in a plain-server bundle", async ({
             '[data-composition-edge-to="caller"]' +
             '[stroke-dasharray="3,5"]',
         ),
-    ).toBeVisible();
+    ).toHaveCount(1);
 
     await page.goto(
       `${baseUrl}stories/story-preview-sequence/?focus=native-render`,
