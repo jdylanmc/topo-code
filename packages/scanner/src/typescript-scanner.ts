@@ -1131,7 +1131,7 @@ export async function scanRepository(
                 continue;
               }
             }
-          } else {
+          } else if (physicalPackage !== "other") {
             target = resolveSourceCandidate(
               sourceCandidatePaths(workspace, specifier),
               sourceByAbsolutePath,
