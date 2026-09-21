@@ -412,7 +412,7 @@ describe("@topo/scanner", () => {
     );
   });
 
-  it("resolves exact workspace export subpaths to source", async () => {
+  it("resolves exact workspace exports without guessing conditional targets", async () => {
     const root = await temporaryRepository();
     await write(
       root,
@@ -491,6 +491,43 @@ describe("@topo/scanner", () => {
       }),
     );
 
+    await write(
+      root,
+      "packages/lib/package.json",
+      JSON.stringify({
+        name: "@fixture/lib",
+        type: "module",
+        exports: {
+          "./data": {
+            default: "./dist/runtime.js",
+            types: "./src/missing-types.ts",
+          },
+        },
+      }),
+    );
+    await expect(scanRepository({ root })).rejects.toMatchObject({
+      diagnostics: expect.arrayContaining([
+        expect.objectContaining({
+          code: "unresolved-workspace-import",
+          specifier: "@fixture/lib/data",
+        }),
+      ]),
+    });
+
+    await write(
+      root,
+      "packages/lib/package.json",
+      JSON.stringify({
+        name: "@fixture/lib",
+        type: "module",
+        exports: {
+          "./data": {
+            default: "./dist/runtime.js",
+            types: "./src/data.ts",
+          },
+        },
+      }),
+    );
     await rm(path.join(root, "node_modules"), { recursive: true });
     await expect(scanRepository({ root })).rejects.toMatchObject({
       diagnostics: expect.arrayContaining([
@@ -500,6 +537,29 @@ describe("@topo/scanner", () => {
         }),
       ]),
     });
+
+    await write(
+      root,
+      "packages/lib/package.json",
+      JSON.stringify({
+        name: "@fixture/lib",
+        type: "module",
+        exports: {
+          "./data": {
+            default: "./dist/data.js",
+            types: "./src/data.ts",
+          },
+        },
+      }),
+    );
+    const fallback = await scanRepository({ root });
+    expect(fallback.graph.edges).toContainEqual(
+      expect.objectContaining({
+        sourceId: "path:packages/app/src/index.ts",
+        targetId: "path:packages/lib/src/data.ts",
+        type: "imports",
+      }),
+    );
 
     await write(
       root,

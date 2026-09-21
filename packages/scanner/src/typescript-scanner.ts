@@ -389,37 +389,78 @@ function workspaceForSpecifier(
   );
 }
 
-function manifestEntryStrings(value: unknown): string[] {
-  if (typeof value === "string") {
-    return [value];
-  }
-  if (Array.isArray(value)) {
-    return value.flatMap(manifestEntryStrings);
-  }
-  if (value === null || typeof value !== "object") {
-    return [];
-  }
-  return Object.values(value).flatMap(manifestEntryStrings);
+interface ManifestEntryTargets {
+  complete: boolean;
+  targets: string[];
 }
 
-function workspaceExportStrings(
+function manifestEntryTargets(value: unknown): ManifestEntryTargets {
+  if (typeof value === "string") {
+    return { complete: true, targets: [value] };
+  }
+  if (Array.isArray(value)) {
+    const entries = value.map(manifestEntryTargets);
+    return {
+      complete: entries.length > 0 && entries.every((entry) => entry.complete),
+      targets: entries.flatMap((entry) => entry.targets),
+    };
+  }
+  if (value === null || typeof value !== "object") {
+    return { complete: false, targets: [] };
+  }
+  const entries = Object.values(value).map(manifestEntryTargets);
+  return {
+    complete: entries.length > 0 && entries.every((entry) => entry.complete),
+    targets: entries.flatMap((entry) => entry.targets),
+  };
+}
+
+function manifestEntryStrings(value: unknown): string[] {
+  return manifestEntryTargets(value).targets;
+}
+
+function workspaceExportTargets(
   exports: unknown,
   subpath: string,
-): string[] {
+): ManifestEntryTargets {
   if (
     exports === null ||
     typeof exports !== "object" ||
     Array.isArray(exports)
   ) {
-    return subpath === "." ? manifestEntryStrings(exports) : [];
+    return subpath === "."
+      ? manifestEntryTargets(exports)
+      : { complete: false, targets: [] };
   }
   const entries = Object.entries(exports);
   if (!entries.some(([key]) => key.startsWith("."))) {
-    return subpath === "." ? manifestEntryStrings(exports) : [];
+    return subpath === "."
+      ? manifestEntryTargets(exports)
+      : { complete: false, targets: [] };
   }
-  return manifestEntryStrings(
+  return manifestEntryTargets(
     entries.find(([key]) => key === subpath)?.[1],
   );
+}
+
+function sourceCandidatePathsForEntries(
+  workspace: WorkspacePackage,
+  entries: readonly string[],
+): string[] {
+  const candidates = new Set<string>();
+  for (const entry of entries) {
+    const normalized = entry.replace(/^\.\//u, "");
+    candidates.add(path.resolve(workspace.directory, normalized));
+    if (normalized.startsWith("dist/")) {
+      candidates.add(
+        path.resolve(
+          workspace.directory,
+          `src/${normalized.slice("dist/".length)}`,
+        ),
+      );
+    }
+  }
+  return [...candidates];
 }
 
 function sourceCandidatePaths(
@@ -431,7 +472,7 @@ function sourceCandidatePaths(
       ? ""
       : specifier.slice(workspace.name.length + 1);
   const manifest = workspace.manifest;
-  const exported = workspaceExportStrings(
+  const exported = workspaceExportTargets(
     manifest.exports,
     suffix.length === 0 ? "." : `./${suffix}`,
   );
@@ -444,26 +485,13 @@ function sourceCandidatePaths(
           ...manifestEntryStrings(manifest.main),
           ...manifestEntryStrings(manifest.types),
         ]
-      : exported.length > 0
-        ? exported
+      : exported.targets.length > 0
+        ? exported.targets
         : manifest.exports === undefined
           ? [suffix]
           : [];
   const bases = [...declared, ...(suffix.length === 0 ? ["src/index"] : [])];
-  const candidates = new Set<string>();
-  for (const base of bases) {
-    const normalized = base.replace(/^\.\//u, "");
-    candidates.add(path.resolve(workspace.directory, normalized));
-    if (normalized.startsWith("dist/")) {
-      candidates.add(
-        path.resolve(
-          workspace.directory,
-          `src/${normalized.slice("dist/".length)}`,
-        ),
-      );
-    }
-  }
-  return [...candidates];
+  return sourceCandidatePathsForEntries(workspace, bases);
 }
 
 function resolveSourceCandidate(
@@ -902,27 +930,52 @@ export async function scanRepository(
           }
         }
         if (target === undefined) {
-          const candidates = resolveSourceCandidates(
-            sourceCandidatePaths(workspace, specifier),
-            sourceByAbsolutePath,
-          );
           const subpath = specifier !== workspace.name;
-          if (
-            subpath &&
-            workspace.manifest.exports !== undefined &&
-            candidates.length > 1
-          ) {
-            unresolvedImportCount += 1;
-            diagnostics.push({
-              code: "ambiguous-workspace-import",
-              severity: "error",
-              message: `Workspace import "${specifier}" from "${source.repositoryPath}" has multiple export targets without a compiler-selected source.`,
-              path: source.repositoryPath,
-              specifier,
-            });
-            continue;
+          if (subpath && workspace.manifest.exports !== undefined) {
+            const exported = workspaceExportTargets(
+              workspace.manifest.exports,
+              `./${specifier.slice(workspace.name.length + 1)}`,
+            );
+            const exportedSources = exported.targets.map((entry) =>
+              resolveSourceCandidate(
+                sourceCandidatePathsForEntries(workspace, [entry]),
+                sourceByAbsolutePath,
+              ),
+            );
+            if (
+              exported.complete &&
+              exportedSources.length > 0 &&
+              exportedSources.every(
+                (candidate): candidate is SourceRecord =>
+                  candidate !== undefined,
+              )
+            ) {
+              const candidates = new Map(
+                exportedSources.map((candidate) => [
+                  candidate.absolutePath,
+                  candidate,
+                ]),
+              );
+              if (candidates.size === 1) {
+                target = [...candidates.values()][0];
+              } else {
+                unresolvedImportCount += 1;
+                diagnostics.push({
+                  code: "ambiguous-workspace-import",
+                  severity: "error",
+                  message: `Workspace import "${specifier}" from "${source.repositoryPath}" has multiple export targets without a compiler-selected source.`,
+                  path: source.repositoryPath,
+                  specifier,
+                });
+                continue;
+              }
+            }
+          } else {
+            target = resolveSourceCandidate(
+              sourceCandidatePaths(workspace, specifier),
+              sourceByAbsolutePath,
+            );
           }
-          target = candidates[0];
         }
         if (target !== undefined) {
           targetId = createPathNodeId(target.repositoryPath);
