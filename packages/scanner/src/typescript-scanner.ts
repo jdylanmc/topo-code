@@ -503,19 +503,25 @@ function resolveSourceCandidates(
 }
 
 const GENERATED_SOURCE_EXTENSIONS = [
-  [".d.mts", ".mts"],
-  [".d.cts", ".cts"],
-  [".mjs", ".mts"],
-  [".cjs", ".cts"],
+  [".d.mts", [".mts", ".mjs"]],
+  [".d.cts", [".cts", ".cjs"]],
+  [".d.ts", [".ts", ".tsx", ".js", ".jsx"]],
+  [".mjs", [".mts", ".mjs"]],
+  [".cjs", [".cts", ".cjs"]],
+  [".jsx", [".tsx", ".jsx"]],
+  [".js", [".ts", ".tsx", ".js", ".jsx"]],
 ] as const;
 
-function generatedSourcePath(outputPath: string): string | undefined {
-  for (const [outputExtension, sourceExtension] of GENERATED_SOURCE_EXTENSIONS) {
+function generatedSourcePaths(outputPath: string): string[] {
+  for (const [outputExtension, sourceExtensions] of GENERATED_SOURCE_EXTENSIONS) {
     if (outputPath.endsWith(outputExtension)) {
-      return `${outputPath.slice(0, -outputExtension.length)}${sourceExtension}`;
+      const basePath = outputPath.slice(0, -outputExtension.length);
+      return sourceExtensions.map(
+        (sourceExtension) => `${basePath}${sourceExtension}`,
+      );
     }
   }
-  return undefined;
+  return [];
 }
 
 function resolveGeneratedOutput(
@@ -536,15 +542,14 @@ function resolveGeneratedOutput(
       resolvedFileName,
     );
     const sourcePath = path.join(mapping.rootDirectory, relativeOutputPath);
-    const exactSourcePath = generatedSourcePath(sourcePath);
-    const source = exactSourcePath === undefined
-      ? resolveSourceCandidate([sourcePath], sourceByAbsolutePath)
-      : sourceByAbsolutePath.get(exactSourcePath);
-    if (source !== undefined) {
-      matches.set(source.absolutePath, {
-        source,
-        configPath: mapping.configPath,
-      });
+    for (const generatedSourcePath of generatedSourcePaths(sourcePath)) {
+      const source = sourceByAbsolutePath.get(generatedSourcePath);
+      if (source !== undefined) {
+        matches.set(source.absolutePath, {
+          source,
+          configPath: mapping.configPath,
+        });
+      }
     }
   }
   if (matches.size === 0) {
@@ -555,9 +560,9 @@ function resolveGeneratedOutput(
   }
   return {
     kind: "ambiguous",
-    configPaths: [...matches.values()]
-      .map((match) => match.configPath)
-      .sort(compareText),
+    configPaths: [...new Set(
+      [...matches.values()].map((match) => match.configPath),
+    )].sort(compareText),
   };
 }
 
