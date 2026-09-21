@@ -3,6 +3,7 @@ import { mkdtemp, mkdir, readFile, realpath, rm, symlink, writeFile } from "node
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
+import ts from "typescript-compiler-api";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
   ScanError,
@@ -814,6 +815,128 @@ describe("@topo/scanner", () => {
           expect.objectContaining({
             sourceId: "path:packages/app/src/index.ts",
             targetId: `path:packages/lib/src/data.${extension}`,
+            type: "imports",
+          }),
+        );
+        expect(result.graph.edges).not.toContainEqual(
+          expect.objectContaining({
+            sourceId: "path:packages/app/src/index.ts",
+            targetId: "path:packages/lib/src/data.ts",
+            type: "imports",
+          }),
+        );
+      }
+    }
+  });
+
+  it("projects generated module extensions to their matching TypeScript sources", async () => {
+    for (const [sourceExtension, outputExtension] of [
+      ["mts", "mjs"],
+      ["cts", "cjs"],
+    ] as const) {
+      for (const linked of [true, false]) {
+        const root = await temporaryRepository();
+        await write(
+          root,
+          "package.json",
+          JSON.stringify({ private: true, workspaces: ["packages/*"] }),
+        );
+        await write(root, ".gitignore", "node_modules/\npackages/*/dist/\n");
+        await write(
+          root,
+          "packages/app/package.json",
+          JSON.stringify({
+            name: "@fixture/app",
+            dependencies: { "@fixture/lib": "workspace:*" },
+          }),
+        );
+        await write(
+          root,
+          "packages/app/tsconfig.json",
+          JSON.stringify({
+            compilerOptions: {
+              module: "NodeNext",
+              moduleResolution: "NodeNext",
+            },
+            include: ["src"],
+          }),
+        );
+        await write(
+          root,
+          "packages/app/src/index.ts",
+          'import { value } from "@fixture/lib/data";\nexport const result = value;\n',
+        );
+        await write(
+          root,
+          "packages/lib/package.json",
+          JSON.stringify({
+            name: "@fixture/lib",
+            type: "module",
+            exports: { "./data": `./dist/data.${outputExtension}` },
+          }),
+        );
+        await write(
+          root,
+          "packages/lib/tsconfig.json",
+          JSON.stringify({
+            compilerOptions: {
+              module: "NodeNext",
+              moduleResolution: "NodeNext",
+              outDir: "dist",
+              rootDir: "src",
+            },
+            include: ["src"],
+          }),
+        );
+        await write(
+          root,
+          `packages/lib/src/data.${sourceExtension}`,
+          "export const value = 'selected';\n",
+        );
+        await write(
+          root,
+          "packages/lib/src/data.ts",
+          "export const value = 'wrong';\n",
+        );
+        await write(
+          root,
+          `packages/lib/dist/data.${outputExtension}`,
+          "export const value = 'generated';\n",
+        );
+        if (linked) {
+          await mkdir(path.join(root, "node_modules/@fixture"), {
+            recursive: true,
+          });
+          await symlink(
+            path.join(root, "packages/lib"),
+            path.join(root, "node_modules/@fixture/lib"),
+            "dir",
+          );
+          const compilerResolution = ts.resolveModuleName(
+            "@fixture/lib/data",
+            path.join(root, "packages/app/src/index.ts"),
+            {
+              module: ts.ModuleKind.NodeNext,
+              moduleResolution: ts.ModuleResolutionKind.NodeNext,
+            },
+            ts.sys,
+          ).resolvedModule;
+          expect(compilerResolution).toBeDefined();
+          expect(
+            path.relative(
+              await realpath(root),
+              await realpath(compilerResolution!.resolvedFileName),
+            ),
+          ).toBe(`packages/lib/dist/data.${outputExtension}`);
+        }
+
+        const result = await scanRepository({ root });
+
+        expect(result.metrics.unresolvedImportCount).toBe(0);
+        expect(result.graph.edges).toContainEqual(
+          expect.objectContaining({
+            sourceId: "path:packages/app/src/index.ts",
+            targetId: `path:packages/lib/src/data.${sourceExtension}`,
             type: "imports",
           }),
         );
