@@ -12,6 +12,9 @@ The optional `diagramFamily` selects `architecture`, `workflow`, `sequence`,
 Sequence and Dataflow connections require a nonempty `label` because their
 native schemas require explicit relationship meaning. Architecture, Workflow,
 and Lifecycle connections may omit labels, and Topocode does not invent them.
+Lifecycle state widths are derived from their authored titles, then all states
+are placed together within their semantic native lanes so a wide state cannot
+silently reuse a neighboring state's column.
 
 The optional `classification` is `source-grounded` or `capability-demo`;
 omission retains the source-grounded behavior. Every source-grounded section
