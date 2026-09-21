@@ -104,6 +104,9 @@ test("actual gallery story text remains readable at a desktop viewport", async (
     for (const viewport of [
       { width: 1024, height: 768 },
       { width: 1280, height: 720 },
+      { width: 1440, height: 900 },
+      { width: 1600, height: 1000 },
+      { width: 1920, height: 1080 },
     ]) {
       await page.setViewportSize(viewport);
       for (const story of galleryStories) {
