@@ -50,8 +50,9 @@ does not currently publish versioned releases.
 
 - Resolve exact workspace package export subpaths through TypeScript-selected
   source files and package roots, including clean checkouts without workspace
-  links, while preserving exact source extensions and strict failures for
-  invalid, unmappable, blocked, or unexported targets. See #63.
+  links, while preserving exact direct and generated source extensions and
+  strict failures for invalid, unmappable, blocked, or unexported targets.
+  See #63.
 - Catch strict TypeScript errors in browser end-to-end tests and helpers during
   the standard regression gate.
 - Keep scanner tests isolated when temporary storage is inside an ignored

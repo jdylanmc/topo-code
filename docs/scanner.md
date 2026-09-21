@@ -98,8 +98,9 @@ a read-only virtual workspace view lets TypeScript select exported package
 roots and exact subpaths without writing links or generated files into the
 scanned repository. A physically present different package retains its own
 blocked or unexported decisions. Topo then preserves an exact selected source
-path, using unique TypeScript output mappings only for genuine generated
-outputs.
+path. Genuine generated `.mjs`, `.cjs`, `.d.mts`, and `.d.cts` selections map
+only to their matching `.mts` or `.cts` sources through unique TypeScript output
+mappings.
 Repositories without a TypeScript config use default compiler options while
 each file is parsed independently. Metrics keep
 `sourceFileCount` and source `linesOfCode` separate from `assetFileCount` and
