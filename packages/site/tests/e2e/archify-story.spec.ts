@@ -268,6 +268,83 @@ test("actual Architecture SVG export preserves authored labels", async ({
   }
 });
 
+test("actual gallery relationship labels and backdrops clear nodes", async ({
+  page,
+  repository,
+}) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await writeActualGalleryFixture(repository);
+
+  const { server, url } = await startTopoServer(repository, ["--port", "0"]);
+  const collisions: {
+    story: string;
+    kind: "label" | "backdrop";
+    from: string;
+    to: string;
+    node: string;
+    width: number;
+    height: number;
+  }[] = [];
+  try {
+    for (const story of galleryStories) {
+      await page.goto(`${url}/stories/${story.id}/`);
+      const diagram = page.frameLocator("[data-story-viewer]")
+        .locator('svg[role="img"]');
+      await expect(diagram).toBeVisible();
+      collisions.push(...await diagram.evaluate((svg, storyId) => {
+        const nodes = [...svg.querySelectorAll<SVGGraphicsElement>(
+          "g[data-node-id] > rect:not(.c-mask)",
+        )].map((element) => ({
+          id: element.parentElement?.getAttribute("data-node-id") ?? "",
+          bounds: element.getBoundingClientRect(),
+        }));
+        return [...svg.querySelectorAll<SVGGraphicsElement>(
+          "g[data-edge-from]",
+        )].flatMap((edge) => {
+          const from = edge.getAttribute("data-edge-from") ?? "";
+          const to = edge.getAttribute("data-edge-to") ?? "";
+          const candidates = [
+            ...[...edge.querySelectorAll<SVGGraphicsElement>(":scope > text")]
+              .map((element) => ({ kind: "label" as const, element })),
+            ...[...edge.querySelectorAll<SVGGraphicsElement>(":scope > rect.c-mask")]
+              .map((element) => ({ kind: "backdrop" as const, element })),
+          ];
+          return candidates.flatMap(({ kind, element }) => {
+            const bounds = element.getBoundingClientRect();
+            return nodes.flatMap((node) => {
+              const width = Math.max(
+                0,
+                Math.min(bounds.right, node.bounds.right) -
+                  Math.max(bounds.left, node.bounds.left),
+              );
+              const height = Math.max(
+                0,
+                Math.min(bounds.bottom, node.bounds.bottom) -
+                  Math.max(bounds.top, node.bounds.top),
+              );
+              return width > 0 && height > 0
+                ? [{
+                    story: storyId,
+                    kind,
+                    from,
+                    to,
+                    node: node.id,
+                    width,
+                    height,
+                  }]
+                : [];
+            });
+          });
+        });
+      }, story.id));
+    }
+    expect(collisions).toEqual([]);
+  } finally {
+    await page.goto("about:blank");
+    await stopTopoServer(server);
+  }
+});
+
 test("actual story details restore unobscured authored content", async ({
   page,
   repository,
