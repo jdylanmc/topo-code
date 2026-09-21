@@ -477,7 +477,6 @@ function requiredConnectionLabel(
 }
 
 function sequenceSpec(story: ResolvedStoryDocument): ArchifySequence {
-  const anchors = new Map(story.anchors.map((anchor) => [anchor.id, anchor]));
   const participantIds = new Map(
     story.document.sections.map((section) => [
       section.id,
@@ -500,9 +499,7 @@ function sequenceSpec(story: ResolvedStoryDocument): ArchifySequence {
         ? "frontend"
         : "backend",
       label: section.title,
-      sublabel: section.anchorIds
-        .map((anchorId) => anchors.get(anchorId))
-        .find((anchor) => anchor !== undefined)?.symbol ?? "",
+      sublabel: "",
     })),
     messages: story.document.connections.map((connection, index) => ({
       id: stableId(
@@ -720,7 +717,7 @@ function commandError(error: unknown): Error {
 
 function improveStoryReadability(
   contents: string,
-  family: "architecture" | "workflow" | "lifecycle",
+  family: "architecture" | "workflow" | "sequence" | "lifecycle",
 ): string {
   const headEnd = "</head>";
   if (!contents.includes(headEnd)) {
@@ -741,6 +738,13 @@ svg g[data-edge-from] > text {
   font-family: ui-sans-serif, system-ui, sans-serif;
   font-size: 14px;
   font-weight: 600;
+}`
+      : family === "sequence"
+        ? `
+svg { max-height: 100vh; }
+svg text {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 12px !important;
 }`
       : `
 svg text[data-node-label],
@@ -800,6 +804,7 @@ export function renderStory(story: ResolvedStoryDocument): StoryArtifact {
       mediaType: "text/html",
       contents: family === "architecture" ||
           family === "workflow" ||
+          family === "sequence" ||
           family === "lifecycle"
         ? improveStoryReadability(contents, family)
         : contents,

@@ -57,37 +57,37 @@
   "sections": [
     {
       "id": "cli-request",
-      "title": "CLI request",
+      "title": "CLI",
       "body": "The story preview command checks the built site, requests the committed catalogue, and later selects the requested story.",
       "anchorIds": ["cli-preview"]
     },
     {
       "id": "committed-story-read",
-      "title": "HEAD story",
+      "title": "HEAD",
       "body": "Catalogue construction enumerates tracked story documents, rejects working-tree changes, and reads each document from HEAD.",
       "anchorIds": ["committed-story"]
     },
     {
       "id": "parse-validation",
-      "title": "Story contract",
+      "title": "Contract",
       "body": "The committed JSON is parsed against the authored story contract before its declared anchors are resolved.",
       "anchorIds": ["parse-story", "resolve-story"]
     },
     {
       "id": "source-snapshot",
-      "title": "Source",
+      "title": "Snapshot",
       "body": "A stable snapshot captures every declared source path and supplies the contents used to resolve source anchors.",
       "anchorIds": ["snapshot", "resolve-story"]
     },
     {
       "id": "native-render",
-      "title": "Diagram core",
+      "title": "Renderer",
       "body": "The resolved Sequence story renders through the pinned native Archify boundary exposed by @topo/diagram-core.",
       "anchorIds": ["render"]
     },
     {
       "id": "stale-guard",
-      "title": "Stale guard",
+      "title": "Guard",
       "body": "Before publication, the catalogue verifies that captured source and repository state still match the rendered evidence.",
       "anchorIds": ["stale-guard"]
     },
@@ -102,32 +102,32 @@
     {
       "from": "cli-request",
       "to": "committed-story-read",
-      "label": "build committed catalogue"
+      "label": "load stories"
     },
     {
       "from": "committed-story-read",
       "to": "parse-validation",
-      "label": "parse committed JSON"
+      "label": "parse JSON"
     },
     {
       "from": "parse-validation",
       "to": "source-snapshot",
-      "label": "resolve declared anchors"
+      "label": "resolve anchors"
     },
     {
       "from": "source-snapshot",
       "to": "native-render",
-      "label": "render resolved evidence"
+      "label": "render"
     },
     {
       "from": "native-render",
       "to": "stale-guard",
-      "label": "verify source is current"
+      "label": "check stale"
     },
     {
       "from": "stale-guard",
       "to": "artifact-write",
-      "label": "write generated site"
+      "label": "write artifacts"
     }
   ]
 }
