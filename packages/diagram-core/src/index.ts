@@ -628,10 +628,11 @@ function improveStoryReadability(
   }
   const rules = family === "architecture"
     ? `
+svg { max-height: 100vh; }
 svg [data-source-evidence-beacon] { display: none; }
 svg text[data-node-label],
 svg text[data-detail="context"],
-svg g[data-edge-from] > text { font-size: 16px; }`
+svg g[data-edge-from] > text { font-size: 21px; }`
     : family === "workflow"
       ? `
 svg text[data-node-label],
