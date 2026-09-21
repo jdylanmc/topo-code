@@ -172,7 +172,7 @@ test("Sequence stories remain readable in a plain-server bundle", async ({
     await expect(
       page.frameLocator("[data-story-viewer]")
         .locator(
-          'path[data-composition-edge-from="service"]' +
+          'path.a-default[data-composition-edge-from="service"]' +
             '[data-composition-edge-to="caller"]' +
             '[stroke-dasharray="3,5"]',
         ),
