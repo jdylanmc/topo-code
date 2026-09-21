@@ -337,6 +337,49 @@ describe("story preview", () => {
     expect(contents).toContain("Charge payment");
   });
 
+  it("renders adjacent wide lifecycle states without reusing occupied columns", async () => {
+    const document = JSON.parse(familyStory("lifecycle")) as {
+      sections: {
+        id: string;
+        title: string;
+        body: string;
+        anchorIds: string[];
+      }[];
+      connections: {
+        from: string;
+        to: string;
+        label: string;
+      }[];
+    };
+    document.sections[0]!.title =
+      "This valid authored lifecycle state title is long";
+    document.sections.splice(1, 0, {
+      id: "review",
+      title: "This second authored lifecycle state title is also long",
+      body: "Review the accepted request.",
+      anchorIds: ["submit"],
+    });
+    document.connections = [
+      { from: "request", to: "review", label: "continue to review" },
+      { from: "review", to: "charge", label: "complete" },
+    ];
+    expect(parseStoryDocument(JSON.stringify(document)).sections).toHaveLength(3);
+    const { root, documentPath } = await fixture(
+      `${JSON.stringify(document, null, 2)}\n`,
+    );
+
+    const result = await previewStory(root, documentPath);
+    const contents = await readFile(result.outputPath, "utf8");
+
+    expect(contents).toContain(
+      "This valid authored lifecycle state title is long",
+    );
+    expect(contents).toContain(
+      "This second authored lifecycle state title is also long",
+    );
+    expect(contents).toContain("continue to review");
+  });
+
   it("previews an explicitly non-source-grounded capability demo", async () => {
     const { root, documentPath } = await fixture(capabilityDemoStory());
 

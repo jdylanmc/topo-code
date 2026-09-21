@@ -555,31 +555,82 @@ function dataflowSpec(story: ResolvedStoryDocument): ArchifyDataflow {
 }
 
 function lifecycleSpec(story: ResolvedStoryDocument): ArchifyLifecycle {
-  const statePlacement = (index: number, width = 118) => {
+  const stateDrafts = story.document.sections.map((section, index) => {
     const last = index === story.document.sections.length - 1;
     const event = story.document.sections.length >= 5 &&
       index >= 2 &&
       index < story.document.sections.length - 2;
     const lane = last ? "terminal" as const : event ? "event" as const : "main" as const;
     const defaultCol = last ? 2 : event ? index - 2 : index - Math.max(0, index - 2);
+    return {
+      section,
+      index,
+      lane,
+      defaultCol,
+      width: Math.max(
+        118,
+        Math.ceil(Array.from(section.title).reduce(
+          (total, character) =>
+            total + (character.codePointAt(0)! > 0xff ? 2 : 1),
+          0,
+        ) * 6.2),
+      ),
+    };
+  });
+  const placements = new Map<string, {
+    lane: "main" | "event" | "terminal";
+    col: number;
+  }>();
+  for (const lane of ["main", "event", "terminal"] as const) {
+    const drafts = stateDrafts.filter((draft) => draft.lane === lane);
     const centers = lane === "main"
       ? [94, 248, 402, 556, 710]
       : [402, 556, 710];
-    const col = centers
-      .map((center, candidate) => ({
-        candidate,
-        distance: Math.abs(candidate - defaultCol),
-        capacity: 2 * Math.min(center - 32, 948 - center),
-      }))
-      .filter(({ capacity }) => capacity >= width)
-      .sort((left, right) =>
-        left.distance - right.distance || left.candidate - right.candidate
-      )[0]?.candidate ?? defaultCol;
-    return {
-      lane,
-      col,
+    let best: { cols: number[]; score: number } | undefined;
+    const search = (position: number, cols: number[], score: number) => {
+      if (position === drafts.length) {
+        if (
+          best === undefined ||
+          score < best.score ||
+          (score === best.score && cols.join(",") < best.cols.join(","))
+        ) {
+          best = { cols: [...cols], score };
+        }
+        return;
+      }
+      const draft = drafts[position]!;
+      for (let col = 0; col < centers.length; col += 1) {
+        if (position > 0 && col <= cols[position - 1]!) continue;
+        const center = centers[col]!;
+        const left = center - draft.width / 2;
+        const right = center + draft.width / 2;
+        if (left < 32 || right > 948) continue;
+        const overlaps = drafts.slice(0, position).some((other, otherIndex) => {
+          const otherCenter = centers[cols[otherIndex]!]!;
+          const otherRight = otherCenter + other.width / 2;
+          return left - otherRight < 10;
+        });
+        if (overlaps) continue;
+        search(
+          position + 1,
+          [...cols, col],
+          score + Math.abs(col - draft.defaultCol),
+        );
+      }
     };
-  };
+    search(0, [], 0);
+    if (best === undefined) {
+      throw new Error(
+        `Lifecycle ${lane} states cannot fit the native columns without overlap`,
+      );
+    }
+    drafts.forEach((draft, index) => {
+      placements.set(draft.section.id, {
+        lane,
+        col: best!.cols[index]!,
+      });
+    });
+  }
   const stateIds = new Map(
     story.document.sections.map((section) => [
       section.id,
@@ -600,13 +651,8 @@ function lifecycleSpec(story: ResolvedStoryDocument): ArchifyLifecycle {
       { id: "event", label: "Interruptions + recovery" },
       { id: "terminal", label: "Outcomes" },
     ],
-    states: story.document.sections.map((section, index) => {
+    states: stateDrafts.map(({ section, index, width }) => {
       const last = index === story.document.sections.length - 1;
-      const labelUnits = Array.from(section.title).reduce(
-        (total, character) => total + (character.codePointAt(0)! > 0xff ? 2 : 1),
-        0,
-      );
-      const width = Math.max(118, Math.ceil(labelUnits * 6.2));
       return {
         id: stateIds.get(section.id)!,
         type: index === 0
@@ -615,7 +661,7 @@ function lifecycleSpec(story: ResolvedStoryDocument): ArchifyLifecycle {
             ? "success"
             : "active",
         label: section.title,
-        ...statePlacement(index, width),
+        ...placements.get(section.id)!,
         width,
       };
     }),
@@ -634,7 +680,8 @@ function lifecycleSpec(story: ResolvedStoryDocument): ArchifyLifecycle {
         from: stateIds.get(connection.from)!,
         to: stateIds.get(connection.to)!,
         ...(connection.label === undefined ? {} : { label: connection.label }),
-        ...(statePlacement(fromIndex).lane === statePlacement(toIndex).lane
+        ...(placements.get(story.document.sections[fromIndex]!.id)!.lane ===
+            placements.get(story.document.sections[toIndex]!.id)!.lane
           ? { labelDy: 55 }
           : {}),
         ...(index === story.document.connections.length - 1

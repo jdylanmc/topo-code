@@ -425,6 +425,118 @@ test("actual gallery relationship labels and backdrops clear nodes", async ({
   }
 });
 
+test("wide adjacent Lifecycle states preserve final geometry", async ({
+  page,
+  repository,
+}) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await writeFile(
+    join(repository, "package.json"),
+    '{"name":"wide-lifecycle-fixture","type":"module"}\n',
+  );
+  await writeFile(join(repository, "source.ts"), "export const source = true;\n");
+  await commit(repository, "Source", "package.json", "source.ts");
+  await topo(repository, "scan");
+  await mkdir(join(repository, "stories"), { recursive: true });
+  const storyPath = join(repository, "stories/wide-lifecycle.topo.json");
+  await writeFile(storyPath, `${JSON.stringify({
+    schemaVersion: "1.0",
+    diagramFamily: "lifecycle",
+    classification: "capability-demo",
+    id: "wide-lifecycle",
+    title: "Wide Lifecycle states",
+    summary: "A conceptual wide-state Lifecycle geometry check.",
+    anchors: [],
+    sections: [
+      {
+        id: "request",
+        title: "This valid authored lifecycle state title is long",
+        body: "Begin the conceptual lifecycle.",
+        anchorIds: [],
+      },
+      {
+        id: "review",
+        title: "This second authored lifecycle state title is also long",
+        body: "Review the conceptual request.",
+        anchorIds: [],
+      },
+      {
+        id: "complete",
+        title: "Complete",
+        body: "Finish the conceptual lifecycle.",
+        anchorIds: [],
+      },
+    ],
+    connections: [
+      { from: "request", to: "review", label: "continue to review" },
+      { from: "review", to: "complete", label: "complete" },
+    ],
+  }, null, 2)}\n`);
+  await commit(repository, "Wide lifecycle", "stories");
+  await topo(repository, "story", "preview", repository, storyPath);
+
+  const { server, url } = await startTopoServer(repository, ["--port", "0"]);
+  try {
+    await page.goto(`${url}/stories/wide-lifecycle/`);
+    const diagram = page.frameLocator("[data-story-viewer]")
+      .locator('svg[role="img"]');
+    await expect(diagram).toBeVisible();
+    await expect(diagram.locator("g[data-node-id]")).toHaveCount(3);
+    await expect(diagram.locator("g[data-edge-from]")).toHaveCount(2);
+    const geometry = await diagram.evaluate((svg) => {
+      const states = [...svg.querySelectorAll<SVGGraphicsElement>(
+        "g[data-node-id] > rect:not(.c-mask)",
+      )].map((element) => element.getBoundingClientRect());
+      const labels = [...svg.querySelectorAll<SVGTextElement>(
+        "g[data-edge-from] > text",
+      )];
+      const intersections = (
+        candidates: readonly DOMRect[],
+        obstacles: readonly DOMRect[],
+      ) => candidates.flatMap((candidate, candidateIndex) =>
+        obstacles.flatMap((obstacle, obstacleIndex) => {
+          if (candidateIndex === obstacleIndex && candidates === obstacles) {
+            return [];
+          }
+          const width = Math.max(
+            0,
+            Math.min(candidate.right, obstacle.right) -
+              Math.max(candidate.left, obstacle.left),
+          );
+          const height = Math.max(
+            0,
+            Math.min(candidate.bottom, obstacle.bottom) -
+              Math.max(candidate.top, obstacle.top),
+          );
+          return width > 0 && height > 0 ? [{ width, height }] : [];
+        })
+      );
+      return {
+        stateIntersections: intersections(states, states),
+        labelIntersections: intersections(
+          labels.map((label) => label.getBoundingClientRect()),
+          states,
+        ),
+        minimumFontSize: Math.min(...[
+          ...svg.querySelectorAll<SVGTextElement>(
+            "text[data-node-label], g[data-edge-from] > text",
+          ),
+        ].map((text) => {
+          const matrix = text.getScreenCTM();
+          return Number.parseFloat(getComputedStyle(text).fontSize) *
+            Math.hypot(matrix?.c ?? 0, matrix?.d ?? 0);
+        })),
+      };
+    });
+    expect(geometry.stateIntersections).toEqual([]);
+    expect(geometry.labelIntersections).toEqual([]);
+    expect(geometry.minimumFontSize).toBeGreaterThanOrEqual(12);
+  } finally {
+    await page.goto("about:blank");
+    await stopTopoServer(server);
+  }
+});
+
 test("actual story details restore unobscured authored content", async ({
   page,
   repository,
