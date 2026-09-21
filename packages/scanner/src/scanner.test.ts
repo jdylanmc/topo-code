@@ -1038,6 +1038,104 @@ describe("@topo/scanner", () => {
     }
   });
 
+  it("does not replace a physical package root miss with workspace source metadata", async () => {
+    for (const physicalExports of [
+      { ".": null },
+      { "./data": "./data.ts" },
+    ]) {
+      const root = await temporaryRepository();
+      await write(
+        root,
+        "package.json",
+        JSON.stringify({ private: true, workspaces: ["packages/*"] }),
+      );
+      await write(root, ".gitignore", "node_modules/\n");
+      await write(
+        root,
+        "packages/app/package.json",
+        JSON.stringify({
+          name: "@fixture/app",
+          dependencies: { "@fixture/lib": "workspace:*" },
+        }),
+      );
+      await write(
+        root,
+        "packages/app/tsconfig.json",
+        JSON.stringify({
+          compilerOptions: {
+            module: "NodeNext",
+            moduleResolution: "NodeNext",
+          },
+          include: ["src"],
+        }),
+      );
+      await write(
+        root,
+        "packages/app/src/index.ts",
+        'import { value } from "@fixture/lib";\nexport const result = value;\n',
+      );
+      await write(
+        root,
+        "packages/lib/package.json",
+        JSON.stringify({
+          name: "@fixture/lib",
+          type: "module",
+          source: "./src/local.ts",
+          exports: { ".": "./src/local.ts" },
+        }),
+      );
+      await write(
+        root,
+        "packages/lib/tsconfig.json",
+        JSON.stringify({
+          compilerOptions: {
+            module: "NodeNext",
+            moduleResolution: "NodeNext",
+          },
+          include: ["src"],
+        }),
+      );
+      await write(
+        root,
+        "packages/lib/src/local.ts",
+        "export const value = 'local';\n",
+      );
+      await write(
+        root,
+        "node_modules/@fixture/lib/package.json",
+        JSON.stringify({
+          name: "@fixture/lib",
+          type: "module",
+          exports: physicalExports,
+        }),
+      );
+      await write(
+        root,
+        "node_modules/@fixture/lib/data.ts",
+        "export const value = 'physical';\n",
+      );
+
+      const compilerResolution = ts.resolveModuleName(
+        "@fixture/lib",
+        path.join(root, "packages/app/src/index.ts"),
+        {
+          module: ts.ModuleKind.NodeNext,
+          moduleResolution: ts.ModuleResolutionKind.NodeNext,
+        },
+        ts.sys,
+      ).resolvedModule;
+      expect(compilerResolution).toBeUndefined();
+      await expect(scanRepository({ root })).rejects.toMatchObject({
+        diagnostics: expect.arrayContaining([
+          expect.objectContaining({
+            code: "unresolved-workspace-import",
+            specifier: "@fixture/lib",
+          }),
+        ]),
+      });
+    }
+  });
+
   it("resolves an unlinked workspace package root export through TypeScript", async () => {
     const root = await temporaryRepository();
     await write(
