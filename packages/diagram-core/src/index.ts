@@ -476,6 +476,7 @@ function requiredConnectionLabel(
 }
 
 function sequenceSpec(story: ResolvedStoryDocument): ArchifySequence {
+  const anchors = new Map(story.anchors.map((anchor) => [anchor.id, anchor]));
   const participantIds = new Map(
     story.document.sections.map((section) => [
       section.id,
@@ -498,7 +499,9 @@ function sequenceSpec(story: ResolvedStoryDocument): ArchifySequence {
         ? "frontend"
         : "backend",
       label: section.title,
-      sublabel: section.body,
+      sublabel: section.anchorIds
+        .map((anchorId) => anchors.get(anchorId))
+        .find((anchor) => anchor !== undefined)?.symbol ?? "",
     })),
     messages: story.document.connections.map((connection, index) => ({
       id: stableId(
@@ -507,7 +510,7 @@ function sequenceSpec(story: ResolvedStoryDocument): ArchifySequence {
       ),
       from: participantIds.get(connection.from)!,
       to: participantIds.get(connection.to)!,
-      y: 180 + index * 100,
+      y: 180 + index * 90,
       label: requiredConnectionLabel(connection, "sequence"),
     })),
   };

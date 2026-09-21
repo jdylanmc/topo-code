@@ -63,7 +63,7 @@
     },
     {
       "id": "committed-story-read",
-      "title": "Committed story",
+      "title": "HEAD story",
       "body": "Catalogue construction enumerates tracked story documents, rejects working-tree changes, and reads each document from HEAD.",
       "anchorIds": ["committed-story"]
     },
@@ -75,7 +75,7 @@
     },
     {
       "id": "source-snapshot",
-      "title": "Source evidence",
+      "title": "Source",
       "body": "A stable snapshot captures every declared source path and supplies the contents used to resolve source anchors.",
       "anchorIds": ["snapshot", "resolve-story"]
     },
@@ -93,7 +93,7 @@
     },
     {
       "id": "artifact-write",
-      "title": "Artifact writer",
+      "title": "Writer",
       "body": "The current catalogue writes generated wrappers and native viewer artifacts into the workspace site.",
       "anchorIds": ["write-catalogue", "write-artifact"]
     }
