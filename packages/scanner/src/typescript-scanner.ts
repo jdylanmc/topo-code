@@ -502,6 +502,22 @@ function resolveSourceCandidates(
   return [...matches.values()];
 }
 
+const GENERATED_SOURCE_EXTENSIONS = [
+  [".d.mts", ".mts"],
+  [".d.cts", ".cts"],
+  [".mjs", ".mts"],
+  [".cjs", ".cts"],
+] as const;
+
+function generatedSourcePath(outputPath: string): string | undefined {
+  for (const [outputExtension, sourceExtension] of GENERATED_SOURCE_EXTENSIONS) {
+    if (outputPath.endsWith(outputExtension)) {
+      return `${outputPath.slice(0, -outputExtension.length)}${sourceExtension}`;
+    }
+  }
+  return undefined;
+}
+
 function resolveGeneratedOutput(
   resolvedFileName: string,
   outputMappings: readonly OutputMapping[],
@@ -520,12 +536,10 @@ function resolveGeneratedOutput(
       resolvedFileName,
     );
     const sourcePath = path.join(mapping.rootDirectory, relativeOutputPath);
-    const source =
-      relativeOutputPath.endsWith(".mjs")
-        ? sourceByAbsolutePath.get(sourcePath.replace(/\.mjs$/u, ".mts"))
-        : relativeOutputPath.endsWith(".cjs")
-          ? sourceByAbsolutePath.get(sourcePath.replace(/\.cjs$/u, ".cts"))
-          : resolveSourceCandidate([sourcePath], sourceByAbsolutePath);
+    const exactSourcePath = generatedSourcePath(sourcePath);
+    const source = exactSourcePath === undefined
+      ? resolveSourceCandidate([sourcePath], sourceByAbsolutePath)
+      : sourceByAbsolutePath.get(exactSourcePath);
     if (source !== undefined) {
       matches.set(source.absolutePath, {
         source,
