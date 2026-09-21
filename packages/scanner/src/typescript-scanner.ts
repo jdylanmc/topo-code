@@ -389,57 +389,26 @@ function workspaceForSpecifier(
   );
 }
 
-interface ManifestEntryTargets {
-  complete: boolean;
-  targets: string[];
-}
-
-function manifestEntryTargets(value: unknown): ManifestEntryTargets {
-  if (typeof value === "string") {
-    return { complete: true, targets: [value] };
-  }
-  if (Array.isArray(value)) {
-    const entries = value.map(manifestEntryTargets);
-    return {
-      complete: entries.length > 0 && entries.every((entry) => entry.complete),
-      targets: entries.flatMap((entry) => entry.targets),
-    };
-  }
-  if (value === null || typeof value !== "object") {
-    return { complete: false, targets: [] };
-  }
-  const entries = Object.values(value).map(manifestEntryTargets);
-  return {
-    complete: entries.length > 0 && entries.every((entry) => entry.complete),
-    targets: entries.flatMap((entry) => entry.targets),
-  };
-}
-
 function manifestEntryStrings(value: unknown): string[] {
-  return manifestEntryTargets(value).targets;
+  if (typeof value === "string") {
+    return [value];
+  }
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return [];
+  }
+  return Object.values(value).flatMap(manifestEntryStrings);
 }
 
-function workspaceExportTargets(
+function hasExactWorkspaceExport(
   exports: unknown,
   subpath: string,
-): ManifestEntryTargets {
-  if (
+): boolean {
+  return (
     exports === null ||
     typeof exports !== "object" ||
     Array.isArray(exports)
-  ) {
-    return subpath === "."
-      ? manifestEntryTargets(exports)
-      : { complete: false, targets: [] };
-  }
-  const entries = Object.entries(exports);
-  if (!entries.some(([key]) => key.startsWith("."))) {
-    return subpath === "."
-      ? manifestEntryTargets(exports)
-      : { complete: false, targets: [] };
-  }
-  return manifestEntryTargets(
-    entries.find(([key]) => key === subpath)?.[1],
+      ? false
+      : Object.hasOwn(exports, subpath)
   );
 }
 
@@ -472,24 +441,17 @@ function sourceCandidatePaths(
       ? ""
       : specifier.slice(workspace.name.length + 1);
   const manifest = workspace.manifest;
-  const exported = workspaceExportTargets(
-    manifest.exports,
-    suffix.length === 0 ? "." : `./${suffix}`,
-  );
   const declared =
     suffix.length === 0
       ? [
           ...manifestEntryStrings(manifest.source),
-          ...manifestEntryStrings(manifest.exports),
           ...manifestEntryStrings(manifest.module),
           ...manifestEntryStrings(manifest.main),
           ...manifestEntryStrings(manifest.types),
         ]
-      : exported.targets.length > 0
-        ? exported.targets
-        : manifest.exports === undefined
-          ? [suffix]
-          : [];
+      : manifest.exports === undefined
+        ? [suffix]
+        : [];
   const bases = [...declared, ...(suffix.length === 0 ? ["src/index"] : [])];
   return sourceCandidatePathsForEntries(workspace, bases);
 }
@@ -580,6 +542,180 @@ function resolveGeneratedOutput(
       .map((match) => match.configPath)
       .sort(compareText),
   };
+}
+
+function compilerPathCandidates(
+  root: string,
+  canonicalRoot: string,
+  resolvedFileName: string,
+): string[] {
+  const candidates = new Set<string>([path.resolve(resolvedFileName)]);
+  const canonicalPath =
+    ts.sys.realpath?.(resolvedFileName) ?? path.resolve(resolvedFileName);
+  candidates.add(path.resolve(canonicalPath));
+  if (isWithin(canonicalRoot, canonicalPath)) {
+    candidates.add(
+      path.resolve(root, path.relative(canonicalRoot, canonicalPath)),
+    );
+  }
+  return [...candidates];
+}
+
+function resolveCompilerSelectedSource(
+  root: string,
+  canonicalRoot: string,
+  resolvedFileName: string,
+  outputMappings: readonly OutputMapping[],
+  sourceByAbsolutePath: ReadonlyMap<string, SourceRecord>,
+):
+  | { kind: "none" }
+  | { kind: "resolved"; source: SourceRecord }
+  | { kind: "ambiguous"; configPaths: string[] } {
+  const candidates = compilerPathCandidates(
+    root,
+    canonicalRoot,
+    resolvedFileName,
+  );
+  const source = resolveSourceCandidate(candidates, sourceByAbsolutePath);
+  if (source !== undefined) {
+    return { kind: "resolved", source };
+  }
+  for (const candidate of candidates) {
+    if (!isWithin(root, candidate)) {
+      continue;
+    }
+    const generated = resolveGeneratedOutput(
+      candidate,
+      outputMappings,
+      sourceByAbsolutePath,
+    );
+    if (generated.kind !== "none") {
+      return generated;
+    }
+  }
+  return { kind: "none" };
+}
+
+function createWorkspaceModuleResolutionHost(
+  root: string,
+  canonicalRoot: string,
+  workspace: WorkspacePackage,
+  outputMappings: readonly OutputMapping[],
+  sourceByAbsolutePath: ReadonlyMap<string, SourceRecord>,
+  allowGeneratedOutput: boolean,
+): ts.ModuleResolutionHost {
+  const packageSegments = workspace.name.split("/");
+  const virtualPackageDirectories = [...new Set([root, canonicalRoot])]
+    .map((workspaceRoot) =>
+      path.join(workspaceRoot, "node_modules", ...packageSegments),
+    );
+  const workspaceMappings = outputMappings.filter(
+    (mapping) =>
+      isWithin(workspace.directory, mapping.rootDirectory) &&
+      isWithin(workspace.directory, mapping.outputDirectory),
+  );
+  const toWorkspacePath = (fileName: string): string | undefined => {
+    for (const virtualDirectory of virtualPackageDirectories) {
+      if (isWithin(virtualDirectory, fileName)) {
+        return path.resolve(
+          workspace.directory,
+          path.relative(virtualDirectory, fileName),
+        );
+      }
+    }
+    return undefined;
+  };
+  const hasGeneratedPath = (fileName: string): boolean =>
+    resolveGeneratedOutput(
+      fileName,
+      workspaceMappings,
+      sourceByAbsolutePath,
+    ).kind === "resolved";
+  const hasGeneratedDirectory = (directory: string): boolean =>
+    workspaceMappings.some(
+      (mapping) =>
+        isWithin(directory, mapping.outputDirectory) ||
+        isWithin(mapping.outputDirectory, directory),
+    );
+
+  return {
+    fileExists(fileName) {
+      if (ts.sys.fileExists(fileName)) {
+        return true;
+      }
+      const workspacePath = toWorkspacePath(fileName);
+      return workspacePath !== undefined &&
+        (ts.sys.fileExists(workspacePath) ||
+          (allowGeneratedOutput && hasGeneratedPath(workspacePath)));
+    },
+    readFile(fileName) {
+      const workspacePath = toWorkspacePath(fileName);
+      return ts.sys.readFile(workspacePath ?? fileName);
+    },
+    directoryExists(directory) {
+      if (ts.sys.directoryExists?.(directory) === true) {
+        return true;
+      }
+      if (
+        virtualPackageDirectories.some((virtualDirectory) =>
+          isWithin(directory, virtualDirectory),
+        )
+      ) {
+        return true;
+      }
+      const workspacePath = toWorkspacePath(directory);
+      return workspacePath !== undefined &&
+        (ts.sys.directoryExists?.(workspacePath) === true ||
+          (allowGeneratedOutput && hasGeneratedDirectory(workspacePath)));
+    },
+    realpath(fileName) {
+      const workspacePath = toWorkspacePath(fileName);
+      if (workspacePath !== undefined) {
+        return ts.sys.realpath?.(workspacePath) ?? workspacePath;
+      }
+      return ts.sys.realpath?.(fileName) ?? fileName;
+    },
+    getCurrentDirectory: () => root,
+    useCaseSensitiveFileNames: ts.sys.useCaseSensitiveFileNames,
+  };
+}
+
+function resolveWorkspaceModuleName(
+  root: string,
+  canonicalRoot: string,
+  workspace: WorkspacePackage,
+  source: SourceRecord,
+  specifier: string,
+  outputMappings: readonly OutputMapping[],
+  sourceByAbsolutePath: ReadonlyMap<string, SourceRecord>,
+): ts.ResolvedModuleFull | undefined {
+  for (const allowGeneratedOutput of [false, true]) {
+    const resolved = ts.resolveModuleName(
+      specifier,
+      source.absolutePath,
+      source.compilerOptions,
+      createWorkspaceModuleResolutionHost(
+        root,
+        canonicalRoot,
+        workspace,
+        outputMappings,
+        sourceByAbsolutePath,
+        allowGeneratedOutput,
+      ),
+      ts.createModuleResolutionCache(
+        path.dirname(source.absolutePath),
+        (fileName) =>
+          ts.sys.useCaseSensitiveFileNames
+            ? fileName
+            : fileName.toLowerCase(),
+        source.compilerOptions,
+      ),
+    ).resolvedModule;
+    if (resolved !== undefined) {
+      return resolved;
+    }
+  }
+  return undefined;
 }
 
 function assetSpecifierPath(specifier: string): string | undefined {
@@ -873,97 +1009,63 @@ export async function scanRepository(
       if (workspace !== undefined) {
         let target: SourceRecord | undefined;
         if (resolved !== undefined) {
-          const resolvedCandidates = [
+          const selected = resolveCompilerSelectedSource(
+            options.root,
+            canonicalRoot,
             resolved.resolvedFileName,
-            ...(isWithin(canonicalRoot, resolved.resolvedFileName)
-              ? [
-                  path.resolve(
-                    options.root,
-                    path.relative(canonicalRoot, resolved.resolvedFileName),
-                  ),
-                ]
-              : []),
-            ...(resolved.packageId?.name === workspace.name
-              ? [
-                  path.resolve(
-                    workspace.directory,
-                    resolved.packageId.subModuleName,
-                  ),
-                ]
-              : []),
-          ];
-          target = resolveSourceCandidate(
-            resolvedCandidates,
+            outputMappings,
             sourceByAbsolutePath,
           );
-          if (target === undefined) {
-            const generatedCandidates = resolvedCandidates.filter((candidate) =>
-              isWithin(options.root, candidate),
+          if (selected.kind === "resolved") {
+            target = selected.source;
+          } else if (selected.kind === "ambiguous") {
+            unresolvedImportCount += 1;
+            diagnostics.push({
+              code: "ambiguous-generated-output",
+              severity: "error",
+              message: `Generated output import "${specifier}" from "${source.repositoryPath}" maps to multiple source projects: ${selected.configPaths.join(", ")}.`,
+              path: source.repositoryPath,
+              specifier,
+            });
+            continue;
+          }
+        } else {
+          const suffix =
+            specifier === workspace.name
+              ? ""
+              : specifier.slice(workspace.name.length + 1);
+          const exportedSubpath =
+            suffix.length > 0 &&
+            hasExactWorkspaceExport(
+              workspace.manifest.exports,
+              `./${suffix}`,
             );
-            let ambiguousGeneratedConfigPaths: string[] | undefined;
-            for (const candidate of generatedCandidates) {
-              const generated = resolveGeneratedOutput(
-                path.resolve(candidate),
+          if (exportedSubpath) {
+            const virtualResolved = resolveWorkspaceModuleName(
+              options.root,
+              canonicalRoot,
+              workspace,
+              source,
+              specifier,
+              outputMappings,
+              sourceByAbsolutePath,
+            );
+            if (virtualResolved !== undefined) {
+              const selected = resolveCompilerSelectedSource(
+                options.root,
+                canonicalRoot,
+                virtualResolved.resolvedFileName,
                 outputMappings,
                 sourceByAbsolutePath,
               );
-              if (generated.kind === "resolved") {
-                target = generated.source;
-                break;
-              }
-              if (generated.kind === "ambiguous") {
-                ambiguousGeneratedConfigPaths = generated.configPaths;
-                break;
-              }
-            }
-            if (ambiguousGeneratedConfigPaths !== undefined) {
-              unresolvedImportCount += 1;
-              diagnostics.push({
-                code: "ambiguous-generated-output",
-                severity: "error",
-                message: `Generated output import "${specifier}" from "${source.repositoryPath}" maps to multiple source projects: ${ambiguousGeneratedConfigPaths.join(", ")}.`,
-                path: source.repositoryPath,
-                specifier,
-              });
-              continue;
-            }
-          }
-        }
-        if (target === undefined) {
-          const subpath = specifier !== workspace.name;
-          if (subpath && workspace.manifest.exports !== undefined) {
-            const exported = workspaceExportTargets(
-              workspace.manifest.exports,
-              `./${specifier.slice(workspace.name.length + 1)}`,
-            );
-            const exportedSources = exported.targets.map((entry) =>
-              resolveSourceCandidate(
-                sourceCandidatePathsForEntries(workspace, [entry]),
-                sourceByAbsolutePath,
-              ),
-            );
-            if (
-              exported.complete &&
-              exportedSources.length > 0 &&
-              exportedSources.every(
-                (candidate): candidate is SourceRecord =>
-                  candidate !== undefined,
-              )
-            ) {
-              const candidates = new Map(
-                exportedSources.map((candidate) => [
-                  candidate.absolutePath,
-                  candidate,
-                ]),
-              );
-              if (candidates.size === 1) {
-                target = [...candidates.values()][0];
-              } else {
+              if (selected.kind === "resolved") {
+                target = selected.source;
+              } else if (selected.kind === "ambiguous") {
                 unresolvedImportCount += 1;
                 diagnostics.push({
-                  code: "ambiguous-workspace-import",
+                  code: "ambiguous-generated-output",
                   severity: "error",
-                  message: `Workspace import "${specifier}" from "${source.repositoryPath}" has multiple export targets without a compiler-selected source.`,
+                  message: `Generated output import "${specifier}" from "${source.repositoryPath}" maps to multiple source projects: ${selected.configPaths.join(", ")}.`,
                   path: source.repositoryPath,
                   specifier,
                 });

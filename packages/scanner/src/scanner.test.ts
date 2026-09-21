@@ -505,14 +505,14 @@ describe("@topo/scanner", () => {
         },
       }),
     );
-    await expect(scanRepository({ root })).rejects.toMatchObject({
-      diagnostics: expect.arrayContaining([
-        expect.objectContaining({
-          code: "unresolved-workspace-import",
-          specifier: "@fixture/lib/data",
-        }),
-      ]),
-    });
+    const conditionFallback = await scanRepository({ root });
+    expect(conditionFallback.graph.edges).toContainEqual(
+      expect.objectContaining({
+        sourceId: "path:packages/app/src/index.ts",
+        targetId: "path:packages/lib/src/runtime.ts",
+        type: "imports",
+      }),
+    );
 
     await write(
       root,
@@ -528,15 +528,45 @@ describe("@topo/scanner", () => {
         },
       }),
     );
-    await rm(path.join(root, "node_modules"), { recursive: true });
+    const externalPackage = await temporaryRepository();
+    await write(
+      externalPackage,
+      "package.json",
+      JSON.stringify({
+        name: "@fixture/lib",
+        type: "module",
+        exports: { "./data": "./data.ts" },
+      }),
+    );
+    await write(
+      externalPackage,
+      "data.ts",
+      "export const value = 'external';\n",
+    );
+    await rm(path.join(root, "node_modules/@fixture/lib"));
+    await symlink(
+      externalPackage,
+      path.join(root, "node_modules/@fixture/lib"),
+      "dir",
+    );
     await expect(scanRepository({ root })).rejects.toMatchObject({
       diagnostics: expect.arrayContaining([
         expect.objectContaining({
-          code: "ambiguous-workspace-import",
+          code: "unresolved-workspace-import",
           specifier: "@fixture/lib/data",
         }),
       ]),
     });
+
+    await rm(path.join(root, "node_modules"), { recursive: true });
+    const unlinked = await scanRepository({ root });
+    expect(unlinked.graph.edges).toContainEqual(
+      expect.objectContaining({
+        sourceId: "path:packages/app/src/index.ts",
+        targetId: "path:packages/lib/src/data.ts",
+        type: "imports",
+      }),
+    );
 
     await write(
       root,
@@ -560,6 +590,97 @@ describe("@topo/scanner", () => {
         type: "imports",
       }),
     );
+
+    await write(
+      root,
+      "packages/app/src/index.ts",
+      'import { value } from "@fixture/lib/generated";\nexport const result = value;\n',
+    );
+    await write(
+      root,
+      "packages/lib/package.json",
+      JSON.stringify({
+        name: "@fixture/lib",
+        type: "module",
+        exports: {
+          "./generated": {
+            types: "./dist/generated.d.ts",
+            default: "./dist/generated.js",
+          },
+        },
+      }),
+    );
+    await write(root, "packages/lib/src/generated.ts", "export const value = 3;\n");
+    const generated = await scanRepository({ root });
+    expect(generated.graph.edges).toContainEqual(
+      expect.objectContaining({
+        sourceId: "path:packages/app/src/index.ts",
+        targetId: "path:packages/lib/src/generated.ts",
+        type: "imports",
+      }),
+    );
+
+    await write(
+      root,
+      "packages/lib/tsconfig.ambiguous.json",
+      JSON.stringify({
+        compilerOptions: {
+          module: "NodeNext",
+          moduleResolution: "NodeNext",
+          outDir: "dist",
+          rootDir: "alternate",
+        },
+        include: ["alternate"],
+      }),
+    );
+    await write(
+      root,
+      "packages/lib/alternate/generated.ts",
+      "export const value = 4;\n",
+    );
+    await expect(scanRepository({ root })).rejects.toMatchObject({
+      diagnostics: expect.arrayContaining([
+        expect.objectContaining({
+          code: "unresolved-workspace-import",
+          specifier: "@fixture/lib/generated",
+        }),
+      ]),
+    });
+    await rm(path.join(root, "packages/lib/tsconfig.ambiguous.json"));
+    await rm(path.join(root, "packages/lib/alternate"), { recursive: true });
+
+    await write(
+      root,
+      "packages/app/src/index.ts",
+      'import { value } from "@fixture/lib/data";\nexport const result = value;\n',
+    );
+    for (const target of [
+      "src/data.ts",
+      "./../shared.ts",
+      null,
+      {
+        default: "./dist/missing-runtime.js",
+        types: "./src/missing-types.ts",
+      },
+    ]) {
+      await write(
+        root,
+        "packages/lib/package.json",
+        JSON.stringify({
+          name: "@fixture/lib",
+          type: "module",
+          exports: { "./data": target },
+        }),
+      );
+      await expect(scanRepository({ root })).rejects.toMatchObject({
+        diagnostics: expect.arrayContaining([
+          expect.objectContaining({
+            code: "unresolved-workspace-import",
+            specifier: "@fixture/lib/data",
+          }),
+        ]),
+      });
+    }
 
     await write(
       root,

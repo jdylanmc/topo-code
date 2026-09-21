@@ -93,11 +93,12 @@ The scanner discovers every `tsconfig*.json` outside generated/vendor
 directories instead of trusting only a root config. It also reads root
 `package.json` workspace declarations, validates named package manifests, and
 uses TypeScript's selected workspace source when available. When package
-installation metadata is absent, unambiguous package source/export metadata,
-including exact exported subpaths, provides the fallback; conflicting
-conditional targets remain errors rather than guessed edges. Repositories
-without a TypeScript config use default compiler options while each file is
-parsed independently. Metrics keep
+installation metadata is absent, a read-only virtual workspace view lets
+TypeScript select exact exported subpaths without writing links or generated
+files into the scanned repository. Topo then maps only that selected path to a
+scanned source, using unique TypeScript output mappings where required.
+Repositories without a TypeScript config use default compiler options while
+each file is parsed independently. Metrics keep
 `sourceFileCount` and source `linesOfCode` separate from `assetFileCount` and
 `assetImportCount`.
 

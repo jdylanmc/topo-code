@@ -49,8 +49,8 @@ does not currently publish versioned releases.
 ### Fixed
 
 - Resolve exact workspace package export subpaths through TypeScript-selected
-  source files while preserving strict failures for ambiguous or missing
-  exports. See #63.
+  source files, including clean checkouts without workspace links, while
+  preserving strict failures for invalid or unmappable exports. See #63.
 - Catch strict TypeScript errors in browser end-to-end tests and helpers during
   the standard regression gate.
 - Keep scanner tests isolated when temporary storage is inside an ignored
