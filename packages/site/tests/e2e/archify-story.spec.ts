@@ -233,6 +233,7 @@ test("actual Architecture SVG export preserves authored labels", async ({
       "utf8",
     ),
   ) as {
+    anchors: { path: string }[];
     sections: { title: string }[];
     connections: { label?: string }[];
   };
@@ -262,6 +263,12 @@ test("actual Architecture SVG export preserves authored labels", async ({
     for (const label of authoredLabels) {
       expect(exportedSvg, `SVG export: ${label}`).toContain(label);
     }
+    expect(
+      document.anchors
+        .map(({ path }) => path)
+        .filter((path) => !exportedSvg.includes(path)),
+      "SVG source provenance",
+    ).toEqual([]);
   } finally {
     await page.goto("about:blank");
     await stopTopoServer(server);
