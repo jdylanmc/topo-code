@@ -744,7 +744,7 @@ svg g[data-edge-from] > text {
 svg { max-height: 100vh; }
 svg text {
   font-family: ui-sans-serif, system-ui, sans-serif;
-  font-size: 12px !important;
+  font-size: 13px !important;
 }`
       : `
 svg text[data-node-label],
