@@ -41,26 +41,26 @@
   "sections": [
     {
       "id": "repository-source",
-      "title": "Repository source",
-      "body": "Repository files.",
+      "title": "Source",
+      "body": "Ready to scan.",
       "anchorIds": ["scan-source"]
     },
     {
       "id": "scan-compose",
-      "title": "Scan and compose",
-      "body": "Composed graph.",
+      "title": "Compose",
+      "body": "Graph.",
       "anchorIds": ["emit-graph", "compose-graph"]
     },
     {
       "id": "site-artifacts",
-      "title": "Generated artifacts",
-      "body": "Graph, layout, and site.",
+      "title": "Artifacts",
+      "body": "Layout + site.",
       "anchorIds": ["generate-site"]
     },
     {
       "id": "static-bundle",
-      "title": "Static site bundle",
-      "body": "Validated static files.",
+      "title": "Bundle",
+      "body": "Static files.",
       "anchorIds": ["bundle-site"]
     }
   ],
@@ -68,17 +68,17 @@
     {
       "from": "repository-source",
       "to": "scan-compose",
-      "label": "scans and composes"
+      "label": "scans"
     },
     {
       "from": "scan-compose",
       "to": "site-artifacts",
-      "label": "derives artifacts"
+      "label": "composes"
     },
     {
       "from": "site-artifacts",
       "to": "static-bundle",
-      "label": "copies static files"
+      "label": "bundles"
     }
   ]
 }

@@ -10,25 +10,25 @@
     {
       "id": "ingest",
       "title": "Ingest",
-      "body": "Input records.",
+      "body": "Records.",
       "anchorIds": []
     },
     {
       "id": "normalize",
       "title": "Normalize",
-      "body": "Common shape.",
+      "body": "Shape.",
       "anchorIds": []
     },
     {
       "id": "enrich",
       "title": "Enrich",
-      "body": "Derived fields.",
+      "body": "Context.",
       "anchorIds": []
     },
     {
       "id": "publish",
       "title": "Publish",
-      "body": "Output dataset.",
+      "body": "Dataset.",
       "anchorIds": []
     }
   ],
@@ -36,17 +36,17 @@
     {
       "from": "ingest",
       "to": "normalize",
-      "label": "parses input"
+      "label": "parses"
     },
     {
       "from": "normalize",
       "to": "enrich",
-      "label": "adds context"
+      "label": "enriches"
     },
     {
       "from": "enrich",
       "to": "publish",
-      "label": "emits output"
+      "label": "emits"
     }
   ]
 }
