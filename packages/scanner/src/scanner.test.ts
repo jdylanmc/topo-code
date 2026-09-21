@@ -1162,6 +1162,95 @@ describe("@topo/scanner", () => {
     }
   });
 
+  it("projects virtual declaration paths when output files are absent", async () => {
+    for (const [sourceExtension, declarationExtension] of [
+      ["mts", "d.mts"],
+      ["cts", "d.cts"],
+    ] as const) {
+      const root = await temporaryRepository();
+      await write(
+        root,
+        "package.json",
+        JSON.stringify({ private: true, workspaces: ["packages/*"] }),
+      );
+      await write(root, ".gitignore", "node_modules/\npackages/*/dist/\n");
+      await write(
+        root,
+        "packages/app/package.json",
+        JSON.stringify({
+          name: "@fixture/app",
+          dependencies: { "@fixture/lib": "workspace:*" },
+        }),
+      );
+      await write(
+        root,
+        "packages/app/tsconfig.json",
+        JSON.stringify({
+          compilerOptions: {
+            module: "NodeNext",
+            moduleResolution: "NodeNext",
+          },
+          include: ["src"],
+        }),
+      );
+      await write(
+        root,
+        "packages/app/src/index.ts",
+        'import type { Value } from "@fixture/lib/data";\nexport type Result = Value;\n',
+      );
+      await write(
+        root,
+        "packages/lib/package.json",
+        JSON.stringify({
+          name: "@fixture/lib",
+          type: "module",
+          exports: { "./data": `./dist/data.${declarationExtension}` },
+        }),
+      );
+      await write(
+        root,
+        "packages/lib/tsconfig.json",
+        JSON.stringify({
+          compilerOptions: {
+            module: "NodeNext",
+            moduleResolution: "NodeNext",
+            outDir: "dist",
+            rootDir: "src",
+          },
+          include: ["src"],
+        }),
+      );
+      await write(
+        root,
+        `packages/lib/src/data.${sourceExtension}`,
+        "export interface Value { selected: true }\n",
+      );
+      await write(
+        root,
+        "packages/lib/src/data.d.ts",
+        "export interface Value { wrong: true }\n",
+      );
+
+      const result = await scanRepository({ root });
+
+      expect(result.metrics.unresolvedImportCount).toBe(0);
+      expect(result.graph.edges).toContainEqual(
+        expect.objectContaining({
+          sourceId: "path:packages/app/src/index.ts",
+          targetId: `path:packages/lib/src/data.${sourceExtension}`,
+          type: "imports",
+        }),
+      );
+      expect(result.graph.edges).not.toContainEqual(
+        expect.objectContaining({
+          sourceId: "path:packages/app/src/index.ts",
+          targetId: "path:packages/lib/src/data.d.ts",
+          type: "imports",
+        }),
+      );
+    }
+  });
+
   it("does not replace a physical package export miss with a workspace export", async () => {
     for (const physicalExports of [
       { "./data": null },
