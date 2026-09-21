@@ -117,3 +117,72 @@ test("actual Dataflow stories render from the categorized plain-server bundle", 
     });
   }
 });
+
+test("actual Dataflow story text stays readable after page, frame, and SVG scaling", async ({
+  page,
+  repository,
+}) => {
+  await writeActualDataflowFixture(repository);
+  const output = join(repository, ".topo/deploy");
+  await topo(repository, "bundle", repository, "--output", output);
+  const { server, url } = await startStaticServer(output);
+  try {
+    for (const viewport of [
+      { width: 1024, height: 768 },
+      { width: 1440, height: 900 },
+      { width: 1920, height: 1080 },
+    ]) {
+      await page.setViewportSize(viewport);
+      for (const story of dataflowStories) {
+        await page.goto(`${url}/stories/${story.id}/`);
+        const frame = page.locator("[data-story-viewer]");
+        const diagram = page.frameLocator("[data-story-viewer]")
+          .locator('svg[role="img"]');
+        await expect(diagram).toBeVisible();
+        const iframeScale = await frame.evaluate((iframe) => {
+          const element = iframe as HTMLIFrameElement;
+          return element.getBoundingClientRect().height / element.offsetHeight;
+        });
+        const measurements = await diagram.locator("text").evaluateAll(
+          (elements) => elements.flatMap((element) => {
+            const text = element as SVGTextElement;
+            const value = text.textContent?.trim() ?? "";
+            const bounds = text.getBoundingClientRect();
+            if (value.length === 0 || bounds.width === 0 || bounds.height === 0) {
+              return [];
+            }
+            const matrix = text.getScreenCTM();
+            const svgBounds = text.ownerSVGElement!.getBoundingClientRect();
+            return [{
+              effectiveFontSize:
+                Number.parseFloat(getComputedStyle(text).fontSize) *
+                Math.hypot(matrix?.c ?? 0, matrix?.d ?? 0),
+              contained:
+                bounds.left >= svgBounds.left &&
+                bounds.right <= svgBounds.right &&
+                bounds.top >= svgBounds.top &&
+                bounds.bottom <= svgBounds.bottom,
+            }];
+          }),
+        );
+
+        expect(measurements.length, story.id).toBeGreaterThan(0);
+        expect(
+          measurements.every(({ contained }) => contained),
+          `${story.id} text containment at ${viewport.width}x${viewport.height}`,
+        ).toBe(true);
+        expect.soft(
+          Math.min(...measurements.map(({ effectiveFontSize }) =>
+            effectiveFontSize * iframeScale
+          )),
+          `${story.id} effective text at ${viewport.width}x${viewport.height}`,
+        ).toBeGreaterThanOrEqual(12);
+      }
+    }
+  } finally {
+    await page.goto("about:blank");
+    await new Promise<void>((done, reject) => {
+      server.close((error) => error ? reject(error) : done());
+    });
+  }
+});
