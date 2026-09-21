@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, mkdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, realpath, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -448,10 +448,11 @@ describe("@topo/scanner", () => {
       "packages/lib/package.json",
       JSON.stringify({
         name: "@fixture/lib",
+        type: "module",
         exports: {
           "./data": {
+            default: "./dist/runtime.js",
             types: "./src/data.ts",
-            default: "./dist/data.js",
           },
         },
       }),
@@ -470,6 +471,13 @@ describe("@topo/scanner", () => {
       }),
     );
     await write(root, "packages/lib/src/data.ts", "export const value = 1;\n");
+    await write(root, "packages/lib/src/runtime.ts", "export const value = 2;\n");
+    await mkdir(path.join(root, "node_modules/@fixture"), { recursive: true });
+    await symlink(
+      path.join(root, "packages/lib"),
+      path.join(root, "node_modules/@fixture/lib"),
+      "dir",
+    );
 
     const result = await scanRepository({ root });
 
@@ -482,6 +490,16 @@ describe("@topo/scanner", () => {
         type: "imports",
       }),
     );
+
+    await rm(path.join(root, "node_modules"), { recursive: true });
+    await expect(scanRepository({ root })).rejects.toMatchObject({
+      diagnostics: expect.arrayContaining([
+        expect.objectContaining({
+          code: "ambiguous-workspace-import",
+          specifier: "@fixture/lib/data",
+        }),
+      ]),
+    });
 
     await write(
       root,

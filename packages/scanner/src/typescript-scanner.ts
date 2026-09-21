@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { readFile, realpath } from "node:fs/promises";
 import path from "node:path";
 import {
   GRAPH_SCHEMA_VERSION,
@@ -470,6 +470,13 @@ function resolveSourceCandidate(
   candidates: readonly string[],
   sourceByAbsolutePath: ReadonlyMap<string, SourceRecord>,
 ): SourceRecord | undefined {
+  return resolveSourceCandidates(candidates, sourceByAbsolutePath)[0];
+}
+
+function resolveSourceCandidates(
+  candidates: readonly string[],
+  sourceByAbsolutePath: ReadonlyMap<string, SourceRecord>,
+): SourceRecord[] {
   const extensions = [
     "",
     ".ts",
@@ -487,6 +494,7 @@ function resolveSourceCandidate(
     "/index.js",
     "/index.jsx",
   ];
+  const matches = new Map<string, SourceRecord>();
   for (const candidate of candidates) {
     const withoutOutputExtension = candidate.replace(
       /\.(?:d\.ts|[cm]?[jt]sx?)$/u,
@@ -497,11 +505,11 @@ function resolveSourceCandidate(
         path.resolve(`${withoutOutputExtension}${extension}`),
       );
       if (source !== undefined) {
-        return source;
+        matches.set(source.absolutePath, source);
       }
     }
   }
-  return undefined;
+  return [...matches.values()];
 }
 
 function resolveGeneratedOutput(
@@ -694,6 +702,7 @@ export async function scanRepository(
   const options = parseScanRepositoryOptions(input);
   const quality = { ...DEFAULT_QUALITY, ...options.quality };
   await assertDirectory(options.root);
+  const canonicalRoot = await realpath(options.root);
 
   const files = await walkFiles(options.root);
   const inventoryPaths = new Set(files.map((filePath) => path.resolve(filePath)));
@@ -834,10 +843,87 @@ export async function scanRepository(
       const workspace = workspaceForSpecifier(specifier, workspaces);
 
       if (workspace !== undefined) {
-        const target = resolveSourceCandidate(
-          sourceCandidatePaths(workspace, specifier),
-          sourceByAbsolutePath,
-        );
+        let target: SourceRecord | undefined;
+        if (resolved !== undefined) {
+          const resolvedCandidates = [
+            resolved.resolvedFileName,
+            ...(isWithin(canonicalRoot, resolved.resolvedFileName)
+              ? [
+                  path.resolve(
+                    options.root,
+                    path.relative(canonicalRoot, resolved.resolvedFileName),
+                  ),
+                ]
+              : []),
+            ...(resolved.packageId?.name === workspace.name
+              ? [
+                  path.resolve(
+                    workspace.directory,
+                    resolved.packageId.subModuleName,
+                  ),
+                ]
+              : []),
+          ];
+          target = resolveSourceCandidate(
+            resolvedCandidates,
+            sourceByAbsolutePath,
+          );
+          if (target === undefined) {
+            const generatedCandidates = resolvedCandidates.filter((candidate) =>
+              isWithin(options.root, candidate),
+            );
+            let ambiguousGeneratedConfigPaths: string[] | undefined;
+            for (const candidate of generatedCandidates) {
+              const generated = resolveGeneratedOutput(
+                path.resolve(candidate),
+                outputMappings,
+                sourceByAbsolutePath,
+              );
+              if (generated.kind === "resolved") {
+                target = generated.source;
+                break;
+              }
+              if (generated.kind === "ambiguous") {
+                ambiguousGeneratedConfigPaths = generated.configPaths;
+                break;
+              }
+            }
+            if (ambiguousGeneratedConfigPaths !== undefined) {
+              unresolvedImportCount += 1;
+              diagnostics.push({
+                code: "ambiguous-generated-output",
+                severity: "error",
+                message: `Generated output import "${specifier}" from "${source.repositoryPath}" maps to multiple source projects: ${ambiguousGeneratedConfigPaths.join(", ")}.`,
+                path: source.repositoryPath,
+                specifier,
+              });
+              continue;
+            }
+          }
+        }
+        if (target === undefined) {
+          const candidates = resolveSourceCandidates(
+            sourceCandidatePaths(workspace, specifier),
+            sourceByAbsolutePath,
+          );
+          const subpath = specifier !== workspace.name;
+          if (
+            subpath &&
+            workspace.manifest.exports !== undefined &&
+            candidates.length > 1
+          ) {
+            unresolvedImportCount += 1;
+            diagnostics.push({
+              code: "ambiguous-workspace-import",
+              severity: "error",
+              message: `Workspace import "${specifier}" from "${source.repositoryPath}" has multiple export targets without a compiler-selected source.`,
+              path: source.repositoryPath,
+              specifier,
+            });
+            continue;
+          }
+          target = candidates[0];
+        }
         if (target !== undefined) {
           targetId = createPathNodeId(target.repositoryPath);
           localImportCount += 1;
