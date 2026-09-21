@@ -713,7 +713,7 @@ function commandError(error: unknown): Error {
 
 function improveStoryReadability(
   contents: string,
-  family: "architecture" | "workflow" | "lifecycle",
+  family: "architecture" | "workflow" | "dataflow" | "lifecycle",
 ): string {
   const headEnd = "</head>";
   if (!contents.includes(headEnd)) {
@@ -733,6 +733,16 @@ svg text[font-size="10"][font-weight="600"],
 svg g[data-edge-from] > text {
   font-family: ui-sans-serif, system-ui, sans-serif;
   font-size: 14px;
+  font-weight: 600;
+}`
+      : family === "dataflow"
+        ? `
+svg text[data-node-label],
+svg text[data-detail="context"],
+svg text[font-size="9"][font-weight="600"],
+svg g[data-edge-from] > text {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 16px;
   font-weight: 600;
 }`
       : `
@@ -793,6 +803,7 @@ export function renderStory(story: ResolvedStoryDocument): StoryArtifact {
       mediaType: "text/html",
       contents: family === "architecture" ||
           family === "workflow" ||
+          family === "dataflow" ||
           family === "lifecycle"
         ? improveStoryReadability(contents, family)
         : contents,
