@@ -7,6 +7,9 @@ does not currently publish versioned releases.
 
 ### Added
 
+- Add source-grounded and capability Sequence stories with ordered native
+  messages, a return semantic, five-viewport readable static previews, and
+  canonical SVG exports. See #59.
 - Add five native Archify story families with a backward-compatible Architecture
   default, explicit factual-versus-capability classification, separated gallery
   demos, responsive readable previews, and canonical SVG/PNG exports. See #61.
