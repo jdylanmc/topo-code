@@ -5,6 +5,8 @@ import { expect } from "@playwright/test";
 import {
   commit,
   startStaticServer,
+  startTopoServer,
+  stopTopoServer,
   test,
   topo,
 } from "./helpers/production-cli.js";
@@ -100,7 +102,10 @@ test("Sequence stories remain readable in a plain-server bundle", async ({
 
     for (const viewport of [
       { width: 1024, height: 768 },
+      { width: 1280, height: 720 },
       { width: 1440, height: 900 },
+      { width: 1600, height: 1000 },
+      { width: 1920, height: 1080 },
     ]) {
       await page.setViewportSize(viewport);
       for (const story of stories) {
@@ -123,6 +128,21 @@ test("Sequence stories remain readable in a plain-server bundle", async ({
             );
           },
         );
+        const iframePlacement = await page.locator("[data-story-viewer]")
+          .evaluate((iframe) => {
+            const frame = iframe as HTMLIFrameElement;
+            const bounds = frame.getBoundingClientRect();
+            return {
+              left: bounds.left,
+              top: bounds.top,
+              scaleX: bounds.width / frame.offsetWidth,
+              scaleY: bounds.height / frame.offsetHeight,
+              viewport: {
+                width: window.innerWidth,
+                height: window.innerHeight,
+              },
+            };
+          });
         const measurements = await diagram.locator("text").evaluateAll(
           (elements) => elements.flatMap((element) => {
             const text = element as SVGTextElement;
@@ -148,6 +168,12 @@ test("Sequence stories remain readable in a plain-server bundle", async ({
                 bounds.right <= window.innerWidth &&
                 bounds.top >= 0 &&
                 bounds.bottom <= window.innerHeight,
+              bounds: {
+                left: bounds.left,
+                right: bounds.right,
+                top: bounds.top,
+                bottom: bounds.bottom,
+              },
             }];
           }),
         );
@@ -164,6 +190,23 @@ test("Sequence stories remain readable in a plain-server bundle", async ({
         expect(
           measurements.filter(({ inFrame }) => !inFrame),
           `${story.id} text outside iframe`,
+        ).toEqual([]);
+        expect(
+          measurements.filter(({ bounds }) => {
+            const left = iframePlacement.left +
+              bounds.left * iframePlacement.scaleX;
+            const right = iframePlacement.left +
+              bounds.right * iframePlacement.scaleX;
+            const top = iframePlacement.top +
+              bounds.top * iframePlacement.scaleY;
+            const bottom = iframePlacement.top +
+              bounds.bottom * iframePlacement.scaleY;
+            return left < 0 ||
+              right > iframePlacement.viewport.width ||
+              top < 0 ||
+              bottom > iframePlacement.viewport.height;
+          }),
+          `${story.id} text outside page`,
         ).toEqual([]);
       }
     }
@@ -191,5 +234,108 @@ test("Sequence stories remain readable in a plain-server bundle", async ({
     await new Promise<void>((resolve, reject) => {
       server.close((error) => error ? reject(error) : resolve());
     });
+  }
+});
+
+test("Sequence SVG exports preserve authored meaning and native geometry", async ({
+  page,
+  repository,
+}) => {
+  await writeFixture(repository);
+  const { server, url } = await startTopoServer(repository, ["--port", "0"]);
+  try {
+    for (const story of stories) {
+      const document = JSON.parse(
+        await readFile(join(projectRoot, story.path), "utf8"),
+      ) as {
+        sections: { id: string; title: string }[];
+        connections: {
+          from: string;
+          to: string;
+          label: string;
+          variant?: "return";
+        }[];
+      };
+      await page.goto(`${url}/stories/${story.id}/`);
+      const viewer = page.frameLocator("[data-story-viewer]");
+      await viewer.getByRole("button", { name: "Export diagram" }).click();
+      const downloadEvent = page.waitForEvent("download");
+      await viewer.locator('button[data-format="svg"]').click();
+      const download = await downloadEvent;
+      const downloadPath = await download.path();
+      expect(downloadPath).not.toBeNull();
+      const exportedSvg = await readFile(downloadPath!, "utf8");
+
+      for (const label of [
+        ...document.sections.map(({ title }) => title),
+        ...document.connections.map(({ label }) => label),
+      ]) {
+        expect(exportedSvg, `${story.id} SVG export: ${label}`)
+          .toContain(label);
+      }
+      expect(exportedSvg).not.toContain("packages/");
+      expect(exportedSvg).not.toContain("github.com/example/fixture");
+      expect(exportedSvg).not.toContain("data-source");
+
+      const exportedPage = await page.context().newPage();
+      try {
+        await exportedPage.setContent(exportedSvg);
+        const diagram = exportedPage.locator("svg");
+        await expect(diagram).toBeVisible();
+        await expect(diagram.locator("g[data-node-id]"))
+          .toHaveCount(document.sections.length);
+        await expect(diagram.locator("g[data-edge-from]"))
+          .toHaveCount(document.connections.length);
+
+        const geometry = await diagram.evaluate((svg) => {
+          const participants = [
+            ...svg.querySelectorAll<SVGGElement>("g[data-node-id]"),
+          ].map((participant) => ({
+            id: participant.getAttribute("data-node-id"),
+            center: participant.getBoundingClientRect().x +
+              participant.getBoundingClientRect().width / 2,
+          }));
+          const messages = [
+            ...svg.querySelectorAll<SVGPathElement>(
+              "path.a-default[data-composition-edge-from]" +
+                "[data-composition-edge-to]",
+            ),
+          ].map((message) => {
+            const points = (message.getAttribute("data-composition-points") ?? "")
+              .split(";")
+              .map((point) => point.split(",").map(Number));
+            return {
+              from: message.getAttribute("data-composition-edge-from"),
+              to: message.getAttribute("data-composition-edge-to"),
+              dash: message.getAttribute("stroke-dasharray"),
+              points,
+            };
+          });
+          return { participants, messages };
+        });
+
+        expect(geometry.participants.map(({ id }) => id))
+          .toEqual(document.sections.map(({ id }) => id));
+        expect(geometry.participants.every(({ center }, index, participants) =>
+          index === 0 || center > participants[index - 1]!.center
+        )).toBe(true);
+        expect(geometry.messages.map(({ from, to }) => ({ from, to })))
+          .toEqual(document.connections.map(({ from, to }) => ({ from, to })));
+        expect(geometry.messages.every(({ points }) =>
+          points.length === 2 &&
+          points[0]![0] !== points[1]![0] &&
+          points[0]![1] === points[1]![1]
+        )).toBe(true);
+        expect(geometry.messages.map(({ dash }) => dash))
+          .toEqual(document.connections.map(({ variant }) =>
+            variant === "return" ? "3,5" : null
+          ));
+      } finally {
+        await exportedPage.close();
+      }
+    }
+  } finally {
+    if (!page.isClosed()) await page.goto("about:blank");
+    await stopTopoServer(server);
   }
 });
