@@ -1,0 +1,95 @@
+{
+  "schemaVersion": "1.0",
+  "diagramFamily": "dataflow",
+  "classification": "source-grounded",
+  "id": "repository-dataflow",
+  "title": "How repository source becomes a static Topocode site",
+  "summary": "Follow repository files through scanning, graph composition, generated layout and site artifacts, and the validated static bundle.",
+  "category": "Topocode internals",
+  "anchors": [
+    {
+      "id": "scan-source",
+      "path": "packages/scanner/src/typescript-scanner.ts",
+      "symbol": "scanRepository",
+      "pattern": "const files = await walkFiles(options.root);"
+    },
+    {
+      "id": "emit-graph",
+      "path": "packages/scanner/src/typescript-scanner.ts",
+      "symbol": "scanRepository",
+      "pattern": "return { graph, logicalArchitecture, diagnostics, metrics, authoritative };"
+    },
+    {
+      "id": "compose-graph",
+      "path": "packages/cli/src/pipeline.ts",
+      "symbol": "generateArtifacts",
+      "pattern": "const composedGraph = composeConfiguredGraph(graph, config.modules);"
+    },
+    {
+      "id": "generate-site",
+      "path": "packages/cli/src/pipeline.ts",
+      "symbol": "generateArtifacts",
+      "pattern": "await writeGenerated(root, \"cache/site/data.json\", data);"
+    },
+    {
+      "id": "bundle-site",
+      "path": "packages/cli/src/bundle.ts",
+      "symbol": "bundleSite",
+      "pattern": "await cp(sourceDirectory, stagedSite, { recursive: true });"
+    }
+  ],
+  "sections": [
+    {
+      "id": "repository-source",
+      "title": "Repository source",
+      "body": "The scanner walks the repository root to collect the files that provide source evidence.",
+      "anchorIds": ["scan-source"]
+    },
+    {
+      "id": "scanned-graph",
+      "title": "Scanned graph",
+      "body": "Scanning returns the repository graph together with its logical architecture, diagnostics, metrics, and authority result.",
+      "anchorIds": ["emit-graph"]
+    },
+    {
+      "id": "composed-graph",
+      "title": "Composed graph",
+      "body": "Artifact generation applies the configured modules to the scanned graph before deriving downstream artifacts.",
+      "anchorIds": ["compose-graph"]
+    },
+    {
+      "id": "site-artifacts",
+      "title": "Layout and site artifacts",
+      "body": "The composed graph is transformed into architecture and layout data, then serialized with the generated site payload.",
+      "anchorIds": ["generate-site"]
+    },
+    {
+      "id": "static-bundle",
+      "title": "Static site bundle",
+      "body": "After bundle validation, the generated site directory is copied into a staged output for static hosting.",
+      "anchorIds": ["bundle-site"]
+    }
+  ],
+  "connections": [
+    {
+      "from": "repository-source",
+      "to": "scanned-graph",
+      "label": "walks files into a graph"
+    },
+    {
+      "from": "scanned-graph",
+      "to": "composed-graph",
+      "label": "applies configured modules"
+    },
+    {
+      "from": "composed-graph",
+      "to": "site-artifacts",
+      "label": "derives layout and site data"
+    },
+    {
+      "from": "site-artifacts",
+      "to": "static-bundle",
+      "label": "validates and copies generated files"
+    }
+  ]
+}
