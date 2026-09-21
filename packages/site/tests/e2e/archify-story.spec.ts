@@ -115,16 +115,20 @@ test("actual gallery story text remains readable at a desktop viewport", async (
       const diagram = viewer.locator('svg[role="img"]');
       await expect(diagram).toBeVisible();
       const iframeScale = await page.locator("[data-story-viewer]").evaluate(
-        (iframe) => iframe.getBoundingClientRect().height / iframe.offsetHeight,
+        (iframe) => {
+          const frame = iframe as HTMLIFrameElement;
+          return frame.getBoundingClientRect().height / frame.offsetHeight;
+        },
       );
       const iframePlacement = await page.locator("[data-story-viewer]").evaluate(
         (iframe) => {
-          const bounds = iframe.getBoundingClientRect();
+          const frame = iframe as HTMLIFrameElement;
+          const bounds = frame.getBoundingClientRect();
           return {
             left: bounds.left,
             top: bounds.top,
-            scaleX: bounds.width / iframe.offsetWidth,
-            scaleY: bounds.height / iframe.offsetHeight,
+            scaleX: bounds.width / frame.offsetWidth,
+            scaleY: bounds.height / frame.offsetHeight,
             viewport: { width: window.innerWidth, height: window.innerHeight },
           };
         },
@@ -660,7 +664,10 @@ test("workflow story text remains at least 12px after iframe and SVG scaling", a
       );
     await expect(labels).toHaveCount(3);
     const iframeScale = await page.locator("[data-story-viewer]").evaluate(
-      (iframe) => iframe.getBoundingClientRect().height / iframe.offsetHeight,
+      (iframe) => {
+        const frame = iframe as HTMLIFrameElement;
+        return frame.getBoundingClientRect().height / frame.offsetHeight;
+      },
     );
     const measurements = await labels.evaluateAll((elements) =>
       elements.map((element) => {
@@ -803,7 +810,10 @@ test("workflow relationship backdrops clear nodes for varied routes", async ({
     const labels = frame.locator("svg g[data-edge-from] > text");
     await expect(labels).toHaveCount(3);
     const iframeScale = await page.locator("[data-story-viewer]").evaluate(
-      (iframe) => iframe.getBoundingClientRect().height / iframe.offsetHeight,
+      (iframe) => {
+        const frame = iframe as HTMLIFrameElement;
+        return frame.getBoundingClientRect().height / frame.offsetHeight;
+      },
     );
     const effectiveSizes = await labels.evaluateAll((elements) =>
       elements.map((element) => {

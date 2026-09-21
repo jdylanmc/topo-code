@@ -7,6 +7,9 @@ does not currently publish versioned releases.
 
 ### Added
 
+- Add five native Archify story families with a backward-compatible Architecture
+  default, explicit factual-versus-capability classification, separated gallery
+  demos, responsive readable previews, and canonical SVG/PNG exports. See #61.
 - Render authored architecture stories through the pinned, integrity-checked
   Archify runtime, including Content Security Policy-compatible live previews
   and static bundles. See #41.

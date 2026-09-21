@@ -429,7 +429,9 @@ export function renderStoryWrapper(
       li { display: grid; gap: 0.35rem; padding: 0.65rem; background: #111c2e; border-radius: 0.5rem; }
       .story-controls { position: fixed; z-index: 1; top: 0.75rem; left: 0.75rem; max-width: calc(100vw - 1.5rem); max-height: calc(100vh - 1.5rem); overflow: auto; border: 1px solid #475569; border-radius: 0.5rem; background: #09111f; box-shadow: 0 0.5rem 1.5rem #020617cc; }
       .story-controls[open] { width: min(30rem, calc(100vw - 1.5rem)); }
-      summary { padding: 0.65rem 0.85rem; color: #7dd3fc; cursor: pointer; font-weight: 700; }
+      summary { display: grid; max-width: 16rem; gap: 0.15rem; padding: 0.65rem 0.85rem; color: #7dd3fc; cursor: pointer; font-weight: 700; }
+      .story-heading { overflow: hidden; color: #e5edf7; font-size: 1rem; text-overflow: ellipsis; white-space: nowrap; }
+      .story-control-label { font-size: 0.8rem; }
       .story-controls[open] summary { border-bottom: 1px solid #29364a; }
       aside { padding: 1rem 1.25rem; }
       iframe { display: block; width: 100vw; height: 100vh; border: 0; background: white; }
@@ -438,10 +440,12 @@ export function renderStoryWrapper(
   <body data-story-id="${escapeHtml(story.document.id)}" data-story-classification="${classification}">
     <iframe data-story-viewer title="${escapeHtml(story.document.title)} rendered story" src="viewer.html"></iframe>
     <details class="story-controls">
-      <summary>Story navigation and details</summary>
+      <summary>
+        <span class="story-heading" role="heading" aria-level="1">${escapeHtml(story.document.title)}</span>
+        <span class="story-control-label">Story navigation and details</span>
+      </summary>
       <header>
         <nav aria-label="Architecture stories"><a href="../../">All stories</a>${storyNavigation}</nav>
-        <h1>${escapeHtml(story.document.title)}</h1>
         <p class="classification">${classificationLabel}</p>
         <p>${escapeHtml(story.document.summary)}</p>
         <a data-return hidden></a>

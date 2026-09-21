@@ -7,6 +7,13 @@ document; and uses Topocode's objective validation and preview commands. No
 hosted model service is required, and `topo scan` never invokes an agent or
 model.
 
+Source-grounded stories may select any native diagram family and must keep
+evidence on every section. Use `classification: "capability-demo"` only for an
+explicitly conceptual, anchor-free renderer demonstration; it is labelled as
+non-source-grounded and separated from factual catalogue entries. See
+[source-grounded story preview](./story-preview.md) for the complete family,
+classification, relationship-label, preview, and export contract.
+
 ## Executable before/after walkthrough
 
 The regression fixture under `examples/story-authoring/` represents a real Git
