@@ -504,7 +504,16 @@ test("story preview renders the real Archify artifact without CSP errors", async
     await expect(diagram).toBeVisible();
     await expect(diagram.locator("text", { hasText: "Checkout client" })).toBeVisible();
     await expect(diagram.locator("text", { hasText: "Payment service" })).toBeVisible();
-    await expect(diagram.locator("text", { hasText: "Legend" })).toBeVisible();
+    const diagramFont = await diagram.locator("text", { hasText: "Checkout client" })
+      .evaluate((text) => {
+        const style = getComputedStyle(text);
+        return {
+          family: style.fontFamily,
+          loaded: document.fonts.check(`${style.fontSize} ${style.fontFamily}`),
+        };
+      });
+    expect(diagramFont.family).toContain("JetBrains Mono");
+    expect(diagramFont.loaded).toBe(true);
     await expect(viewer.getByRole("button", { name: "Export diagram" })).toBeVisible();
     await expect(viewer.getByText("Present", { exact: true })).toBeVisible();
     await page.waitForTimeout(250);
