@@ -102,6 +102,18 @@ describe("story document contract", () => {
     const schema = JSON.parse(await readFile(schemaPath, "utf8"));
     const validate = new Ajv2020({ strict: true }).compile(schema);
     expect(validate(validStory())).toBe(true);
+    expect(validate({
+      ...validStory(),
+      anchors: [{
+        id: "manifest-dependency",
+        path: "package.json",
+        pattern: '"@topo/story": "workspace:*"',
+      }],
+      sections: [{
+        ...validStory().sections[0],
+        anchorIds: ["manifest-dependency"],
+      }],
+    })).toBe(true);
     expect(JSON.stringify(schema)).not.toMatch(/renderer|lineRange|startLine|endLine/);
   });
 
