@@ -1,8 +1,23 @@
+import { execFile } from "node:child_process";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
+import { afterEach } from "vitest";
 import { describe, expect, it } from "vitest";
 import { buildCatalogueStories } from "./catalogue.js";
 
+const execute = promisify(execFile);
+const entry = fileURLToPath(new URL("../dist/main.js", import.meta.url));
 const repositoryRoot = fileURLToPath(new URL("../../../", import.meta.url));
+const temporaryDirectories: string[] = [];
+
+afterEach(async () => {
+  for (const directory of temporaryDirectories.splice(0)) {
+    await rm(directory, { recursive: true });
+  }
+});
 
 describe("source-grounded UML story", () => {
   it("publishes the bounded story and renderer contract view with visible UML intent", async () => {
@@ -56,5 +71,72 @@ describe("source-grounded UML story", () => {
     expect(uml?.contents).toContain(
       'data-edge-label="declared type dependency"',
     );
+  }, 30_000);
+
+  it("fails explicitly when a declared UML relationship becomes stale", async () => {
+    const root = await mkdtemp(join(tmpdir(), "topo-uml-stale-"));
+    temporaryDirectories.push(root);
+    const sourcePath = "packages/story/src/index.ts";
+    const storyPath = "stories/story-contracts-uml.topo.json";
+    for (const path of [sourcePath, storyPath]) {
+      const destination = join(root, path);
+      await mkdir(dirname(destination), { recursive: true });
+      await writeFile(destination, await readFile(join(repositoryRoot, path)));
+    }
+    await execute("git", ["init", "--quiet", root]);
+    await execute("git", [
+      "-C",
+      root,
+      "remote",
+      "add",
+      "origin",
+      "https://github.com/example/uml-fixture.git",
+    ]);
+    await execute("git", ["-C", root, "add", "."]);
+    await execute("git", [
+      "-C",
+      root,
+      "-c",
+      "user.name=Topo Test",
+      "-c",
+      "user.email=topo@example.test",
+      "commit",
+      "--quiet",
+      "-m",
+      "UML fixture",
+    ]);
+
+    const initial = await execute(process.execPath, [
+      entry,
+      "story",
+      "validate",
+      root,
+      join(root, storyPath),
+    ]);
+    expect(initial.stdout).toContain(
+      "story-document-error-extends: packages/story/src/index.ts",
+    );
+
+    const source = await readFile(join(root, sourcePath), "utf8");
+    await writeFile(
+      join(root, sourcePath),
+      source.replace(
+        "export class StoryDocumentError extends Error",
+        "export class StoryDocumentError extends MissingError",
+      ),
+    );
+
+    await expect(execute(process.execPath, [
+      entry,
+      "story",
+      "validate",
+      root,
+      join(root, storyPath),
+    ])).rejects.toMatchObject({
+      code: 1,
+      stderr: expect.stringContaining(
+        'anchor "story-document-error-extends" [missing-pattern]',
+      ),
+    });
   }, 30_000);
 });
