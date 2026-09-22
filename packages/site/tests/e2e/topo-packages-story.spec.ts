@@ -290,6 +290,22 @@ test("ragged Architecture chains keep distinct labels and masks clear", async ({
   page,
   repository,
 }) => {
+  const labelSets = [
+    {
+      id: "short",
+      label: (index: number) => `edge-${index}`,
+    },
+    {
+      id: "manifest",
+      label: (index: number) => `manifest workspace:${index}`,
+    },
+  ] as const;
+  const sharedLabelsBySectionCount = new Map([
+    [5, [0, 1, 3]],
+    [6, [0, 1, 3, 4]],
+    [7, [0, 1, 3]],
+    [10, [0, 1, 2, 4, 5]],
+  ]);
   await writeFile(
     join(repository, "package.json"),
     '{"name":"architecture-chain-fixture","type":"module"}\n',
@@ -299,31 +315,37 @@ test("ragged Architecture chains keep distinct labels and masks clear", async ({
     "export const architectureChainFixture = true;\n",
   );
   await mkdir(join(repository, "stories"), { recursive: true });
-  for (const sectionCount of [5, 6, 7, 10]) {
-    const sections = Array.from({ length: sectionCount }, (_, index) => ({
-      id: `node-${index}`,
-      title: `Step ${index + 1}`,
-      body: "A step.",
-      anchorIds: [],
-    }));
-    await writeFile(
-      join(repository, "stories", `chain-${sectionCount}.topo.json`),
-      `${JSON.stringify({
-        schemaVersion: "1.0",
-        diagramFamily: "architecture",
-        classification: "capability-demo",
-        id: `chain-${sectionCount}`,
-        title: `${sectionCount}-step Architecture chain`,
-        summary: "A consecutive Architecture chain.",
-        anchors: [],
-        sections,
-        connections: sections.slice(1).map((section, index) => ({
-          from: sections[index]!.id,
-          to: section.id,
-          label: `edge-${index}`,
-        })),
-      }, null, 2)}\n`,
-    );
+  for (const labelSet of labelSets) {
+    for (const sectionCount of [5, 6, 7, 10]) {
+      const sections = Array.from({ length: sectionCount }, (_, index) => ({
+        id: `node-${index}`,
+        title: `Step ${index + 1}`,
+        body: "A step.",
+        anchorIds: [],
+      }));
+      await writeFile(
+        join(
+          repository,
+          "stories",
+          `chain-${labelSet.id}-${sectionCount}.topo.json`,
+        ),
+        `${JSON.stringify({
+          schemaVersion: "1.0",
+          diagramFamily: "architecture",
+          classification: "capability-demo",
+          id: `chain-${labelSet.id}-${sectionCount}`,
+          title: `${sectionCount}-step Architecture chain`,
+          summary: "A consecutive Architecture chain.",
+          anchors: [],
+          sections,
+          connections: sections.slice(1).map((section, index) => ({
+            from: sections[index]!.id,
+            to: section.id,
+            label: labelSet.label(index),
+          })),
+        }, null, 2)}\n`,
+      );
+    }
   }
   await commit(
     repository,
@@ -333,19 +355,26 @@ test("ragged Architecture chains keep distinct labels and masks clear", async ({
     "stories",
   );
   await topo(repository, "scan");
-  for (const sectionCount of [5, 6, 7, 10]) {
-    await topo(
-      repository,
-      "story",
-      "preview",
-      repository,
-      join(repository, "stories", `chain-${sectionCount}.topo.json`),
-    );
+  for (const labelSet of labelSets) {
+    for (const sectionCount of [5, 6, 7, 10]) {
+      await topo(
+        repository,
+        "story",
+        "preview",
+        repository,
+        join(
+          repository,
+          "stories",
+          `chain-${labelSet.id}-${sectionCount}.topo.json`,
+        ),
+      );
+    }
   }
 
   const { server, url } = await startTopoServer(repository, ["--port", "0"]);
   try {
-    for (const sectionCount of [5, 6, 7, 10]) {
+    for (const labelSet of labelSets) {
+      for (const sectionCount of [5, 6, 7, 10]) {
       for (const viewport of [
         { width: 1024, height: 768 },
         { width: 1280, height: 720 },
@@ -354,7 +383,9 @@ test("ragged Architecture chains keep distinct labels and masks clear", async ({
         { width: 1920, height: 1080 },
       ]) {
         await page.setViewportSize(viewport);
-        await page.goto(`${url}/stories/chain-${sectionCount}/`);
+        await page.goto(
+          `${url}/stories/chain-${labelSet.id}-${sectionCount}/`,
+        );
         const frame = page.frameLocator("[data-story-viewer]");
         const diagram = frame.locator('svg[role="img"]');
         await expect(diagram).toBeVisible();
@@ -387,20 +418,44 @@ test("ragged Architecture chains keep distinct labels and masks clear", async ({
           const nodes = [...svg.querySelectorAll<SVGGraphicsElement>(
             "g[data-node-id] > rect:not(.c-mask)",
           )].map((element) => element.getBoundingClientRect());
+          const nodeCenters = new Map(
+            [...svg.querySelectorAll<SVGGraphicsElement>(
+              "g[data-node-id] > rect:not(.c-mask)",
+            )].map((element) => {
+              const bounds = element.getBoundingClientRect();
+              return [
+                element.parentElement?.getAttribute("data-node-id") ?? "",
+                bounds.left + bounds.width / 2,
+              ] as const;
+            }),
+          );
           const labels = [...svg.querySelectorAll<SVGTextElement>(
             "g[data-edge-from] > text",
           )];
           const masks = [...svg.querySelectorAll<SVGGraphicsElement>(
             "g[data-edge-from] > rect.c-mask",
           )];
+          const paths = [...svg.querySelectorAll<SVGPathElement>(
+            "path[data-edge-from]",
+          )];
           const svgBounds = svg.getBoundingClientRect();
-          const contained = (elements: SVGGraphicsElement[]) =>
-            elements.every((element) => {
+          const outsideFrame = (elements: SVGGraphicsElement[]) =>
+            elements.flatMap((element) => {
               const bounds = element.getBoundingClientRect();
               return bounds.left >= svgBounds.left &&
                 bounds.right <= svgBounds.right &&
                 bounds.top >= svgBounds.top &&
-                bounds.bottom <= svgBounds.bottom;
+                bounds.bottom <= svgBounds.bottom
+                ? []
+                : [{
+                    text: element.textContent?.trim() ?? "",
+                    bounds: {
+                      left: bounds.left,
+                      right: bounds.right,
+                      top: bounds.top,
+                      bottom: bounds.bottom,
+                    },
+                  }];
             });
           const pairwise = (elements: SVGGraphicsElement[]) =>
             elements.flatMap((element, index) => {
@@ -411,7 +466,11 @@ test("ragged Architecture chains keep distinct labels and masks clear", async ({
                   other.getBoundingClientRect(),
                 );
                 return dimensions.width > 0 && dimensions.height > 0
-                  ? [dimensions]
+                  ? [{
+                      first: element.textContent?.trim() ?? "",
+                      second: other.textContent?.trim() ?? "",
+                      ...dimensions,
+                    }]
                   : [];
               });
             });
@@ -425,49 +484,132 @@ test("ragged Architecture chains keep distinct labels and masks clear", async ({
                   : [];
               });
             });
+          const routeOverlaps = (elements: SVGGraphicsElement[]) =>
+            elements.flatMap((element) => {
+              const owner = element.parentElement!;
+              const from = owner.getAttribute("data-edge-from");
+              const to = owner.getAttribute("data-edge-to");
+              const bounds = element.getBoundingClientRect();
+              return paths.flatMap((path) => {
+                if (
+                  path.getAttribute("data-edge-from") === from &&
+                  path.getAttribute("data-edge-to") === to
+                ) {
+                  return [];
+                }
+                const matrix = path.getScreenCTM();
+                if (matrix === null) return [];
+                const length = path.getTotalLength();
+                for (let distance = 0; distance <= length; distance += 2) {
+                  const point = path.getPointAtLength(distance)
+                    .matrixTransform(matrix);
+                  if (
+                    point.x >= bounds.left &&
+                    point.x <= bounds.right &&
+                    point.y >= bounds.top &&
+                    point.y <= bounds.bottom
+                  ) {
+                    return [{
+                      from,
+                      label: element.textContent?.trim() ?? "",
+                      point: { x: point.x, y: point.y },
+                      bounds: {
+                        left: bounds.left,
+                        right: bounds.right,
+                        top: bounds.top,
+                        bottom: bounds.bottom,
+                      },
+                      to,
+                      routeFrom: path.getAttribute("data-edge-from"),
+                      routeTo: path.getAttribute("data-edge-to"),
+                    }];
+                  }
+                }
+                return [];
+              });
+            });
           return {
             labels: labels.map((label) => ({
+              centerX: (() => {
+                const bounds = label.getBoundingClientRect();
+                return bounds.left + bounds.width / 2;
+              })(),
               effectiveFontSize:
                 Number.parseFloat(getComputedStyle(label).fontSize) *
                 Math.hypot(
                   label.getScreenCTM()?.c ?? 0,
                   label.getScreenCTM()?.d ?? 0,
                 ),
+              from: label.parentElement?.getAttribute("data-edge-from") ?? "",
+              sourceCenterX: nodeCenters.get(
+                label.parentElement?.getAttribute("data-edge-from") ?? "",
+              ) ?? 0,
+              targetCenterX: nodeCenters.get(
+                label.parentElement?.getAttribute("data-edge-to") ?? "",
+              ) ?? 0,
               text: label.textContent?.trim() ?? "",
             })),
             labelNodeOverlaps: nodeOverlaps(labels),
             labelOverlaps: pairwise(labels),
-            labelsContained: contained(labels),
+            labelRouteOverlaps: routeOverlaps(labels),
+            labelsOutsideFrame: outsideFrame(labels),
             maskNodeOverlaps: nodeOverlaps(masks),
             maskOverlaps: pairwise(masks),
-            masksContained: contained(masks),
+            maskRouteOverlaps: routeOverlaps(masks),
+            masksOutsideFrame: outsideFrame(masks),
           };
         });
 
         expect(geometry.labels.map(({ text }) => text)).toEqual(
           Array.from(
             { length: sectionCount - 1 },
-            (_, index) => `edge-${index}`,
+            (_, index) => labelSet.label(index),
           ),
         );
         expect(
           Math.min(...geometry.labels.map(({ effectiveFontSize }) =>
             effectiveFontSize * iframeScale
           )),
-          `${sectionCount} sections at ${viewport.width}x${viewport.height}`,
+          `${labelSet.id} ${sectionCount} sections at ${viewport.width}x${viewport.height}`,
         ).toBeGreaterThanOrEqual(12);
         expect(geometry.labelNodeOverlaps).toEqual([]);
-        expect(geometry.labelsContained).toBe(true);
+        expect(
+          geometry.labelRouteOverlaps,
+          `${labelSet.id} ${sectionCount} label-route overlaps at ${viewport.width}x${viewport.height}`,
+        ).toEqual([]);
+        expect(
+          geometry.labelsOutsideFrame,
+          `${labelSet.id} ${sectionCount} label containment at ${viewport.width}x${viewport.height}`,
+        ).toEqual([]);
         expect(
           geometry.labelOverlaps,
-          `${sectionCount} label overlaps at ${viewport.width}x${viewport.height}`,
+          `${labelSet.id} ${sectionCount} label overlaps at ${viewport.width}x${viewport.height}`,
         ).toEqual([]);
         expect(geometry.maskNodeOverlaps).toEqual([]);
-        expect(geometry.masksContained).toBe(true);
+        expect(
+          geometry.maskRouteOverlaps,
+          `${labelSet.id} ${sectionCount} mask-route overlaps at ${viewport.width}x${viewport.height}`,
+        ).toEqual([]);
+        expect(
+          geometry.masksOutsideFrame,
+          `${labelSet.id} ${sectionCount} mask containment at ${viewport.width}x${viewport.height}`,
+        ).toEqual([]);
         expect(
           geometry.maskOverlaps,
-          `${sectionCount} mask overlaps at ${viewport.width}x${viewport.height}`,
+          `${labelSet.id} ${sectionCount} mask overlaps at ${viewport.width}x${viewport.height}`,
         ).toEqual([]);
+        const sharedLabels = new Set(
+          sharedLabelsBySectionCount.get(sectionCount)!.map(labelSet.label),
+        );
+        for (const label of geometry.labels) {
+          if (!sharedLabels.has(label.text)) continue;
+          expect(
+            Math.abs(label.centerX - label.sourceCenterX),
+            `${label.text} source association at ${viewport.width}x${viewport.height}`,
+          ).toBeLessThan(
+            Math.abs(label.centerX - label.targetCenterX),
+          );
+        }
       }
 
       if (sectionCount === 7 || sectionCount === 10) {
@@ -480,7 +622,7 @@ test("ragged Architecture chains keep distinct labels and masks clear", async ({
         expect(svgPath).not.toBeNull();
         const exportedSvg = await readFile(svgPath!, "utf8");
         for (let index = 0; index < sectionCount - 1; index += 1) {
-          expect(exportedSvg).toContain(`edge-${index}`);
+          expect(exportedSvg).toContain(labelSet.label(index));
         }
         const exportedPage = await page.context().newPage();
         let svgDimensions: { width: number; height: number } | undefined;
@@ -513,11 +655,25 @@ test("ragged Architecture chains keep distinct labels and masks clear", async ({
             const nodes = [...svg.querySelectorAll<SVGGraphicsElement>(
               "g[data-node-id] > rect:not(.c-mask)",
             )].map((element) => element.getBoundingClientRect());
+            const nodeCenters = new Map(
+              [...svg.querySelectorAll<SVGGraphicsElement>(
+                "g[data-node-id] > rect:not(.c-mask)",
+              )].map((element) => {
+                const bounds = element.getBoundingClientRect();
+                return [
+                  element.parentElement?.getAttribute("data-node-id") ?? "",
+                  bounds.left + bounds.width / 2,
+                ] as const;
+              }),
+            );
             const labels = [...svg.querySelectorAll<SVGGraphicsElement>(
               "g[data-edge-from] > text",
             )];
             const masks = [...svg.querySelectorAll<SVGGraphicsElement>(
               "g[data-edge-from] > rect.c-mask",
+            )];
+            const paths = [...svg.querySelectorAll<SVGPathElement>(
+              "path[data-edge-from]",
             )];
             const pairwiseOverlap = (elements: SVGGraphicsElement[]) =>
               elements.some((element, index) =>
@@ -534,19 +690,73 @@ test("ragged Architecture chains keep distinct labels and masks clear", async ({
                   overlap(element.getBoundingClientRect(), node)
                 )
               );
+            const routeOverlap = (elements: SVGGraphicsElement[]) =>
+              elements.some((element) => {
+                const owner = element.parentElement!;
+                const from = owner.getAttribute("data-edge-from");
+                const to = owner.getAttribute("data-edge-to");
+                const bounds = element.getBoundingClientRect();
+                return paths.some((path) => {
+                  if (
+                    path.getAttribute("data-edge-from") === from &&
+                    path.getAttribute("data-edge-to") === to
+                  ) {
+                    return false;
+                  }
+                  const matrix = path.getScreenCTM();
+                  if (matrix === null) return false;
+                  const length = path.getTotalLength();
+                  for (let distance = 0; distance <= length; distance += 2) {
+                    const point = path.getPointAtLength(distance)
+                      .matrixTransform(matrix);
+                    if (
+                      point.x >= bounds.left &&
+                      point.x <= bounds.right &&
+                      point.y >= bounds.top &&
+                      point.y <= bounds.bottom
+                    ) {
+                      return true;
+                    }
+                  }
+                  return false;
+                });
+              });
             return {
+              associations: labels.map((label) => {
+                const bounds = label.getBoundingClientRect();
+                const from =
+                  label.parentElement?.getAttribute("data-edge-from") ?? "";
+                const to =
+                  label.parentElement?.getAttribute("data-edge-to") ?? "";
+                return {
+                  centerX: bounds.left + bounds.width / 2,
+                  sourceCenterX: nodeCenters.get(from) ?? 0,
+                  targetCenterX: nodeCenters.get(to) ?? 0,
+                  text: label.textContent?.trim() ?? "",
+                };
+              }),
               labelNodeOverlap: nodeOverlap(labels),
               labelOverlap: pairwiseOverlap(labels),
+              labelRouteOverlap: routeOverlap(labels),
               maskNodeOverlap: nodeOverlap(masks),
               maskOverlap: pairwiseOverlap(masks),
+              maskRouteOverlap: routeOverlap(masks),
             };
           });
-          expect(exportedGeometry).toEqual({
-            labelNodeOverlap: false,
-            labelOverlap: false,
-            maskNodeOverlap: false,
-            maskOverlap: false,
-          });
+          expect(exportedGeometry.labelNodeOverlap).toBe(false);
+          expect(exportedGeometry.labelOverlap).toBe(false);
+          expect(exportedGeometry.labelRouteOverlap).toBe(false);
+          expect(exportedGeometry.maskNodeOverlap).toBe(false);
+          expect(exportedGeometry.maskOverlap).toBe(false);
+          expect(exportedGeometry.maskRouteOverlap).toBe(false);
+          const sharedLabels = new Set(
+            sharedLabelsBySectionCount.get(sectionCount)!.map(labelSet.label),
+          );
+          for (const label of exportedGeometry.associations) {
+            if (!sharedLabels.has(label.text)) continue;
+            expect(Math.abs(label.centerX - label.sourceCenterX))
+              .toBeLessThan(Math.abs(label.centerX - label.targetCenterX));
+          }
         } finally {
           await exportedPage.close();
         }
@@ -573,6 +783,7 @@ test("ragged Architecture chains keep distinct labels and masks clear", async ({
         await expect(frame.locator("html"))
           .toHaveAttribute("data-last-export-canonical", "true");
       }
+    }
     }
   } finally {
     await page.goto("about:blank");

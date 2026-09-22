@@ -58,6 +58,7 @@ interface ArchifyArchitecture {
     readonly from: string;
     readonly to: string;
     readonly label?: string;
+    readonly labelAt?: readonly [number, number];
     readonly labelDx?: number;
     readonly labelDy?: number;
     readonly labelSegment?: number;
@@ -198,6 +199,27 @@ const archifyCli = path.join(
   "archify.mjs",
 );
 const architectureFontSize = 24;
+// The pinned renderer measures 8px monospace labels at 0.6em per text unit;
+// authored Architecture CSS scales the same glyphs to 24px.
+const architectureLabelAscent = 25;
+const architectureLabelDescent = 7;
+
+function architectureLabelUnits(label: string): number {
+  return Array.from(label).reduce(
+    (units, character) =>
+      units + ((character.codePointAt(0) ?? 0) > 0xff ? 2 : 1),
+    0,
+  );
+}
+
+function architectureLabelWidth(label: string): number {
+  const units = architectureLabelUnits(label);
+  return Math.max(
+    30,
+    units * 4.8 + 10,
+    units * architectureFontSize * 0.6,
+  );
+}
 
 function stableId(prefix: string, value: string): string {
   const hash = createHash("sha256").update(value).digest("hex").slice(0, 16);
@@ -266,11 +288,9 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
     { length: rowCount },
     (_, row) => shortRowSize + (row < longRowCount ? 1 : 0),
   );
-  const boxWidth = Math.max(280, ...resolved.map((entry) => entry.width));
+  const baseBoxWidth = Math.max(280, ...resolved.map((entry) => entry.width));
   const boxHeight = 130;
   const columnGap = 90;
-  const rowGap = 80;
-  const margin = 80;
   const cellOf = (index: number) => {
     let row = 0;
     let rowStart = 0;
@@ -284,6 +304,101 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
     const column = row % 2 === 0 ? positionInRow : rowSize - 1 - positionInRow;
     return { row, column };
   };
+  const sectionIndexById = new Map(
+    sections.map((section, index) => [section.id, index]),
+  );
+  // Plan label and route corridors before placing rows so shared gaps reserve
+  // only the space their realized content and detours require.
+  const sharedGapConnections = new Map<number, number[]>();
+  const crossRowRouteGaps = new Set<number>();
+  const detourLaneByConnection = new Map<number, number>();
+  let detourLaneCount = 0;
+  let hasBottomOuterLabels = false;
+  for (
+    const [connectionIndex, connection] of
+      story.document.connections.entries()
+  ) {
+    const fromIndex = sectionIndexById.get(connection.from)!;
+    const toIndex = sectionIndexById.get(connection.to)!;
+    const from = cellOf(fromIndex);
+    const to = cellOf(toIndex);
+    if (
+      Math.abs(to.row - from.row) +
+          Math.abs(to.column - from.column) !==
+        1
+    ) {
+      detourLaneByConnection.set(connectionIndex, detourLaneCount);
+      detourLaneCount += 1;
+    }
+    for (
+      let gap = Math.min(from.row, to.row);
+      gap < Math.max(from.row, to.row);
+      gap += 1
+    ) {
+      crossRowRouteGaps.add(gap);
+    }
+    if (connection.label === undefined) continue;
+    const deltaColumn = to.column - from.column;
+    if (from.row !== to.row || Math.abs(deltaColumn) !== 1) continue;
+    const gap = deltaColumn > 0 ? from.row : from.row - 1;
+    if (gap === rowCount - 1) {
+      hasBottomOuterLabels = true;
+    }
+    if (gap < 0 || gap >= rowCount - 1) continue;
+    const connections = sharedGapConnections.get(gap) ?? [];
+    connections.push(connectionIndex);
+    sharedGapConnections.set(gap, connections);
+  }
+  const sharedGapLaneByConnection = new Map(
+    [...sharedGapConnections.entries()].flatMap(([gap, connections]) =>
+      connections.map((connectionIndex, lane) => [
+        connectionIndex,
+        { gap, lane },
+      ] as const)
+    ),
+  );
+  const labelLaneStep =
+    architectureLabelAscent + architectureLabelDescent + 1;
+  const labelCorridorPadding = 2;
+  const routeCorridorBand = 8;
+  const requiredRowGap = Math.max(
+    0,
+    ...[...sharedGapConnections.entries()].map(([gap, connections]) =>
+      labelCorridorPadding * 2 +
+      architectureLabelAscent +
+      architectureLabelDescent +
+      (connections.length - 1) * labelLaneStep +
+      (crossRowRouteGaps.has(gap) ? routeCorridorBand : 0)
+    ),
+  );
+  const rowGap = Math.max(
+    80,
+    requiredRowGap,
+  );
+  const maxSharedLabelWidth = Math.max(
+    0,
+    ...[...sharedGapLaneByConnection.keys()].map((connectionIndex) =>
+      architectureLabelWidth(
+        story.document.connections[connectionIndex]!.label!,
+      )
+    ),
+  );
+  const maxConnectionLabelWidth = Math.max(
+    0,
+    ...story.document.connections.flatMap((connection) =>
+      connection.label === undefined
+        ? []
+        : [architectureLabelWidth(connection.label)]
+    ),
+  );
+  const boxWidth = Math.max(
+    baseBoxWidth,
+    Math.ceil(maxSharedLabelWidth + labelCorridorPadding * 2),
+  );
+  const margin = Math.max(
+    80,
+    Math.ceil(maxConnectionLabelWidth / 2 + labelCorridorPadding),
+  );
   const components = resolved.map(({ section, sectionAnchors, sublabel }, index) => {
     const { row, column } = cellOf(index);
     return {
@@ -310,11 +425,72 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
     };
   });
   const gridBottom = margin + rowCount * boxHeight + (rowCount - 1) * rowGap;
-  const laneBase = gridBottom + 60;
+  const laneBase = gridBottom +
+    (hasBottomOuterLabels
+      ? rowGap / 2 +
+        architectureLabelAscent +
+        architectureLabelDescent +
+        4
+      : 60);
   const laneGap = 40;
   const widestRow = Math.max(...rowSizes);
   const gridRight =
     margin + widestRow * boxWidth + (widestRow - 1) * columnGap;
+  const gapRouteCorridors = new Map<number, Set<number>>();
+  for (const connection of story.document.connections) {
+    const fromIndex = sectionIndexById.get(connection.from)!;
+    const toIndex = sectionIndexById.get(connection.to)!;
+    const from = cellOf(fromIndex);
+    const to = cellOf(toIndex);
+    if (from.row === to.row) continue;
+    const fromX = components[fromIndex]!.pos[0] + boxWidth / 2;
+    const toX = components[toIndex]!.pos[0] + boxWidth / 2;
+    for (
+      let gap = Math.min(from.row, to.row);
+      gap < Math.max(from.row, to.row);
+      gap += 1
+    ) {
+      const corridors = gapRouteCorridors.get(gap) ?? new Set<number>();
+      corridors.add(fromX);
+      corridors.add(toX);
+      gapRouteCorridors.set(gap, corridors);
+    }
+  }
+  const sharedGapLabelX = (
+    connectionIndex: number,
+    gap: number,
+  ): number => {
+    const connection = story.document.connections[connectionIndex]!;
+    const fromIndex = sectionIndexById.get(connection.from)!;
+    const sourceX = components[fromIndex]!.pos[0] + boxWidth / 2;
+    const width = architectureLabelWidth(connection.label!);
+    const routeClearance = 12;
+    const corridorXs = [...(gapRouteCorridors.get(gap) ?? [])]
+      .sort((left, right) => left - right);
+    const intervals: [number, number][] = [];
+    let left = margin / 2;
+    for (const corridorX of corridorXs) {
+      intervals.push([left, corridorX - routeClearance]);
+      left = corridorX + routeClearance;
+    }
+    intervals.push([left, gridRight + margin / 2]);
+    const candidates = intervals.flatMap(([intervalLeft, intervalRight]) => {
+      const minCenter = intervalLeft + width / 2;
+      const maxCenter = intervalRight - width / 2;
+      if (minCenter > maxCenter) return [];
+      return [Math.min(maxCenter, Math.max(minCenter, sourceX))];
+    });
+    if (candidates.length === 0) {
+      throw new Error(
+        `Architecture label "${connection.label}" cannot fit a clear row-gap corridor.`,
+      );
+    }
+    return candidates.reduce((best, candidate) =>
+      Math.abs(candidate - sourceX) < Math.abs(best - sourceX)
+        ? candidate
+        : best
+    );
+  };
   const viewBoxWidth = Math.max(
     800,
     gridRight + margin,
@@ -322,7 +498,7 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
   const viewBoxHeight = Math.max(
     500,
     gridBottom + margin,
-    laneBase + story.document.connections.length * laneGap + margin,
+    laneBase + Math.max(0, detourLaneCount - 1) * laneGap + margin,
   );
   return {
     schema_version: 1,
@@ -365,24 +541,30 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
       if (adjacent) {
         const vertical = deltaRow !== 0;
         const horizontalLabelBelow = deltaColumn > 0;
-        const horizontalLabelSharesGap = horizontalLabelBelow
-          ? from.row < rowCount - 1
-          : from.row > 0;
+        const sharedGapLane = sharedGapLaneByConnection.get(index);
         return {
           ...base,
           ...(vertical
             ? { labelDy: deltaRow > 0 ? 40 : -24 }
-            : {
+            : sharedGapLane === undefined
+            ? {
                 labelDy: horizontalLabelBelow
                   ? boxHeight / 2 + rowGap / 2
                   : -(boxHeight / 2 + rowGap / 2),
-                ...(horizontalLabelSharesGap
-                  ? {
-                      labelDx: from.row % 2 === 0
-                        ? -columnGap / 2
-                        : columnGap / 2,
-                    }
-                  : {}),
+              }
+            : {
+                labelAt: [
+                  sharedGapLabelX(index, sharedGapLane.gap),
+                  margin +
+                    sharedGapLane.gap * (boxHeight + rowGap) +
+                    boxHeight +
+                    (crossRowRouteGaps.has(sharedGapLane.gap)
+                      ? routeCorridorBand
+                      : 0) +
+                    labelCorridorPadding +
+                    architectureLabelAscent +
+                    sharedGapLane.lane * labelLaneStep,
+                ] as const,
               }),
           fromSide: vertical
             ? (deltaRow > 0 ? "bottom" as const : "top" as const)
@@ -394,7 +576,8 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
       }
       const fromX = components[fromIndex]!.pos[0] + boxWidth / 2;
       const toX = components[toIndex]!.pos[0] + boxWidth / 2;
-      const lane = laneBase + index * laneGap;
+      const lane =
+        laneBase + detourLaneByConnection.get(index)! * laneGap;
       const blockedBelow = (endpointIndex: number) => {
         const endpoint = cellOf(endpointIndex);
         return sections.some((_, candidateIndex) => {
@@ -408,7 +591,11 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
         column < widestRow / 2 ? margin / 2 : gridRight + margin / 2;
       const upperCorridor = (endpointIndex: number) => {
         const endpoint = cellOf(endpointIndex);
-        return margin + endpoint.row * (boxHeight + rowGap) - rowGap / 2;
+        if (endpoint.row === 0) return margin / 2;
+        return margin +
+          endpoint.row * (boxHeight + rowGap) -
+          rowGap +
+          routeCorridorBand / 2;
       };
       const fromBlocked = blockedBelow(fromIndex);
       const toBlocked = blockedBelow(toIndex);
