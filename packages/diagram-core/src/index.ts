@@ -395,10 +395,16 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
       };
       const outside = (column: number) =>
         column < widestRow / 2 ? margin / 2 : gridRight + margin / 2;
+      const upperCorridor = (endpointIndex: number) => {
+        const endpoint = cellOf(endpointIndex);
+        return margin + endpoint.row * (boxHeight + rowGap) - rowGap / 2;
+      };
       const fromBlocked = blockedBelow(fromIndex);
       const toBlocked = blockedBelow(toIndex);
       const fromOutside = outside(from.column);
       const toOutside = outside(to.column);
+      const fromUpperCorridor = upperCorridor(fromIndex);
+      const toUpperCorridor = upperCorridor(toIndex);
       return {
         ...base,
         fromSide: fromBlocked
@@ -410,16 +416,16 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
         via: [
           ...(fromBlocked
             ? [
-                [fromX, margin / 2],
-                [fromOutside, margin / 2],
+                [fromX, fromUpperCorridor],
+                [fromOutside, fromUpperCorridor],
                 [fromOutside, lane],
               ] as const
             : [[fromX, lane]] as const),
           ...(toBlocked
             ? [
                 [toOutside, lane],
-                [toOutside, margin / 2],
-                [toX, margin / 2],
+                [toOutside, toUpperCorridor],
+                [toX, toUpperCorridor],
               ] as const
             : [[toX, lane]] as const),
         ],

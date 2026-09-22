@@ -58,6 +58,8 @@ does not currently publish versioned releases.
 
 ### Fixed
 
+- Keep consecutive Architecture relationships clear of unrelated nodes when
+  balanced layouts use unequal row lengths. See #58.
 - Keep complete authored story titles visible in closed navigation controls
   without obscuring native diagram titles, including after keyboard toggling.
   See #61.
