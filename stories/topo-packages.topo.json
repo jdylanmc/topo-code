@@ -50,6 +50,11 @@
       "id": "site-views-dependency",
       "path": "packages/site/package.json",
       "pattern": "\"@topo/views\": \"workspace:*\""
+    },
+    {
+      "id": "root-eslint-config-workspace",
+      "path": "package.json",
+      "pattern": "\"tools/eslint-config\""
     }
   ],
   "sections": [
@@ -83,7 +88,11 @@
       "id": "eslint-config",
       "title": "@topo/eslint-config",
       "body": "Shared lint configuration selected by the root tools/eslint-config workspace entry. Its manifest declares no internal workspace dependency.",
-      "anchorIds": ["eslint-config-manifest", "root-workspaces"]
+      "anchorIds": [
+        "eslint-config-manifest",
+        "root-eslint-config-workspace",
+        "root-workspaces"
+      ]
     },
     {
       "id": "reports",
