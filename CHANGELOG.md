@@ -7,6 +7,9 @@ does not currently publish versioned releases.
 
 ### Added
 
+- Add a source-grounded Architecture story covering every current Yarn
+  workspace and selected manifest-declared compile-time relationships, with a
+  readable balanced package layout. See #58.
 - Add source-grounded and capability Sequence stories with ordered native
   messages, a return semantic, five-viewport readable static previews, and
   canonical SVG exports. See #59.

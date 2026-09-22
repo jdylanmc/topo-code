@@ -6,6 +6,12 @@ one landing page at `/`. No authored index is required. The repository explorer
 is retained at `/explorer/`; a repository with no stories still presents that
 entry and an explicit empty-state message.
 
+The repository's source-grounded catalogue includes `topo-packages`, an
+Architecture story covering every workspace selected by the root manifest.
+Its labeled arrows are selected `workspace:*` declarations from package
+manifests; they do not represent runtime calls, deployment, ownership, or an
+exhaustive import graph.
+
 Stories may declare an optional nonempty `category`. Documents without one use
 the first directory below `stories/`, converted to a title, or `Stories` when
 stored directly in that directory.

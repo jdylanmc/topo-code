@@ -252,9 +252,6 @@ function validateStoryDocument(value: unknown): string | undefined {
       if (!nonemptyString(anchorValue.pattern)) {
         return `anchors[${index}].pattern must be nonempty`;
       }
-      if (!nonemptyString(anchorValue.symbol)) {
-        return `anchors[${index}].pattern requires symbol`;
-      }
     }
   }
 
@@ -479,13 +476,27 @@ function resolveAnchor(
     end = symbol.end;
   }
   if (anchor.pattern !== undefined) {
-    const offset = contents.slice(start, end).indexOf(anchor.pattern);
+    const scope = contents.slice(start, end);
+    const offset = scope.indexOf(anchor.pattern);
     if (offset < 0) {
       throw anchorError(
         documentPath,
         anchor.id,
         "missing-pattern",
-        `pattern "${anchor.pattern}" was not found within symbol "${anchor.symbol}" in "${anchor.path}"`,
+        anchor.symbol === undefined
+          ? `pattern "${anchor.pattern}" was not found in "${anchor.path}"`
+          : `pattern "${anchor.pattern}" was not found within symbol "${anchor.symbol}" in "${anchor.path}"`,
+      );
+    }
+    if (
+      anchor.symbol === undefined &&
+      scope.indexOf(anchor.pattern, offset + 1) >= 0
+    ) {
+      throw anchorError(
+        documentPath,
+        anchor.id,
+        "ambiguous-pattern",
+        `pattern "${anchor.pattern}" occurs more than once in "${anchor.path}"`,
       );
     }
     start += offset;

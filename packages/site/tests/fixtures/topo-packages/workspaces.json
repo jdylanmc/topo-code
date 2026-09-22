@@ -1,0 +1,106 @@
+{
+  "rootWorkspaces": [
+    "packages/*",
+    "tools/eslint-config"
+  ],
+  "relationships": [
+    ["@topo/cli", "@topo/diagram-core"],
+    ["@topo/diagram-core", "@topo/story"],
+    ["@topo/enrichment", "@topo/schema"],
+    ["@topo/graph", "@topo/schema"],
+    ["@topo/modules", "@topo/graph"],
+    ["@topo/site", "@topo/views"]
+  ],
+  "workspaces": [
+    {
+      "path": "packages/cli",
+      "name": "@topo/cli",
+      "dependencies": [
+        "@topo/diagram-core",
+        "@topo/scanner",
+        "@topo/site",
+        "@topo/story",
+        "@topo/workspace"
+      ]
+    },
+    {
+      "path": "packages/diagram-core",
+      "name": "@topo/diagram-core",
+      "dependencies": [
+        "@topo/story"
+      ]
+    },
+    {
+      "path": "packages/story",
+      "name": "@topo/story",
+      "dependencies": []
+    },
+    {
+      "path": "tools/eslint-config",
+      "name": "@topo/eslint-config",
+      "dependencies": []
+    },
+    {
+      "path": "packages/reports",
+      "name": "@topo/reports",
+      "dependencies": [
+        "@topo/schema"
+      ]
+    },
+    {
+      "path": "packages/scanner",
+      "name": "@topo/scanner",
+      "dependencies": [
+        "@topo/schema"
+      ]
+    },
+    {
+      "path": "packages/workspace",
+      "name": "@topo/workspace",
+      "dependencies": [
+        "@topo/schema"
+      ]
+    },
+    {
+      "path": "packages/enrichment",
+      "name": "@topo/enrichment",
+      "dependencies": [
+        "@topo/schema"
+      ]
+    },
+    {
+      "path": "packages/schema",
+      "name": "@topo/schema",
+      "dependencies": []
+    },
+    {
+      "path": "packages/graph",
+      "name": "@topo/graph",
+      "dependencies": [
+        "@topo/schema"
+      ]
+    },
+    {
+      "path": "packages/modules",
+      "name": "@topo/modules",
+      "dependencies": [
+        "@topo/graph"
+      ]
+    },
+    {
+      "path": "packages/views",
+      "name": "@topo/views",
+      "dependencies": [
+        "@topo/graph"
+      ]
+    },
+    {
+      "path": "packages/site",
+      "name": "@topo/site",
+      "dependencies": [
+        "@topo/graph",
+        "@topo/views"
+      ]
+    }
+  ]
+}
