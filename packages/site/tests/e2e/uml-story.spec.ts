@@ -53,31 +53,46 @@ test("UML story keeps visible notation readable at supported viewports", async (
       const diagram = viewer.locator('svg[role="img"]');
       await expect(diagram).toBeVisible();
       await expect(diagram).toContainText("«class» StoryDocumentError");
-      await expect(diagram).toContainText("Legend «class» «interface» «type»");
-      await expect(diagram).toContainText("declared type dependency");
+      const legends = diagram.locator("text", { hasText: "Legend" });
+      await expect(legends).toHaveCount(2);
+      await expect(legends).toContainText([
+        /«class».*«interface».*«type»/,
+        /extends.*declared type dependency/,
+      ]);
 
       const iframeScale = await frame.evaluate((iframe) => {
         const element = iframe as HTMLIFrameElement;
         return element.getBoundingClientRect().height / element.offsetHeight;
       });
-      const effectiveFontSizes = await diagram.locator("text").evaluateAll(
+      const textMeasurements = await diagram.locator("text").evaluateAll(
         (elements) => elements.flatMap((element) => {
           const text = element as SVGTextElement;
           const bounds = text.getBoundingClientRect();
-          if (!text.textContent?.trim() || bounds.width === 0 || bounds.height === 0) {
+          const value = text.textContent?.trim();
+          if (!value || bounds.width === 0 || bounds.height === 0) {
             return [];
           }
           const matrix = text.getScreenCTM();
-          return [
-            Number.parseFloat(getComputedStyle(text).fontSize) *
+          return [{
+            text: value,
+            effectiveFontSize:
+              Number.parseFloat(getComputedStyle(text).fontSize) *
               Math.hypot(matrix?.c ?? 0, matrix?.d ?? 0),
-          ];
+          }];
         }),
       );
+      const minimum = textMeasurements
+        .map(({ text, effectiveFontSize }) => ({
+          text,
+          effectiveFontSize: effectiveFontSize * iframeScale,
+        }))
+        .sort((left, right) =>
+          left.effectiveFontSize - right.effectiveFontSize
+        )[0]!;
 
       expect(
-        Math.min(...effectiveFontSizes.map((size) => size * iframeScale)),
-        `${viewport.width}x${viewport.height}`,
+        minimum.effectiveFontSize,
+        `${viewport.width}x${viewport.height}: ${minimum.text}`,
       ).toBeGreaterThanOrEqual(12);
     }
   } finally {
