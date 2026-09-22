@@ -7,6 +7,9 @@ does not currently publish versioned releases.
 
 ### Added
 
+- Add a source-grounded Architecture story covering every current Yarn
+  workspace and selected manifest-declared compile-time relationships, with a
+  readable balanced package layout. See #58.
 - Add five native Archify story families with a backward-compatible Architecture
   default, explicit factual-versus-capability classification, separated gallery
   demos, responsive readable previews, and canonical SVG/PNG exports. See #61.

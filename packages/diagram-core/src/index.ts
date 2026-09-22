@@ -252,10 +252,15 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
     );
     return { section, sectionAnchors, sublabel, width };
   });
-  // Lay components out in a snake grid (rows of 3-4, left-to-right then
-  // right-to-left) so consecutive sections stay adjacent and connections read
-  // as a clean flow without a tall vertical column.
-  const perRow = Math.min(2, Math.max(1, sections.length));
+  // Balance components across rows of at most four, then snake each row so
+  // consecutive sections stay adjacent without producing a tall column.
+  const rowCount = Math.max(1, Math.ceil(sections.length / 4));
+  const shortRowSize = Math.floor(sections.length / rowCount);
+  const longRowCount = sections.length % rowCount;
+  const rowSizes = Array.from(
+    { length: rowCount },
+    (_, row) => shortRowSize + (row < longRowCount ? 1 : 0),
+  );
   const boxWidth = Math.max(280, ...resolved.map((entry) => entry.width));
   const boxHeight = 130;
   const relationshipLabelWidth = (label: string) =>
@@ -276,10 +281,16 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
   const rowGap = 80;
   const margin = 80;
   const cellOf = (index: number) => {
-    const row = Math.floor(index / perRow);
-    const positionInRow = index % perRow;
+    let row = 0;
+    let rowStart = 0;
+    while (index >= rowStart + rowSizes[row]!) {
+      rowStart += rowSizes[row]!;
+      row += 1;
+    }
+    const rowSize = rowSizes[row]!;
+    const positionInRow = index - rowStart;
     // Reverse odd rows so the sequence snakes and stays adjacent at the wrap.
-    const column = row % 2 === 0 ? positionInRow : perRow - 1 - positionInRow;
+    const column = row % 2 === 0 ? positionInRow : rowSize - 1 - positionInRow;
     return { row, column };
   };
   const components = resolved.map(({ section, sectionAnchors, sublabel }, index) => {
@@ -307,13 +318,14 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
           }),
     };
   });
-  const rowCount = Math.max(1, Math.ceil(sections.length / perRow));
   const gridBottom = margin + rowCount * boxHeight + (rowCount - 1) * rowGap;
   const laneBase = gridBottom + 60;
   const laneGap = 40;
   const viewBoxWidth = Math.max(
     800,
-    margin * 2 + perRow * boxWidth + (perRow - 1) * columnGap,
+    margin * 2 +
+      Math.max(...rowSizes) * boxWidth +
+      (Math.max(...rowSizes) - 1) * columnGap,
   );
   const viewBoxHeight = Math.max(
     500,
