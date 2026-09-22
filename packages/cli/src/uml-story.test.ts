@@ -11,6 +11,9 @@ import { buildCatalogueStories } from "./catalogue.js";
 const execute = promisify(execFile);
 const entry = fileURLToPath(new URL("../dist/main.js", import.meta.url));
 const repositoryRoot = fileURLToPath(new URL("../../../", import.meta.url));
+const declarationFixture = fileURLToPath(
+  new URL("../../../examples/uml-story/", import.meta.url),
+);
 const temporaryDirectories: string[] = [];
 
 afterEach(async () => {
@@ -140,5 +143,72 @@ describe("source-grounded UML story", () => {
         'anchor "story-document-error-extends" [missing-pattern]',
       ),
     });
+  }, 30_000);
+
+  it("validates independently declared UML relationship fixtures", async () => {
+    const root = await mkdtemp(join(tmpdir(), "topo-uml-declarations-"));
+    temporaryDirectories.push(root);
+    await mkdir(join(root, "stories"), { recursive: true });
+    await writeFile(
+      join(root, "declarations.ts"),
+      await readFile(join(declarationFixture, "declarations.ts")),
+    );
+    const storyPath = join(root, "stories/uml-declarations.topo.json");
+    const serialized = await readFile(
+      join(declarationFixture, "story.topo.json"),
+      "utf8",
+    );
+    await writeFile(storyPath, serialized);
+    await execute("git", ["init", "--quiet", root]);
+    await execute("git", [
+      "-C",
+      root,
+      "remote",
+      "add",
+      "origin",
+      "https://github.com/example/uml-declarations.git",
+    ]);
+    await execute("git", ["-C", root, "add", "."]);
+    await execute("git", [
+      "-C",
+      root,
+      "-c",
+      "user.name=Topo Test",
+      "-c",
+      "user.email=topo@example.test",
+      "commit",
+      "--quiet",
+      "-m",
+      "Declaration fixture",
+    ]);
+
+    const validation = await execute(process.execPath, [
+      entry,
+      "story",
+      "validate",
+      root,
+      storyPath,
+    ]);
+    for (const anchor of [
+      "extended",
+      "implementation",
+      "alias",
+      "consumer",
+    ]) {
+      expect(validation.stdout).toContain(`${anchor}: declarations.ts:`);
+    }
+
+    const document = JSON.parse(serialized) as {
+      connections: { label: string }[];
+    };
+    expect(document.connections.map(({ label }) => label)).toEqual([
+      "extends",
+      "implements",
+      "declared type dependency",
+      "declared type dependency",
+    ]);
+    expect(serialized).not.toMatch(
+      /composition|aggregation|multiplicity|runtime call/i,
+    );
   }, 30_000);
 });

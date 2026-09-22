@@ -1,0 +1,93 @@
+{
+  "schemaVersion": "1.0",
+  "diagramFamily": "architecture",
+  "classification": "source-grounded",
+  "id": "uml-declarations",
+  "title": "Bounded UML declaration fixture",
+  "summary": "Test-only source declarations for approved UML-intent relationships.",
+  "anchors": [
+    {
+      "id": "contract",
+      "path": "declarations.ts",
+      "symbol": "Contract"
+    },
+    {
+      "id": "extended",
+      "path": "declarations.ts",
+      "symbol": "ExtendedContract",
+      "pattern": "extends Contract"
+    },
+    {
+      "id": "implementation",
+      "path": "declarations.ts",
+      "symbol": "ContractImplementation",
+      "pattern": "implements Contract"
+    },
+    {
+      "id": "alias",
+      "path": "declarations.ts",
+      "symbol": "ContractAlias",
+      "pattern": "= Contract"
+    },
+    {
+      "id": "consumer",
+      "path": "declarations.ts",
+      "symbol": "ContractConsumer",
+      "pattern": "readonly dependency: Contract;"
+    }
+  ],
+  "sections": [
+    {
+      "id": "contract",
+      "title": "«interface» Contract",
+      "body": "Base interface.",
+      "anchorIds": ["contract"]
+    },
+    {
+      "id": "extended",
+      "title": "«interface» ExtendedContract",
+      "body": "Direct interface inheritance.",
+      "anchorIds": ["extended"]
+    },
+    {
+      "id": "implementation",
+      "title": "«class» ContractImplementation",
+      "body": "Direct class implementation.",
+      "anchorIds": ["implementation"]
+    },
+    {
+      "id": "alias",
+      "title": "«type» ContractAlias",
+      "body": "Declared alias dependency.",
+      "anchorIds": ["alias"]
+    },
+    {
+      "id": "consumer",
+      "title": "«interface» ContractConsumer",
+      "body": "Declared property type dependency.",
+      "anchorIds": ["consumer"]
+    }
+  ],
+  "connections": [
+    {
+      "from": "extended",
+      "to": "contract",
+      "label": "extends"
+    },
+    {
+      "from": "implementation",
+      "to": "contract",
+      "label": "implements"
+    },
+    {
+      "from": "alias",
+      "to": "contract",
+      "label": "declared type dependency"
+    },
+    {
+      "from": "consumer",
+      "to": "contract",
+      "label": "declared type dependency"
+    }
+  ]
+}
