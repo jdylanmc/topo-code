@@ -251,9 +251,6 @@ function validateStoryDocument(value: unknown): string | undefined {
       if (!nonemptyString(anchorValue.pattern)) {
         return `anchors[${index}].pattern must be nonempty`;
       }
-      if (!nonemptyString(anchorValue.symbol)) {
-        return `anchors[${index}].pattern requires symbol`;
-      }
     }
   }
 
@@ -472,7 +469,9 @@ function resolveAnchor(
         documentPath,
         anchor.id,
         "missing-pattern",
-        `pattern "${anchor.pattern}" was not found within symbol "${anchor.symbol}" in "${anchor.path}"`,
+        anchor.symbol === undefined
+          ? `pattern "${anchor.pattern}" was not found in "${anchor.path}"`
+          : `pattern "${anchor.pattern}" was not found within symbol "${anchor.symbol}" in "${anchor.path}"`,
       );
     }
     start += offset;
