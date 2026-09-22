@@ -20,20 +20,58 @@
     { "id": "graph-manifest", "path": "packages/graph/package.json" },
     { "id": "modules-manifest", "path": "packages/modules/package.json" },
     { "id": "views-manifest", "path": "packages/views/package.json" },
-    { "id": "site-manifest", "path": "packages/site/package.json" }
+    { "id": "site-manifest", "path": "packages/site/package.json" },
+    {
+      "id": "cli-diagram-core-dependency",
+      "path": "packages/cli/package.json",
+      "pattern": "\"@topo/diagram-core\": \"workspace:*\""
+    },
+    {
+      "id": "diagram-core-story-dependency",
+      "path": "packages/diagram-core/package.json",
+      "pattern": "\"@topo/story\": \"workspace:*\""
+    },
+    {
+      "id": "enrichment-schema-dependency",
+      "path": "packages/enrichment/package.json",
+      "pattern": "\"@topo/schema\": \"workspace:*\""
+    },
+    {
+      "id": "graph-schema-dependency",
+      "path": "packages/graph/package.json",
+      "pattern": "\"@topo/schema\": \"workspace:*\""
+    },
+    {
+      "id": "modules-graph-dependency",
+      "path": "packages/modules/package.json",
+      "pattern": "\"@topo/graph\": \"workspace:*\""
+    },
+    {
+      "id": "site-views-dependency",
+      "path": "packages/site/package.json",
+      "pattern": "\"@topo/views\": \"workspace:*\""
+    }
   ],
   "sections": [
     {
       "id": "cli",
       "title": "@topo/cli",
       "body": "Command-line composition package. Its manifest declares workspace dependencies on diagram-core, enrichment, graph, modules, reports, scanner, schema, site, story, views, and workspace; the map selects its diagram-core relationship.",
-      "anchorIds": ["cli-manifest", "root-workspaces"]
+      "anchorIds": [
+        "cli-manifest",
+        "cli-diagram-core-dependency",
+        "root-workspaces"
+      ]
     },
     {
       "id": "diagram-core",
       "title": "@topo/diagram-core",
       "body": "Pinned Archify rendering boundary. Its manifest declares a workspace dependency on story.",
-      "anchorIds": ["diagram-core-manifest", "root-workspaces"]
+      "anchorIds": [
+        "diagram-core-manifest",
+        "diagram-core-story-dependency",
+        "root-workspaces"
+      ]
     },
     {
       "id": "story",
@@ -69,7 +107,11 @@
       "id": "enrichment",
       "title": "@topo/enrichment",
       "body": "Enrichment document package. Its manifest declares a workspace dependency on schema.",
-      "anchorIds": ["enrichment-manifest", "root-workspaces"]
+      "anchorIds": [
+        "enrichment-manifest",
+        "enrichment-schema-dependency",
+        "root-workspaces"
+      ]
     },
     {
       "id": "schema",
@@ -81,13 +123,21 @@
       "id": "graph",
       "title": "@topo/graph",
       "body": "Graph projection and layout package. Its manifest declares a workspace dependency on schema.",
-      "anchorIds": ["graph-manifest", "root-workspaces"]
+      "anchorIds": [
+        "graph-manifest",
+        "graph-schema-dependency",
+        "root-workspaces"
+      ]
     },
     {
       "id": "modules",
       "title": "@topo/modules",
       "body": "Module composition package. Its manifest declares workspace dependencies on graph and schema; the map selects its graph relationship.",
-      "anchorIds": ["modules-manifest", "root-workspaces"]
+      "anchorIds": [
+        "modules-manifest",
+        "modules-graph-dependency",
+        "root-workspaces"
+      ]
     },
     {
       "id": "views",
@@ -99,7 +149,11 @@
       "id": "site",
       "title": "@topo/site",
       "body": "Browser explorer package. Its manifest declares workspace dependencies on enrichment, graph, modules, schema, and views; the map selects its views relationship.",
-      "anchorIds": ["site-manifest", "root-workspaces"]
+      "anchorIds": [
+        "site-manifest",
+        "site-views-dependency",
+        "root-workspaces"
+      ]
     }
   ],
   "connections": [
