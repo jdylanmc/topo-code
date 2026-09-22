@@ -954,6 +954,18 @@ svg g[data-edge-from] > text {
             const y = baseline - top;
             const height = top +
               dataflowReadability.flowLabelMaskBaselineBottom;
+            const [viewBoxWidth, viewBoxHeight] = dataflowLayout.viewBox;
+            if (
+              ![x, y, width, height].every(Number.isFinite) ||
+              x < 0 ||
+              y < 0 ||
+              x + width > viewBoxWidth ||
+              y + height > viewBoxHeight
+            ) {
+              throw new Error(
+                `Archify dataflow final flow label mask ${index} exceeds the ${viewBoxWidth}x${viewBoxHeight} viewBox`,
+              );
+            }
             return `${prefix}${x}${yPrefix}${y}${widthPrefix}${width}${heightPrefix}${height}${suffix}`;
           },
         );

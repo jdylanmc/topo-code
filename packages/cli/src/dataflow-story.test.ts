@@ -81,6 +81,64 @@ async function rendererFailureFixture(): Promise<{
   return { root, documentPath };
 }
 
+async function flowLabelFailureFixture(
+  id: string,
+  label: string,
+): Promise<{
+  root: string;
+  documentPath: string;
+}> {
+  const root = await mkdtemp(join(tmpdir(), "topo-dataflow-label-"));
+  directories.push(root);
+  await execute("git", ["init", "--quiet", root]);
+  await execute("git", [
+    "-C", root, "remote", "add", "origin",
+    "https://github.com/example/fixture.git",
+  ]);
+  await writeFile(join(root, "package.json"), '{"type":"module"}\n');
+  const documentPath = join(root, `stories/${id}.topo.json`);
+  await mkdir(join(root, "stories"));
+  await writeFile(documentPath, `${JSON.stringify({
+    schemaVersion: "1.0",
+    diagramFamily: "dataflow",
+    classification: "capability-demo",
+    id,
+    title: "Dataflow final label bounds",
+    summary: "A valid story whose final flow label exceeds the native viewBox.",
+    anchors: [],
+    sections: [
+      {
+        id: "input",
+        title: "Input",
+        body: "Records.",
+        anchorIds: [],
+      },
+      {
+        id: "output",
+        title: "Output",
+        body: "Dataset.",
+        anchorIds: [],
+      },
+    ],
+    connections: [{ from: "input", to: "output", label }],
+  }, null, 2)}\n`);
+  await execute("git", ["-C", root, "add", "."]);
+  await execute("git", [
+    "-C", root,
+    "-c", "user.name=Fixture",
+    "-c", "user.email=fixture@example.invalid",
+    "-c", "commit.gpgsign=false",
+    "commit", "--quiet", "-m", "Fixture",
+  ]);
+  await initializeWorkspace(root);
+  await writeGenerated(
+    root,
+    "cache/site/index.html",
+    "<!doctype html><title>Explorer</title>",
+  );
+  return { root, documentPath };
+}
+
 describe("Dataflow story catalogue", () => {
   it("renders the source-grounded repository pipeline with native Dataflow stages", async () => {
     const stories = await buildCatalogueStories(repositoryRoot);
@@ -174,6 +232,32 @@ describe("Dataflow story catalogue", () => {
     )).rejects.toMatchObject({ code: "ENOENT" });
     await expect(readFile(
       join(root, ".topo/cache/site/stories/dataflow-overflow/viewer.html"),
+    )).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it.each([
+    {
+      id: "dataflow-label-mask-boundary",
+      label: "publishes validated customer records securely",
+    },
+    {
+      id: "dataflow-label-text-boundary",
+      label: "publishes validated customer records downstream",
+    },
+  ])("publishes no artifact when final flow label geometry exceeds the viewBox: $id", async ({
+    id,
+    label,
+  }) => {
+    const { root, documentPath } = await flowLabelFailureFixture(id, label);
+
+    await expect(previewStory(root, documentPath)).rejects.toThrow(
+      /Archify dataflow final flow label mask 0 exceeds the 423x360 viewBox/,
+    );
+    await expect(readFile(
+      join(root, `.topo/cache/site/stories/${id}/index.html`),
+    )).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(readFile(
+      join(root, `.topo/cache/site/stories/${id}/viewer.html`),
     )).rejects.toMatchObject({ code: "ENOENT" });
   });
 });
