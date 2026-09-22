@@ -565,9 +565,12 @@ const dataflowReadability = {
   viewBoxMargin: 24,
   minimumViewBoxWidth: 360,
   viewBoxHeight: 360,
-  flowLabelWidthFactor: 4.9,
   flowLabelHorizontalPadding: 12,
   minimumFlowLabelWidth: 34,
+  nativeFlowLabelWidthFactor: 4.9,
+  flowLabelMaskBaselineTop: 11,
+  flowLabelMaskBaselineBottom: 5,
+  flowLabelFontAscentPadding: 1,
   flowLabelClearanceDy: 53,
 } as const;
 
@@ -601,7 +604,42 @@ function dataflowNodeWidth(
 interface DataflowLayout {
   readonly fontSize: number;
   readonly nodeWidths: readonly number[];
+  readonly flowLabelWidths: readonly number[];
   readonly viewBox: readonly [number, number];
+}
+
+function dataflowFlowLabelWidth(label: string, fontSize: number): number {
+  return Math.max(
+    dataflowReadability.minimumFlowLabelWidth,
+    Math.ceil(
+      (
+        dataflowTextUnits(label) *
+          fontSize *
+          dataflowReadability.widthFactor +
+        dataflowReadability.flowLabelHorizontalPadding
+      ) * dataflowReadability.fontSizePrecision,
+    ) / dataflowReadability.fontSizePrecision,
+  );
+}
+
+function dataflowNativeFlowLabelWidth(label: string): number {
+  return Math.round(
+    Math.max(
+      dataflowReadability.minimumFlowLabelWidth,
+      dataflowTextUnits(label) *
+          dataflowReadability.nativeFlowLabelWidthFactor +
+        dataflowReadability.flowLabelHorizontalPadding,
+    ) * dataflowReadability.fontSizePrecision,
+  ) / dataflowReadability.fontSizePrecision;
+}
+
+function dataflowFlowLabelMaskTop(fontSize: number): number {
+  return Math.max(
+    dataflowReadability.flowLabelMaskBaselineTop,
+    Math.ceil(
+      fontSize + dataflowReadability.flowLabelFontAscentPadding,
+    ),
+  );
 }
 
 function dataflowLayout(story: ResolvedStoryDocument): DataflowLayout {
@@ -653,6 +691,12 @@ function dataflowLayout(story: ResolvedStoryDocument): DataflowLayout {
   return {
     fontSize,
     nodeWidths,
+    flowLabelWidths: story.document.connections.map((connection) =>
+      dataflowFlowLabelWidth(
+        requiredConnectionLabel(connection, "dataflow"),
+        fontSize,
+      )
+    ),
     viewBox: [Math.ceil(viewBoxWidth), dataflowReadability.viewBoxHeight],
   };
 }
@@ -703,9 +747,8 @@ function dataflowSpec(
           dataflowReadability.stageCenterGap -
         (layout.nodeWidths[fromIndex]! + layout.nodeWidths[toIndex]!) / 2;
       const labelWidth = Math.max(
-        dataflowReadability.minimumFlowLabelWidth,
-        dataflowTextUnits(label) * dataflowReadability.flowLabelWidthFactor +
-          dataflowReadability.flowLabelHorizontalPadding,
+        layout.flowLabelWidths[index]!,
+        dataflowNativeFlowLabelWidth(label),
       );
       return {
         id: stableId(
@@ -716,7 +759,11 @@ function dataflowSpec(
         to: nodeIds.get(connection.to)!,
         label,
         ...(labelWidth > endpointGap
-          ? { labelDy: dataflowReadability.flowLabelClearanceDy }
+          ? {
+              labelDy: dataflowReadability.flowLabelClearanceDy +
+                dataflowFlowLabelMaskTop(layout.fontSize) -
+                dataflowReadability.flowLabelMaskBaselineTop,
+            }
           : {}),
       };
     }),
@@ -883,7 +930,7 @@ function commandError(error: unknown): Error {
 function improveStoryReadability(
   contents: string,
   family: "architecture" | "workflow" | "dataflow" | "lifecycle",
-  dataflowFontSize?: number,
+  dataflowLayout?: DataflowLayout,
 ): string {
   const headEnd = "</head>";
   if (!contents.includes(headEnd)) {
@@ -912,7 +959,7 @@ svg text[data-detail="context"],
 svg text[font-size="9"][font-weight="600"],
 svg g[data-edge-from] > text {
   font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', 'Liberation Mono', 'Noto Sans Mono CJK SC', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', monospace;
-  font-size: ${dataflowFontSize ?? dataflowReadability.maximumFontSize}px;
+  font-size: ${dataflowLayout?.fontSize ?? dataflowReadability.maximumFontSize}px;
   font-weight: 600;
 }`
       : `
@@ -924,7 +971,62 @@ svg g[data-edge-from] > text {
 }`;
   const style = `<style data-topo-story-readability>${rules}
 </style>`;
-  return contents.replace(headEnd, `${style}\n${headEnd}`);
+  const adjustedContents = family === "dataflow" && dataflowLayout
+    ? dataflowLayout.flowLabelWidths.reduce((html, width, index) => {
+        const pattern = new RegExp(
+          `(<g data-detail="context"[^>]*data-edge-key="${index}"[^>]*>\\s*<rect x=")(-?\\d+(?:\\.\\d+)?)(" y=")(-?\\d+(?:\\.\\d+)?)(" width=")(\\d+(?:\\.\\d+)?)(" height=")(\\d+(?:\\.\\d+)?)(" rx="4" class="c-mask"/>)`,
+        );
+        let replaced = false;
+        const next = html.replace(
+          pattern,
+          (
+            _match,
+            prefix: string,
+            xValue: string,
+            yPrefix: string,
+            yValue: string,
+            widthPrefix: string,
+            nativeWidthValue: string,
+            heightPrefix: string,
+            _nativeHeightValue: string,
+            suffix: string,
+          ) => {
+            replaced = true;
+            const nativeWidth = Number(nativeWidthValue);
+            const center = Number(xValue) + nativeWidth / 2;
+            const x = Math.round(
+              (center - width / 2) * dataflowReadability.fontSizePrecision,
+            ) / dataflowReadability.fontSizePrecision;
+            const baseline = Number(yValue) +
+              dataflowReadability.flowLabelMaskBaselineTop;
+            const top = dataflowFlowLabelMaskTop(dataflowLayout.fontSize);
+            const y = baseline - top;
+            const height = top +
+              dataflowReadability.flowLabelMaskBaselineBottom;
+            const [viewBoxWidth, viewBoxHeight] = dataflowLayout.viewBox;
+            if (
+              ![x, y, width, height].every(Number.isFinite) ||
+              x < 0 ||
+              y < 0 ||
+              x + width > viewBoxWidth ||
+              y + height > viewBoxHeight
+            ) {
+              throw new Error(
+                `Archify dataflow final flow label mask ${index} exceeds the ${viewBoxWidth}x${viewBoxHeight} viewBox`,
+              );
+            }
+            return `${prefix}${x}${yPrefix}${y}${widthPrefix}${width}${heightPrefix}${height}${suffix}`;
+          },
+        );
+        if (!replaced) {
+          throw new Error(
+            `Archify dataflow output is missing flow label mask ${index}`,
+          );
+        }
+        return next;
+      }, contents)
+    : contents;
+  return adjustedContents.replace(headEnd, `${style}\n${headEnd}`);
 }
 
 export function renderStory(story: ResolvedStoryDocument): StoryArtifact {
@@ -981,7 +1083,7 @@ export function renderStory(story: ResolvedStoryDocument): StoryArtifact {
         ? improveStoryReadability(
           contents,
           family,
-          adaptiveDataflowLayout?.fontSize,
+          adaptiveDataflowLayout,
         )
         : contents,
       renderer: {
