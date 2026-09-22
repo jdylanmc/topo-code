@@ -10,6 +10,10 @@ does not currently publish versioned releases.
 - Add a source-grounded Architecture story covering every current Yarn
   workspace and selected manifest-declared compile-time relationships, with a
   readable balanced package layout. See #58.
+- Add a source-grounded repository pipeline Dataflow story and a separate
+  conceptual Dataflow capability demo with pinned-font adaptive native
+  rendering, preserved public-preview compatibility, and plain-static-bundle
+  coverage. See #60.
 - Add five native Archify story families with a backward-compatible Architecture
   default, explicit factual-versus-capability classification, separated gallery
   demos, responsive readable previews, and canonical SVG/PNG exports. See #61.
