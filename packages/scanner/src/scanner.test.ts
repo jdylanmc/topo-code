@@ -1,8 +1,9 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, mkdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, realpath, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
+import ts from "typescript-compiler-api";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
   ScanError,
@@ -409,6 +410,1099 @@ describe("@topo/scanner", () => {
     const value = result.logicalArchitecture.entities.find((entity) => entity.name === "value")!;
     expect(result.logicalArchitecture.relationships).toContainEqual(
       expect.objectContaining({ sourceId: run.id, targetId: value.id, kind: "calls" }),
+    );
+  });
+
+  it("resolves exact workspace exports without guessing conditional targets", async () => {
+    const root = await temporaryRepository();
+    await write(
+      root,
+      "package.json",
+      JSON.stringify({ private: true, workspaces: ["packages/*"] }),
+    );
+    await write(root, ".gitignore", "node_modules/\n");
+    await write(
+      root,
+      "packages/app/package.json",
+      JSON.stringify({
+        name: "@fixture/app",
+        dependencies: { "@fixture/lib": "workspace:*" },
+      }),
+    );
+    await write(
+      root,
+      "packages/app/tsconfig.json",
+      JSON.stringify({
+        compilerOptions: {
+          module: "NodeNext",
+          moduleResolution: "NodeNext",
+        },
+        include: ["src"],
+      }),
+    );
+    await write(
+      root,
+      "packages/app/src/index.ts",
+      'import { value } from "@fixture/lib/data";\nexport const result = value;\n',
+    );
+    await write(
+      root,
+      "packages/lib/package.json",
+      JSON.stringify({
+        name: "@fixture/lib",
+        type: "module",
+        exports: {
+          "./data": {
+            default: "./dist/runtime.js",
+            types: "./src/data.ts",
+          },
+        },
+      }),
+    );
+    await write(
+      root,
+      "packages/lib/tsconfig.json",
+      JSON.stringify({
+        compilerOptions: {
+          module: "NodeNext",
+          moduleResolution: "NodeNext",
+          outDir: "dist",
+          rootDir: "src",
+        },
+        include: ["src"],
+      }),
+    );
+    await write(root, "packages/lib/src/data.ts", "export const value = 1;\n");
+    await write(root, "packages/lib/src/runtime.ts", "export const value = 2;\n");
+    await mkdir(path.join(root, "node_modules/@fixture"), { recursive: true });
+    await symlink(
+      path.join(root, "packages/lib"),
+      path.join(root, "node_modules/@fixture/lib"),
+      "dir",
+    );
+
+    const result = await scanRepository({ root });
+
+    expect(result.authoritative).toBe(true);
+    expect(result.metrics.unresolvedImportCount).toBe(0);
+    expect(result.graph.edges).toContainEqual(
+      expect.objectContaining({
+        sourceId: "path:packages/app/src/index.ts",
+        targetId: "path:packages/lib/src/data.ts",
+        type: "imports",
+      }),
+    );
+
+    await write(
+      root,
+      "packages/lib/package.json",
+      JSON.stringify({
+        name: "@fixture/lib",
+        type: "module",
+        exports: {
+          "./data": {
+            default: "./dist/runtime.js",
+            types: "./src/missing-types.ts",
+          },
+        },
+      }),
+    );
+    const conditionFallback = await scanRepository({ root });
+    expect(conditionFallback.graph.edges).toContainEqual(
+      expect.objectContaining({
+        sourceId: "path:packages/app/src/index.ts",
+        targetId: "path:packages/lib/src/runtime.ts",
+        type: "imports",
+      }),
+    );
+
+    await write(
+      root,
+      "packages/lib/package.json",
+      JSON.stringify({
+        name: "@fixture/lib",
+        type: "module",
+        exports: {
+          "./data": {
+            default: "./dist/runtime.js",
+            types: "./src/data.ts",
+          },
+        },
+      }),
+    );
+    const externalPackage = await temporaryRepository();
+    await write(
+      externalPackage,
+      "package.json",
+      JSON.stringify({
+        name: "@fixture/lib",
+        type: "module",
+        exports: { "./data": "./data.ts" },
+      }),
+    );
+    await write(
+      externalPackage,
+      "data.ts",
+      "export const value = 'external';\n",
+    );
+    await rm(path.join(root, "node_modules/@fixture/lib"));
+    await symlink(
+      externalPackage,
+      path.join(root, "node_modules/@fixture/lib"),
+      "dir",
+    );
+    const outsideExternal = await scanRepository({ root });
+    expect(outsideExternal.metrics.unresolvedImportCount).toBe(0);
+    expect(outsideExternal.metrics.externalImportCount).toBe(1);
+    expect(outsideExternal.graph.edges).toContainEqual(
+      expect.objectContaining({
+        sourceId: "path:packages/app/src/index.ts",
+        targetId: "external:npm:@fixture/lib",
+        type: "imports",
+      }),
+    );
+    expect(outsideExternal.graph.nodes).toContainEqual(
+      expect.objectContaining({
+        id: "external:npm:@fixture/lib",
+        kind: "external",
+      }),
+    );
+
+    await rm(path.join(root, "node_modules"), { recursive: true });
+    await write(
+      root,
+      "node_modules/@fixture/lib/package.json",
+      JSON.stringify({
+        name: "@fixture/lib",
+        type: "module",
+        exports: { "./data": "./data.ts" },
+      }),
+    );
+    await write(
+      root,
+      "node_modules/@fixture/lib/data.ts",
+      "export const value = 'external';\n",
+    );
+    const inRootExternal = await scanRepository({ root });
+    expect(inRootExternal.metrics.unresolvedImportCount).toBe(0);
+    expect(inRootExternal.metrics.externalImportCount).toBe(1);
+    expect(inRootExternal.graph.edges).toContainEqual(
+      expect.objectContaining({
+        sourceId: "path:packages/app/src/index.ts",
+        targetId: "external:npm:@fixture/lib",
+        type: "imports",
+      }),
+    );
+
+    await rm(path.join(root, "node_modules"), { recursive: true });
+    const unlinked = await scanRepository({ root });
+    expect(unlinked.graph.edges).toContainEqual(
+      expect.objectContaining({
+        sourceId: "path:packages/app/src/index.ts",
+        targetId: "path:packages/lib/src/data.ts",
+        type: "imports",
+      }),
+    );
+
+    await write(
+      root,
+      "packages/lib/package.json",
+      JSON.stringify({
+        name: "@fixture/lib",
+        type: "module",
+        exports: {
+          "./data": {
+            default: "./dist/data.js",
+            types: "./src/data.ts",
+          },
+        },
+      }),
+    );
+    const fallback = await scanRepository({ root });
+    expect(fallback.graph.edges).toContainEqual(
+      expect.objectContaining({
+        sourceId: "path:packages/app/src/index.ts",
+        targetId: "path:packages/lib/src/data.ts",
+        type: "imports",
+      }),
+    );
+
+    await write(
+      root,
+      "packages/app/src/index.ts",
+      'import { value } from "@fixture/lib/generated";\nexport const result = value;\n',
+    );
+    await write(
+      root,
+      "packages/lib/package.json",
+      JSON.stringify({
+        name: "@fixture/lib",
+        type: "module",
+        exports: {
+          "./generated": {
+            types: "./dist/generated.d.ts",
+            default: "./dist/generated.js",
+          },
+        },
+      }),
+    );
+    await write(root, "packages/lib/src/generated.ts", "export const value = 3;\n");
+    const generated = await scanRepository({ root });
+    expect(generated.graph.edges).toContainEqual(
+      expect.objectContaining({
+        sourceId: "path:packages/app/src/index.ts",
+        targetId: "path:packages/lib/src/generated.ts",
+        type: "imports",
+      }),
+    );
+
+    await write(
+      root,
+      "packages/lib/tsconfig.ambiguous.json",
+      JSON.stringify({
+        compilerOptions: {
+          module: "NodeNext",
+          moduleResolution: "NodeNext",
+          outDir: "dist",
+          rootDir: "alternate",
+        },
+        include: ["alternate"],
+      }),
+    );
+    await write(
+      root,
+      "packages/lib/alternate/generated.ts",
+      "export const value = 4;\n",
+    );
+    await expect(scanRepository({ root })).rejects.toMatchObject({
+      diagnostics: expect.arrayContaining([
+        expect.objectContaining({
+          code: "unresolved-workspace-import",
+          specifier: "@fixture/lib/generated",
+        }),
+      ]),
+    });
+    await rm(path.join(root, "packages/lib/tsconfig.ambiguous.json"));
+    await rm(path.join(root, "packages/lib/alternate"), { recursive: true });
+
+    await write(
+      root,
+      "packages/app/src/index.ts",
+      'import { value } from "@fixture/lib/data";\nexport const result = value;\n',
+    );
+    for (const target of [
+      "src/data.ts",
+      "./../shared.ts",
+      null,
+      {
+        default: "./dist/missing-runtime.js",
+        types: "./src/missing-types.ts",
+      },
+    ]) {
+      await write(
+        root,
+        "packages/lib/package.json",
+        JSON.stringify({
+          name: "@fixture/lib",
+          type: "module",
+          exports: { "./data": target },
+        }),
+      );
+      await expect(scanRepository({ root })).rejects.toMatchObject({
+        diagnostics: expect.arrayContaining([
+          expect.objectContaining({
+            code: "unresolved-workspace-import",
+            specifier: "@fixture/lib/data",
+          }),
+        ]),
+      });
+    }
+
+    await write(
+      root,
+      "packages/app/src/index.ts",
+      'import { value } from "@fixture/lib/missing";\nexport const result = value;\n',
+    );
+    await expect(scanRepository({ root })).rejects.toMatchObject({
+      diagnostics: expect.arrayContaining([
+        expect.objectContaining({
+          code: "unresolved-workspace-import",
+          specifier: "@fixture/lib/missing",
+        }),
+      ]),
+    });
+  });
+
+  it("preserves compiler-selected workspace source extensions", async () => {
+    for (const extension of ["mts", "cts"]) {
+      for (const linked of [true, false]) {
+        const root = await temporaryRepository();
+        await write(
+          root,
+          "package.json",
+          JSON.stringify({ private: true, workspaces: ["packages/*"] }),
+        );
+        await write(root, ".gitignore", "node_modules/\n");
+        await write(
+          root,
+          "packages/app/package.json",
+          JSON.stringify({
+            name: "@fixture/app",
+            dependencies: { "@fixture/lib": "workspace:*" },
+          }),
+        );
+        await write(
+          root,
+          "packages/app/tsconfig.json",
+          JSON.stringify({
+            compilerOptions: {
+              module: "NodeNext",
+              moduleResolution: "NodeNext",
+            },
+            include: ["src"],
+          }),
+        );
+        await write(
+          root,
+          "packages/app/src/index.ts",
+          'import { value } from "@fixture/lib/data";\nexport const result = value;\n',
+        );
+        await write(
+          root,
+          "packages/lib/package.json",
+          JSON.stringify({
+            name: "@fixture/lib",
+            type: "module",
+            exports: { "./data": `./src/data.${extension}` },
+          }),
+        );
+        await write(
+          root,
+          "packages/lib/tsconfig.json",
+          JSON.stringify({
+            compilerOptions: {
+              module: "NodeNext",
+              moduleResolution: "NodeNext",
+            },
+            include: ["src"],
+          }),
+        );
+        await write(
+          root,
+          `packages/lib/src/data.${extension}`,
+          "export const value = 'selected';\n",
+        );
+        await write(
+          root,
+          "packages/lib/src/data.ts",
+          "export const value = 'wrong';\n",
+        );
+        if (linked) {
+          await mkdir(path.join(root, "node_modules/@fixture"), {
+            recursive: true,
+          });
+          await symlink(
+            path.join(root, "packages/lib"),
+            path.join(root, "node_modules/@fixture/lib"),
+            "dir",
+          );
+        }
+
+        const result = await scanRepository({ root });
+
+        expect(result.metrics.unresolvedImportCount).toBe(0);
+        expect(result.graph.edges).toContainEqual(
+          expect.objectContaining({
+            sourceId: "path:packages/app/src/index.ts",
+            targetId: `path:packages/lib/src/data.${extension}`,
+            type: "imports",
+          }),
+        );
+        expect(result.graph.edges).not.toContainEqual(
+          expect.objectContaining({
+            sourceId: "path:packages/app/src/index.ts",
+            targetId: "path:packages/lib/src/data.ts",
+            type: "imports",
+          }),
+        );
+      }
+    }
+  });
+
+  it("projects generated module extensions to their matching TypeScript sources", async () => {
+    for (const [sourceExtension, outputExtension] of [
+      ["mts", "mjs"],
+      ["cts", "cjs"],
+    ] as const) {
+      for (const linked of [true, false]) {
+        const root = await temporaryRepository();
+        await write(
+          root,
+          "package.json",
+          JSON.stringify({ private: true, workspaces: ["packages/*"] }),
+        );
+        await write(root, ".gitignore", "node_modules/\npackages/*/dist/\n");
+        await write(
+          root,
+          "packages/app/package.json",
+          JSON.stringify({
+            name: "@fixture/app",
+            dependencies: { "@fixture/lib": "workspace:*" },
+          }),
+        );
+        await write(
+          root,
+          "packages/app/tsconfig.json",
+          JSON.stringify({
+            compilerOptions: {
+              module: "NodeNext",
+              moduleResolution: "NodeNext",
+            },
+            include: ["src"],
+          }),
+        );
+        await write(
+          root,
+          "packages/app/src/index.ts",
+          'import { value } from "@fixture/lib/data";\nexport const result = value;\n',
+        );
+        await write(
+          root,
+          "packages/lib/package.json",
+          JSON.stringify({
+            name: "@fixture/lib",
+            type: "module",
+            exports: { "./data": `./dist/data.${outputExtension}` },
+          }),
+        );
+        await write(
+          root,
+          "packages/lib/tsconfig.json",
+          JSON.stringify({
+            compilerOptions: {
+              module: "NodeNext",
+              moduleResolution: "NodeNext",
+              outDir: "dist",
+              rootDir: "src",
+            },
+            include: ["src"],
+          }),
+        );
+        await write(
+          root,
+          `packages/lib/src/data.${sourceExtension}`,
+          "export const value = 'selected';\n",
+        );
+        await write(
+          root,
+          "packages/lib/src/data.ts",
+          "export const value = 'wrong';\n",
+        );
+        await write(
+          root,
+          `packages/lib/dist/data.${outputExtension}`,
+          "export const value = 'generated';\n",
+        );
+        if (linked) {
+          await mkdir(path.join(root, "node_modules/@fixture"), {
+            recursive: true,
+          });
+          await symlink(
+            path.join(root, "packages/lib"),
+            path.join(root, "node_modules/@fixture/lib"),
+            "dir",
+          );
+          const compilerResolution = ts.resolveModuleName(
+            "@fixture/lib/data",
+            path.join(root, "packages/app/src/index.ts"),
+            {
+              module: ts.ModuleKind.NodeNext,
+              moduleResolution: ts.ModuleResolutionKind.NodeNext,
+            },
+            ts.sys,
+          ).resolvedModule;
+          expect(compilerResolution).toBeDefined();
+          expect(
+            path.relative(
+              await realpath(root),
+              await realpath(compilerResolution!.resolvedFileName),
+            ),
+          ).toBe(`packages/lib/dist/data.${outputExtension}`);
+        }
+
+        const result = await scanRepository({ root });
+
+        expect(result.metrics.unresolvedImportCount).toBe(0);
+        expect(result.graph.edges).toContainEqual(
+          expect.objectContaining({
+            sourceId: "path:packages/app/src/index.ts",
+            targetId: `path:packages/lib/src/data.${sourceExtension}`,
+            type: "imports",
+          }),
+        );
+        expect(result.graph.edges).not.toContainEqual(
+          expect.objectContaining({
+            sourceId: "path:packages/app/src/index.ts",
+            targetId: "path:packages/lib/src/data.ts",
+            type: "imports",
+          }),
+        );
+      }
+    }
+  });
+
+  it("projects virtual generated module paths when output files are absent", async () => {
+    for (const [sourceExtension, outputExtension] of [
+      ["mts", "mjs"],
+      ["cts", "cjs"],
+    ] as const) {
+      const root = await temporaryRepository();
+      await write(
+        root,
+        "package.json",
+        JSON.stringify({ private: true, workspaces: ["packages/*"] }),
+      );
+      await write(root, ".gitignore", "node_modules/\npackages/*/dist/\n");
+      await write(
+        root,
+        "packages/app/package.json",
+        JSON.stringify({
+          name: "@fixture/app",
+          dependencies: { "@fixture/lib": "workspace:*" },
+        }),
+      );
+      await write(
+        root,
+        "packages/app/tsconfig.json",
+        JSON.stringify({
+          compilerOptions: {
+            module: "NodeNext",
+            moduleResolution: "NodeNext",
+          },
+          include: ["src"],
+        }),
+      );
+      await write(
+        root,
+        "packages/app/src/index.ts",
+        'import { value } from "@fixture/lib/data";\nexport const result = value;\n',
+      );
+      await write(
+        root,
+        "packages/lib/package.json",
+        JSON.stringify({
+          name: "@fixture/lib",
+          type: "module",
+          exports: { "./data": `./dist/data.${outputExtension}` },
+        }),
+      );
+      await write(
+        root,
+        "packages/lib/tsconfig.json",
+        JSON.stringify({
+          compilerOptions: {
+            module: "NodeNext",
+            moduleResolution: "NodeNext",
+            outDir: "dist",
+            rootDir: "src",
+          },
+          include: ["src"],
+        }),
+      );
+      await write(
+        root,
+        `packages/lib/src/data.${sourceExtension}`,
+        "export const value = 'selected';\n",
+      );
+      await write(
+        root,
+        "packages/lib/src/data.ts",
+        "export const value = 'wrong';\n",
+      );
+
+      const result = await scanRepository({ root });
+
+      expect(result.metrics.unresolvedImportCount).toBe(0);
+      expect(result.graph.edges).toContainEqual(
+        expect.objectContaining({
+          sourceId: "path:packages/app/src/index.ts",
+          targetId: `path:packages/lib/src/data.${sourceExtension}`,
+          type: "imports",
+        }),
+      );
+      expect(result.graph.edges).not.toContainEqual(
+        expect.objectContaining({
+          sourceId: "path:packages/app/src/index.ts",
+          targetId: "path:packages/lib/src/data.ts",
+          type: "imports",
+        }),
+      );
+    }
+  });
+
+  it("projects generated declaration extensions to their matching TypeScript sources", async () => {
+    for (const [sourceExtension, declarationExtension] of [
+      ["mts", "d.mts"],
+      ["cts", "d.cts"],
+    ] as const) {
+      for (const linked of [true, false]) {
+        const root = await temporaryRepository();
+        await write(
+          root,
+          "package.json",
+          JSON.stringify({ private: true, workspaces: ["packages/*"] }),
+        );
+        await write(root, ".gitignore", "node_modules/\npackages/*/dist/\n");
+        await write(
+          root,
+          "packages/app/package.json",
+          JSON.stringify({
+            name: "@fixture/app",
+            dependencies: { "@fixture/lib": "workspace:*" },
+          }),
+        );
+        await write(
+          root,
+          "packages/app/tsconfig.json",
+          JSON.stringify({
+            compilerOptions: {
+              module: "NodeNext",
+              moduleResolution: "NodeNext",
+            },
+            include: ["src"],
+          }),
+        );
+        await write(
+          root,
+          "packages/app/src/index.ts",
+          'import type { Value } from "@fixture/lib/data";\nexport type Result = Value;\n',
+        );
+        await write(
+          root,
+          "packages/lib/package.json",
+          JSON.stringify({
+            name: "@fixture/lib",
+            type: "module",
+            exports: { "./data": `./dist/data.${declarationExtension}` },
+          }),
+        );
+        await write(
+          root,
+          "packages/lib/tsconfig.json",
+          JSON.stringify({
+            compilerOptions: {
+              module: "NodeNext",
+              moduleResolution: "NodeNext",
+              outDir: "dist",
+              rootDir: "src",
+            },
+            include: ["src"],
+          }),
+        );
+        await write(
+          root,
+          `packages/lib/src/data.${sourceExtension}`,
+          "export interface Value { selected: true }\n",
+        );
+        await write(
+          root,
+          "packages/lib/src/data.d.ts",
+          "export interface Value { wrong: true }\n",
+        );
+        await write(
+          root,
+          `packages/lib/dist/data.${declarationExtension}`,
+          "export interface Value { generated: true }\n",
+        );
+        if (linked) {
+          await mkdir(path.join(root, "node_modules/@fixture"), {
+            recursive: true,
+          });
+          await symlink(
+            path.join(root, "packages/lib"),
+            path.join(root, "node_modules/@fixture/lib"),
+            "dir",
+          );
+          const compilerResolution = ts.resolveModuleName(
+            "@fixture/lib/data",
+            path.join(root, "packages/app/src/index.ts"),
+            {
+              module: ts.ModuleKind.NodeNext,
+              moduleResolution: ts.ModuleResolutionKind.NodeNext,
+            },
+            ts.sys,
+          ).resolvedModule;
+          expect(compilerResolution).toBeDefined();
+          expect(
+            path.relative(
+              await realpath(root),
+              await realpath(compilerResolution!.resolvedFileName),
+            ),
+          ).toBe(`packages/lib/dist/data.${declarationExtension}`);
+        }
+
+        const result = await scanRepository({ root });
+
+        expect(result.metrics.unresolvedImportCount).toBe(0);
+        expect(result.graph.edges).toContainEqual(
+          expect.objectContaining({
+            sourceId: "path:packages/app/src/index.ts",
+            targetId: `path:packages/lib/src/data.${sourceExtension}`,
+            type: "imports",
+          }),
+        );
+        expect(result.graph.edges).not.toContainEqual(
+          expect.objectContaining({
+            sourceId: "path:packages/app/src/index.ts",
+            targetId: "path:packages/lib/src/data.d.ts",
+            type: "imports",
+          }),
+        );
+      }
+    }
+  });
+
+  it("projects virtual declaration paths when output files are absent", async () => {
+    for (const [sourceExtension, declarationExtension] of [
+      ["mts", "d.mts"],
+      ["cts", "d.cts"],
+    ] as const) {
+      const root = await temporaryRepository();
+      await write(
+        root,
+        "package.json",
+        JSON.stringify({ private: true, workspaces: ["packages/*"] }),
+      );
+      await write(root, ".gitignore", "node_modules/\npackages/*/dist/\n");
+      await write(
+        root,
+        "packages/app/package.json",
+        JSON.stringify({
+          name: "@fixture/app",
+          dependencies: { "@fixture/lib": "workspace:*" },
+        }),
+      );
+      await write(
+        root,
+        "packages/app/tsconfig.json",
+        JSON.stringify({
+          compilerOptions: {
+            module: "NodeNext",
+            moduleResolution: "NodeNext",
+          },
+          include: ["src"],
+        }),
+      );
+      await write(
+        root,
+        "packages/app/src/index.ts",
+        'import type { Value } from "@fixture/lib/data";\nexport type Result = Value;\n',
+      );
+      await write(
+        root,
+        "packages/lib/package.json",
+        JSON.stringify({
+          name: "@fixture/lib",
+          type: "module",
+          exports: { "./data": `./dist/data.${declarationExtension}` },
+        }),
+      );
+      await write(
+        root,
+        "packages/lib/tsconfig.json",
+        JSON.stringify({
+          compilerOptions: {
+            module: "NodeNext",
+            moduleResolution: "NodeNext",
+            outDir: "dist",
+            rootDir: "src",
+          },
+          include: ["src"],
+        }),
+      );
+      await write(
+        root,
+        `packages/lib/src/data.${sourceExtension}`,
+        "export interface Value { selected: true }\n",
+      );
+      await write(
+        root,
+        "packages/lib/src/data.d.ts",
+        "export interface Value { wrong: true }\n",
+      );
+
+      const result = await scanRepository({ root });
+
+      expect(result.metrics.unresolvedImportCount).toBe(0);
+      expect(result.graph.edges).toContainEqual(
+        expect.objectContaining({
+          sourceId: "path:packages/app/src/index.ts",
+          targetId: `path:packages/lib/src/data.${sourceExtension}`,
+          type: "imports",
+        }),
+      );
+      expect(result.graph.edges).not.toContainEqual(
+        expect.objectContaining({
+          sourceId: "path:packages/app/src/index.ts",
+          targetId: "path:packages/lib/src/data.d.ts",
+          type: "imports",
+        }),
+      );
+    }
+  });
+
+  it("does not replace a physical package export miss with a workspace export", async () => {
+    for (const physicalExports of [
+      { "./data": null },
+      { ".": "./data.ts" },
+    ]) {
+      const root = await temporaryRepository();
+      await write(
+        root,
+        "package.json",
+        JSON.stringify({ private: true, workspaces: ["packages/*"] }),
+      );
+      await write(root, ".gitignore", "node_modules/\n");
+      await write(
+        root,
+        "packages/app/package.json",
+        JSON.stringify({
+          name: "@fixture/app",
+          dependencies: { "@fixture/lib": "workspace:*" },
+        }),
+      );
+      await write(
+        root,
+        "packages/app/tsconfig.json",
+        JSON.stringify({
+          compilerOptions: {
+            module: "NodeNext",
+            moduleResolution: "NodeNext",
+          },
+          include: ["src"],
+        }),
+      );
+      await write(
+        root,
+        "packages/app/src/index.ts",
+        'import { value } from "@fixture/lib/data";\nexport const result = value;\n',
+      );
+      await write(
+        root,
+        "packages/lib/package.json",
+        JSON.stringify({
+          name: "@fixture/lib",
+          type: "module",
+          exports: { "./data": "./src/data.ts" },
+        }),
+      );
+      await write(
+        root,
+        "packages/lib/tsconfig.json",
+        JSON.stringify({
+          compilerOptions: {
+            module: "NodeNext",
+            moduleResolution: "NodeNext",
+          },
+          include: ["src"],
+        }),
+      );
+      await write(
+        root,
+        "packages/lib/src/data.ts",
+        "export const value = 'local';\n",
+      );
+      await write(
+        root,
+        "node_modules/@fixture/lib/package.json",
+        JSON.stringify({
+          name: "@fixture/lib",
+          type: "module",
+          exports: physicalExports,
+        }),
+      );
+      await write(
+        root,
+        "node_modules/@fixture/lib/data.ts",
+        "export const value = 'physical';\n",
+      );
+
+      await expect(scanRepository({ root })).rejects.toMatchObject({
+        diagnostics: expect.arrayContaining([
+          expect.objectContaining({
+            code: "unresolved-workspace-import",
+            specifier: "@fixture/lib/data",
+          }),
+        ]),
+      });
+    }
+  });
+
+  it("does not replace a physical package root miss with workspace source metadata", async () => {
+    for (const physicalExports of [
+      { ".": null },
+      { "./data": "./data.ts" },
+    ]) {
+      const root = await temporaryRepository();
+      await write(
+        root,
+        "package.json",
+        JSON.stringify({ private: true, workspaces: ["packages/*"] }),
+      );
+      await write(root, ".gitignore", "node_modules/\n");
+      await write(
+        root,
+        "packages/app/package.json",
+        JSON.stringify({
+          name: "@fixture/app",
+          dependencies: { "@fixture/lib": "workspace:*" },
+        }),
+      );
+      await write(
+        root,
+        "packages/app/tsconfig.json",
+        JSON.stringify({
+          compilerOptions: {
+            module: "NodeNext",
+            moduleResolution: "NodeNext",
+          },
+          include: ["src"],
+        }),
+      );
+      await write(
+        root,
+        "packages/app/src/index.ts",
+        'import { value } from "@fixture/lib";\nexport const result = value;\n',
+      );
+      await write(
+        root,
+        "packages/lib/package.json",
+        JSON.stringify({
+          name: "@fixture/lib",
+          type: "module",
+          source: "./src/local.ts",
+          exports: { ".": "./src/local.ts" },
+        }),
+      );
+      await write(
+        root,
+        "packages/lib/tsconfig.json",
+        JSON.stringify({
+          compilerOptions: {
+            module: "NodeNext",
+            moduleResolution: "NodeNext",
+          },
+          include: ["src"],
+        }),
+      );
+      await write(
+        root,
+        "packages/lib/src/local.ts",
+        "export const value = 'local';\n",
+      );
+      await write(
+        root,
+        "node_modules/@fixture/lib/package.json",
+        JSON.stringify({
+          name: "@fixture/lib",
+          type: "module",
+          exports: physicalExports,
+        }),
+      );
+      await write(
+        root,
+        "node_modules/@fixture/lib/data.ts",
+        "export const value = 'physical';\n",
+      );
+
+      const compilerResolution = ts.resolveModuleName(
+        "@fixture/lib",
+        path.join(root, "packages/app/src/index.ts"),
+        {
+          module: ts.ModuleKind.NodeNext,
+          moduleResolution: ts.ModuleResolutionKind.NodeNext,
+        },
+        ts.sys,
+      ).resolvedModule;
+      expect(compilerResolution).toBeUndefined();
+      await expect(scanRepository({ root })).rejects.toMatchObject({
+        diagnostics: expect.arrayContaining([
+          expect.objectContaining({
+            code: "unresolved-workspace-import",
+            specifier: "@fixture/lib",
+          }),
+        ]),
+      });
+    }
+  });
+
+  it("resolves an unlinked workspace package root export through TypeScript", async () => {
+    const root = await temporaryRepository();
+    await write(
+      root,
+      "package.json",
+      JSON.stringify({ private: true, workspaces: ["packages/*"] }),
+    );
+    await write(root, ".gitignore", "node_modules/\n");
+    await write(
+      root,
+      "packages/app/package.json",
+      JSON.stringify({
+        name: "@fixture/app",
+        dependencies: { "@fixture/lib": "workspace:*" },
+      }),
+    );
+    await write(
+      root,
+      "packages/app/tsconfig.json",
+      JSON.stringify({
+        compilerOptions: {
+          module: "NodeNext",
+          moduleResolution: "NodeNext",
+        },
+        include: ["src"],
+      }),
+    );
+    await write(
+      root,
+      "packages/app/src/index.ts",
+      'import { value } from "@fixture/lib";\nexport const result = value;\n',
+    );
+    await write(
+      root,
+      "packages/lib/package.json",
+      JSON.stringify({
+        name: "@fixture/lib",
+        type: "module",
+        exports: { ".": "./src/public.ts" },
+      }),
+    );
+    await write(
+      root,
+      "packages/lib/tsconfig.json",
+      JSON.stringify({
+        compilerOptions: {
+          module: "NodeNext",
+          moduleResolution: "NodeNext",
+        },
+        include: ["src"],
+      }),
+    );
+    await write(
+      root,
+      "packages/lib/src/public.ts",
+      "export const value = 'public';\n",
+    );
+
+    const result = await scanRepository({ root });
+
+    expect(result.metrics.unresolvedImportCount).toBe(0);
+    expect(result.graph.edges).toContainEqual(
+      expect.objectContaining({
+        sourceId: "path:packages/app/src/index.ts",
+        targetId: "path:packages/lib/src/public.ts",
+        type: "imports",
+      }),
     );
   });
 
