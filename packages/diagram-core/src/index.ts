@@ -255,7 +255,8 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
   });
   // Balance components across rows of at most four, then snake each row so
   // consecutive sections stay adjacent without producing a tall column.
-  const rowCount = Math.max(1, Math.ceil(sections.length / 4));
+  const maxRowSize = sections.length >= 10 ? 4 : 3;
+  const rowCount = Math.max(1, Math.ceil(sections.length / maxRowSize));
   const shortRowSize = Math.floor(sections.length / rowCount);
   const longRowCount = sections.length % rowCount;
   const rowSizes = Array.from(
@@ -363,7 +364,7 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
         return {
           ...base,
           ...(vertical
-            ? {}
+            ? { labelDy: deltaRow > 0 ? 40 : -24 }
             : {
                 labelDy: boxHeight / 2 + rowGap / 2,
               }),
