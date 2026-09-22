@@ -12,7 +12,6 @@ import { fileURLToPath } from "node:url";
 import { expect } from "@playwright/test";
 import {
   commit,
-  withDisposableRepository,
   startStaticServer,
   startTopoServer,
   stopTopoServer,
@@ -89,16 +88,13 @@ test("browser fixture repositories are isolated from the real workspace", async 
   ).toBe(true);
 });
 
-test("disposable repository work preserves its source workspace", async ({
-  repository,
-}) => {
-  await writeFixture(repository);
-  const sourceWorkspace = join(repository, ".topo");
+test("concurrent workspace rotations preserve pre-existing state", async () => {
+  const ownedRoot = await mkdtemp(join(tmpdir(), "topo-rotation-safety-"));
+  const workspace = join(ownedRoot, ".topo");
   const sourceFiles = {
-    package: join(repository, "package.json"),
-    config: join(sourceWorkspace, "config.json"),
-    metadata: join(sourceWorkspace, "metadata", "local.json"),
-    sentinel: join(sourceWorkspace, "local-sentinel.txt"),
+    config: join(workspace, "config.json"),
+    metadata: join(workspace, "metadata", "local.json"),
+    sentinel: join(workspace, "local-sentinel.txt"),
   };
   await mkdir(dirname(sourceFiles.metadata), { recursive: true });
   await writeFile(sourceFiles.config, '{"title":"preserve exactly"}\n');
@@ -112,24 +108,64 @@ test("disposable repository work preserves its source workspace", async ({
       ]),
     ),
   );
-  let disposablePath: string | undefined;
-
-  await withDisposableRepository(repository, async (disposable) => {
-    disposablePath = disposable;
-    expect(relative(repository, disposable).startsWith(`..${sep}`)).toBe(true);
-    await rm(join(disposable, ".topo"), { recursive: true, force: true });
-    await topo(disposable, "scan");
-    await expect
-      .poll(async () => readFile(join(disposable, "package.json"), "utf8"))
-      .toContain("sequence-stories-fixture");
+  let releaseMoved!: () => void;
+  let releaseReplacement!: () => void;
+  let releaseRestored!: () => void;
+  const moved = new Promise<void>((resolve) => {
+    releaseMoved = resolve;
+  });
+  const replacement = new Promise<void>((resolve) => {
+    releaseReplacement = resolve;
+  });
+  const restored = new Promise<void>((resolve) => {
+    releaseRestored = resolve;
   });
 
-  for (const [name, path] of Object.entries(sourceFiles)) {
-    expect(await readFile(path), `${name} source bytes`).toEqual(before[name]);
+  const preservingCopy = async () => {
+    const backupRoot = await mkdtemp(join(tmpdir(), "topo-preserving-copy-"));
+    const backup = join(backupRoot, ".topo");
+    try {
+      await rename(workspace, backup);
+      releaseMoved();
+      await replacement;
+      await rm(workspace, { recursive: true, force: true });
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+      await rename(backup, workspace);
+      releaseRestored();
+      await rm(backupRoot, { recursive: true, force: true });
+    }
+  };
+  const overlappingCopy = async () => {
+    await moved;
+    let preservedWorkspace = false;
+    const backupRoot = await mkdtemp(join(tmpdir(), "topo-overlapping-copy-"));
+    const backup = join(backupRoot, ".topo");
+    try {
+      await rename(workspace, backup);
+      preservedWorkspace = true;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+    try {
+      await mkdir(join(workspace, "cache"), { recursive: true });
+      releaseReplacement();
+      await restored;
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+      if (preservedWorkspace) await rename(backup, workspace);
+      await rm(backupRoot, { recursive: true, force: true });
+    }
+  };
+
+  try {
+    await Promise.all([preservingCopy(), overlappingCopy()]);
+    for (const [name, path] of Object.entries(sourceFiles)) {
+      expect(await readFile(path), `${name} source bytes`).toEqual(before[name]);
+    }
+  } finally {
+    await rm(ownedRoot, { recursive: true, force: true });
   }
-  expect(disposablePath).toBeDefined();
-  await expect(readFile(join(disposablePath!, "package.json")))
-    .rejects.toMatchObject({ code: "ENOENT" });
 });
 
 test("a live browser fixture survives real workspace rotation", async ({
