@@ -272,6 +272,39 @@ describe("Topocode package story", () => {
     });
   });
 
+  it("rejects a stale root workspace wildcard while manifests remain", async () => {
+    const sourceRoot = JSON.parse(
+      await readFile(join(repositoryRoot, "package.json"), "utf8"),
+    ) as { workspaces: readonly string[] };
+    const wildcard = sourceRoot.workspaces.find((workspace) =>
+      workspace.endsWith("/*")
+    );
+    expect(wildcard).toBe("packages/*");
+
+    const { root, storyPath } = await createPackageStoryFixture();
+    await execute(process.execPath, [
+      entry, "story", "validate", root, storyPath,
+    ]);
+    const rootManifestPath = join(root, "package.json");
+    const manifest = await readFile(rootManifestPath, "utf8");
+    await writeFile(
+      rootManifestPath,
+      manifest.replace(
+        JSON.stringify(wildcard),
+        JSON.stringify("components/*"),
+      ),
+    );
+
+    await expect(execute(process.execPath, [
+      entry, "story", "validate", root, storyPath,
+    ])).rejects.toMatchObject({
+      code: 1,
+      stderr: expect.stringMatching(
+        /root-packages-workspace.*missing-pattern/s,
+      ),
+    });
+  });
+
   it("rejects the authored story when selected manifest evidence is missing", async () => {
     const { root, storyPath } = await createPackageStoryFixture();
     await execute(process.execPath, [
