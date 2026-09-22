@@ -32,6 +32,24 @@
       "pattern": "await writeGenerated(root, \"cache/site/data.json\", data);"
     },
     {
+      "id": "compute-layout",
+      "path": "packages/cli/src/pipeline.ts",
+      "symbol": "generateArtifacts",
+      "pattern": "layoutGraphWithArchitecture(composedGraph, architecture, { previous, pins })"
+    },
+    {
+      "id": "persist-layout",
+      "path": "packages/cli/src/pipeline.ts",
+      "symbol": "generateArtifacts",
+      "pattern": "writeGenerated(root, \"graph/layout.json\", serializeLayoutDeterministic(layout.layout))"
+    },
+    {
+      "id": "validate-bundle",
+      "path": "packages/cli/src/bundle.ts",
+      "symbol": "bundleSite",
+      "pattern": "validateComposedSite(root, sourceDirectory)"
+    },
+    {
       "id": "bundle-site",
       "path": "packages/cli/src/bundle.ts",
       "symbol": "bundleSite",
@@ -55,13 +73,13 @@
       "id": "site-artifacts",
       "title": "Artifacts",
       "body": "Layout + site.",
-      "anchorIds": ["generate-site"]
+      "anchorIds": ["compute-layout", "persist-layout", "generate-site"]
     },
     {
       "id": "static-bundle",
       "title": "Bundle",
       "body": "Static files.",
-      "anchorIds": ["bundle-site"]
+      "anchorIds": ["validate-bundle", "bundle-site"]
     }
   ],
   "connections": [
