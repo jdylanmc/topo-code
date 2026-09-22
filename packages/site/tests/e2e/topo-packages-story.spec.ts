@@ -1,12 +1,13 @@
 import { access, cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { expect } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import {
   commit,
   startStaticServer,
   startTopoServer,
   stopTopoServer,
+  stopTopoServerAfterPage,
   test,
   topo,
 } from "./helpers/production-cli.js";
@@ -285,6 +286,509 @@ test("converging Architecture relationships keep both labels readable", async ({
     await stopTopoServer(server);
   }
 });
+
+const raggedLabelSets = [
+  {
+    id: "short",
+    label: (index: number) => `edge-${index}`,
+  },
+  {
+    id: "manifest",
+    label: (index: number) => `manifest workspace:${index}`,
+  },
+] as const;
+const raggedSectionCounts = [5, 6, 7, 10] as const;
+const sharedLabelsBySectionCount = new Map([
+  [5, [0, 1, 3]],
+  [6, [0, 1, 3, 4]],
+  [7, [0, 1, 3]],
+  [10, [0, 1, 2, 4, 5]],
+]);
+
+async function verifyRaggedArchitectureScenario(
+  page: Page,
+  repository: string,
+  labelSet: (typeof raggedLabelSets)[number],
+  sectionCount: (typeof raggedSectionCounts)[number],
+): Promise<void> {
+  await writeFile(
+    join(repository, "package.json"),
+    '{"name":"architecture-chain-fixture","type":"module"}\n',
+  );
+  await writeFile(
+    join(repository, "source.ts"),
+    "export const architectureChainFixture = true;\n",
+  );
+  await mkdir(join(repository, "stories"), { recursive: true });
+  const sections = Array.from({ length: sectionCount }, (_, index) => ({
+    id: `node-${index}`,
+    title: `Step ${index + 1}`,
+    body: "A step.",
+    anchorIds: [],
+  }));
+  const storyPath = join(
+    repository,
+    "stories",
+    `chain-${labelSet.id}-${sectionCount}.topo.json`,
+  );
+  await writeFile(
+    storyPath,
+    `${JSON.stringify({
+      schemaVersion: "1.0",
+      diagramFamily: "architecture",
+      classification: "capability-demo",
+      id: `chain-${labelSet.id}-${sectionCount}`,
+      title: `${sectionCount}-step Architecture chain`,
+      summary: "A consecutive Architecture chain.",
+      anchors: [],
+      sections,
+      connections: sections.slice(1).map((section, index) => ({
+        from: sections[index]!.id,
+        to: section.id,
+        label: labelSet.label(index),
+      })),
+    }, null, 2)}\n`,
+  );
+  await commit(
+    repository,
+    "Architecture chains",
+    "package.json",
+    "source.ts",
+    "stories",
+  );
+  await topo(repository, "scan");
+  await topo(repository, "story", "preview", repository, storyPath);
+
+  const { server, url } = await startTopoServer(repository, ["--port", "0"]);
+  try {
+      for (const viewport of [
+        { width: 1024, height: 768 },
+        { width: 1280, height: 720 },
+        { width: 1440, height: 900 },
+        { width: 1600, height: 1000 },
+        { width: 1920, height: 1080 },
+      ]) {
+        await page.setViewportSize(viewport);
+        await page.goto(
+          `${url}/stories/chain-${labelSet.id}-${sectionCount}/`,
+        );
+        const frame = page.frameLocator("[data-story-viewer]");
+        const diagram = frame.locator('svg[role="img"]');
+        await expect(diagram).toBeVisible();
+        await expect(diagram.locator("g[data-node-id]")).toHaveCount(sectionCount);
+        await expect(diagram.locator("g[data-edge-from]"))
+          .toHaveCount(sectionCount - 1);
+
+        const iframe = page.locator("[data-story-viewer]");
+        const iframeScale = await iframe.evaluate((element) => {
+          const frameElement = element as HTMLIFrameElement;
+          const bounds = frameElement.getBoundingClientRect();
+          return Math.min(
+            bounds.width / frameElement.offsetWidth,
+            bounds.height / frameElement.offsetHeight,
+          );
+        });
+        const geometry = await diagram.evaluate((svg) => {
+          const overlap = (first: DOMRect, second: DOMRect) => ({
+            width: Math.max(
+              0,
+              Math.min(first.right, second.right) -
+                Math.max(first.left, second.left),
+            ),
+            height: Math.max(
+              0,
+              Math.min(first.bottom, second.bottom) -
+                Math.max(first.top, second.top),
+            ),
+          });
+          const nodes = [...svg.querySelectorAll<SVGGraphicsElement>(
+            "g[data-node-id] > rect:not(.c-mask)",
+          )].map((element) => element.getBoundingClientRect());
+          const nodeCenters = new Map(
+            [...svg.querySelectorAll<SVGGraphicsElement>(
+              "g[data-node-id] > rect:not(.c-mask)",
+            )].map((element) => {
+              const bounds = element.getBoundingClientRect();
+              return [
+                element.parentElement?.getAttribute("data-node-id") ?? "",
+                bounds.left + bounds.width / 2,
+              ] as const;
+            }),
+          );
+          const labels = [...svg.querySelectorAll<SVGTextElement>(
+            "g[data-edge-from] > text",
+          )];
+          const masks = [...svg.querySelectorAll<SVGGraphicsElement>(
+            "g[data-edge-from] > rect.c-mask",
+          )];
+          const paths = [...svg.querySelectorAll<SVGPathElement>(
+            "path[data-edge-from]",
+          )];
+          const svgBounds = svg.getBoundingClientRect();
+          const outsideFrame = (elements: SVGGraphicsElement[]) =>
+            elements.flatMap((element) => {
+              const bounds = element.getBoundingClientRect();
+              return bounds.left >= svgBounds.left &&
+                bounds.right <= svgBounds.right &&
+                bounds.top >= svgBounds.top &&
+                bounds.bottom <= svgBounds.bottom
+                ? []
+                : [{
+                    text: element.textContent?.trim() ?? "",
+                    bounds: {
+                      left: bounds.left,
+                      right: bounds.right,
+                      top: bounds.top,
+                      bottom: bounds.bottom,
+                    },
+                  }];
+            });
+          const pairwise = (elements: SVGGraphicsElement[]) =>
+            elements.flatMap((element, index) => {
+              const first = element.getBoundingClientRect();
+              return elements.slice(index + 1).flatMap((other) => {
+                const dimensions = overlap(
+                  first,
+                  other.getBoundingClientRect(),
+                );
+                return dimensions.width > 0 && dimensions.height > 0
+                  ? [{
+                      first: element.textContent?.trim() ?? "",
+                      second: other.textContent?.trim() ?? "",
+                      ...dimensions,
+                    }]
+                  : [];
+              });
+            });
+          const nodeOverlaps = (elements: SVGGraphicsElement[]) =>
+            elements.flatMap((element) => {
+              const bounds = element.getBoundingClientRect();
+              return nodes.flatMap((node) => {
+                const dimensions = overlap(bounds, node);
+                return dimensions.width > 0 && dimensions.height > 0
+                  ? [dimensions]
+                  : [];
+              });
+            });
+          const routeOverlaps = (elements: SVGGraphicsElement[]) =>
+            elements.flatMap((element) => {
+              const owner = element.parentElement!;
+              const from = owner.getAttribute("data-edge-from");
+              const to = owner.getAttribute("data-edge-to");
+              const bounds = element.getBoundingClientRect();
+              return paths.flatMap((path) => {
+                if (
+                  path.getAttribute("data-edge-from") === from &&
+                  path.getAttribute("data-edge-to") === to
+                ) {
+                  return [];
+                }
+                const matrix = path.getScreenCTM();
+                if (matrix === null) return [];
+                const length = path.getTotalLength();
+                for (let distance = 0; distance <= length; distance += 2) {
+                  const point = path.getPointAtLength(distance)
+                    .matrixTransform(matrix);
+                  if (
+                    point.x >= bounds.left &&
+                    point.x <= bounds.right &&
+                    point.y >= bounds.top &&
+                    point.y <= bounds.bottom
+                  ) {
+                    return [{
+                      from,
+                      label: element.textContent?.trim() ?? "",
+                      point: { x: point.x, y: point.y },
+                      bounds: {
+                        left: bounds.left,
+                        right: bounds.right,
+                        top: bounds.top,
+                        bottom: bounds.bottom,
+                      },
+                      to,
+                      routeFrom: path.getAttribute("data-edge-from"),
+                      routeTo: path.getAttribute("data-edge-to"),
+                    }];
+                  }
+                }
+                return [];
+              });
+            });
+          return {
+            labels: labels.map((label) => ({
+              centerX: (() => {
+                const bounds = label.getBoundingClientRect();
+                return bounds.left + bounds.width / 2;
+              })(),
+              effectiveFontSize:
+                Number.parseFloat(getComputedStyle(label).fontSize) *
+                Math.hypot(
+                  label.getScreenCTM()?.c ?? 0,
+                  label.getScreenCTM()?.d ?? 0,
+                ),
+              from: label.parentElement?.getAttribute("data-edge-from") ?? "",
+              sourceCenterX: nodeCenters.get(
+                label.parentElement?.getAttribute("data-edge-from") ?? "",
+              ) ?? 0,
+              targetCenterX: nodeCenters.get(
+                label.parentElement?.getAttribute("data-edge-to") ?? "",
+              ) ?? 0,
+              text: label.textContent?.trim() ?? "",
+            })),
+            labelNodeOverlaps: nodeOverlaps(labels),
+            labelOverlaps: pairwise(labels),
+            labelRouteOverlaps: routeOverlaps(labels),
+            labelsOutsideFrame: outsideFrame(labels),
+            maskNodeOverlaps: nodeOverlaps(masks),
+            maskOverlaps: pairwise(masks),
+            maskRouteOverlaps: routeOverlaps(masks),
+            masksOutsideFrame: outsideFrame(masks),
+          };
+        });
+
+        expect(geometry.labels.map(({ text }) => text)).toEqual(
+          Array.from(
+            { length: sectionCount - 1 },
+            (_, index) => labelSet.label(index),
+          ),
+        );
+        expect(
+          Math.min(...geometry.labels.map(({ effectiveFontSize }) =>
+            effectiveFontSize * iframeScale
+          )),
+          `${labelSet.id} ${sectionCount} sections at ${viewport.width}x${viewport.height}`,
+        ).toBeGreaterThanOrEqual(12);
+        expect(geometry.labelNodeOverlaps).toEqual([]);
+        expect(
+          geometry.labelRouteOverlaps,
+          `${labelSet.id} ${sectionCount} label-route overlaps at ${viewport.width}x${viewport.height}`,
+        ).toEqual([]);
+        expect(
+          geometry.labelsOutsideFrame,
+          `${labelSet.id} ${sectionCount} label containment at ${viewport.width}x${viewport.height}`,
+        ).toEqual([]);
+        expect(
+          geometry.labelOverlaps,
+          `${labelSet.id} ${sectionCount} label overlaps at ${viewport.width}x${viewport.height}`,
+        ).toEqual([]);
+        expect(geometry.maskNodeOverlaps).toEqual([]);
+        expect(
+          geometry.maskRouteOverlaps,
+          `${labelSet.id} ${sectionCount} mask-route overlaps at ${viewport.width}x${viewport.height}`,
+        ).toEqual([]);
+        expect(
+          geometry.masksOutsideFrame,
+          `${labelSet.id} ${sectionCount} mask containment at ${viewport.width}x${viewport.height}`,
+        ).toEqual([]);
+        expect(
+          geometry.maskOverlaps,
+          `${labelSet.id} ${sectionCount} mask overlaps at ${viewport.width}x${viewport.height}`,
+        ).toEqual([]);
+        const sharedLabels = new Set(
+          sharedLabelsBySectionCount.get(sectionCount)!.map(labelSet.label),
+        );
+        for (const label of geometry.labels) {
+          if (!sharedLabels.has(label.text)) continue;
+          expect(
+            Math.abs(label.centerX - label.sourceCenterX),
+            `${label.text} source association at ${viewport.width}x${viewport.height}`,
+          ).toBeLessThan(
+            Math.abs(label.centerX - label.targetCenterX),
+          );
+        }
+      }
+
+      if (sectionCount === 7 || sectionCount === 10) {
+        const frame = page.frameLocator("[data-story-viewer]");
+        await frame.getByRole("button", { name: "Export diagram" }).click();
+        const svgDownloadEvent = page.waitForEvent("download");
+        await frame.locator('button[data-format="svg"]').click();
+        const svgDownload = await svgDownloadEvent;
+        const svgPath = await svgDownload.path();
+        expect(svgPath).not.toBeNull();
+        const exportedSvg = await readFile(svgPath!, "utf8");
+        for (let index = 0; index < sectionCount - 1; index += 1) {
+          expect(exportedSvg).toContain(labelSet.label(index));
+        }
+        const exportedPage = await page.context().newPage();
+        let svgDimensions: { width: number; height: number } | undefined;
+        try {
+          await exportedPage.setContent(exportedSvg);
+          const exportedDiagram = exportedPage.locator("svg");
+          await expect(exportedDiagram).toBeVisible();
+          await expect(exportedDiagram.locator("g[data-node-id]"))
+            .toHaveCount(sectionCount);
+          await expect(exportedDiagram.locator("g[data-edge-from]"))
+            .toHaveCount(sectionCount - 1);
+          svgDimensions = await exportedDiagram.evaluate((svg) => ({
+            width: Number(svg.getAttribute("width")),
+            height: Number(svg.getAttribute("height")),
+          }));
+          const exportedGeometry = await exportedDiagram.evaluate((svg) => {
+            const overlap = (first: DOMRect, second: DOMRect) => {
+              const width = Math.max(
+                0,
+                Math.min(first.right, second.right) -
+                  Math.max(first.left, second.left),
+              );
+              const height = Math.max(
+                0,
+                Math.min(first.bottom, second.bottom) -
+                  Math.max(first.top, second.top),
+              );
+              return width > 0 && height > 0;
+            };
+            const nodes = [...svg.querySelectorAll<SVGGraphicsElement>(
+              "g[data-node-id] > rect:not(.c-mask)",
+            )].map((element) => element.getBoundingClientRect());
+            const nodeCenters = new Map(
+              [...svg.querySelectorAll<SVGGraphicsElement>(
+                "g[data-node-id] > rect:not(.c-mask)",
+              )].map((element) => {
+                const bounds = element.getBoundingClientRect();
+                return [
+                  element.parentElement?.getAttribute("data-node-id") ?? "",
+                  bounds.left + bounds.width / 2,
+                ] as const;
+              }),
+            );
+            const labels = [...svg.querySelectorAll<SVGGraphicsElement>(
+              "g[data-edge-from] > text",
+            )];
+            const masks = [...svg.querySelectorAll<SVGGraphicsElement>(
+              "g[data-edge-from] > rect.c-mask",
+            )];
+            const paths = [...svg.querySelectorAll<SVGPathElement>(
+              "path[data-edge-from]",
+            )];
+            const pairwiseOverlap = (elements: SVGGraphicsElement[]) =>
+              elements.some((element, index) =>
+                elements.slice(index + 1).some((other) =>
+                  overlap(
+                    element.getBoundingClientRect(),
+                    other.getBoundingClientRect(),
+                  )
+                )
+              );
+            const nodeOverlap = (elements: SVGGraphicsElement[]) =>
+              elements.some((element) =>
+                nodes.some((node) =>
+                  overlap(element.getBoundingClientRect(), node)
+                )
+              );
+            const routeOverlap = (elements: SVGGraphicsElement[]) =>
+              elements.some((element) => {
+                const owner = element.parentElement!;
+                const from = owner.getAttribute("data-edge-from");
+                const to = owner.getAttribute("data-edge-to");
+                const bounds = element.getBoundingClientRect();
+                return paths.some((path) => {
+                  if (
+                    path.getAttribute("data-edge-from") === from &&
+                    path.getAttribute("data-edge-to") === to
+                  ) {
+                    return false;
+                  }
+                  const matrix = path.getScreenCTM();
+                  if (matrix === null) return false;
+                  const length = path.getTotalLength();
+                  for (let distance = 0; distance <= length; distance += 2) {
+                    const point = path.getPointAtLength(distance)
+                      .matrixTransform(matrix);
+                    if (
+                      point.x >= bounds.left &&
+                      point.x <= bounds.right &&
+                      point.y >= bounds.top &&
+                      point.y <= bounds.bottom
+                    ) {
+                      return true;
+                    }
+                  }
+                  return false;
+                });
+              });
+            return {
+              associations: labels.map((label) => {
+                const bounds = label.getBoundingClientRect();
+                const from =
+                  label.parentElement?.getAttribute("data-edge-from") ?? "";
+                const to =
+                  label.parentElement?.getAttribute("data-edge-to") ?? "";
+                return {
+                  centerX: bounds.left + bounds.width / 2,
+                  sourceCenterX: nodeCenters.get(from) ?? 0,
+                  targetCenterX: nodeCenters.get(to) ?? 0,
+                  text: label.textContent?.trim() ?? "",
+                };
+              }),
+              labelNodeOverlap: nodeOverlap(labels),
+              labelOverlap: pairwiseOverlap(labels),
+              labelRouteOverlap: routeOverlap(labels),
+              maskNodeOverlap: nodeOverlap(masks),
+              maskOverlap: pairwiseOverlap(masks),
+              maskRouteOverlap: routeOverlap(masks),
+            };
+          });
+          expect(exportedGeometry.labelNodeOverlap).toBe(false);
+          expect(exportedGeometry.labelOverlap).toBe(false);
+          expect(exportedGeometry.labelRouteOverlap).toBe(false);
+          expect(exportedGeometry.maskNodeOverlap).toBe(false);
+          expect(exportedGeometry.maskOverlap).toBe(false);
+          expect(exportedGeometry.maskRouteOverlap).toBe(false);
+          const sharedLabels = new Set(
+            sharedLabelsBySectionCount.get(sectionCount)!.map(labelSet.label),
+          );
+          for (const label of exportedGeometry.associations) {
+            if (!sharedLabels.has(label.text)) continue;
+            expect(Math.abs(label.centerX - label.sourceCenterX))
+              .toBeLessThan(Math.abs(label.centerX - label.targetCenterX));
+          }
+        } finally {
+          await exportedPage.close();
+        }
+        expect(svgDimensions?.width).toBeGreaterThan(0);
+        expect(svgDimensions?.height).toBeGreaterThan(0);
+
+        await frame.getByRole("button", { name: "Export diagram" }).click();
+        const pngDownloadEvent = page.waitForEvent("download", {
+          timeout: 30_000,
+        });
+        await frame.locator('button[data-format="png"]').click();
+        const pngDownload = await pngDownloadEvent;
+        const pngPath = await pngDownload.path();
+        expect(pngPath).not.toBeNull();
+        const png = await readFile(pngPath!);
+        expect(png.subarray(1, 4).toString("ascii")).toBe("PNG");
+        const pngWidth = png.readUInt32BE(16);
+        const pngHeight = png.readUInt32BE(20);
+        expect(pngWidth / svgDimensions!.width)
+          .toBe(pngHeight / svgDimensions!.height);
+        expect(pngWidth).toBeGreaterThanOrEqual(svgDimensions!.width);
+        await expect(frame.locator("html"))
+          .toHaveAttribute("data-last-export-format", "png");
+        await expect(frame.locator("html"))
+          .toHaveAttribute("data-last-export-canonical", "true");
+      }
+  } finally {
+    await stopTopoServerAfterPage(page, server);
+  }
+}
+
+for (const labelSet of raggedLabelSets) {
+  for (const sectionCount of raggedSectionCounts) {
+    test(`ragged Architecture chains keep ${labelSet.id} labels and masks clear for ${sectionCount} sections`, async ({
+      page,
+      repository,
+    }) => {
+      await verifyRaggedArchitectureScenario(
+        page,
+        repository,
+        labelSet,
+        sectionCount,
+      );
+    });
+  }
+}
 
 test("actual package story stays readable from a plain static bundle", async ({
   page,

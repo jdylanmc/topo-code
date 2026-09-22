@@ -62,6 +62,9 @@ does not currently publish versioned releases.
 
 ### Fixed
 
+- Keep consecutive Architecture relationships and their labels clear of
+  unrelated nodes and each other when balanced layouts use unequal row lengths.
+  See #58.
 - Keep native and final pinned-font Dataflow relationship labels and masks clear
   of their endpoint nodes across adaptive readability sizes. See #60.
 - Keep complete authored story titles visible in closed navigation controls
