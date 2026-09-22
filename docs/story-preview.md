@@ -38,8 +38,9 @@ integrity pin unchanged while adding scoped output rules for readable authored
 text and responsive containment. The wrapper keeps the diagram at the full
 reading viewport and exposes navigation, classification, summary, return, and
 node controls through an accessible details panel. When closed, the panel keeps
-the complete authored story title visible and positions itself below the native
-diagram title; opening it deliberately restores the full overlay. The catalogue
+the complete authored story title visible in a compact lower-left control away
+from native title and export controls; opening it deliberately restores the full
+overlay. The catalogue
 is served at `/`, and the explorer remains available at `/explorer/`. Run
 `topo preview` to refresh a specific committed story's viewer without rescanning:
 
