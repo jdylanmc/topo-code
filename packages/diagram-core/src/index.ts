@@ -194,6 +194,7 @@ const archifyCli = path.join(
   "bin",
   "archify.mjs",
 );
+const architectureFontSize = 24;
 
 function stableId(prefix: string, value: string): string {
   const hash = createHash("sha256").update(value).digest("hex").slice(0, 16);
@@ -268,7 +269,7 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
       Array.from(label).reduce(
         (total, character) => total + (character.codePointAt(0)! > 0xff ? 2 : 1),
         0,
-      ) * 21 * 0.6 + 10,
+      ) * architectureFontSize * 0.6 + 10,
     );
   const columnGap = Math.max(
     90,
@@ -772,7 +773,7 @@ svg { max-height: 100vh; }
 svg [data-source-evidence-beacon] { display: none; }
 svg text[data-node-label],
 svg text[data-detail="context"],
-svg g[data-edge-from] > text { font-size: 21px; }`
+svg g[data-edge-from] > text { font-size: ${architectureFontSize}px; }`
     : family === "workflow"
       ? `
 svg text[data-node-label],

@@ -103,11 +103,11 @@
     }
   ],
   "connections": [
-    { "from": "cli", "to": "diagram-core", "label": "manifest workspace:*" },
-    { "from": "diagram-core", "to": "story", "label": "manifest workspace:*" },
-    { "from": "enrichment", "to": "schema", "label": "manifest workspace:*" },
-    { "from": "graph", "to": "schema", "label": "manifest workspace:*" },
-    { "from": "modules", "to": "graph", "label": "manifest workspace:*" },
-    { "from": "site", "to": "views", "label": "manifest workspace:*" }
+    { "from": "cli", "to": "diagram-core", "label": "manifest" },
+    { "from": "diagram-core", "to": "story", "label": "manifest" },
+    { "from": "enrichment", "to": "schema", "label": "manifest" },
+    { "from": "graph", "to": "schema", "label": "manifest" },
+    { "from": "modules", "to": "graph", "label": "manifest" },
+    { "from": "site", "to": "views", "label": "manifest" }
   ]
 }
