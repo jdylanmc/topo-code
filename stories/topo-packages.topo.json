@@ -55,6 +55,11 @@
       "id": "root-eslint-config-workspace",
       "path": "package.json",
       "pattern": "\"tools/eslint-config\""
+    },
+    {
+      "id": "root-packages-workspace",
+      "path": "package.json",
+      "pattern": "\"packages/*\""
     }
   ],
   "sections": [
@@ -65,6 +70,7 @@
       "anchorIds": [
         "cli-manifest",
         "cli-diagram-core-dependency",
+        "root-packages-workspace",
         "root-workspaces"
       ]
     },
@@ -75,6 +81,7 @@
       "anchorIds": [
         "diagram-core-manifest",
         "diagram-core-story-dependency",
+        "root-packages-workspace",
         "root-workspaces"
       ]
     },
@@ -82,7 +89,11 @@
       "id": "story",
       "title": "@topo/story",
       "body": "Authored story parsing and source-evidence resolution package. Its manifest declares no internal workspace dependency.",
-      "anchorIds": ["story-manifest", "root-workspaces"]
+      "anchorIds": [
+        "story-manifest",
+        "root-packages-workspace",
+        "root-workspaces"
+      ]
     },
     {
       "id": "eslint-config",
@@ -98,19 +109,31 @@
       "id": "reports",
       "title": "@topo/reports",
       "body": "Report normalization package. Its manifest declares a workspace dependency on schema.",
-      "anchorIds": ["reports-manifest", "root-workspaces"]
+      "anchorIds": [
+        "reports-manifest",
+        "root-packages-workspace",
+        "root-workspaces"
+      ]
     },
     {
       "id": "scanner",
       "title": "@topo/scanner",
       "body": "Repository scanning package. Its manifest declares a workspace dependency on schema.",
-      "anchorIds": ["scanner-manifest", "root-workspaces"]
+      "anchorIds": [
+        "scanner-manifest",
+        "root-packages-workspace",
+        "root-workspaces"
+      ]
     },
     {
       "id": "workspace",
       "title": "@topo/workspace",
       "body": "Local workspace and generated-artifact package. Its manifest declares a workspace dependency on schema.",
-      "anchorIds": ["workspace-manifest", "root-workspaces"]
+      "anchorIds": [
+        "workspace-manifest",
+        "root-packages-workspace",
+        "root-workspaces"
+      ]
     },
     {
       "id": "enrichment",
@@ -119,6 +142,7 @@
       "anchorIds": [
         "enrichment-manifest",
         "enrichment-schema-dependency",
+        "root-packages-workspace",
         "root-workspaces"
       ]
     },
@@ -126,7 +150,11 @@
       "id": "schema",
       "title": "@topo/schema",
       "body": "Shared graph and artifact schema package. Its manifest declares no internal workspace dependency.",
-      "anchorIds": ["schema-manifest", "root-workspaces"]
+      "anchorIds": [
+        "schema-manifest",
+        "root-packages-workspace",
+        "root-workspaces"
+      ]
     },
     {
       "id": "graph",
@@ -135,6 +163,7 @@
       "anchorIds": [
         "graph-manifest",
         "graph-schema-dependency",
+        "root-packages-workspace",
         "root-workspaces"
       ]
     },
@@ -145,6 +174,7 @@
       "anchorIds": [
         "modules-manifest",
         "modules-graph-dependency",
+        "root-packages-workspace",
         "root-workspaces"
       ]
     },
@@ -152,7 +182,11 @@
       "id": "views",
       "title": "@topo/views",
       "body": "Curated views package. Its manifest declares workspace dependencies on graph and schema; the map selects its graph relationship.",
-      "anchorIds": ["views-manifest", "root-workspaces"]
+      "anchorIds": [
+        "views-manifest",
+        "root-packages-workspace",
+        "root-workspaces"
+      ]
     },
     {
       "id": "site",
@@ -161,6 +195,7 @@
       "anchorIds": [
         "site-manifest",
         "site-views-dependency",
+        "root-packages-workspace",
         "root-workspaces"
       ]
     }
