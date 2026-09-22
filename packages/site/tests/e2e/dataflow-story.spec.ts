@@ -649,12 +649,54 @@ test("actual Dataflow SVG exports preserve authored meaning without source evide
       for (const label of labels) {
         expect(exportedSvg, `exported ${story.id}: ${label}`).toContain(label);
       }
+      expect(exportedSvg).toContain(
+        "JetBrains Mono variable WOFF2 subsets",
+      );
+      expect(exportedSvg).toContain(
+        "Copyright 2020 The JetBrains Mono Project Authors",
+      );
+      expect(exportedSvg).toMatch(
+        /font-family:\s*['"]JetBrains Mono['"]/,
+      );
       for (const anchor of document.anchors) {
         expect(exportedSvg).not.toContain(anchor.id);
         expect(exportedSvg).not.toContain(anchor.path);
       }
       await expect(viewer.locator("html"))
         .toHaveAttribute("data-last-export-format", "svg");
+      await expect(viewer.locator("html"))
+        .toHaveAttribute("data-last-export-canonical", "true");
+
+      await viewer.getByRole("button", { name: "Export diagram" }).click();
+      const pngDownloadEvent = page.waitForEvent("download", {
+        timeout: 30_000,
+      });
+      const pngFailure = viewer
+        .locator('html[data-last-export-error-format="png"]')
+        .waitFor({ state: "attached", timeout: 30_000 })
+        .then(async () => {
+          const receipt = await viewer.locator("html").evaluate((html) => ({
+            format: html.getAttribute("data-last-export-format"),
+            canonical: html.getAttribute("data-last-export-canonical"),
+            exportError: html.getAttribute("data-last-export-error"),
+          }));
+          throw new Error(
+            `PNG export failed; receipt ${JSON.stringify(receipt)}`,
+          );
+        });
+      await viewer.locator('button[data-format="png"]').click();
+      const pngDownload = await Promise.race([
+        pngDownloadEvent,
+        pngFailure,
+      ]);
+      const pngPath = await pngDownload.path();
+      expect(pngPath).not.toBeNull();
+      const png = await readFile(pngPath!);
+      expect(png.subarray(1, 4).toString("ascii")).toBe("PNG");
+      expect(png.readUInt32BE(16)).toBeGreaterThan(0);
+      expect(png.readUInt32BE(20)).toBeGreaterThan(0);
+      await expect(viewer.locator("html"))
+        .toHaveAttribute("data-last-export-format", "png");
       await expect(viewer.locator("html"))
         .toHaveAttribute("data-last-export-canonical", "true");
     }
