@@ -12,12 +12,36 @@ import {
 
 const projectRoot = fileURLToPath(new URL("../../../../", import.meta.url));
 const galleryStories = [
-  { path: "stories/topo-architecture.topo.json", id: "topo-architecture" },
-  { path: "stories/story-authoring-workflow.topo.json", id: "story-authoring-workflow" },
-  { path: "stories/story-lifecycle.topo.json", id: "story-lifecycle" },
-  { path: "stories/capabilities/architecture.topo.json", id: "architecture-capability" },
-  { path: "stories/capabilities/workflow.topo.json", id: "workflow-capability" },
-  { path: "stories/capabilities/lifecycle.topo.json", id: "lifecycle-capability" },
+  {
+    path: "stories/topo-architecture.topo.json",
+    id: "topo-architecture",
+    title: "How Topocode turns source into an explorable architecture site",
+  },
+  {
+    path: "stories/story-authoring-workflow.topo.json",
+    id: "story-authoring-workflow",
+    title: "How a Topocode story reaches preview",
+  },
+  {
+    path: "stories/story-lifecycle.topo.json",
+    id: "story-lifecycle",
+    title: "The lifecycle of a Topocode story",
+  },
+  {
+    path: "stories/capabilities/architecture.topo.json",
+    id: "architecture-capability",
+    title: "Architecture capability",
+  },
+  {
+    path: "stories/capabilities/workflow.topo.json",
+    id: "workflow-capability",
+    title: "Workflow capability",
+  },
+  {
+    path: "stories/capabilities/lifecycle.topo.json",
+    id: "lifecycle-capability",
+    title: "Lifecycle capability",
+  },
 ] as const;
 
 async function writeActualGalleryFixture(repository: string): Promise<void> {
@@ -220,6 +244,93 @@ test("actual gallery story text remains readable at a desktop viewport", async (
     expect(clipped).toEqual([]);
     expect.soft(outsideFrame).toEqual([]);
     expect(outsidePage).toEqual([]);
+  } finally {
+    await page.goto("about:blank");
+    await stopTopoServer(server);
+  }
+});
+
+test("actual gallery titles remain clear of closed story controls", async ({
+  page,
+  repository,
+}) => {
+  await writeActualGalleryFixture(repository);
+
+  const { server, url } = await startTopoServer(repository, ["--port", "0"]);
+  const collisions: {
+    story: string;
+    viewport: string;
+    state: "default" | "restored";
+    title: { x: number; y: number; width: number; height: number };
+    controls: { x: number; y: number; width: number; height: number };
+  }[] = [];
+  try {
+    for (const viewport of [
+      { width: 1024, height: 768 },
+      { width: 1280, height: 720 },
+      { width: 1440, height: 900 },
+      { width: 1600, height: 1000 },
+      { width: 1920, height: 1080 },
+    ]) {
+      await page.setViewportSize(viewport);
+      for (const story of galleryStories) {
+        await page.goto(`${url}/stories/${story.id}/`);
+        const controls = page.locator("details.story-controls");
+        const summary = controls.locator("summary");
+        const title = page.frameLocator("[data-story-viewer]").locator("h1");
+        await expect(controls).not.toHaveAttribute("open", "");
+        await expect(title).toHaveText(story.title);
+        await expect(title).toBeVisible();
+
+        const recordCollision = async (state: "default" | "restored") => {
+          const [titleBounds, controlsBounds, titleLayout] = await Promise.all([
+            title.boundingBox(),
+            controls.boundingBox(),
+            title.evaluate((heading) => ({
+              clientHeight: heading.clientHeight,
+              clientWidth: heading.clientWidth,
+              scrollHeight: heading.scrollHeight,
+              scrollWidth: heading.scrollWidth,
+            })),
+          ]);
+          expect(titleBounds, `${story.id} title at ${viewport.width}x${viewport.height}`)
+            .not.toBeNull();
+          expect(
+            titleLayout.scrollWidth,
+            `${story.id} full title width at ${viewport.width}x${viewport.height}`,
+          ).toBeLessThanOrEqual(titleLayout.clientWidth);
+          expect(
+            titleLayout.scrollHeight,
+            `${story.id} full title height at ${viewport.width}x${viewport.height}`,
+          ).toBeLessThanOrEqual(titleLayout.clientHeight);
+          if (
+            titleBounds &&
+            controlsBounds &&
+            Math.min(titleBounds.x + titleBounds.width, controlsBounds.x + controlsBounds.width) >
+              Math.max(titleBounds.x, controlsBounds.x) &&
+            Math.min(titleBounds.y + titleBounds.height, controlsBounds.y + controlsBounds.height) >
+              Math.max(titleBounds.y, controlsBounds.y)
+          ) {
+            collisions.push({
+              story: story.id,
+              viewport: `${viewport.width}x${viewport.height}`,
+              state,
+              title: titleBounds,
+              controls: controlsBounds,
+            });
+          }
+        };
+
+        await recordCollision("default");
+        await summary.focus();
+        await page.keyboard.press("Enter");
+        await expect(controls).toHaveAttribute("open", "");
+        await page.keyboard.press("Enter");
+        await expect(controls).not.toHaveAttribute("open", "");
+        await recordCollision("restored");
+      }
+    }
+    expect(collisions).toEqual([]);
   } finally {
     await page.goto("about:blank");
     await stopTopoServer(server);
