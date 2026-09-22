@@ -7,6 +7,9 @@ does not currently publish versioned releases.
 
 ### Added
 
+- Add a source-grounded, bounded UML-intent Architecture story for Topocode's
+  story and renderer contracts, with visible declaration markers, legend text,
+  and only source-declared inheritance or selected type dependencies. See #57.
 - Add five native Archify story families with a backward-compatible Architecture
   default, explicit factual-versus-capability classification, separated gallery
   demos, responsive readable previews, and canonical SVG/PNG exports. See #61.

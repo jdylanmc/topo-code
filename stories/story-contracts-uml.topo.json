@@ -1,0 +1,191 @@
+{
+  "schemaVersion": "1.0",
+  "diagramFamily": "architecture",
+  "classification": "source-grounded",
+  "id": "story-contracts-uml",
+  "title": "Bounded UML intent: story and renderer contracts - not full UML conformance",
+  "summary": "A source-grounded class, interface, and type view of the current Topocode story document and renderer boundary. It intentionally shows only selected declared extends and type-dependency relationships.",
+  "category": "Topocode internals",
+  "anchors": [
+    {
+      "id": "source-anchor",
+      "path": "packages/story/src/index.ts",
+      "symbol": "SourceAnchor"
+    },
+    {
+      "id": "resolved-source-anchor",
+      "path": "packages/story/src/index.ts",
+      "symbol": "ResolvedSourceAnchor",
+      "pattern": "extends SourceAnchor"
+    },
+    {
+      "id": "diagram-family",
+      "path": "packages/story/src/index.ts",
+      "symbol": "DiagramFamily"
+    },
+    {
+      "id": "story-document",
+      "path": "packages/story/src/index.ts",
+      "symbol": "StoryDocument"
+    },
+    {
+      "id": "story-document-family",
+      "path": "packages/story/src/index.ts",
+      "symbol": "StoryDocument",
+      "pattern": "readonly diagramFamily?: DiagramFamily;"
+    },
+    {
+      "id": "resolved-story-document",
+      "path": "packages/story/src/index.ts",
+      "symbol": "ResolvedStoryDocument"
+    },
+    {
+      "id": "resolved-document-dependency",
+      "path": "packages/story/src/index.ts",
+      "symbol": "ResolvedStoryDocument",
+      "pattern": "readonly document: StoryDocument;"
+    },
+    {
+      "id": "resolved-anchor-dependency",
+      "path": "packages/story/src/index.ts",
+      "symbol": "ResolvedStoryDocument",
+      "pattern": "readonly anchors: readonly ResolvedSourceAnchor[];"
+    },
+    {
+      "id": "story-artifact",
+      "path": "packages/story/src/index.ts",
+      "symbol": "StoryArtifact"
+    },
+    {
+      "id": "story-renderer",
+      "path": "packages/story/src/index.ts",
+      "symbol": "StoryRenderer"
+    },
+    {
+      "id": "renderer-input",
+      "path": "packages/story/src/index.ts",
+      "symbol": "StoryRenderer",
+      "pattern": "render(story: ResolvedStoryDocument)"
+    },
+    {
+      "id": "renderer-output",
+      "path": "packages/story/src/index.ts",
+      "symbol": "StoryRenderer",
+      "pattern": "StoryArtifact | Promise<StoryArtifact>"
+    },
+    {
+      "id": "story-document-error",
+      "path": "packages/story/src/index.ts",
+      "symbol": "StoryDocumentError"
+    },
+    {
+      "id": "story-document-error-extends",
+      "path": "packages/story/src/index.ts",
+      "symbol": "StoryDocumentError",
+      "pattern": "extends Error"
+    }
+  ],
+  "sections": [
+    {
+      "id": "source-anchor",
+      "title": "«interface» SourceAnchor",
+      "body": "Declares the stable identifier, repository-relative path, and optional symbol or pattern used to ground authored story evidence.",
+      "anchorIds": ["source-anchor"]
+    },
+    {
+      "id": "resolved-source-anchor",
+      "title": "«interface» ResolvedSourceAnchor",
+      "body": "Directly extends SourceAnchor with the resolved source location and excerpt.",
+      "anchorIds": ["resolved-source-anchor"]
+    },
+    {
+      "id": "diagram-family",
+      "title": "«type» DiagramFamily",
+      "body": "Declares the supported native diagram-family string union selected by a story document.",
+      "anchorIds": ["diagram-family"]
+    },
+    {
+      "id": "story-document",
+      "title": "«interface» StoryDocument",
+      "body": "Defines renderer-independent authored story data and declares DiagramFamily as the optional diagram-family type.",
+      "anchorIds": ["story-document", "story-document-family"]
+    },
+    {
+      "id": "resolved-story-document",
+      "title": "«interface» ResolvedStoryDocument",
+      "body": "Carries a StoryDocument together with resolved ResolvedSourceAnchor evidence and repository source identity.",
+      "anchorIds": [
+        "resolved-story-document",
+        "resolved-document-dependency",
+        "resolved-anchor-dependency"
+      ]
+    },
+    {
+      "id": "story-artifact",
+      "title": "«interface» StoryArtifact",
+      "body": "Describes the HTML artifact and pinned renderer identity returned across the renderer boundary.",
+      "anchorIds": ["story-artifact"]
+    },
+    {
+      "id": "story-renderer",
+      "title": "«interface» StoryRenderer",
+      "body": "Declares rendering from a ResolvedStoryDocument to a StoryArtifact, synchronously or through a promise.",
+      "anchorIds": ["story-renderer", "renderer-input", "renderer-output"]
+    },
+    {
+      "id": "story-document-error",
+      "title": "«class» StoryDocumentError",
+      "body": "Directly extends Error and retains the document path, optional anchor identifier, and explicit failure code.",
+      "anchorIds": ["story-document-error", "story-document-error-extends"]
+    },
+    {
+      "id": "error",
+      "title": "«class» Error (built-in)",
+      "body": "The built-in base class named by StoryDocumentError's explicit extends clause; it is shown only as that declared inheritance target.",
+      "anchorIds": ["story-document-error-extends"]
+    },
+    {
+      "id": "legend",
+      "title": "Legend «class» «interface» «type»",
+      "body": "Markers identify declaration kinds. Edges mean only extends or selected declared type dependency; no composition, aggregation, multiplicity, runtime calls, exhaustive associations, visibility, or generics semantics are asserted.",
+      "anchorIds": ["story-document", "story-document-error", "diagram-family"]
+    }
+  ],
+  "connections": [
+    {
+      "from": "resolved-source-anchor",
+      "to": "source-anchor",
+      "label": "extends"
+    },
+    {
+      "from": "story-document",
+      "to": "diagram-family",
+      "label": "declared type dependency"
+    },
+    {
+      "from": "resolved-story-document",
+      "to": "story-document",
+      "label": "declared type dependency"
+    },
+    {
+      "from": "resolved-story-document",
+      "to": "resolved-source-anchor",
+      "label": "declared type dependency"
+    },
+    {
+      "from": "story-renderer",
+      "to": "resolved-story-document",
+      "label": "declared type dependency"
+    },
+    {
+      "from": "story-renderer",
+      "to": "story-artifact",
+      "label": "declared type dependency"
+    },
+    {
+      "from": "story-document-error",
+      "to": "error",
+      "label": "extends"
+    }
+  ]
+}

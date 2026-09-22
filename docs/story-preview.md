@@ -86,6 +86,14 @@ Successful structure and anchor validation does not establish semantic accuracy
 or complete explanation coverage. It is objective evidence for the author and
 human reviewer, not a staleness or coverage gate.
 
+The source-grounded `story-contracts-uml` example uses Architecture components
+as a bounded UML-intent view of current TypeScript declarations. Visible
+`«class»`, `«interface»`, and `«type»` markers plus an explanatory legend retain
+the intended notation, while every edge is limited to a source-declared
+`extends` or selected `declared type dependency`. The story does not claim full
+UML conformance, inferred runtime calls, exhaustive members or associations,
+composition, aggregation, multiplicity, visibility, or generic semantics.
+
 ## Reproducibility check
 
 The regression suite renders the same frozen resolved story twice through the
