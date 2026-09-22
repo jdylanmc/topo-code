@@ -124,6 +124,7 @@ describe("Dataflow story catalogue", () => {
       story.document.sections.map(({ id, anchorIds }) => [id, anchorIds]),
     );
 
+    expect(story.anchors).toHaveLength(8);
     expect(anchors.get("compute-layout")).toBe(
       "layoutGraphWithArchitecture(composedGraph, architecture, { previous, pins })",
     );

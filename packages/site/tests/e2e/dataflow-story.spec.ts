@@ -130,6 +130,108 @@ test("actual Dataflow stories render from the categorized plain-server bundle", 
   }
 });
 
+test("actual Dataflow controls restore clear titles and factual source navigation", async ({
+  page,
+  repository,
+}) => {
+  await writeActualDataflowFixture(repository);
+  const { server, url } = await startStaticServer(
+    join(repository, ".topo/cache/site"),
+  );
+  try {
+    for (const viewport of [
+      { width: 1024, height: 768 },
+      { width: 1280, height: 720 },
+      { width: 1440, height: 900 },
+      { width: 1600, height: 1000 },
+      { width: 1920, height: 1080 },
+    ]) {
+      await page.setViewportSize(viewport);
+      for (const story of dataflowStories) {
+        await page.goto(`${url}/stories/${story.id}/`);
+        const controls = page.locator("details.story-controls");
+        const summary = controls.locator("summary");
+        const title = page.frameLocator("[data-story-viewer]").locator("h1");
+        const expectClearTitle = async () => {
+          const [titleBounds, controlsBounds, titleLayout] = await Promise.all([
+            title.boundingBox(),
+            controls.boundingBox(),
+            title.evaluate((heading) => ({
+              clientHeight: heading.clientHeight,
+              clientWidth: heading.clientWidth,
+              scrollHeight: heading.scrollHeight,
+              scrollWidth: heading.scrollWidth,
+            })),
+          ]);
+          expect(titleBounds, `${story.id} title at ${viewport.width}x${viewport.height}`)
+            .not.toBeNull();
+          expect(controlsBounds).not.toBeNull();
+          expect(
+            titleLayout.scrollWidth,
+            `${story.id} full title width at ${viewport.width}x${viewport.height}`,
+          ).toBeLessThanOrEqual(titleLayout.clientWidth);
+          expect(
+            titleLayout.scrollHeight,
+            `${story.id} full title height at ${viewport.width}x${viewport.height}`,
+          ).toBeLessThanOrEqual(titleLayout.clientHeight);
+          const overlap =
+            titleBounds &&
+              controlsBounds &&
+              Math.min(
+                  titleBounds.x + titleBounds.width,
+                  controlsBounds.x + controlsBounds.width,
+                ) >
+                Math.max(titleBounds.x, controlsBounds.x) &&
+              Math.min(
+                  titleBounds.y + titleBounds.height,
+                  controlsBounds.y + controlsBounds.height,
+                ) >
+                Math.max(titleBounds.y, controlsBounds.y)
+              ? { titleBounds, controlsBounds }
+              : null;
+          expect(
+            overlap,
+            `${story.id} closed title clearance at ${viewport.width}x${viewport.height}`,
+          ).toBeNull();
+        };
+
+        await expect(controls).not.toHaveAttribute("open", "");
+        await expect(title).toHaveText(story.title);
+        await expectClearTitle();
+        await summary.focus();
+        await page.keyboard.press("Enter");
+        await expect(controls).toHaveAttribute("open", "");
+        await page.keyboard.press("Enter");
+        await expect(controls).not.toHaveAttribute("open", "");
+        await expectClearTitle();
+      }
+    }
+
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await page.goto(`${url}/stories/repository-dataflow/`);
+    const controls = page.locator("details.story-controls");
+    const sourceLink = page.locator('[data-node-id="repository-source"]');
+    await sourceLink.focus();
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(
+      `${url}/stories/repository-dataflow/?focus=repository-source`,
+    );
+    await expect(controls).not.toHaveAttribute("open", "");
+    await expect(
+      page.frameLocator("[data-story-viewer]").getByText(
+        "packages/scanner/src/typescript-scanner.ts",
+        { exact: true },
+      ),
+    ).toBeVisible();
+    await page.goBack();
+    await expect(page).toHaveURL(`${url}/stories/repository-dataflow/`);
+    await expect(controls).not.toHaveAttribute("open", "");
+  } finally {
+    await page.goto("about:blank");
+    await stopStaticServer(server);
+  }
+});
+
 test("actual Dataflow story text stays readable after page, frame, and SVG scaling", async ({
   page,
   repository,
@@ -303,11 +405,34 @@ test("actual Dataflow story text stays readable after page, frame, and SVG scali
               ).length,
             };
           });
+          const wideFontStyle = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "style",
+          );
+          wideFontStyle.textContent =
+            'g[data-node-id] text { font-family: Arial, sans-serif !important; }';
+          svg.prepend(wideFontStyle);
+          const wideFontTextOverflow = nodes.flatMap(({ id, bounds }) =>
+            [...svg.querySelectorAll<SVGTextElement>(
+              `g[data-node-id="${id}"] text`,
+            )].filter((text) => {
+              const textBounds = text.getBoundingClientRect();
+              return textBounds.left < bounds.left ||
+                textBounds.right > bounds.right ||
+                textBounds.top < bounds.top ||
+                textBounds.bottom > bounds.bottom;
+            }).map((text) => ({
+              nodeId: id,
+              value: text.textContent?.trim() ?? "",
+            }))
+          );
+          wideFontStyle.remove();
           return {
             fontStatus: document.fonts.status,
             textOverflow: nodes.flatMap(({ id, textOverflow }) =>
               textOverflow.map((overflow) => ({ nodeId: id, ...overflow }))
             ),
+            wideFontTextOverflow,
             glyphCount: nodes.reduce(
               (count, { glyphCount }) => count + glyphCount,
               0,
@@ -354,6 +479,10 @@ test("actual Dataflow story text stays readable after page, frame, and SVG scali
         expect(
           geometry.textOverflow,
           `${story.id} node text containment at ${viewport.width}x${viewport.height}`,
+        ).toEqual([]);
+        expect(
+          geometry.wideFontTextOverflow,
+          `${story.id} wide-font node text containment at ${viewport.width}x${viewport.height}`,
         ).toEqual([]);
         expect(
           geometry.glyphCount,
