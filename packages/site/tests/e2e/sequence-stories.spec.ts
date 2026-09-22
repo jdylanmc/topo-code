@@ -7,7 +7,7 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect } from "@playwright/test";
 import {
@@ -77,6 +77,16 @@ async function writeFixture(repository: string): Promise<void> {
   await commit(repository, "Sequence gallery", "package.json", "packages", "stories");
   await topo(repository, "scan");
 }
+
+test("browser fixture repositories are isolated from the real workspace", async ({
+  repository,
+}) => {
+  const fixturePath = relative(projectRoot, repository);
+  expect(
+    fixturePath === ".." || fixturePath.startsWith(`..${sep}`),
+    `fixture repository must not be nested under ${projectRoot}: ${repository}`,
+  ).toBe(true);
+});
 
 test("Sequence stories remain readable in a plain-server bundle", async ({
   page,
