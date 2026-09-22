@@ -338,6 +338,9 @@ test("actual package story stays readable from a plain static bundle", async ({
 
     const firstPackage = fixture.workspaces[0]!;
     const firstPackageId = firstPackage.name.replace("@topo/", "");
+    const controls = page.locator("details.story-controls");
+    await controls.locator("summary").click();
+    await expect(controls).toHaveAttribute("open", "");
     const sourceLink = page.locator(`[data-node-id="${firstPackageId}"]`);
     await sourceLink.focus();
     await page.keyboard.press("Enter");
