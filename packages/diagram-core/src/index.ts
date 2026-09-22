@@ -264,21 +264,7 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
   );
   const boxWidth = Math.max(280, ...resolved.map((entry) => entry.width));
   const boxHeight = 130;
-  const relationshipLabelWidth = (label: string) =>
-    Math.ceil(
-      Array.from(label).reduce(
-        (total, character) => total + (character.codePointAt(0)! > 0xff ? 2 : 1),
-        0,
-      ) * architectureFontSize * 0.6 + 10,
-    );
-  const columnGap = Math.max(
-    90,
-    ...story.document.connections.flatMap((connection) =>
-      connection.label === undefined
-        ? []
-        : [relationshipLabelWidth(connection.label) + 24]
-    ),
-  );
+  const columnGap = 90;
   const rowGap = 80;
   const margin = 80;
   const cellOf = (index: number) => {
@@ -377,10 +363,7 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
         return {
           ...base,
           ...(vertical
-            ? {
-                labelDx: (from.column === 0 ? 1 : -1) *
-                  (boxWidth / 2 + columnGap / 2),
-              }
+            ? {}
             : {
                 labelDy: boxHeight / 2 + rowGap / 2,
               }),
