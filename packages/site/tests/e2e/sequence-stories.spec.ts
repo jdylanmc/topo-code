@@ -39,6 +39,7 @@ async function writeFixture(repository: string): Promise<void> {
     ].join("\n"),
     "packages/cli/src/catalogue.ts": [
       "export function readCommittedStory() {}",
+      "export function buildCatalogue() {}",
       "export function assertCatalogueCurrent() {}",
       "export function writeBuiltCatalogue() {}",
       "",
