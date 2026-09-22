@@ -528,12 +528,14 @@ test("actual package story stays readable from a plain static bundle", async ({
     await expect(page).toHaveURL(
       `${baseUrl}stories/topo-packages/?focus=${firstPackageId}`,
     );
-    await expect(
-      page.frameLocator("[data-story-viewer]").getByText(
-        `${firstPackage.path}/package.json`,
-        { exact: true },
-      ),
-    ).toBeVisible();
+    const matchingSourcePaths = page.frameLocator("[data-story-viewer]").getByText(
+      `${firstPackage.path}/package.json`,
+      { exact: true },
+    );
+    expect(await matchingSourcePaths.count()).toBeGreaterThan(0);
+    for (const sourcePath of await matchingSourcePaths.all()) {
+      await expect(sourcePath).toBeVisible();
+    }
   } finally {
     await page.goto("about:blank");
     await new Promise<void>((done, reject) => {
