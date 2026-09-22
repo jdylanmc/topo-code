@@ -1,12 +1,18 @@
+import { execFile } from "node:child_process";
 import {
+  chmod,
   mkdir,
   readFile,
+  realpath,
   rename,
   rm,
+  stat,
+  symlink,
   writeFile,
 } from "node:fs/promises";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import { expect } from "@playwright/test";
 import {
   commit,
@@ -18,6 +24,7 @@ import {
   withDisposableRepository,
 } from "./helpers/production-cli.js";
 
+const execute = promisify(execFile);
 const projectRoot = fileURLToPath(new URL("../../../../", import.meta.url));
 const stories = [
   {
@@ -132,6 +139,140 @@ test("concurrent workspace rotations preserve pre-existing state", async ({
   for (const disposable of disposablePaths) {
     await expect(readFile(join(disposable, "package.json")))
       .rejects.toMatchObject({ code: "ENOENT" });
+  }
+});
+
+test("disposable repositories own mutable anchors and sanitize origins", async ({
+  repository,
+}) => {
+  await writeFixture(repository);
+  const dependencyFile = join(
+    repository,
+    "node_modules",
+    "direct-dependency",
+    "state.txt",
+  );
+  const packageRoot = join(repository, "packages", "fixture");
+  const distFile = join(packageRoot, "dist", "output.js");
+  const workspaceLink = join(repository, "node_modules", "@fixture", "pkg");
+  await mkdir(packageRoot, { recursive: true });
+  await writeFile(
+    join(packageRoot, "package.json"),
+    '{"name":"@fixture/pkg","private":true}\n',
+  );
+  await commit(
+    repository,
+    "Fixture workspace package",
+    "packages/fixture/package.json",
+  );
+  await mkdir(dirname(dependencyFile), { recursive: true });
+  await mkdir(dirname(distFile), { recursive: true });
+  await mkdir(dirname(workspaceLink), { recursive: true });
+  await writeFile(dependencyFile, "source dependency\n");
+  await writeFile(distFile, "source build\n");
+  await symlink("../../packages/fixture", workspaceLink);
+  await chmod(dependencyFile, 0o640);
+  await chmod(distFile, 0o640);
+  const sourceState = {
+    dependency: await readFile(dependencyFile),
+    dependencyMode: (await stat(dependencyFile)).mode & 0o777,
+    dist: await readFile(distFile),
+    distMode: (await stat(distFile)).mode & 0o777,
+  };
+  let publicOrigin = "";
+
+  await withDisposableRepository(repository, async (disposable) => {
+    const disposableDependency = join(
+      disposable,
+      "node_modules",
+      "direct-dependency",
+      "state.txt",
+    );
+    const disposableDist = join(
+      disposable,
+      "packages",
+      "fixture",
+      "dist",
+      "output.js",
+    );
+    const disposableWorkspaceDist = join(
+      disposable,
+      "node_modules",
+      "@fixture",
+      "pkg",
+      "dist",
+      "output.js",
+    );
+    for (const path of [
+      disposableDependency,
+      disposableDist,
+      disposableWorkspaceDist,
+    ]) {
+      const resolved = await realpath(path);
+      expect.soft(
+        relative(disposable, resolved) === "" ||
+          !relative(disposable, resolved).startsWith(`..${sep}`),
+        `${path} resolves inside disposable repository`,
+      ).toBe(true);
+    }
+    await writeFile(disposableDependency, "disposable dependency\n");
+    await writeFile(disposableDist, "disposable build\n");
+    await writeFile(disposableWorkspaceDist, "disposable workspace build\n");
+    publicOrigin = /url = (.+)$/m.exec(
+      await readFile(join(disposable, ".git", "config"), "utf8"),
+    )?.[1] ?? "";
+  });
+
+  expect.soft(await readFile(dependencyFile)).toEqual(sourceState.dependency);
+  expect.soft((await stat(dependencyFile)).mode & 0o777)
+    .toBe(sourceState.dependencyMode);
+  expect.soft(await readFile(distFile)).toEqual(sourceState.dist);
+  expect.soft((await stat(distFile)).mode & 0o777).toBe(sourceState.distMode);
+  expect.soft(publicOrigin).toBe("https://github.com/example/fixture.git");
+  await writeFile(dependencyFile, sourceState.dependency);
+  await writeFile(distFile, sourceState.dist);
+  await chmod(dependencyFile, sourceState.dependencyMode);
+  await chmod(distFile, sourceState.distMode);
+
+  const fakeToken = "synthetic-fake-token-not-a-secret";
+  const fakeOrigin =
+    `https://fake-user:${fakeToken}@example.invalid/example/repository.git`;
+  await topo(repository, "scan");
+  const argumentLog = join(repository, "private-git-arguments.jsonl");
+  await writeFile(argumentLog, "");
+  const originalTrace = process.env.GIT_TRACE;
+  let disposableConfig = "";
+  let helperError = "";
+  try {
+    await execute("git", ["remote", "set-url", "origin", fakeOrigin], {
+      cwd: repository,
+    });
+    process.env.GIT_TRACE = argumentLog;
+    try {
+      await withDisposableRepository(repository, async (disposable) => {
+        disposableConfig = await readFile(
+          join(disposable, ".git", "config"),
+          "utf8",
+        );
+      });
+    } catch (error) {
+      helperError = String(error);
+    }
+  } finally {
+    if (originalTrace === undefined) delete process.env.GIT_TRACE;
+    else process.env.GIT_TRACE = originalTrace;
+  }
+  const invokedArguments = await readFile(argumentLog, "utf8");
+  expect(invokedArguments).toContain("remote get-url origin");
+  expect.soft(invokedArguments).not.toContain(fakeToken);
+  expect.soft(disposableConfig).not.toContain(fakeToken);
+  expect.soft(helperError).not.toContain(fakeToken);
+  if (disposableConfig.length > 0) {
+    expect.soft(disposableConfig).toContain(
+      "https://example.invalid/example/repository.git",
+    );
+  } else {
+    expect(helperError).toMatch(/credential|origin|remote|userinfo/i);
   }
 });
 
