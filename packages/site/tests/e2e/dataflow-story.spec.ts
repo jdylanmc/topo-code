@@ -53,13 +53,19 @@ async function writeActualDataflowFixture(repository: string): Promise<void> {
       "export async function generateArtifacts(root: string, graph: unknown) {",
       "  const config = { modules: [] };",
       "  const composedGraph = composeConfiguredGraph(graph, config.modules);",
+      "  const previous = {};",
+      "  const pins = {};",
+      "  const architecture = {};",
+      "  const layout = layoutGraphWithArchitecture(composedGraph, architecture, { previous, pins });",
       "  const data = JSON.stringify(composedGraph);",
+      "  await writeGenerated(root, \"graph/layout.json\", serializeLayoutDeterministic(layout.layout));",
       "  await writeGenerated(root, \"cache/site/data.json\", data);",
       "}",
       "",
     ].join("\n"),
     "packages/cli/src/bundle.ts": [
       "export async function bundleSite(sourceDirectory: string, stagedSite: string) {",
+      "  await validateComposedSite(root, sourceDirectory);",
       "  await cp(sourceDirectory, stagedSite, { recursive: true });",
       "}",
       "",
@@ -202,18 +208,52 @@ test("actual Dataflow story text stays readable after page, frame, and SVG scali
             const bounds = node.querySelector<SVGGraphicsElement>(
               "rect:not(.c-mask)",
             )!.getBoundingClientRect();
+            const outside = (child: SVGGraphicsElement) => {
+              const childBounds = child.getBoundingClientRect();
+              return childBounds.left < bounds.left ||
+                childBounds.right > bounds.right ||
+                childBounds.top < bounds.top ||
+                childBounds.bottom > bounds.bottom;
+            };
+            const glyphs = [
+              ...node.querySelectorAll<SVGGraphicsElement>(
+                "[data-semantic-sigil]",
+              ),
+            ];
             return {
               bounds,
-              overflow: [...node.querySelectorAll<SVGGraphicsElement>("text")]
-                .map((text) => text.getBoundingClientRect())
-                .filter((text) =>
-                  text.left < bounds.left ||
-                  text.right > bounds.right ||
-                  text.top < bounds.top ||
-                  text.bottom > bounds.bottom
-                ).length,
+              textOverflow: [
+                ...node.querySelectorAll<SVGGraphicsElement>("text"),
+              ].filter(outside).length,
+              glyphCount: glyphs.length,
+              glyphOverflow: glyphs.filter(outside).length,
             };
           });
+          const firstGlyph = svg.querySelector<SVGGElement>(
+            "g[data-node-id] [data-semantic-sigil]",
+          );
+          let displacedGlyphOverflow = 0;
+          if (firstGlyph) {
+            const originalTransform = firstGlyph.getAttribute("transform");
+            firstGlyph.setAttribute("transform", "translate(-1000 -1000)");
+            const node = firstGlyph.closest<SVGGElement>("g[data-node-id]")!;
+            const nodeBounds = node.querySelector<SVGGraphicsElement>(
+              "rect:not(.c-mask)",
+            )!.getBoundingClientRect();
+            const glyphBounds = firstGlyph.getBoundingClientRect();
+            displacedGlyphOverflow =
+              glyphBounds.left < nodeBounds.left ||
+                glyphBounds.right > nodeBounds.right ||
+                glyphBounds.top < nodeBounds.top ||
+                glyphBounds.bottom > nodeBounds.bottom
+                ? 1
+                : 0;
+            if (originalTransform === null) {
+              firstGlyph.removeAttribute("transform");
+            } else {
+              firstGlyph.setAttribute("transform", originalTransform);
+            }
+          }
           const edges = [...svg.querySelectorAll<SVGGElement>(
             "g[data-edge-from]",
           )].map((edge) => {
@@ -241,10 +281,19 @@ test("actual Dataflow story text stays readable after page, frame, and SVG scali
             };
           });
           return {
-            nodeOverflow: nodes.reduce(
-              (count, { overflow }) => count + overflow,
+            textOverflow: nodes.reduce(
+              (count, { textOverflow }) => count + textOverflow,
               0,
             ),
+            glyphCount: nodes.reduce(
+              (count, { glyphCount }) => count + glyphCount,
+              0,
+            ),
+            glyphOverflow: nodes.reduce(
+              (count, { glyphOverflow }) => count + glyphOverflow,
+              0,
+            ),
+            displacedGlyphOverflow,
             edges,
           };
         });
@@ -276,9 +325,21 @@ test("actual Dataflow story text stays readable after page, frame, and SVG scali
           `${story.id} page containment at ${viewport.width}x${viewport.height}`,
         ).toBe(true);
         expect(
-          geometry.nodeOverflow,
+          geometry.textOverflow,
+          `${story.id} node text containment at ${viewport.width}x${viewport.height}`,
+        ).toBe(0);
+        expect(
+          geometry.glyphCount,
+          `${story.id} rendered semantic glyphs at ${viewport.width}x${viewport.height}`,
+        ).toBe(4);
+        expect(
+          geometry.glyphOverflow,
           `${story.id} node glyph containment at ${viewport.width}x${viewport.height}`,
         ).toBe(0);
+        expect(
+          geometry.displacedGlyphOverflow,
+          `${story.id} glyph oracle sensitivity at ${viewport.width}x${viewport.height}`,
+        ).toBe(1);
         expect(
           geometry.edges.every(({ maskVisible }) => maskVisible),
           `${story.id} flow masks at ${viewport.width}x${viewport.height}`,
