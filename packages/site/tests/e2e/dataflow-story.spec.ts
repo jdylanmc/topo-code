@@ -703,6 +703,17 @@ test("established long Dataflow bodies retain pinned native geometry and exports
         const element = iframe as HTMLIFrameElement;
         return element.getBoundingClientRect().height / element.offsetHeight;
       });
+      const iframePlacement = await frame.evaluate((iframe) => {
+        const element = iframe as HTMLIFrameElement;
+        const bounds = element.getBoundingClientRect();
+        return {
+          left: bounds.left,
+          top: bounds.top,
+          scaleX: bounds.width / element.offsetWidth,
+          scaleY: bounds.height / element.offsetHeight,
+          viewport: { width: window.innerWidth, height: window.innerHeight },
+        };
+      });
       const geometry = await diagram.evaluate(async (svg) => {
         await document.fonts.ready;
         const readabilitySelector = [
@@ -772,6 +783,12 @@ test("established long Dataflow bodies retain pinned native geometry and exports
                 bounds.right <= window.innerWidth &&
                 bounds.top >= 0 &&
                 bounds.bottom <= window.innerHeight,
+              bounds: {
+                left: bounds.left,
+                right: bounds.right,
+                top: bounds.top,
+                bottom: bounds.bottom,
+              },
             }];
           });
         const edges = [...svg.querySelectorAll<SVGGElement>(
@@ -849,6 +866,23 @@ test("established long Dataflow bodies retain pinned native geometry and exports
       expect(geometry.texts.every(({ contained }) => contained)).toBe(true);
       expect(geometry.texts.every(({ inFrame }) => inFrame)).toBe(true);
       expect(
+        geometry.texts.every(({ bounds }) => {
+          const projected = {
+            left: iframePlacement.left + bounds.left * iframePlacement.scaleX,
+            right:
+              iframePlacement.left + bounds.right * iframePlacement.scaleX,
+            top: iframePlacement.top + bounds.top * iframePlacement.scaleY,
+            bottom:
+              iframePlacement.top + bounds.bottom * iframePlacement.scaleY,
+          };
+          return projected.left >= 0 &&
+            projected.right <= iframePlacement.viewport.width &&
+            projected.top >= 0 &&
+            projected.bottom <= iframePlacement.viewport.height;
+        }),
+        `page containment at ${viewport.width}x${viewport.height}`,
+      ).toBe(true);
+      expect(
         Math.min(...geometry.texts.map(({ effectiveFontSize }) =>
           effectiveFontSize * iframeScale
         )),
@@ -879,6 +913,7 @@ test("established long Dataflow bodies retain pinned native geometry and exports
     expect(svgPath).not.toBeNull();
     const exportedSvg = await readFile(svgPath!, "utf8");
     expect(exportedSvg).toContain('viewBox="0 0 423 360"');
+    expect(exportedSvg).toContain("font-size: 8.5px;");
     expect(exportedSvg).toContain("JetBrains Mono variable WOFF2 subsets");
     expect(exportedSvg).toContain(
       "Copyright 2020 The JetBrains Mono Project Authors",
@@ -903,8 +938,11 @@ test("established long Dataflow bodies retain pinned native geometry and exports
     expect(pngPath).not.toBeNull();
     const png = await readFile(pngPath!);
     expect(png.subarray(1, 4).toString("ascii")).toBe("PNG");
-    expect(png.readUInt32BE(16)).toBeGreaterThan(0);
-    expect(png.readUInt32BE(20)).toBeGreaterThan(0);
+    const pngWidth = png.readUInt32BE(16);
+    const pngHeight = png.readUInt32BE(20);
+    expect(pngWidth).toBeGreaterThan(0);
+    expect(pngHeight).toBeGreaterThan(0);
+    expect(pngWidth / pngHeight).toBeCloseTo(423 / 360, 2);
     await expect(viewer.locator("html"))
       .toHaveAttribute("data-last-export-canonical", "true");
   } finally {
