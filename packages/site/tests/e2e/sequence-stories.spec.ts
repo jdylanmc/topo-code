@@ -1,12 +1,10 @@
 import {
   mkdir,
-  mkdtemp,
   readFile,
   rename,
   rm,
   writeFile,
 } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect } from "@playwright/test";
@@ -132,33 +130,23 @@ test("disposable repository work preserves its source workspace", async ({
     .rejects.toMatchObject({ code: "ENOENT" });
 });
 
-test("a live browser fixture survives real workspace rotation", async ({
+test("a live browser fixture survives disposable workspace rotation", async ({
   repository,
 }) => {
   await writeFixture(repository);
-  const workspace = join(projectRoot, ".topo");
-  const backupRoot = await mkdtemp(join(tmpdir(), "topo-workspace-backup-"));
-  const backup = join(backupRoot, ".topo");
-  let preservedWorkspace = false;
-  try {
+  await withDisposableRepository(repository, async (disposable) => {
+    const workspace = join(disposable, ".topo");
+    const backup = join(dirname(disposable), "workspace-backup");
+    await topo(disposable, "scan");
     await rename(workspace, backup);
-    preservedWorkspace = true;
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-  }
-
-  try {
     await mkdir(join(workspace, "cache"), { recursive: true });
     await rm(workspace, { recursive: true, force: true });
     await topo(repository, "scan");
     await expect
       .poll(async () => readFile(join(repository, "package.json"), "utf8"))
       .toContain("sequence-stories-fixture");
-  } finally {
-    await rm(workspace, { recursive: true, force: true });
-    if (preservedWorkspace) await rename(backup, workspace);
-    await rm(backupRoot, { recursive: true, force: true });
-  }
+    await rename(backup, workspace);
+  });
 });
 
 test("Sequence stories remain readable in a plain-server bundle", async ({
@@ -332,68 +320,59 @@ test("Sequence stories remain readable in a plain-server bundle", async ({
 test("integrated Sequence stories preserve titles, navigation, and exports", async ({
   page,
 }) => {
-  const workspace = join(projectRoot, ".topo");
-  const backupRoot = await mkdtemp(join(tmpdir(), "topo-sequence-workspace-"));
-  const backup = join(backupRoot, ".topo");
-  let preservedWorkspace = false;
-  try {
-    await rename(workspace, backup);
-    preservedWorkspace = true;
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-  }
-
   let server: Awaited<ReturnType<typeof startStaticServer>>["server"] | undefined;
-  try {
-    const output = join(workspace, "integration-bundle");
-    await topo(projectRoot, "scan");
-    for (const story of stories) {
-      const validation = await topo(
-        projectRoot,
-        "story",
-        "validate",
-        projectRoot,
-        join(projectRoot, story.path),
-      );
-      if (story.id === "story-preview-sequence") {
-        expect(validation.stdout).toContain(
-          "render: packages/diagram-core/src/index.ts:",
+  await withDisposableRepository(projectRoot, async (repository) => {
+    const workspace = join(repository, ".topo");
+    try {
+      const output = join(workspace, "integration-bundle");
+      await topo(repository, "scan");
+      for (const story of stories) {
+        const validation = await topo(
+          repository,
+          "story",
+          "validate",
+          repository,
+          join(repository, story.path),
+        );
+        if (story.id === "story-preview-sequence") {
+          expect(validation.stdout).toContain(
+            "render: packages/diagram-core/src/index.ts:",
+          );
+        }
+        await topo(
+          repository,
+          "preview",
+          repository,
+          join(repository, story.path),
         );
       }
       await topo(
-        projectRoot,
-        "preview",
-        projectRoot,
-        join(projectRoot, story.path),
+        repository,
+        "bundle",
+        repository,
+        "--output",
+        output,
+        "--base-path",
+        "/sequence/",
       );
-    }
-    await topo(
-      projectRoot,
-      "bundle",
-      projectRoot,
-      "--output",
-      output,
-      "--base-path",
-      "/sequence/",
-    );
 
-    const started = await startStaticServer(output);
-    server = started.server;
-    const { url } = started;
-    const baseUrl = `${url}/sequence/`;
-    await page.goto(baseUrl);
-    await expect(
-      page.locator(
-        'section[data-category="Topocode internals"] ' +
-          'a[href="./stories/story-preview-sequence/"]',
-      ),
-    ).toBeVisible();
-    await expect(
-      page.locator(
-        'section[data-category="Diagram capabilities"] ' +
-          'a[href="./stories/sequence-capability/"]',
-      ),
-    ).toBeVisible();
+      const started = await startStaticServer(output);
+      server = started.server;
+      const { url } = started;
+      const baseUrl = `${url}/sequence/`;
+      await page.goto(baseUrl);
+      await expect(
+        page.locator(
+          'section[data-category="Topocode internals"] ' +
+            'a[href="./stories/story-preview-sequence/"]',
+        ),
+      ).toBeVisible();
+      await expect(
+        page.locator(
+          'section[data-category="Diagram capabilities"] ' +
+            'a[href="./stories/sequence-capability/"]',
+        ),
+      ).toBeVisible();
 
     for (const viewport of [
       { width: 1024, height: 768 },
@@ -405,7 +384,7 @@ test("integrated Sequence stories preserve titles, navigation, and exports", asy
       await page.setViewportSize(viewport);
       for (const story of stories) {
         const document = JSON.parse(
-          await readFile(join(projectRoot, story.path), "utf8"),
+          await readFile(join(repository, story.path), "utf8"),
         ) as {
           title: string;
           sections: { title: string }[];
@@ -515,7 +494,7 @@ test("integrated Sequence stories preserve titles, navigation, and exports", asy
 
     for (const story of stories) {
       const document = JSON.parse(
-        await readFile(join(projectRoot, story.path), "utf8"),
+        await readFile(join(repository, story.path), "utf8"),
       ) as {
         sections: { title: string }[];
         connections: { label: string }[];
@@ -539,17 +518,16 @@ test("integrated Sequence stories preserve titles, navigation, and exports", asy
       expect(exportedSvg).not.toContain("packages/");
       expect(exportedSvg).not.toContain("data-source");
     }
-  } finally {
-    await page.goto("about:blank");
-    if (server !== undefined) {
-      await new Promise<void>((resolve, reject) => {
-        server!.close((error) => error ? reject(error) : resolve());
-      });
+    } finally {
+      await page.goto("about:blank");
+      if (server !== undefined) {
+        await new Promise<void>((resolve, reject) => {
+          server!.close((error) => error ? reject(error) : resolve());
+        });
+        server = undefined;
+      }
     }
-    await rm(workspace, { recursive: true, force: true });
-    if (preservedWorkspace) await rename(backup, workspace);
-    await rm(backupRoot, { recursive: true, force: true });
-  }
+  });
 });
 
 test("Sequence SVG exports preserve authored meaning and native geometry", async ({

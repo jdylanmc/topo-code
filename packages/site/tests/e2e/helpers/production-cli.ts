@@ -1,6 +1,15 @@
 import { execFile, spawn, type ChildProcess } from "node:child_process";
 import { createServer, type Server } from "node:http";
-import { mkdir, mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import {
+  lstat,
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  rm,
+  stat,
+  symlink,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,6 +31,61 @@ export async function commit(repository: string, message: string, ...paths: stri
     "-c", "commit.gpgsign=false", "commit", "--quiet", "-m", message,
   ], { cwd: repository });
   return (await execute("git", ["rev-parse", "HEAD"], { cwd: repository })).stdout.trim();
+}
+
+async function linkDirectoryIfPresent(
+  source: string,
+  destination: string,
+): Promise<void> {
+  let sourceStats;
+  try {
+    sourceStats = await lstat(source);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
+    throw error;
+  }
+  if (!sourceStats.isDirectory()) {
+    throw new Error(`Disposable repository anchor is not a directory: ${source}`);
+  }
+  await symlink(source, destination, "junction");
+}
+
+export async function withDisposableRepository<T>(
+  source: string,
+  use: (repository: string) => Promise<T>,
+): Promise<T> {
+  const owned = await mkdtemp(join(tmpdir(), "topo-disposable-repository-"));
+  const repository = join(owned, "repository");
+  try {
+    const origin = (
+      await execute("git", ["remote", "get-url", "origin"], { cwd: source })
+    ).stdout.trim();
+    await execute(
+      "git",
+      ["clone", "--quiet", "--no-hardlinks", source, repository],
+    );
+    await execute("git", ["remote", "set-url", "origin", origin], {
+      cwd: repository,
+    });
+    await linkDirectoryIfPresent(
+      join(source, "node_modules"),
+      join(repository, "node_modules"),
+    );
+    for (
+      const entry of await readdir(join(source, "packages"), {
+        withFileTypes: true,
+      })
+    ) {
+      if (!entry.isDirectory()) continue;
+      await linkDirectoryIfPresent(
+        join(source, "packages", entry.name, "dist"),
+        join(repository, "packages", entry.name, "dist"),
+      );
+    }
+    return await use(repository);
+  } finally {
+    await rm(owned, { recursive: true, force: true });
+  }
 }
 
 export async function stopTopoServer(server: ChildProcess): Promise<void> {
