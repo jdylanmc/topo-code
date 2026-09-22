@@ -146,7 +146,7 @@
     },
     {
       "id": "legend",
-      "title": "Legend «class» «interface» «type»",
+      "title": "Legend «class» «interface» «type»: extends / declared type dependency",
       "body": "Markers identify declaration kinds. Edges mean only extends or selected declared type dependency; no composition, aggregation, multiplicity, runtime calls, exhaustive associations, visibility, or generics semantics are asserted.",
       "anchorIds": ["story-document", "story-document-error", "diagram-family"]
     }
