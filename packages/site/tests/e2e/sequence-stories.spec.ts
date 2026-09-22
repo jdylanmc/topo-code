@@ -666,6 +666,101 @@ test("actual repository Sequence stories validate and preview", async () => {
   });
 });
 
+test("public Sequence participants retain native details before explicit navigation", async ({
+  page,
+}) => {
+  let server: Awaited<ReturnType<typeof startStaticServer>>["server"] | undefined;
+  await withDisposableRepository(projectRoot, async (repository) => {
+    const output = join(repository, ".topo/public-sequence-details");
+    try {
+      await topo(repository, "scan");
+      await topo(
+        repository,
+        "bundle",
+        repository,
+        "--output",
+        output,
+        "--base-path",
+        "/sequence/",
+      );
+      const started = await startStaticServer(output);
+      server = started.server;
+      const baseUrl = `${started.url}/sequence/`;
+
+      for (const story of stories) {
+        const document = JSON.parse(
+          await readFile(join(repository, story.path), "utf8"),
+        ) as {
+          sections: { id: string; body: string }[];
+        };
+        for (const activation of ["pointer", "keyboard"] as const) {
+          for (const section of document.sections) {
+            await page.goto(`${baseUrl}stories/${story.id}/`);
+            const viewer = page.frameLocator("[data-story-viewer]");
+            const participant = viewer.locator(
+              `svg g[data-node-id="${section.id}"]`,
+            );
+            if (activation === "pointer") {
+              await participant.click();
+            } else {
+              await participant.focus();
+              await participant.press("Enter");
+            }
+            await expect(page).toHaveURL(
+              `${baseUrl}stories/${story.id}/?focus=${section.id}`,
+            );
+            const detail = viewer.locator("#focus-detail");
+            await expect(detail).toBeVisible();
+            await expect(detail).toHaveText(section.body);
+            await expect(page).toHaveURL(
+              `${baseUrl}stories/${story.id}/?focus=${section.id}`,
+            );
+            expect(
+              await detail.evaluate((element) =>
+                Number.parseFloat(getComputedStyle(element).fontSize)
+              ),
+              `${story.id} ${activation} ${section.id} public detail font`,
+            ).toBeGreaterThanOrEqual(12);
+          }
+        }
+      }
+
+      await page.goto(`${baseUrl}stories/story-preview-sequence/`);
+      const controls = page.locator("details.story-controls");
+      await controls.locator("summary").click();
+      const explicitCrossStoryLink = page.locator(
+        '[data-cross-story][data-source-node="preview-orchestrator"]',
+      );
+      await expect(explicitCrossStoryLink).toHaveCount(1);
+      await explicitCrossStoryLink.click();
+      await expect(page).toHaveURL(
+        `${baseUrl}stories/topo-architecture/?focus=catalogue` +
+          "&from=story-preview-sequence&fromFocus=preview-orchestrator",
+      );
+      await page.goBack();
+      await expect(page).toHaveURL(
+        `${baseUrl}stories/story-preview-sequence/?focus=preview-orchestrator`,
+      );
+      await expect(page.locator("details.story-controls"))
+        .not.toHaveAttribute("open", "");
+      await expect(
+        page.locator('[data-node-id="preview-orchestrator"]'),
+      ).toHaveAttribute("aria-current", "true");
+      await expect(page.locator("[data-story-viewer]")).toHaveAttribute(
+        "src",
+        "viewer.html#focus=preview-orchestrator",
+      );
+    } finally {
+      if (!page.isClosed()) await page.goto("about:blank");
+      if (server) {
+        await new Promise<void>((resolve, reject) => {
+          server!.close((error) => error ? reject(error) : resolve());
+        });
+      }
+    }
+  });
+});
+
 test("integrated Sequence stories preserve titles, navigation, and exports", async ({
   page,
 }) => {
