@@ -167,7 +167,7 @@ describe("Dataflow story catalogue", () => {
     const { root, documentPath } = await rendererFailureFixture();
 
     await expect(previewStory(root, documentPath)).rejects.toThrow(
-      /renderer failed: Archify rendering failed:[\s\S]*Data-flow layout validation failed:[\s\S]*wider than node/,
+      /renderer failed: Archify rendering failed:[\s\S]*Data-flow layout validation failed:[\s\S]*Node \\"input\\" exceeds the horizontal bounds of the viewBox/,
     );
     await expect(readFile(
       join(root, ".topo/cache/site/stories/dataflow-overflow/index.html"),
