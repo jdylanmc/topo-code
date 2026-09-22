@@ -567,6 +567,7 @@ const dataflowReadability = {
   viewBoxHeight: 360,
   flowLabelHorizontalPadding: 12,
   minimumFlowLabelWidth: 34,
+  nativeFlowLabelWidthFactor: 4.9,
   flowLabelMaskBaselineTop: 11,
   flowLabelMaskBaselineBottom: 5,
   flowLabelFontAscentPadding: 1,
@@ -619,6 +620,17 @@ function dataflowFlowLabelWidth(label: string, fontSize: number): number {
       ) * dataflowReadability.fontSizePrecision,
     ) / dataflowReadability.fontSizePrecision,
   );
+}
+
+function dataflowNativeFlowLabelWidth(label: string): number {
+  return Math.round(
+    Math.max(
+      dataflowReadability.minimumFlowLabelWidth,
+      dataflowTextUnits(label) *
+          dataflowReadability.nativeFlowLabelWidthFactor +
+        dataflowReadability.flowLabelHorizontalPadding,
+    ) * dataflowReadability.fontSizePrecision,
+  ) / dataflowReadability.fontSizePrecision;
 }
 
 function dataflowFlowLabelMaskTop(fontSize: number): number {
@@ -734,7 +746,10 @@ function dataflowSpec(
       const endpointGap = Math.abs(toIndex - fromIndex) *
           dataflowReadability.stageCenterGap -
         (layout.nodeWidths[fromIndex]! + layout.nodeWidths[toIndex]!) / 2;
-      const labelWidth = layout.flowLabelWidths[index]!;
+      const labelWidth = Math.max(
+        layout.flowLabelWidths[index]!,
+        dataflowNativeFlowLabelWidth(label),
+      );
       return {
         id: stableId(
           "flow",

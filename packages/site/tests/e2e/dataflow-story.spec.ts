@@ -42,6 +42,21 @@ const finalLabelBoundaryStory = {
   title: "Final label boundary",
   connectionLabel: "publishes validated customer records outward",
 } as const;
+const smallFontLabelClearanceStory = {
+  id: "small-font-label-clearance-dataflow",
+  title: "Small font label clearance",
+  connectionLabel: "transforms records",
+} as const;
+const smallFontNativeFitStory = {
+  id: "small-font-native-fit-dataflow",
+  title: "Small font native fit",
+  connectionLabel: "records arrive",
+} as const;
+const smallFontNativeDisplacementStory = {
+  id: "small-font-native-displacement-dataflow",
+  title: "Small font native displacement",
+  connectionLabel: "records advance",
+} as const;
 
 async function stopStaticServer(server: Server): Promise<void> {
   await new Promise<void>((done, reject) => {
@@ -208,6 +223,57 @@ async function writeFinalLabelClearanceFixture(
     );
   }
   await commit(repository, "Final label clearance story", "stories");
+  await topo(repository, "scan");
+}
+
+async function writeSmallFontLabelClearanceFixture(
+  repository: string,
+): Promise<void> {
+  await writeActualDataflowFixture(repository);
+  for (
+    const story of [
+      smallFontLabelClearanceStory,
+      smallFontNativeFitStory,
+      smallFontNativeDisplacementStory,
+    ] as const
+  ) {
+    const storyPath = join(
+      repository,
+      `stories/${story.id}.topo.json`,
+    );
+    await writeFile(
+      storyPath,
+      `${JSON.stringify({
+        schemaVersion: "1.0",
+        diagramFamily: "dataflow",
+        classification: "capability-demo",
+        id: story.id,
+        title: story.title,
+        summary: "Small-font records transform into a dataset.",
+        anchors: [],
+        sections: [
+          {
+            id: "input",
+            title: "Input",
+            body: "A".repeat(39),
+            anchorIds: [],
+          },
+          {
+            id: "output",
+            title: "Output",
+            body: "Dataset.",
+            anchorIds: [],
+          },
+        ],
+        connections: [{
+          from: "input",
+          to: "output",
+          label: story.connectionLabel,
+        }],
+      }, null, 2)}\n`,
+    );
+  }
+  await commit(repository, "Small font label clearance stories", "stories");
   await topo(repository, "scan");
 }
 
@@ -1184,6 +1250,228 @@ test("final pinned Dataflow labels clear endpoint nodes and retain export geomet
     expect(exportedSvg).toContain("Output");
     expect(exportedSvg).toContain("Dataset.");
     expect(exportedSvg).toContain(finalLabelClearanceStory.connectionLabel);
+    expect(exportedSvg).toContain("JetBrains Mono variable WOFF2 subsets");
+    expect(exportedSvg).toContain(
+      "Copyright 2020 The JetBrains Mono Project Authors",
+    );
+    await expect(viewer.locator("html"))
+      .toHaveAttribute("data-last-export-canonical", "true");
+
+    await viewer.getByRole("button", { name: "Export diagram" }).click();
+    const [pngDownload] = await Promise.all([
+      page.waitForEvent("download", { timeout: 30_000 }),
+      viewer.locator('button[data-format="png"]').click(),
+    ]);
+    const pngPath = await pngDownload.path();
+    expect(pngPath).not.toBeNull();
+    const png = await readFile(pngPath!);
+    expect(png.subarray(1, 4).toString("ascii")).toBe("PNG");
+    const pngWidth = png.readUInt32BE(16);
+    const pngHeight = png.readUInt32BE(20);
+    expect(pngWidth).toBeGreaterThan(0);
+    expect(pngHeight).toBeGreaterThan(0);
+    expect(pngWidth / pngHeight).toBeCloseTo(423 / 360, 2);
+    await expect(viewer.locator("html"))
+      .toHaveAttribute("data-last-export-canonical", "true");
+  } finally {
+    await page.goto("about:blank");
+    await stopStaticServer(server);
+  }
+});
+
+test("small-font Dataflow labels satisfy native and final clearance", async ({
+  page,
+  repository,
+}) => {
+  await writeSmallFontLabelClearanceFixture(repository);
+  const output = join(repository, ".topo/deploy");
+  await topo(repository, "bundle", repository, "--output", output);
+  const { server, url } = await startStaticServer(output);
+  try {
+    const measure = async (
+      story: {
+        readonly id: string;
+        readonly connectionLabel: string;
+      },
+      viewport: { readonly width: number; readonly height: number },
+    ) => {
+      await page.setViewportSize(viewport);
+      await page.goto(`${url}/stories/${story.id}/`);
+      const frame = page.locator("[data-story-viewer]");
+      const diagram = page.frameLocator("[data-story-viewer]")
+        .locator('svg[role="img"]');
+      await expect(diagram).toBeVisible();
+      const iframeScale = await frame.evaluate((iframe) => {
+        const element = iframe as HTMLIFrameElement;
+        return element.getBoundingClientRect().height / element.offsetHeight;
+      });
+      const geometry = await diagram.evaluate(async (svg, expectedLabel) => {
+        await document.fonts.ready;
+        const loadedPinnedFaces = await document.fonts.load(
+          '600 6.1px "JetBrains Mono"',
+          expectedLabel,
+        );
+        await document.fonts.ready;
+        const nodes = [...svg.querySelectorAll<SVGGElement>(
+          "g[data-node-id]",
+        )].map((node) => {
+          const bounds = node.querySelector<SVGGraphicsElement>(
+            "rect:not(.c-mask)",
+          )!.getBoundingClientRect();
+          const outside = (child: SVGGraphicsElement) => {
+            const childBounds = child.getBoundingClientRect();
+            return childBounds.left < bounds.left ||
+              childBounds.right > bounds.right ||
+              childBounds.top < bounds.top ||
+              childBounds.bottom > bounds.bottom;
+          };
+          return {
+            id: node.getAttribute("data-node-id"),
+            bounds: {
+              left: bounds.left,
+              right: bounds.right,
+              top: bounds.top,
+              bottom: bounds.bottom,
+            },
+            textOverflow: [
+              ...node.querySelectorAll<SVGTextElement>("text"),
+            ].filter(outside).map((text) => text.textContent?.trim() ?? ""),
+            glyphOverflow: [
+              ...node.querySelectorAll<SVGGraphicsElement>(
+                "[data-semantic-sigil]",
+              ),
+            ].filter(outside).length,
+          };
+        });
+        const edge = svg.querySelector<SVGGElement>("g[data-edge-from]")!;
+        const label = edge.querySelector<SVGTextElement>("text")!;
+        const mask = edge.querySelector<SVGRectElement>("rect.c-mask")!;
+        const labelBounds = label.getBoundingClientRect();
+        const maskBounds = mask.getBoundingClientRect();
+        const route = [...svg.querySelectorAll<SVGPathElement>(
+          "path[data-edge-from][data-edge-to]",
+        )].find((candidate) =>
+          candidate.getAttribute("data-edge-from") ===
+              edge.getAttribute("data-edge-from") &&
+          candidate.getAttribute("data-edge-to") ===
+              edge.getAttribute("data-edge-to")
+        );
+        const matrix = label.getScreenCTM();
+        const style = getComputedStyle(label);
+        return {
+          viewBox: svg.getAttribute("viewBox"),
+          pinnedFontLoaded:
+            loadedPinnedFaces.length > 0 &&
+            document.fonts.check('600 6.1px "JetBrains Mono"'),
+          fontFamily: style.fontFamily,
+          fontSize: Number.parseFloat(style.fontSize),
+          effectiveFontSize:
+            Number.parseFloat(style.fontSize) *
+            Math.hypot(matrix?.c ?? 0, matrix?.d ?? 0),
+          labelText: label.textContent?.trim(),
+          labelCenterY: (labelBounds.top + labelBounds.bottom) / 2,
+          labelWidth: labelBounds.width,
+          maskWidth: maskBounds.width,
+          maskContainsLabel:
+            maskBounds.left <= labelBounds.left &&
+            maskBounds.right >= labelBounds.right &&
+            maskBounds.top <= labelBounds.top &&
+            maskBounds.bottom >= labelBounds.bottom,
+          svgContainsMask: (() => {
+            const bounds = svg.getBoundingClientRect();
+            return bounds.left <= maskBounds.left &&
+              bounds.right >= maskBounds.right &&
+              bounds.top <= maskBounds.top &&
+              bounds.bottom >= maskBounds.bottom;
+          })(),
+          nodeCollisions: nodes.filter(({ bounds }) =>
+            Math.min(labelBounds.right, bounds.right) >
+              Math.max(labelBounds.left, bounds.left) &&
+            Math.min(labelBounds.bottom, bounds.bottom) >
+              Math.max(labelBounds.top, bounds.top)
+          ).map(({ id }) => id),
+          routeLength: route?.getTotalLength() ?? 0,
+          nodes: nodes.map(({ id, textOverflow, glyphOverflow }) => ({
+            id,
+            textOverflow,
+            glyphOverflow,
+          })),
+        };
+      }, story.connectionLabel);
+      return { geometry, iframeScale };
+    };
+
+    for (const viewport of [
+      { width: 1024, height: 768 },
+      { width: 1280, height: 720 },
+      { width: 1440, height: 900 },
+      { width: 1600, height: 1000 },
+      { width: 1920, height: 1080 },
+    ]) {
+      const { geometry, iframeScale } = await measure(
+        smallFontLabelClearanceStory,
+        viewport,
+      );
+      expect(geometry.viewBox).toBe("0 0 423 360");
+      expect(geometry.pinnedFontLoaded).toBe(true);
+      expect(geometry.fontFamily).toContain("JetBrains Mono");
+      expect(geometry.fontSize).toBe(6.1);
+      expect(geometry.labelText).toBe(
+        smallFontLabelClearanceStory.connectionLabel,
+      );
+      expect(
+        geometry.effectiveFontSize * iframeScale,
+        `small-font effective text at ${viewport.width}x${viewport.height}`,
+      ).toBeGreaterThanOrEqual(12);
+      expect(geometry.maskWidth).toBeGreaterThanOrEqual(geometry.labelWidth);
+      expect(geometry.maskContainsLabel).toBe(true);
+      expect(geometry.svgContainsMask).toBe(true);
+      expect(geometry.nodeCollisions).toEqual([]);
+      expect(geometry.routeLength).toBeGreaterThan(0);
+      expect(
+        geometry.nodes.flatMap(({ id, textOverflow }) =>
+          textOverflow.map((value) => ({ id, value }))
+        ),
+      ).toEqual([]);
+      expect(
+        geometry.nodes.every(({ glyphOverflow }) => glyphOverflow === 0),
+      ).toBe(true);
+    }
+
+    const viewport = { width: 1024, height: 768 };
+    const nativeFit = await measure(smallFontNativeFitStory, viewport);
+    const nativeDisplaced = await measure(
+      smallFontNativeDisplacementStory,
+      viewport,
+    );
+    for (const { geometry } of [nativeFit, nativeDisplaced]) {
+      expect(geometry.fontSize).toBe(6.1);
+      expect(geometry.maskContainsLabel).toBe(true);
+      expect(geometry.nodeCollisions).toEqual([]);
+    }
+    expect(
+      nativeDisplaced.geometry.labelCenterY -
+        nativeFit.geometry.labelCenterY,
+    ).toBeGreaterThan(40);
+
+    await page.goto(`${url}/stories/${smallFontLabelClearanceStory.id}/`);
+    const viewer = page.frameLocator("[data-story-viewer]");
+    await viewer.getByRole("button", { name: "Export diagram" }).click();
+    const [svgDownload] = await Promise.all([
+      page.waitForEvent("download", { timeout: 30_000 }),
+      viewer.locator('button[data-format="svg"]').click(),
+    ]);
+    const svgPath = await svgDownload.path();
+    expect(svgPath).not.toBeNull();
+    const exportedSvg = await readFile(svgPath!, "utf8");
+    expect(exportedSvg).toContain('viewBox="0 0 423 360"');
+    expect(exportedSvg).toContain("font-size: 6.1px;");
+    expect(exportedSvg).toContain("A".repeat(39));
+    expect(exportedSvg).toContain("Output");
+    expect(exportedSvg).toContain("Dataset.");
+    expect(exportedSvg).toContain(
+      smallFontLabelClearanceStory.connectionLabel,
+    );
     expect(exportedSvg).toContain("JetBrains Mono variable WOFF2 subsets");
     expect(exportedSvg).toContain(
       "Copyright 2020 The JetBrains Mono Project Authors",

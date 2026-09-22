@@ -58,8 +58,8 @@ does not currently publish versioned releases.
 
 ### Fixed
 
-- Keep final pinned-font Dataflow relationship labels and masks clear of their
-  endpoint nodes after adaptive readability styling. See #60.
+- Keep native and final pinned-font Dataflow relationship labels and masks clear
+  of their endpoint nodes across adaptive readability sizes. See #60.
 - Keep complete authored story titles visible in closed navigation controls
   without obscuring native diagram titles, including after keyboard toggling.
   See #61.

@@ -81,9 +81,10 @@ async function rendererFailureFixture(): Promise<{
   return { root, documentPath };
 }
 
-async function flowLabelFailureFixture(
+async function flowLabelFixture(
   id: string,
   label: string,
+  inputBody = "Records.",
 ): Promise<{
   root: string;
   documentPath: string;
@@ -110,7 +111,7 @@ async function flowLabelFailureFixture(
       {
         id: "input",
         title: "Input",
-        body: "Records.",
+        body: inputBody,
         anchorIds: [],
       },
       {
@@ -248,7 +249,7 @@ describe("Dataflow story catalogue", () => {
     id,
     label,
   }) => {
-    const { root, documentPath } = await flowLabelFailureFixture(id, label);
+    const { root, documentPath } = await flowLabelFixture(id, label);
 
     await expect(previewStory(root, documentPath)).rejects.toThrow(
       /Archify dataflow final flow label mask 0 exceeds the 423x360 viewBox/,
@@ -259,5 +260,19 @@ describe("Dataflow story catalogue", () => {
     await expect(readFile(
       join(root, `.topo/cache/site/stories/${id}/viewer.html`),
     )).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("preserves supported small-font labels whose native mask needs displacement", async () => {
+    const { root, documentPath } = await flowLabelFixture(
+      "dataflow-native-label-crossover",
+      "transforms records",
+      "A".repeat(39),
+    );
+
+    const result = await previewStory(root, documentPath);
+    const contents = await readFile(result.outputPath, "utf8");
+
+    expect(contents).toContain("font-size: 6.1px;");
+    expect(contents).toContain(">transforms records</text>");
   });
 });
