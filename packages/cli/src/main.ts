@@ -113,10 +113,14 @@ export async function runCli(args: string[]): Promise<number> {
     if (values.port !== undefined && !/^\d+$/.test(values.port)) throw new Error("--port must be a nonnegative integer");
     const { server, url } = await serveSite(root, values.port === undefined ? 4173 : Number(values.port));
     console.log(`Topocode: ${url}`);
+    let stopping = false;
     const stop = () => {
+      if (stopping) return;
+      stopping = true;
       server.close((error) => {
         if (error) { console.error(error.message); process.exitCode = 1; }
       });
+      server.closeAllConnections();
     };
     process.once("SIGINT", stop);
     process.once("SIGTERM", stop);

@@ -11,9 +11,10 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
-import type {
-  ResolvedStoryDocument,
-  StoryRenderer,
+import {
+  parseStoryDocument,
+  type ResolvedStoryDocument,
+  type StoryRenderer,
 } from "@topo/story";
 import { initializeWorkspace, writeGenerated } from "@topo/workspace";
 import { serveSite } from "./server.js";
@@ -45,6 +46,76 @@ function story(
       anchorIds: [anchor.id],
     }],
     connections: [],
+  }, null, 2)}\n`;
+}
+
+function familyStory(
+  diagramFamily:
+    | "architecture"
+    | "workflow"
+    | "sequence"
+    | "dataflow"
+    | "lifecycle",
+  connectionLabel: string | null = "then",
+): string {
+  return `${JSON.stringify({
+    schemaVersion: "1.0",
+    diagramFamily,
+    id: "checkout",
+    title: "Checkout",
+    summary: "Checkout reaches payment.",
+    anchors: [{
+      id: "submit",
+      path: "src/checkout.ts",
+      symbol: "submitCheckout",
+      pattern: "charge(order)",
+    }],
+    sections: [
+      {
+        id: "request",
+        title: "Receive request",
+        body: "Accept the checkout request.",
+        anchorIds: ["submit"],
+      },
+      {
+        id: "charge",
+        title: "Charge payment",
+        body: "Charge the accepted order.",
+        anchorIds: ["submit"],
+      },
+    ],
+    connections: [{
+      from: "request",
+      to: "charge",
+      ...(connectionLabel === null ? {} : { label: connectionLabel }),
+    }],
+  }, null, 2)}\n`;
+}
+
+function capabilityDemoStory(): string {
+  return `${JSON.stringify({
+    schemaVersion: "1.0",
+    diagramFamily: "workflow",
+    classification: "capability-demo",
+    id: "workflow-demo",
+    title: "Workflow capability",
+    summary: "A conceptual workflow demonstrating native rendering.",
+    anchors: [],
+    sections: [
+      {
+        id: "start",
+        title: "Start",
+        body: "Begin the conceptual flow.",
+        anchorIds: [],
+      },
+      {
+        id: "finish",
+        title: "Finish",
+        body: "Complete the conceptual flow.",
+        anchorIds: [],
+      },
+    ],
+    connections: [{ from: "start", to: "finish", label: "then" }],
   }, null, 2)}\n`;
 }
 
@@ -114,6 +185,212 @@ afterEach(async () => {
 });
 
 describe("story preview", () => {
+  it.each([
+    "architecture",
+    "workflow",
+    "sequence",
+    "dataflow",
+    "lifecycle",
+  ] as const)("preserves authored relationship labels for %s stories", async (
+    family,
+  ) => {
+    const { root, documentPath } = await fixture(
+      familyStory(family, "carries meaning"),
+    );
+
+    const result = await previewStory(root, documentPath);
+    const contents = await readFile(result.outputPath, "utf8");
+
+    expect(contents).toContain('data-edge-label="carries meaning"');
+    expect(contents).toContain(">carries meaning</text>");
+  });
+
+  it.each([
+    "architecture",
+    "workflow",
+    "lifecycle",
+  ] as const)("does not invent a label for unlabeled %s relationships", async (
+    family,
+  ) => {
+    const { root, documentPath } = await fixture(familyStory(family, null));
+
+    const result = await previewStory(root, documentPath);
+    const contents = await readFile(result.outputPath, "utf8");
+
+    expect(contents).not.toContain('data-edge-label="then"');
+    expect(contents).not.toContain(">then</text>");
+  });
+
+  it.each([
+    "sequence",
+    "dataflow",
+  ] as const)("rejects unlabeled %s relationships instead of inventing text", async (
+    family,
+  ) => {
+    const { root, documentPath } = await fixture(familyStory(family, null));
+
+    await expect(previewStory(root, documentPath)).rejects.toThrow(
+      new RegExp(`${family}.*label|required.*label`, "i"),
+    );
+  });
+
+  it("renders a committed workflow story with native workflow semantics", async () => {
+    const { root, documentPath } = await fixture(familyStory("workflow"));
+
+    const result = await previewStory(root, documentPath);
+    const contents = await readFile(result.outputPath, "utf8");
+
+    expect(contents).toContain('data-composition-frame-kind="lane"');
+    expect(contents).toContain("Receive request");
+    expect(contents).toContain("Charge payment");
+  });
+
+  it("renders a committed sequence story with native sequence semantics", async () => {
+    const { root, documentPath } = await fixture(familyStory("sequence"));
+
+    const result = await previewStory(root, documentPath);
+    const contents = await readFile(result.outputPath, "utf8");
+
+    expect(contents).toContain('data-composition-edge-from="request"');
+    expect(contents).toContain('data-composition-edge-to="charge"');
+    expect(contents).toContain('stroke-dasharray="3,7"');
+  });
+
+  it("renders a committed dataflow story with native stage semantics", async () => {
+    const { root, documentPath } = await fixture(familyStory("dataflow"));
+
+    const result = await previewStory(root, documentPath);
+    const contents = await readFile(result.outputPath, "utf8");
+
+    expect(contents).toContain('data-composition-frame-kind="stage"');
+    expect(contents).toContain("01 / Receive request");
+    expect(contents).toContain("02 / Charge payment");
+  });
+
+  it("renders a committed lifecycle story with native lifecycle bands", async () => {
+    const { root, documentPath } = await fixture(familyStory("lifecycle"));
+
+    const result = await previewStory(root, documentPath);
+    const contents = await readFile(result.outputPath, "utf8");
+
+    expect(contents).toContain("01 / Checkout");
+    expect(contents).toContain("02 / Interruptions + recovery");
+    expect(contents).toContain("03 / Outcomes");
+  });
+
+  it("renders a valid lifecycle story with a descriptive state title", async () => {
+    const document = JSON.parse(familyStory("lifecycle")) as {
+      sections: { title: string }[];
+    };
+    document.sections[0]!.title =
+      "This valid authored lifecycle state title is long";
+    const { root, documentPath } = await fixture(
+      `${JSON.stringify(document, null, 2)}\n`,
+    );
+
+    const result = await previewStory(root, documentPath);
+    const contents = await readFile(result.outputPath, "utf8");
+
+    expect(contents).toContain(
+      "This valid authored lifecycle state title is long",
+    );
+  });
+
+  it("renders a three-state lifecycle after a descriptive state title", async () => {
+    const document = JSON.parse(familyStory("lifecycle")) as {
+      sections: {
+        id: string;
+        title: string;
+        body: string;
+        anchorIds: string[];
+      }[];
+      connections: {
+        from: string;
+        to: string;
+        label: string;
+      }[];
+    };
+    document.sections[0]!.title =
+      "This valid authored lifecycle state title is long";
+    document.sections.splice(1, 0, {
+      id: "review",
+      title: "Review",
+      body: "Review the accepted request.",
+      anchorIds: ["submit"],
+    });
+    document.connections = [
+      { from: "request", to: "review", label: "next" },
+      { from: "review", to: "charge", label: "complete" },
+    ];
+    expect(parseStoryDocument(JSON.stringify(document)).sections).toHaveLength(3);
+    const { root, documentPath } = await fixture(
+      `${JSON.stringify(document, null, 2)}\n`,
+    );
+
+    const result = await previewStory(root, documentPath);
+    const contents = await readFile(result.outputPath, "utf8");
+
+    expect(contents).toContain(
+      "This valid authored lifecycle state title is long",
+    );
+    expect(contents).toContain("Review");
+    expect(contents).toContain("Charge payment");
+  });
+
+  it("renders adjacent wide lifecycle states without reusing occupied columns", async () => {
+    const document = JSON.parse(familyStory("lifecycle")) as {
+      sections: {
+        id: string;
+        title: string;
+        body: string;
+        anchorIds: string[];
+      }[];
+      connections: {
+        from: string;
+        to: string;
+        label: string;
+      }[];
+    };
+    document.sections[0]!.title =
+      "This valid authored lifecycle state title is long";
+    document.sections.splice(1, 0, {
+      id: "review",
+      title: "This second authored lifecycle state title is also long",
+      body: "Review the accepted request.",
+      anchorIds: ["submit"],
+    });
+    document.connections = [
+      { from: "request", to: "review", label: "continue to review" },
+      { from: "review", to: "charge", label: "complete" },
+    ];
+    expect(parseStoryDocument(JSON.stringify(document)).sections).toHaveLength(3);
+    const { root, documentPath } = await fixture(
+      `${JSON.stringify(document, null, 2)}\n`,
+    );
+
+    const result = await previewStory(root, documentPath);
+    const contents = await readFile(result.outputPath, "utf8");
+
+    expect(contents).toContain(
+      "This valid authored lifecycle state title is long",
+    );
+    expect(contents).toContain(
+      "This second authored lifecycle state title is also long",
+    );
+    expect(contents).toContain("continue to review");
+  });
+
+  it("previews an explicitly non-source-grounded capability demo", async () => {
+    const { root, documentPath } = await fixture(capabilityDemoStory());
+
+    const result = await previewStory(root, documentPath);
+    const contents = await readFile(result.outputPath, "utf8");
+
+    expect(result.storyId).toBe("workflow-demo");
+    expect(contents).toContain('data-composition-frame-kind="lane"');
+    expect(contents).toContain("Workflow capability");
+  });
+
   it("renders a committed story equivalently twice through diagram-core", async () => {
     const { root, documentPath } = await fixture();
     const first = await previewStory(root, documentPath);

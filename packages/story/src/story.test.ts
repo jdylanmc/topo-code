@@ -68,6 +68,36 @@ describe("story document contract", () => {
     expect(validate(invalid)).toBe(false);
   });
 
+  it("treats omitted classification as source-grounded evidence", () => {
+    expect(() => parseStoryDocument(
+      JSON.stringify({ ...validStory(), anchors: [] }),
+      "stories/checkout.topo.json",
+    )).toThrow("source-grounded stories must define at least one anchor");
+  });
+
+  it("requires evidence on every explicitly source-grounded section", () => {
+    const value = validStory();
+    expect(() => parseStoryDocument(
+      JSON.stringify({
+        ...value,
+        classification: "source-grounded",
+        sections: [{ ...value.sections[0], anchorIds: [] }],
+      }),
+      "stories/checkout.topo.json",
+    )).toThrow("anchorIds must reference source evidence");
+  });
+
+  it("rejects unknown classifications in code and schema", async () => {
+    const invalid = { ...validStory(), classification: "marketing" };
+    expect(() => parseStoryDocument(
+      JSON.stringify(invalid),
+      "stories/checkout.topo.json",
+    )).toThrow("classification must be source-grounded or capability-demo");
+    const schema = JSON.parse(await readFile(schemaPath, "utf8"));
+    const validate = new Ajv2020({ strict: true }).compile(schema);
+    expect(validate(invalid)).toBe(false);
+  });
+
   it("publishes a renderer-independent JSON schema", async () => {
     const schema = JSON.parse(await readFile(schemaPath, "utf8"));
     const validate = new Ajv2020({ strict: true }).compile(schema);

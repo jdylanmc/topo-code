@@ -7,6 +7,23 @@ optional `symbol`, and optional symbol-scoped `pattern` values. Source line
 ranges and excerpts are resolved from the current working tree at preview time
 and are never stored in the authored document.
 
+The optional `diagramFamily` selects `architecture`, `workflow`, `sequence`,
+`dataflow`, or `lifecycle`; omission retains the legacy Architecture behavior.
+Sequence and Dataflow connections require a nonempty `label` because their
+native schemas require explicit relationship meaning. Architecture, Workflow,
+and Lifecycle connections may omit labels, and Topocode does not invent them.
+Lifecycle state widths are derived from their authored titles, then all states
+are placed together within their semantic native lanes so a wide state cannot
+silently reuse a neighboring state's column.
+
+The optional `classification` is `source-grounded` or `capability-demo`;
+omission retains the source-grounded behavior. Every source-grounded section
+must cite at least one resolved anchor. Capability demos are explicitly
+non-factual, contain no repository anchors, and appear in the generated
+`Diagram capabilities` catalogue category after source-grounded stories.
+Wrappers preserve the classification in visible text and
+`data-story-classification`.
+
 Scanning renders every committed story and composes the catalogue:
 
 ```sh
@@ -15,10 +32,17 @@ corepack yarn topo serve /absolute/path/to/repository
 ```
 
 Each story wrapper is written to
-`.topo/cache/site/stories/<story-id>/index.html`, with the unmodified renderer
-artifact at `viewer.html`. The catalogue is served at `/`, and the explorer
-remains available at `/explorer/`. Use `topo preview` to refresh a specific
-committed story's viewer without rescanning:
+`.topo/cache/site/stories/<story-id>/index.html`, with the native renderer
+artifact at `viewer.html`. Topocode keeps the vendored Archify runtime and
+integrity pin unchanged while adding scoped output rules for readable authored
+text and responsive containment. The wrapper keeps the diagram at the full
+reading viewport and exposes navigation, classification, summary, return, and
+node controls through an accessible details panel. When closed, the panel keeps
+the complete authored story title visible in a compact lower-left control away
+from native title and export controls; opening it deliberately restores the full
+overlay. The catalogue
+is served at `/`, and the explorer remains available at `/explorer/`. Run
+`topo preview` to refresh a specific committed story's viewer without rescanning:
 
 ```sh
 corepack yarn topo preview /absolute/path/to/repository \
@@ -52,6 +76,11 @@ Missing files, symbols, patterns, invalid documents, unavailable renderers, and
 renderer failures exit nonzero. Rendering completes in memory before the
 generated file is atomically replaced, so renderer failures do not publish a
 partial story.
+
+The viewer exports the same canonical authored geometry as SVG or a
+resolution-scaled PNG. Local serving permits blob images only for generated
+story viewers so the pinned runtime can rasterize its serialized SVG without
+broadening the Content Security Policy for catalogue or explorer pages.
 
 Successful structure and anchor validation does not establish semantic accuracy
 or complete explanation coverage. It is objective evidence for the author and

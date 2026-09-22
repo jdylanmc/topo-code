@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "1.0",
+  "diagramFamily": "architecture",
+  "classification": "capability-demo",
+  "id": "architecture-capability",
+  "title": "Architecture capability",
+  "summary": "A conceptual example of labeled components and relationships; it does not describe Topocode source.",
+  "anchors": [],
+  "sections": [
+    {
+      "id": "client",
+      "title": "Client",
+      "body": "A conceptual frontend component.",
+      "anchorIds": []
+    },
+    {
+      "id": "service",
+      "title": "Service",
+      "body": "A conceptual backend component.",
+      "anchorIds": []
+    }
+  ],
+  "connections": [
+    { "from": "client", "to": "service", "label": "requests" }
+  ]
+}

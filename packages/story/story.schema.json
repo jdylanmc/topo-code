@@ -1,12 +1,18 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://topo.dev/schemas/story-1.0.json",
-  "title": "Topo authored architecture story",
+  "title": "Topo authored story",
   "type": "object",
   "additionalProperties": false,
   "required": ["schemaVersion", "id", "title", "summary", "anchors", "sections", "connections"],
   "properties": {
     "schemaVersion": { "const": "1.0" },
+    "diagramFamily": {
+      "enum": ["architecture", "workflow", "sequence", "dataflow", "lifecycle"]
+    },
+    "classification": {
+      "enum": ["source-grounded", "capability-demo"]
+    },
     "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
     "title": { "type": "string", "minLength": 1 },
     "summary": { "type": "string", "minLength": 1 },
@@ -60,5 +66,53 @@
         }
       }
     }
-  }
+  },
+  "allOf": [
+      {
+        "if": {
+          "not": {
+            "properties": {
+              "classification": { "const": "capability-demo" }
+            },
+            "required": ["classification"]
+          }
+        },
+        "then": {
+          "properties": {
+            "anchors": { "type": "array", "minItems": 1 },
+            "sections": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "anchorIds": { "type": "array", "minItems": 1 }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "if": {
+          "properties": {
+            "diagramFamily": { "enum": ["sequence", "dataflow"] }
+          },
+          "required": ["diagramFamily"]
+        },
+        "then": {
+          "properties": {
+            "connections": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "label": { "type": "string", "minLength": 1 }
+                },
+                "required": ["label"]
+              }
+            }
+          }
+        }
+      }
+  ]
 }

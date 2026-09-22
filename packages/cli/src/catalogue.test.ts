@@ -9,6 +9,7 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
 import { initializeWorkspace, loadConfig } from "@topo/workspace";
@@ -22,6 +23,7 @@ import {
 
 const execute = promisify(execFile);
 const directories: string[] = [];
+const repositoryRoot = fileURLToPath(new URL("../../../", import.meta.url));
 
 async function repository(): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "topo-catalogue-"));
@@ -59,21 +61,27 @@ async function addStory(
   id: string,
   title: string,
   category?: string,
+  classification?: "source-grounded" | "capability-demo",
 ): Promise<void> {
   const destination = join(root, path);
   await mkdir(dirname(destination), { recursive: true });
+  const capabilityDemo = classification === "capability-demo";
   await writeFile(destination, `${JSON.stringify({
     schemaVersion: "1.0",
     id,
     title,
     summary: `${title} summary.`,
     ...(category === undefined ? {} : { category }),
-    anchors: [{ id: "source", path: "source.ts", symbol: "value" }],
+    ...(classification === undefined ? {} : { classification }),
+    ...(capabilityDemo ? { diagramFamily: "workflow" } : {}),
+    anchors: capabilityDemo
+      ? []
+      : [{ id: "source", path: "source.ts", symbol: "value" }],
     sections: [{
       id: "section",
       title: "Section",
       body: "Story body.",
-      anchorIds: ["source"],
+      anchorIds: capabilityDemo ? [] : ["source"],
     }],
     connections: [],
   }, null, 2)}\n`);
@@ -86,6 +94,82 @@ afterEach(async () => {
 });
 
 describe("generated catalogue", () => {
+  it("includes a source-grounded Workflow story for the authoring loop", async () => {
+    const stories = await buildCatalogueStories(repositoryRoot);
+    const workflow = stories.find(({ document }) =>
+      document.diagramFamily === "workflow" &&
+      document.classification !== "capability-demo"
+    );
+    const narrative = workflow?.document.sections
+      .flatMap(({ title, body }) => [title, body])
+      .join(" ")
+      .toLowerCase();
+
+    expect(workflow).toBeDefined();
+    expect(workflow?.document.anchors.length).toBeGreaterThan(0);
+    expect(workflow?.document.sections.every(
+      ({ anchorIds }) => anchorIds.length > 0,
+    )).toBe(true);
+    expect(narrative).toMatch(/author/);
+    expect(narrative).toMatch(/validat/);
+    expect(narrative).toMatch(/stale/);
+    expect(narrative).toMatch(/repair/);
+    expect(narrative).toMatch(/preview/);
+    expect(workflow?.contents).toContain(
+      'data-composition-frame-kind="lane"',
+    );
+  });
+
+  it("includes a source-grounded Lifecycle story for story states", async () => {
+    const stories = await buildCatalogueStories(repositoryRoot);
+    const lifecycle = stories.find(({ document }) =>
+      document.diagramFamily === "lifecycle" &&
+      document.classification !== "capability-demo"
+    );
+    const narrative = lifecycle?.document.sections
+      .flatMap(({ title, body }) => [title, body])
+      .join(" ")
+      .toLowerCase();
+
+    expect(lifecycle).toBeDefined();
+    expect(lifecycle?.document.anchors.length).toBeGreaterThan(0);
+    expect(lifecycle?.document.sections.every(
+      ({ anchorIds }) => anchorIds.length > 0,
+    )).toBe(true);
+    expect(narrative).toMatch(/draft/);
+    expect(narrative).toMatch(/valid/);
+    expect(narrative).toMatch(/stale/);
+    expect(narrative).toMatch(/repair/);
+    expect(narrative).toMatch(/render/);
+    expect(narrative).toMatch(/bundl/);
+    expect(lifecycle?.contents).toContain("03 / Outcomes");
+  });
+
+  it("includes non-source-grounded capability demos for the gallery families", async () => {
+    const stories = await buildCatalogueStories(repositoryRoot);
+    const demos = stories.filter(({ document }) =>
+      document.classification === "capability-demo"
+    );
+    const byFamily = new Map(
+      demos.map((story) => [story.document.diagramFamily, story]),
+    );
+
+    expect([...byFamily.keys()].sort()).toEqual([
+      "architecture",
+      "lifecycle",
+      "workflow",
+    ]);
+    expect(demos.every(({ document }) =>
+      document.anchors.length === 0 &&
+      document.sections.every(({ anchorIds }) => anchorIds.length === 0)
+    )).toBe(true);
+    expect(byFamily.get("architecture")?.contents).toContain("<svg");
+    expect(byFamily.get("workflow")?.contents).toContain(
+      'data-composition-frame-kind="lane"',
+    );
+    expect(byFamily.get("lifecycle")?.contents).toContain("03 / Outcomes");
+  });
+
   it("keeps a coherent explorer-only landing page with zero stories", async () => {
     const root = await repository();
     const stories = await buildCatalogueStories(root);
@@ -117,6 +201,68 @@ describe("generated catalogue", () => {
     expect(page).toContain('data-category="Accounts"');
     expect(page).toContain('data-category="Operations"');
     expect(page).toContain('data-category="Stories"');
+  });
+
+  it("places capability demos in a distinct generated catalogue category", async () => {
+    const root = await repository();
+    await addStory(root, "stories/checkout.topo.json", "checkout", "Checkout");
+    await addStory(
+      root,
+      "stories/workflow-demo.topo.json",
+      "workflow-demo",
+      "Workflow capability",
+      "Journeys",
+      "capability-demo",
+    );
+    await commit(root);
+
+    const page = renderCataloguePage(
+      await buildCatalogueStories(root),
+      undefined,
+    );
+
+    expect(page).toContain('data-category="Stories"');
+    expect(page).toContain('data-category="Diagram capabilities"');
+    expect(page.indexOf("Checkout")).toBeLessThan(
+      page.indexOf("Diagram capabilities"),
+    );
+    expect(page.indexOf("Diagram capabilities")).toBeLessThan(
+      page.indexOf("Workflow capability"),
+    );
+  });
+
+  it("labels factual and capability-demo story wrappers truthfully", async () => {
+    const root = await repository();
+    await addStory(root, "stories/checkout.topo.json", "checkout", "Checkout");
+    await addStory(
+      root,
+      "stories/workflow-demo.topo.json",
+      "workflow-demo",
+      "Workflow capability",
+      undefined,
+      "capability-demo",
+    );
+    await commit(root);
+
+    await writeComposedSite(
+      root,
+      "<!doctype html><title>Explorer</title>",
+      await buildCatalogue(root),
+      undefined,
+    );
+    const factual = await readFile(
+      join(root, ".topo/cache/site/stories/checkout/index.html"),
+      "utf8",
+    );
+    const demo = await readFile(
+      join(root, ".topo/cache/site/stories/workflow-demo/index.html"),
+      "utf8",
+    );
+
+    expect(factual).toContain('data-story-classification="source-grounded"');
+    expect(factual).toContain("Source-grounded");
+    expect(demo).toContain('data-story-classification="capability-demo"');
+    expect(demo).toMatch(/not source-grounded/i);
   });
 
   it("changes category order and presentation from config only", async () => {

@@ -211,6 +211,7 @@ test("linked story nodes keep durable focus across drill-down, reload, direct op
   const url = await startSite();
   await page.goto(`${url}/stories/overview/`);
   await expect(page.getByRole("heading", { name: "Order overview" })).toBeVisible();
+  await page.getByText("Story navigation and details", { exact: true }).click();
   await page.getByRole("link", { name: "Open Order detail: Order code evidence" }).click();
 
   await expect(page).toHaveURL(
@@ -234,6 +235,7 @@ test("linked story nodes keep durable focus across drill-down, reload, direct op
   await page.goto(
     `${url}/stories/detail/?focus=evidence&from=overview&fromFocus=order-detail`,
   );
+  await page.getByText("Story navigation and details", { exact: true }).click();
   await page.getByRole("link", { name: "Return to Order overview" }).click();
   await expect(page).toHaveURL(`${url}/stories/overview/?focus=order-detail`);
   await expect(page.locator('[data-node-id="order-detail"]')).toHaveAttribute("aria-current", "true");
