@@ -321,11 +321,12 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
   const gridBottom = margin + rowCount * boxHeight + (rowCount - 1) * rowGap;
   const laneBase = gridBottom + 60;
   const laneGap = 40;
+  const widestRow = Math.max(...rowSizes);
+  const gridRight =
+    margin + widestRow * boxWidth + (widestRow - 1) * columnGap;
   const viewBoxWidth = Math.max(
     800,
-    margin * 2 +
-      Math.max(...rowSizes) * boxWidth +
-      (Math.max(...rowSizes) - 1) * columnGap,
+    gridRight + margin,
   );
   const viewBoxHeight = Math.max(
     500,
@@ -393,12 +394,46 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
       const fromX = components[fromIndex]!.pos[0] + boxWidth / 2;
       const toX = components[toIndex]!.pos[0] + boxWidth / 2;
       const lane = laneBase + index * laneGap;
+      const blockedBelow = (endpointIndex: number) => {
+        const endpoint = cellOf(endpointIndex);
+        return sections.some((_, candidateIndex) => {
+          if (candidateIndex === endpointIndex) return false;
+          const candidate = cellOf(candidateIndex);
+          return candidate.column === endpoint.column &&
+            candidate.row > endpoint.row;
+        });
+      };
+      const outside = (column: number) =>
+        column < widestRow / 2 ? margin / 2 : gridRight + margin / 2;
+      const fromBlocked = blockedBelow(fromIndex);
+      const toBlocked = blockedBelow(toIndex);
+      const fromOutside = outside(from.column);
+      const toOutside = outside(to.column);
       return {
         ...base,
-        fromSide: "bottom" as const,
-        toSide: "bottom" as const,
-        via: [[fromX, lane], [toX, lane]] as const,
-        labelSegment: 1,
+        fromSide: fromBlocked
+          ? "top" as const
+          : "bottom" as const,
+        toSide: toBlocked
+          ? "top" as const
+          : "bottom" as const,
+        via: [
+          ...(fromBlocked
+            ? [
+                [fromX, margin / 2],
+                [fromOutside, margin / 2],
+                [fromOutside, lane],
+              ] as const
+            : [[fromX, lane]] as const),
+          ...(toBlocked
+            ? [
+                [toOutside, lane],
+                [toOutside, margin / 2],
+                [toX, margin / 2],
+              ] as const
+            : [[toX, lane]] as const),
+        ],
+        labelSegment: fromBlocked ? 3 : 1,
       };
     }),
   };
