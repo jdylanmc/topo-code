@@ -12,6 +12,7 @@ import { fileURLToPath } from "node:url";
 import { expect } from "@playwright/test";
 import {
   commit,
+  withDisposableRepository,
   startStaticServer,
   startTopoServer,
   stopTopoServer,
@@ -86,6 +87,49 @@ test("browser fixture repositories are isolated from the real workspace", async 
     fixturePath === ".." || fixturePath.startsWith(`..${sep}`),
     `fixture repository must not be nested under ${projectRoot}: ${repository}`,
   ).toBe(true);
+});
+
+test("disposable repository work preserves its source workspace", async ({
+  repository,
+}) => {
+  await writeFixture(repository);
+  const sourceWorkspace = join(repository, ".topo");
+  const sourceFiles = {
+    package: join(repository, "package.json"),
+    config: join(sourceWorkspace, "config.json"),
+    metadata: join(sourceWorkspace, "metadata", "local.json"),
+    sentinel: join(sourceWorkspace, "local-sentinel.txt"),
+  };
+  await mkdir(dirname(sourceFiles.metadata), { recursive: true });
+  await writeFile(sourceFiles.config, '{"title":"preserve exactly"}\n');
+  await writeFile(sourceFiles.metadata, '{"owner":"source workspace"}\n');
+  await writeFile(sourceFiles.sentinel, "do not replace\n");
+  const before = Object.fromEntries(
+    await Promise.all(
+      Object.entries(sourceFiles).map(async ([name, path]) => [
+        name,
+        await readFile(path),
+      ]),
+    ),
+  );
+  let disposablePath: string | undefined;
+
+  await withDisposableRepository(repository, async (disposable) => {
+    disposablePath = disposable;
+    expect(relative(repository, disposable).startsWith(`..${sep}`)).toBe(true);
+    await rm(join(disposable, ".topo"), { recursive: true, force: true });
+    await topo(disposable, "scan");
+    await expect
+      .poll(async () => readFile(join(disposable, "package.json"), "utf8"))
+      .toContain("sequence-stories-fixture");
+  });
+
+  for (const [name, path] of Object.entries(sourceFiles)) {
+    expect(await readFile(path), `${name} source bytes`).toEqual(before[name]);
+  }
+  expect(disposablePath).toBeDefined();
+  await expect(readFile(join(disposablePath!, "package.json")))
+    .rejects.toMatchObject({ code: "ENOENT" });
 });
 
 test("a live browser fixture survives real workspace rotation", async ({
