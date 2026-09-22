@@ -247,6 +247,7 @@ const CAPABILITY_CATEGORY = "Diagram capabilities";
 const STORY_NAVIGATION_SCRIPT = `(() => {
   const frame = document.querySelector("iframe[data-story-viewer]");
   if (!(frame instanceof HTMLIFrameElement)) return;
+  const controls = document.querySelector("details.story-controls");
   const storyId = document.body.dataset.storyId;
   if (!storyId) return;
   const nodeLinks = [...document.querySelectorAll("[data-node-id]")];
@@ -284,6 +285,18 @@ const STORY_NAVIGATION_SCRIPT = `(() => {
     window.location.assign(link.href);
   }
 
+  function placeClosedControls() {
+    if (!(controls instanceof HTMLDetailsElement) || controls.open) return;
+    const heading = frame.contentDocument?.querySelector("h1");
+    if (!heading) return;
+    const frameBounds = frame.getBoundingClientRect();
+    const headingBounds = heading.getBoundingClientRect();
+    controls.style.setProperty(
+      "--closed-controls-top",
+      Math.ceil(frameBounds.top + headingBounds.bottom + 12) + "px",
+    );
+  }
+
   for (const link of crossLinks) {
     link.addEventListener("click", (event) => {
       event.preventDefault();
@@ -316,7 +329,10 @@ const STORY_NAVIGATION_SCRIPT = `(() => {
     };
     childDocument.addEventListener("click", () => setTimeout(syncSelectedNode));
     childDocument.addEventListener("keyup", () => setTimeout(syncSelectedNode));
+    placeClosedControls();
   });
+  controls?.addEventListener("toggle", placeClosedControls);
+  window.addEventListener("resize", placeClosedControls);
 
   setFocus(params.get("focus") || "");
 })();\n`;
@@ -427,12 +443,13 @@ export function renderStoryWrapper(
       a { color: #7dd3fc; }
       [data-node-id][aria-current="true"] { color: white; font-weight: bold; }
       li { display: grid; gap: 0.35rem; padding: 0.65rem; background: #111c2e; border-radius: 0.5rem; }
-      .story-controls { position: fixed; z-index: 1; top: 0.75rem; left: 0.75rem; max-width: calc(100vw - 1.5rem); max-height: calc(100vh - 1.5rem); overflow: auto; border: 1px solid #475569; border-radius: 0.5rem; background: #09111f; box-shadow: 0 0.5rem 1.5rem #020617cc; }
-      .story-controls[open] { width: min(30rem, calc(100vw - 1.5rem)); }
-      summary { display: grid; max-width: 16rem; gap: 0.15rem; padding: 0.65rem 0.85rem; color: #7dd3fc; cursor: pointer; font-weight: 700; }
-      .story-heading { overflow: hidden; color: #e5edf7; font-size: 1rem; text-overflow: ellipsis; white-space: nowrap; }
+      .story-controls { position: fixed; z-index: 1; top: 0.75rem; max-width: calc(100vw - 1.5rem); max-height: calc(100vh - 1.5rem); overflow: auto; border: 1px solid #475569; border-radius: 0.5rem; background: #09111f; box-shadow: 0 0.5rem 1.5rem #020617cc; }
+      .story-controls:not([open]) { top: var(--closed-controls-top, 5.75rem); right: 0.75rem; }
+      .story-controls[open] { top: 0.75rem; left: 0.75rem; width: min(30rem, calc(100vw - 1.5rem)); }
+      summary { display: grid; width: max-content; max-width: calc(100vw - 1.5rem); gap: 0.15rem; padding: 0.65rem 0.85rem; color: #7dd3fc; cursor: pointer; font-weight: 700; }
+      .story-heading { color: #e5edf7; font-size: 1rem; white-space: normal; }
       .story-control-label { font-size: 0.8rem; }
-      .story-controls[open] summary { border-bottom: 1px solid #29364a; }
+      .story-controls[open] summary { width: auto; border-bottom: 1px solid #29364a; }
       aside { padding: 1rem 1.25rem; }
       iframe { display: block; width: 100vw; height: 100vh; border: 0; background: white; }
     </style>
