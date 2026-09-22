@@ -201,7 +201,8 @@ test("actual Dataflow story text stays readable after page, frame, and SVG scali
             }];
           }),
         );
-        const geometry = await diagram.evaluate((svg) => {
+        const geometry = await diagram.evaluate(async (svg) => {
+          await document.fonts.ready;
           const nodes = [...svg.querySelectorAll<SVGGElement>(
             "g[data-node-id]",
           )].map((node) => {
@@ -221,10 +222,32 @@ test("actual Dataflow story text stays readable after page, frame, and SVG scali
               ),
             ];
             return {
+              id: node.getAttribute("data-node-id")!,
               bounds,
               textOverflow: [
-                ...node.querySelectorAll<SVGGraphicsElement>("text"),
-              ].filter(outside).length,
+                ...node.querySelectorAll<SVGTextElement>("text"),
+              ].filter(outside).map((text) => {
+                const textBounds = text.getBoundingClientRect();
+                const style = getComputedStyle(text);
+                return {
+                  value: text.textContent?.trim() ?? "",
+                  fontFamily: style.fontFamily,
+                  fontSize: style.fontSize,
+                  fontWeight: style.fontWeight,
+                  bounds: {
+                    left: textBounds.left,
+                    right: textBounds.right,
+                    top: textBounds.top,
+                    bottom: textBounds.bottom,
+                  },
+                  nodeBounds: {
+                    left: bounds.left,
+                    right: bounds.right,
+                    top: bounds.top,
+                    bottom: bounds.bottom,
+                  },
+                };
+              }),
               glyphCount: glyphs.length,
               glyphOverflow: glyphs.filter(outside).length,
             };
@@ -281,9 +304,9 @@ test("actual Dataflow story text stays readable after page, frame, and SVG scali
             };
           });
           return {
-            textOverflow: nodes.reduce(
-              (count, { textOverflow }) => count + textOverflow,
-              0,
+            fontStatus: document.fonts.status,
+            textOverflow: nodes.flatMap(({ id, textOverflow }) =>
+              textOverflow.map((overflow) => ({ nodeId: id, ...overflow }))
             ),
             glyphCount: nodes.reduce(
               (count, { glyphCount }) => count + glyphCount,
@@ -325,9 +348,13 @@ test("actual Dataflow story text stays readable after page, frame, and SVG scali
           `${story.id} page containment at ${viewport.width}x${viewport.height}`,
         ).toBe(true);
         expect(
+          geometry.fontStatus,
+          `${story.id} font readiness at ${viewport.width}x${viewport.height}`,
+        ).toBe("loaded");
+        expect(
           geometry.textOverflow,
           `${story.id} node text containment at ${viewport.width}x${viewport.height}`,
-        ).toBe(0);
+        ).toEqual([]);
         expect(
           geometry.glyphCount,
           `${story.id} rendered semantic glyphs at ${viewport.width}x${viewport.height}`,
