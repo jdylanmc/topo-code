@@ -1,14 +1,15 @@
 import { execFile, spawn, type ChildProcess } from "node:child_process";
 import { createServer, type Server } from "node:http";
 import {
+  cp,
   lstat,
   mkdir,
   mkdtemp,
   readFile,
+  realpath,
   readdir,
   rm,
   stat,
-  symlink,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
@@ -33,7 +34,7 @@ export async function commit(repository: string, message: string, ...paths: stri
   return (await execute("git", ["rev-parse", "HEAD"], { cwd: repository })).stdout.trim();
 }
 
-async function linkDirectoryIfPresent(
+async function copyDirectoryIfPresent(
   source: string,
   destination: string,
 ): Promise<void> {
@@ -47,7 +48,36 @@ async function linkDirectoryIfPresent(
   if (!sourceStats.isDirectory()) {
     throw new Error(`Disposable repository anchor is not a directory: ${source}`);
   }
-  await symlink(source, destination, "junction");
+  await cp(source, destination, {
+    recursive: true,
+    dereference: true,
+    errorOnExist: true,
+    force: false,
+    preserveTimestamps: true,
+  });
+}
+
+function credentialFreeOrigin(origin: string): string {
+  if (/^git@[^:]+:.+/.test(origin)) return origin;
+
+  let parsed: URL;
+  try {
+    parsed = new URL(origin);
+  } catch {
+    throw new Error("Unsupported repository origin.");
+  }
+  if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+    parsed.username = "";
+    parsed.password = "";
+  } else if (parsed.protocol === "ssh:") {
+    parsed.password = "";
+  } else {
+    throw new Error("Unsupported repository origin.");
+  }
+  if (parsed.search || parsed.hash) {
+    throw new Error("Repository origin must not contain query or fragment data.");
+  }
+  return parsed.toString();
 }
 
 export async function withDisposableRepository<T>(
@@ -57,9 +87,10 @@ export async function withDisposableRepository<T>(
   const owned = await mkdtemp(join(tmpdir(), "topo-disposable-repository-"));
   const repository = join(owned, "repository");
   try {
-    const origin = (
+    const sourceOrigin = (
       await execute("git", ["remote", "get-url", "origin"], { cwd: source })
     ).stdout.trim();
+    const origin = credentialFreeOrigin(sourceOrigin);
     await execute(
       "git",
       ["clone", "--quiet", "--no-hardlinks", source, repository],
@@ -67,7 +98,7 @@ export async function withDisposableRepository<T>(
     await execute("git", ["remote", "set-url", "origin", origin], {
       cwd: repository,
     });
-    await linkDirectoryIfPresent(
+    await copyDirectoryIfPresent(
       join(source, "node_modules"),
       join(repository, "node_modules"),
     );
@@ -77,12 +108,12 @@ export async function withDisposableRepository<T>(
       })
     ) {
       if (!entry.isDirectory()) continue;
-      await linkDirectoryIfPresent(
+      await copyDirectoryIfPresent(
         join(source, "packages", entry.name, "dist"),
         join(repository, "packages", entry.name, "dist"),
       );
     }
-    return await use(repository);
+    return await use(await realpath(repository));
   } finally {
     await rm(owned, { recursive: true, force: true });
   }
