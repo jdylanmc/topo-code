@@ -8,6 +8,7 @@ import {
   readFile,
   rm,
   unlink,
+  writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -62,6 +63,57 @@ afterEach(async () => {
 });
 
 describe("Topocode package story", () => {
+  it("validates an exact file-scoped manifest pattern without a symbol", async () => {
+    const root = await mkdtemp(join(tmpdir(), "topo-file-pattern-"));
+    directories.push(root);
+    await execute("git", ["init", "--quiet", root]);
+    await execute("git", [
+      "-C", root, "remote", "add", "origin",
+      "https://github.com/example/file-pattern.git",
+    ]);
+    const manifestPath = join(root, "packages/diagram-core/package.json");
+    await mkdir(dirname(manifestPath), { recursive: true });
+    await writeFile(manifestPath, `${JSON.stringify({
+      name: "@topo/diagram-core",
+      dependencies: { "@topo/story": "workspace:*" },
+    }, null, 2)}\n`);
+    const storyPath = join(root, "stories/packages.topo.json");
+    await mkdir(dirname(storyPath), { recursive: true });
+    await writeFile(storyPath, `${JSON.stringify({
+      schemaVersion: "1.0",
+      id: "packages",
+      title: "Package dependency",
+      summary: "diagram-core declares its story package dependency.",
+      anchors: [{
+        id: "diagram-core-story-dependency",
+        path: "packages/diagram-core/package.json",
+        pattern: '"@topo/story": "workspace:*"',
+      }],
+      sections: [{
+        id: "diagram-core",
+        title: "@topo/diagram-core",
+        body: "Declares a compile-time workspace dependency on @topo/story.",
+        anchorIds: ["diagram-core-story-dependency"],
+      }],
+      connections: [],
+    }, null, 2)}\n`);
+    await execute("git", ["-C", root, "add", "."]);
+    await execute("git", [
+      "-C", root,
+      "-c", "user.name=Topo Test",
+      "-c", "user.email=topo@example.test",
+      "commit", "--quiet", "-m", "File pattern fixture",
+    ]);
+
+    const result = await execute(process.execPath, [
+      entry, "story", "validate", root, storyPath,
+    ]);
+
+    expect(result.stdout).toContain(
+      "diagram-core-story-dependency: packages/diagram-core/package.json:4-4",
+    );
+  });
+
   it("maps every current workspace and only selected declared dependencies", async () => {
     const paths = await workspacePaths();
     const manifests = new Map<string, {
