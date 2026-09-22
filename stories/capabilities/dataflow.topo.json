@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "1.0",
+  "diagramFamily": "dataflow",
+  "classification": "capability-demo",
+  "id": "dataflow-capability",
+  "title": "Dataflow capability",
+  "summary": "A conceptual example of staged transformations and labeled flows; it does not describe Topocode source.",
+  "anchors": [],
+  "sections": [
+    {
+      "id": "ingest",
+      "title": "Ingest",
+      "body": "Records.",
+      "anchorIds": []
+    },
+    {
+      "id": "normalize",
+      "title": "Normalize",
+      "body": "Shape.",
+      "anchorIds": []
+    },
+    {
+      "id": "enrich",
+      "title": "Enrich",
+      "body": "Context.",
+      "anchorIds": []
+    },
+    {
+      "id": "publish",
+      "title": "Publish",
+      "body": "Dataset.",
+      "anchorIds": []
+    }
+  ],
+  "connections": [
+    {
+      "from": "ingest",
+      "to": "normalize",
+      "label": "parses"
+    },
+    {
+      "from": "normalize",
+      "to": "enrich",
+      "label": "enriches"
+    },
+    {
+      "from": "enrich",
+      "to": "publish",
+      "label": "emits"
+    }
+  ]
+}

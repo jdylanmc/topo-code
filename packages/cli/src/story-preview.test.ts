@@ -265,6 +265,8 @@ describe("story preview", () => {
     expect(contents).toContain('data-composition-frame-kind="stage"');
     expect(contents).toContain("01 / Receive request");
     expect(contents).toContain("02 / Charge payment");
+    expect(contents).toContain("Accept the checkout request.");
+    expect(contents).toContain("Charge the accepted order.");
   });
 
   it("renders a committed lifecycle story with native lifecycle bands", async () => {

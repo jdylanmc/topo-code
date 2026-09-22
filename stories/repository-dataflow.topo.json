@@ -1,0 +1,102 @@
+{
+  "schemaVersion": "1.0",
+  "diagramFamily": "dataflow",
+  "classification": "source-grounded",
+  "id": "repository-dataflow",
+  "title": "How repository source becomes a static Topocode site",
+  "summary": "Follow repository files through scanning, graph composition, generated layout and site artifacts, and the validated static bundle.",
+  "category": "Topocode internals",
+  "anchors": [
+    {
+      "id": "scan-source",
+      "path": "packages/scanner/src/typescript-scanner.ts",
+      "symbol": "scanRepository",
+      "pattern": "const files = await walkFiles(options.root);"
+    },
+    {
+      "id": "emit-graph",
+      "path": "packages/scanner/src/typescript-scanner.ts",
+      "symbol": "scanRepository",
+      "pattern": "return { graph, logicalArchitecture, diagnostics, metrics, authoritative };"
+    },
+    {
+      "id": "compose-graph",
+      "path": "packages/cli/src/pipeline.ts",
+      "symbol": "generateArtifacts",
+      "pattern": "const composedGraph = composeConfiguredGraph(graph, config.modules);"
+    },
+    {
+      "id": "generate-site",
+      "path": "packages/cli/src/pipeline.ts",
+      "symbol": "generateArtifacts",
+      "pattern": "await writeGenerated(root, \"cache/site/data.json\", data);"
+    },
+    {
+      "id": "compute-layout",
+      "path": "packages/cli/src/pipeline.ts",
+      "symbol": "generateArtifacts",
+      "pattern": "layoutGraphWithArchitecture(composedGraph, architecture, { previous, pins })"
+    },
+    {
+      "id": "persist-layout",
+      "path": "packages/cli/src/pipeline.ts",
+      "symbol": "generateArtifacts",
+      "pattern": "writeGenerated(root, \"graph/layout.json\", serializeLayoutDeterministic(layout.layout))"
+    },
+    {
+      "id": "validate-bundle",
+      "path": "packages/cli/src/bundle.ts",
+      "symbol": "bundleSite",
+      "pattern": "validateComposedSite(root, sourceDirectory)"
+    },
+    {
+      "id": "bundle-site",
+      "path": "packages/cli/src/bundle.ts",
+      "symbol": "bundleSite",
+      "pattern": "await cp(sourceDirectory, stagedSite, { recursive: true });"
+    }
+  ],
+  "sections": [
+    {
+      "id": "repository-source",
+      "title": "Source",
+      "body": "Ready to scan.",
+      "anchorIds": ["scan-source"]
+    },
+    {
+      "id": "scan-compose",
+      "title": "Compose",
+      "body": "Graph.",
+      "anchorIds": ["emit-graph", "compose-graph"]
+    },
+    {
+      "id": "site-artifacts",
+      "title": "Artifacts",
+      "body": "Layout + site.",
+      "anchorIds": ["compute-layout", "persist-layout", "generate-site"]
+    },
+    {
+      "id": "static-bundle",
+      "title": "Bundle",
+      "body": "Static files.",
+      "anchorIds": ["validate-bundle", "bundle-site"]
+    }
+  ],
+  "connections": [
+    {
+      "from": "repository-source",
+      "to": "scan-compose",
+      "label": "scans"
+    },
+    {
+      "from": "scan-compose",
+      "to": "site-artifacts",
+      "label": "composes"
+    },
+    {
+      "from": "site-artifacts",
+      "to": "static-bundle",
+      "label": "bundles"
+    }
+  ]
+}
