@@ -265,6 +265,18 @@ test("integrated Sequence stories preserve titles, navigation, and exports", asy
     const output = join(workspace, "integration-bundle");
     await topo(projectRoot, "scan");
     for (const story of stories) {
+      const validation = await topo(
+        projectRoot,
+        "story",
+        "validate",
+        projectRoot,
+        join(projectRoot, story.path),
+      );
+      if (story.id === "story-preview-sequence") {
+        expect(validation.stdout).toContain(
+          "render: packages/diagram-core/src/index.ts:",
+        );
+      }
       await topo(
         projectRoot,
         "preview",
@@ -321,8 +333,7 @@ test("integrated Sequence stories preserve titles, navigation, and exports", asy
         const summary = controls.locator("summary");
         const viewer = page.frameLocator("[data-story-viewer]");
         const diagram = viewer.locator('svg[role="img"]');
-        const authoredLabels = [
-          document.title,
+        const diagramLabels = [
           ...document.sections.map(({ title }) => title),
           ...document.connections.map(({ label }) => label),
         ];
@@ -330,7 +341,26 @@ test("integrated Sequence stories preserve titles, navigation, and exports", asy
           const controlsBounds = await controls.boundingBox();
           expect(controlsBounds).not.toBeNull();
           const overlapping: string[] = [];
-          for (const label of authoredLabels) {
+          const titleBounds = await viewer.locator("h1").boundingBox();
+          expect(
+            titleBounds,
+            `${story.id} title at ${viewport.width}x${viewport.height}`,
+          ).not.toBeNull();
+          if (
+            controlsBounds &&
+            titleBounds &&
+            Math.min(
+                controlsBounds.x + controlsBounds.width,
+                titleBounds.x + titleBounds.width,
+              ) > Math.max(controlsBounds.x, titleBounds.x) &&
+            Math.min(
+                controlsBounds.y + controlsBounds.height,
+                titleBounds.y + titleBounds.height,
+              ) > Math.max(controlsBounds.y, titleBounds.y)
+          ) {
+            overlapping.push(document.title);
+          }
+          for (const label of diagramLabels) {
             const labelBounds = await diagram.getByText(label, { exact: true })
               .first()
               .boundingBox();
@@ -365,7 +395,8 @@ test("integrated Sequence stories preserve titles, navigation, and exports", asy
         await summary.focus();
         await page.keyboard.press("Enter");
         await expect(controls).toHaveAttribute("open", "");
-        expect((await overlaps()).length).toBeGreaterThan(0);
+        await expect(controls.getByRole("heading", { level: 1 }))
+          .toHaveText(document.title);
 
         await summary.focus();
         await page.keyboard.press("Enter");
@@ -387,10 +418,11 @@ test("integrated Sequence stories preserve titles, navigation, and exports", asy
     );
     await expect(controls).not.toHaveAttribute("open", "");
     await expect(
-      page.frameLocator("[data-story-viewer]").getByText(
-        "packages/diagram-core/src/index.ts",
-        { exact: true },
-      ),
+      page.locator('[data-node-id="native-render"]'),
+    ).toHaveAttribute("aria-current", "true");
+    await expect(
+      page.frameLocator("[data-story-viewer]")
+        .locator('svg g[data-node-id="native-render"]'),
     ).toBeVisible();
     await page.goBack();
     await expect(page).toHaveURL(
