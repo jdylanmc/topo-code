@@ -146,6 +146,7 @@ interface ArchifyDataflow {
     readonly sublabel: string;
     readonly stage: number;
     readonly row: number;
+    readonly width: number;
   }[];
   readonly flows: readonly {
     readonly id: string;
@@ -513,6 +514,36 @@ function sequenceSpec(story: ResolvedStoryDocument): ArchifySequence {
   };
 }
 
+const dataflowReadability = {
+  fontSize: 15,
+  widthFactor: 0.6,
+  horizontalPadding: 8,
+  defaultNodeWidth: 112,
+} as const;
+
+function dataflowTextUnits(value: string): number {
+  return Array.from(value).reduce(
+    (total, character) =>
+      total + (character.codePointAt(0)! > 0xff ? 2 : 1),
+    0,
+  );
+}
+
+function dataflowNodeWidth(label: string, sublabel: string): number {
+  const units = Math.max(
+    dataflowTextUnits(label),
+    dataflowTextUnits(sublabel),
+  );
+  return Math.max(
+    dataflowReadability.defaultNodeWidth,
+    Math.ceil(
+      units * dataflowReadability.fontSize *
+        dataflowReadability.widthFactor +
+        dataflowReadability.horizontalPadding,
+    ),
+  );
+}
+
 function dataflowSpec(story: ResolvedStoryDocument): ArchifyDataflow {
   const nodeIds = new Map(
     story.document.sections.map((section) => [
@@ -541,6 +572,7 @@ function dataflowSpec(story: ResolvedStoryDocument): ArchifyDataflow {
       sublabel: section.body,
       stage: index,
       row: 0,
+      width: dataflowNodeWidth(section.title, section.body),
     })),
     flows: story.document.connections.map((connection, index) => ({
       id: stableId(
@@ -741,8 +773,8 @@ svg text[data-node-label],
 svg text[data-detail="context"],
 svg text[font-size="9"][font-weight="600"],
 svg g[data-edge-from] > text {
-  font-family: ui-sans-serif, system-ui, sans-serif;
-  font-size: 15px;
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', 'Liberation Mono', 'Noto Sans Mono CJK SC', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', monospace;
+  font-size: ${dataflowReadability.fontSize}px;
   font-weight: 600;
 }`
       : `
