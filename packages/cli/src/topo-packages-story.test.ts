@@ -247,6 +247,31 @@ describe("Topocode package story", () => {
     });
   });
 
+  it("rejects a stale explicit root workspace membership", async () => {
+    const { root, storyPath } = await createPackageStoryFixture();
+    await execute(process.execPath, [
+      entry, "story", "validate", root, storyPath,
+    ]);
+    const rootManifestPath = join(root, "package.json");
+    const manifest = await readFile(rootManifestPath, "utf8");
+    await writeFile(
+      rootManifestPath,
+      manifest.replace(
+        '"tools/eslint-config"',
+        '"tools/eslint-rules"',
+      ),
+    );
+
+    await expect(execute(process.execPath, [
+      entry, "story", "validate", root, storyPath,
+    ])).rejects.toMatchObject({
+      code: 1,
+      stderr: expect.stringMatching(
+        /root-eslint-config-workspace.*missing-pattern/s,
+      ),
+    });
+  });
+
   it("rejects the authored story when selected manifest evidence is missing", async () => {
     const { root, storyPath } = await createPackageStoryFixture();
     await execute(process.execPath, [
