@@ -23,6 +23,15 @@ const dataflowStories = [
     title: "Dataflow capability",
   },
 ] as const;
+const compatibleDataflowStory = {
+  id: "checkout-dataflow",
+  title: "Checkout",
+  bodies: [
+    "Accept the checkout request.",
+    "Charge the accepted order.",
+  ],
+  connectionLabel: "carries meaning",
+} as const;
 
 async function stopStaticServer(server: Server): Promise<void> {
   await new Promise<void>((done, reject) => {
@@ -84,6 +93,64 @@ async function writeActualDataflowFixture(repository: string): Promise<void> {
     await writeFile(destination, await readFile(join(projectRoot, story.path)));
   }
   await commit(repository, "Stories", "stories");
+  await topo(repository, "scan");
+}
+
+async function writeCompatibleDataflowFixture(
+  repository: string,
+): Promise<void> {
+  await writeActualDataflowFixture(repository);
+  const sourcePath = join(repository, "src/checkout.ts");
+  await mkdir(dirname(sourcePath), { recursive: true });
+  await writeFile(
+    sourcePath,
+    [
+      "export function submitCheckout(order: Order) {",
+      "  return charge(order);",
+      "}",
+      "",
+    ].join("\n"),
+  );
+  const storyPath = join(
+    repository,
+    `stories/${compatibleDataflowStory.id}.topo.json`,
+  );
+  await writeFile(
+    storyPath,
+    `${JSON.stringify({
+      schemaVersion: "1.0",
+      diagramFamily: "dataflow",
+      id: compatibleDataflowStory.id,
+      title: compatibleDataflowStory.title,
+      summary: "Checkout reaches payment.",
+      anchors: [{
+        id: "submit",
+        path: "src/checkout.ts",
+        symbol: "submitCheckout",
+        pattern: "charge(order)",
+      }],
+      sections: [
+        {
+          id: "request",
+          title: "Receive request",
+          body: compatibleDataflowStory.bodies[0],
+          anchorIds: ["submit"],
+        },
+        {
+          id: "charge",
+          title: "Charge payment",
+          body: compatibleDataflowStory.bodies[1],
+          anchorIds: ["submit"],
+        },
+      ],
+      connections: [{
+        from: "request",
+        to: "charge",
+        label: compatibleDataflowStory.connectionLabel,
+      }],
+    }, null, 2)}\n`,
+  );
+  await commit(repository, "Compatible Dataflow story", "src", "stories");
   await topo(repository, "scan");
 }
 
@@ -602,6 +669,244 @@ test("actual Dataflow story text stays readable after page, frame, and SVG scali
         ).toBeGreaterThanOrEqual(12);
       }
     }
+  } finally {
+    await page.goto("about:blank");
+    await stopStaticServer(server);
+  }
+});
+
+test("established long Dataflow bodies retain pinned native geometry and exports", async ({
+  page,
+  repository,
+}) => {
+  await writeCompatibleDataflowFixture(repository);
+  const output = join(repository, ".topo/deploy");
+  await topo(repository, "bundle", repository, "--output", output);
+  const { server, url } = await startStaticServer(output);
+  try {
+    for (const viewport of [
+      { width: 1024, height: 768 },
+      { width: 1280, height: 720 },
+      { width: 1440, height: 900 },
+      { width: 1600, height: 1000 },
+      { width: 1920, height: 1080 },
+    ]) {
+      await page.setViewportSize(viewport);
+      await page.goto(
+        `${url}/stories/${compatibleDataflowStory.id}/`,
+      );
+      const frame = page.locator("[data-story-viewer]");
+      const diagram = page.frameLocator("[data-story-viewer]")
+        .locator('svg[role="img"]');
+      await expect(diagram).toBeVisible();
+      const iframeScale = await frame.evaluate((iframe) => {
+        const element = iframe as HTMLIFrameElement;
+        return element.getBoundingClientRect().height / element.offsetHeight;
+      });
+      const geometry = await diagram.evaluate(async (svg) => {
+        await document.fonts.ready;
+        const readabilitySelector = [
+          "text[data-node-label]",
+          'text[data-detail="context"]',
+          'text[font-size="9"][font-weight="600"]',
+          "g[data-edge-from] > text",
+        ].join(", ");
+        const loadedPinnedFaces = await document.fonts.load(
+          '600 8.5px "JetBrains Mono"',
+          "Accept the checkout request. Charge the accepted order.",
+        );
+        await document.fonts.ready;
+        const svgBounds = svg.getBoundingClientRect();
+        const nodes = [...svg.querySelectorAll<SVGGElement>(
+          "g[data-node-id]",
+        )].map((node) => {
+          const bounds = node.querySelector<SVGGraphicsElement>(
+            "rect:not(.c-mask)",
+          )!.getBoundingClientRect();
+          const outside = (child: SVGGraphicsElement) => {
+            const childBounds = child.getBoundingClientRect();
+            return childBounds.left < bounds.left ||
+              childBounds.right > bounds.right ||
+              childBounds.top < bounds.top ||
+              childBounds.bottom > bounds.bottom;
+          };
+          return {
+            id: node.getAttribute("data-node-id"),
+            width: Number(
+              node.querySelector<SVGRectElement>("rect:not(.c-mask)")!
+                .getAttribute("width"),
+            ),
+            textOverflow: [...node.querySelectorAll<SVGTextElement>("text")]
+              .filter(outside)
+              .map((text) => text.textContent?.trim() ?? ""),
+            glyphOverflow: [
+              ...node.querySelectorAll<SVGGraphicsElement>(
+                "[data-semantic-sigil]",
+              ),
+            ].filter(outside).length,
+          };
+        });
+        const texts = [...svg.querySelectorAll<SVGTextElement>("text")]
+          .flatMap((text) => {
+            const value = text.textContent?.trim() ?? "";
+            const bounds = text.getBoundingClientRect();
+            if (value.length === 0 || bounds.width === 0 || bounds.height === 0) {
+              return [];
+            }
+            const matrix = text.getScreenCTM();
+            const style = getComputedStyle(text);
+            return [{
+              value,
+              family: style.fontFamily,
+              fontSize: Number.parseFloat(style.fontSize),
+              effectiveFontSize:
+                Number.parseFloat(style.fontSize) *
+                Math.hypot(matrix?.c ?? 0, matrix?.d ?? 0),
+              contained:
+                bounds.left >= svgBounds.left &&
+                bounds.right <= svgBounds.right &&
+                bounds.top >= svgBounds.top &&
+                bounds.bottom <= svgBounds.bottom,
+              inFrame:
+                bounds.left >= 0 &&
+                bounds.right <= window.innerWidth &&
+                bounds.top >= 0 &&
+                bounds.bottom <= window.innerHeight,
+            }];
+          });
+        const edges = [...svg.querySelectorAll<SVGGElement>(
+          "g[data-edge-from]",
+        )].map((edge) => {
+          const label = edge.querySelector<SVGGraphicsElement>("text")!
+            .getBoundingClientRect();
+          const mask = edge.querySelector<SVGGraphicsElement>("rect.c-mask")
+            ?.getBoundingClientRect();
+          const from = edge.getAttribute("data-edge-from");
+          const to = edge.getAttribute("data-edge-to");
+          const route = [...svg.querySelectorAll<SVGPathElement>(
+            "path[data-edge-from][data-edge-to]",
+          )].find((candidate) =>
+            candidate.getAttribute("data-edge-from") === from &&
+            candidate.getAttribute("data-edge-to") === to
+          );
+          const nodeBounds = [...svg.querySelectorAll<SVGGElement>(
+            "g[data-node-id]",
+          )].map((node) =>
+            node.querySelector<SVGGraphicsElement>("rect:not(.c-mask)")!
+              .getBoundingClientRect()
+          );
+          return {
+            maskVisible: (mask?.width ?? 0) > 0 && (mask?.height ?? 0) > 0,
+            routeLength: route?.getTotalLength() ?? 0,
+            nodeCollisions: nodeBounds.filter((bounds) =>
+              Math.min(label.right, bounds.right) >
+                Math.max(label.left, bounds.left) &&
+              Math.min(label.bottom, bounds.bottom) >
+                Math.max(label.top, bounds.top)
+            ).length,
+          };
+        });
+        const readableTexts = [
+          ...svg.querySelectorAll<SVGTextElement>(readabilitySelector),
+        ];
+        return {
+          viewBox: svg.getAttribute("viewBox"),
+          fontStatus: document.fonts.status,
+          pinnedFontLoaded:
+            loadedPinnedFaces.length > 0 &&
+            document.fonts.check('600 8.5px "JetBrains Mono"'),
+          pinnedFontApplied: readableTexts.every((text) =>
+            getComputedStyle(text).fontFamily.includes("JetBrains Mono")
+          ),
+          readableFontSizes: [
+            ...new Set(readableTexts.map((text) =>
+              Number.parseFloat(getComputedStyle(text).fontSize)
+            )),
+          ],
+          nodes,
+          texts,
+          edges,
+        };
+      });
+
+      expect(
+        geometry.viewBox,
+        `adaptive viewBox at ${viewport.width}x${viewport.height}`,
+      ).toBe("0 0 423 360");
+      expect(geometry.fontStatus).toBe("loaded");
+      expect(geometry.pinnedFontLoaded).toBe(true);
+      expect(geometry.pinnedFontApplied).toBe(true);
+      expect(geometry.readableFontSizes).toEqual([8.5]);
+      expect(geometry.nodes.map(({ id, width }) => ({ id, width }))).toEqual([
+        { id: "request", width: 151 },
+        { id: "charge", width: 141 },
+      ]);
+      expect(geometry.nodes.flatMap(({ id, textOverflow }) =>
+        textOverflow.map((value) => ({ id, value }))
+      )).toEqual([]);
+      expect(geometry.nodes.every(({ glyphOverflow }) => glyphOverflow === 0))
+        .toBe(true);
+      expect(geometry.texts.every(({ contained }) => contained)).toBe(true);
+      expect(geometry.texts.every(({ inFrame }) => inFrame)).toBe(true);
+      expect(
+        Math.min(...geometry.texts.map(({ effectiveFontSize }) =>
+          effectiveFontSize * iframeScale
+        )),
+        `effective text at ${viewport.width}x${viewport.height}`,
+      ).toBeGreaterThanOrEqual(12);
+      expect(geometry.edges.every(({ maskVisible }) => maskVisible)).toBe(true);
+      expect(geometry.edges.every(({ routeLength }) => routeLength > 0))
+        .toBe(true);
+      expect(geometry.edges.every(({ nodeCollisions }) => nodeCollisions === 0))
+        .toBe(true);
+      for (
+        const value of [
+          ...compatibleDataflowStory.bodies,
+          compatibleDataflowStory.connectionLabel,
+        ]
+      ) {
+        expect(geometry.texts.map(({ value: text }) => text)).toContain(value);
+      }
+    }
+
+    const viewer = page.frameLocator("[data-story-viewer]");
+    await viewer.getByRole("button", { name: "Export diagram" }).click();
+    const [svgDownload] = await Promise.all([
+      page.waitForEvent("download", { timeout: 30_000 }),
+      viewer.locator('button[data-format="svg"]').click(),
+    ]);
+    const svgPath = await svgDownload.path();
+    expect(svgPath).not.toBeNull();
+    const exportedSvg = await readFile(svgPath!, "utf8");
+    expect(exportedSvg).toContain('viewBox="0 0 423 360"');
+    expect(exportedSvg).toContain("JetBrains Mono variable WOFF2 subsets");
+    expect(exportedSvg).toContain(
+      "Copyright 2020 The JetBrains Mono Project Authors",
+    );
+    for (
+      const value of [
+        ...compatibleDataflowStory.bodies,
+        compatibleDataflowStory.connectionLabel,
+      ]
+    ) {
+      expect(exportedSvg).toContain(value);
+    }
+    await expect(viewer.locator("html"))
+      .toHaveAttribute("data-last-export-canonical", "true");
+
+    await viewer.getByRole("button", { name: "Export diagram" }).click();
+    const [pngDownload] = await Promise.all([
+      page.waitForEvent("download", { timeout: 30_000 }),
+      viewer.locator('button[data-format="png"]').click(),
+    ]);
+    const pngPath = await pngDownload.path();
+    expect(pngPath).not.toBeNull();
+    const png = await readFile(pngPath!);
+    expect(png.subarray(1, 4).toString("ascii")).toBe("PNG");
+    expect(png.readUInt32BE(16)).toBeGreaterThan(0);
+    expect(png.readUInt32BE(20)).toBeGreaterThan(0);
+    await expect(viewer.locator("html"))
+      .toHaveAttribute("data-last-export-canonical", "true");
   } finally {
     await page.goto("about:blank");
     await stopStaticServer(server);
