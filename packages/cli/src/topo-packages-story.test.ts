@@ -56,6 +56,45 @@ async function workspacePaths(): Promise<string[]> {
   return paths.sort();
 }
 
+async function createPackageStoryFixture(): Promise<{
+  root: string;
+  storyPath: string;
+}> {
+  const root = await mkdtemp(join(tmpdir(), "topo-packages-story-"));
+  directories.push(root);
+  await execute("git", ["init", "--quiet", root]);
+  await execute("git", [
+    "-C", root, "remote", "add", "origin",
+    "https://github.com/example/topo-packages.git",
+  ]);
+  await cp(
+    join(repositoryRoot, "package.json"),
+    join(root, "package.json"),
+  );
+  const storyPath = join(root, "stories/topo-packages.topo.json");
+  await mkdir(dirname(storyPath), { recursive: true });
+  await cp(
+    join(repositoryRoot, "stories/topo-packages.topo.json"),
+    storyPath,
+  );
+  for (const path of await workspacePaths()) {
+    const manifestPath = join(root, path, "package.json");
+    await mkdir(dirname(manifestPath), { recursive: true });
+    await cp(
+      join(repositoryRoot, path, "package.json"),
+      manifestPath,
+    );
+  }
+  await execute("git", ["-C", root, "add", "."]);
+  await execute("git", [
+    "-C", root,
+    "-c", "user.name=Topo Test",
+    "-c", "user.email=topo@example.test",
+    "commit", "--quiet", "-m", "Package story fixture",
+  ]);
+  return { root, storyPath };
+}
+
 afterEach(async () => {
   for (const directory of directories.splice(0)) {
     await rm(directory, { recursive: true, force: true });
@@ -183,40 +222,33 @@ describe("Topocode package story", () => {
     expect(packageStory?.contents).toContain("<svg");
   });
 
-  it("rejects the authored story when selected manifest evidence is missing", async () => {
-    const root = await mkdtemp(join(tmpdir(), "topo-packages-story-"));
-    directories.push(root);
-    await execute("git", ["init", "--quiet", root]);
-    await execute("git", [
-      "-C", root, "remote", "add", "origin",
-      "https://github.com/example/topo-packages.git",
+  it("rejects a stale selected dependency while both manifests remain", async () => {
+    const { root, storyPath } = await createPackageStoryFixture();
+    await execute(process.execPath, [
+      entry, "story", "validate", root, storyPath,
     ]);
-    await cp(
-      join(repositoryRoot, "package.json"),
-      join(root, "package.json"),
+    const manifestPath = join(root, "packages/diagram-core/package.json");
+    const manifest = await readFile(manifestPath, "utf8");
+    await writeFile(
+      manifestPath,
+      manifest.replace(
+        '"@topo/story": "workspace:*"',
+        '"@topo/story": "workspace:^"',
+      ),
     );
-    const storyPath = join(root, "stories/topo-packages.topo.json");
-    await mkdir(dirname(storyPath), { recursive: true });
-    await cp(
-      join(repositoryRoot, "stories/topo-packages.topo.json"),
-      storyPath,
-    );
-    for (const path of await workspacePaths()) {
-      const manifestPath = join(root, path, "package.json");
-      await mkdir(dirname(manifestPath), { recursive: true });
-      await cp(
-        join(repositoryRoot, path, "package.json"),
-        manifestPath,
-      );
-    }
-    await execute("git", ["-C", root, "add", "."]);
-    await execute("git", [
-      "-C", root,
-      "-c", "user.name=Topo Test",
-      "-c", "user.email=topo@example.test",
-      "commit", "--quiet", "-m", "Package story fixture",
-    ]);
 
+    await expect(execute(process.execPath, [
+      entry, "story", "validate", root, storyPath,
+    ])).rejects.toMatchObject({
+      code: 1,
+      stderr: expect.stringMatching(
+        /diagram-core-story-dependency.*missing-pattern/s,
+      ),
+    });
+  });
+
+  it("rejects the authored story when selected manifest evidence is missing", async () => {
+    const { root, storyPath } = await createPackageStoryFixture();
     await execute(process.execPath, [
       entry, "story", "validate", root, storyPath,
     ]);
