@@ -7,6 +7,9 @@ does not currently publish versioned releases.
 
 ### Added
 
+- Add a source-grounded Architecture story covering every current Yarn
+  workspace and selected manifest-declared compile-time relationships, with a
+  readable balanced package layout. See #58.
 - Add a source-grounded repository pipeline Dataflow story and a separate
   conceptual Dataflow capability demo with pinned-font adaptive native
   rendering, preserved public-preview compatibility, and plain-static-bundle
