@@ -1,15 +1,19 @@
+import { execFile } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import { expect } from "@playwright/test";
 import {
   commit,
+  startStaticServer,
   startTopoServer,
   stopTopoServer,
   test,
   topo,
 } from "./helpers/production-cli.js";
 
+const execute = promisify(execFile);
 const projectRoot = fileURLToPath(new URL("../../../../", import.meta.url));
 
 async function writeUmlStoryFixture(repository: string): Promise<void> {
@@ -79,5 +83,61 @@ test("UML story keeps visible notation readable at supported viewports", async (
   } finally {
     await page.goto("about:blank");
     await stopTopoServer(server);
+  }
+});
+
+test("UML story retains source identity in a plain-server static bundle", async ({
+  page,
+  repository,
+}) => {
+  await writeUmlStoryFixture(repository);
+  const revision = (
+    await execute("git", ["-C", repository, "rev-parse", "HEAD"])
+  ).stdout.trim();
+  const output = join(repository, ".topo/deploy");
+  await topo(
+    repository,
+    "bundle",
+    repository,
+    "--output",
+    output,
+    "--base-path",
+    "/uml/",
+  );
+
+  const { server, url } = await startStaticServer(output);
+  try {
+    const baseUrl = `${url}/uml/`;
+    await page.goto(baseUrl);
+    await page.getByRole("link", {
+      name: /Bounded UML intent: story and renderer contracts/,
+    }).click();
+    await expect(page).toHaveURL(
+      `${baseUrl}stories/story-contracts-uml/`,
+    );
+    const viewer = page.frameLocator("[data-story-viewer]");
+    await expect(viewer.locator('svg[role="img"]')).toBeVisible();
+    await page.goto(
+      `${baseUrl}stories/story-contracts-uml/?focus=story-document`,
+    );
+    await expect(viewer.getByText(
+      "packages/story/src/index.ts",
+      { exact: true },
+    ).first()).toBeVisible();
+
+    const artifact = await readFile(
+      join(
+        output,
+        "uml/stories/story-contracts-uml/viewer.html",
+      ),
+      "utf8",
+    );
+    expect(artifact).toContain(revision);
+    expect(artifact).toContain("packages/story/src/index.ts");
+  } finally {
+    await page.goto("about:blank");
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => error ? reject(error) : resolve());
+    });
   }
 });
