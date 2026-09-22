@@ -8,8 +8,9 @@ does not currently publish versioned releases.
 ### Added
 
 - Add a source-grounded repository pipeline Dataflow story and a separate
-  conceptual Dataflow capability demo with readable native rendering and
-  plain-static-bundle coverage. See #60.
+  conceptual Dataflow capability demo with pinned-font adaptive native
+  rendering, preserved public-preview compatibility, and plain-static-bundle
+  coverage. See #60.
 - Add five native Archify story families with a backward-compatible Architecture
   default, explicit factual-versus-capability classification, separated gallery
   demos, responsive readable previews, and canonical SVG/PNG exports. See #61.

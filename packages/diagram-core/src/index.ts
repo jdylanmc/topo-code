@@ -134,6 +134,7 @@ interface ArchifyDataflow {
     readonly title: string;
     readonly quality_profile: "standard";
     readonly locale: "en";
+    readonly viewBox: readonly [number, number];
     readonly legend: { readonly mode: "hidden" };
   };
   readonly stages: readonly {
@@ -153,6 +154,7 @@ interface ArchifyDataflow {
     readonly from: string;
     readonly to: string;
     readonly label: string;
+    readonly labelDy?: number;
   }[];
 }
 
@@ -515,10 +517,24 @@ function sequenceSpec(story: ResolvedStoryDocument): ArchifySequence {
 }
 
 const dataflowReadability = {
-  fontSize: 15,
+  maximumFontSize: 15,
+  minimumFontSize: 6,
+  fontSizePrecision: 10,
   widthFactor: 0.6,
   horizontalPadding: 8,
   defaultNodeWidth: 112,
+  firstNodeMaximumWidth: 152,
+  stageCenterGap: 215,
+  minimumNodeGap: 10,
+  firstStageCenterX: 100,
+  stageWidth: 168,
+  viewBoxMargin: 24,
+  minimumViewBoxWidth: 360,
+  viewBoxHeight: 360,
+  flowLabelWidthFactor: 4.9,
+  flowLabelHorizontalPadding: 12,
+  minimumFlowLabelWidth: 34,
+  flowLabelClearanceDy: 53,
 } as const;
 
 function dataflowTextUnits(value: string): number {
@@ -529,7 +545,11 @@ function dataflowTextUnits(value: string): number {
   );
 }
 
-function dataflowNodeWidth(label: string, sublabel: string): number {
+function dataflowNodeWidth(
+  label: string,
+  sublabel: string,
+  fontSize: number,
+): number {
   const units = Math.max(
     dataflowTextUnits(label),
     dataflowTextUnits(sublabel),
@@ -537,14 +557,76 @@ function dataflowNodeWidth(label: string, sublabel: string): number {
   return Math.max(
     dataflowReadability.defaultNodeWidth,
     Math.ceil(
-      units * dataflowReadability.fontSize *
+      units * fontSize *
         dataflowReadability.widthFactor +
         dataflowReadability.horizontalPadding,
     ),
   );
 }
 
-function dataflowSpec(story: ResolvedStoryDocument): ArchifyDataflow {
+interface DataflowLayout {
+  readonly fontSize: number;
+  readonly nodeWidths: readonly number[];
+  readonly viewBox: readonly [number, number];
+}
+
+function dataflowLayout(story: ResolvedStoryDocument): DataflowLayout {
+  const sections = story.document.sections;
+  const minimumTenths = dataflowReadability.minimumFontSize *
+    dataflowReadability.fontSizePrecision;
+  const maximumTenths = dataflowReadability.maximumFontSize *
+    dataflowReadability.fontSizePrecision;
+  let selected:
+    | { readonly fontSize: number; readonly nodeWidths: readonly number[] }
+    | undefined;
+
+  for (let tenths = maximumTenths; tenths >= minimumTenths; tenths -= 1) {
+    const fontSize = tenths / dataflowReadability.fontSizePrecision;
+    const nodeWidths = sections.map((section) =>
+      dataflowNodeWidth(section.title, section.body, fontSize)
+    );
+    const firstNodeFits =
+      (nodeWidths[0] ?? dataflowReadability.defaultNodeWidth) <=
+        dataflowReadability.firstNodeMaximumWidth;
+    const adjacentNodesFit = nodeWidths.every((width, index) =>
+      index === 0 ||
+      (nodeWidths[index - 1]! + width) / 2 <=
+        dataflowReadability.stageCenterGap -
+          dataflowReadability.minimumNodeGap
+    );
+    if (firstNodeFits && adjacentNodesFit) {
+      selected = { fontSize, nodeWidths };
+      break;
+    }
+  }
+
+  const fallbackFontSize = dataflowReadability.minimumFontSize;
+  const fontSize = selected?.fontSize ?? fallbackFontSize;
+  const nodeWidths = selected?.nodeWidths ?? sections.map((section) =>
+    dataflowNodeWidth(section.title, section.body, fallbackFontSize)
+  );
+  const lastStageX = dataflowReadability.firstStageCenterX +
+    Math.max(0, sections.length - 1) * dataflowReadability.stageCenterGap;
+  const lastNodeWidth = nodeWidths.at(-1) ??
+    dataflowReadability.defaultNodeWidth;
+  const viewBoxWidth = Math.max(
+    dataflowReadability.minimumViewBoxWidth,
+    lastStageX + dataflowReadability.stageWidth / 2 +
+      dataflowReadability.viewBoxMargin,
+    lastStageX + lastNodeWidth / 2 + dataflowReadability.viewBoxMargin,
+  );
+
+  return {
+    fontSize,
+    nodeWidths,
+    viewBox: [Math.ceil(viewBoxWidth), dataflowReadability.viewBoxHeight],
+  };
+}
+
+function dataflowSpec(
+  story: ResolvedStoryDocument,
+  layout: DataflowLayout,
+): ArchifyDataflow {
   const nodeIds = new Map(
     story.document.sections.map((section) => [
       section.id,
@@ -558,6 +640,7 @@ function dataflowSpec(story: ResolvedStoryDocument): ArchifyDataflow {
       title: story.document.title,
       quality_profile: "standard",
       locale: "en",
+      viewBox: layout.viewBox,
       legend: { mode: "hidden" },
     },
     stages: story.document.sections.map((section) => ({
@@ -572,17 +655,37 @@ function dataflowSpec(story: ResolvedStoryDocument): ArchifyDataflow {
       sublabel: section.body,
       stage: index,
       row: 0,
-      width: dataflowNodeWidth(section.title, section.body),
+      width: layout.nodeWidths[index]!,
     })),
-    flows: story.document.connections.map((connection, index) => ({
-      id: stableId(
-        "flow",
-        `${index}\0${connection.from}\0${connection.to}`,
-      ),
-      from: nodeIds.get(connection.from)!,
-      to: nodeIds.get(connection.to)!,
-      label: requiredConnectionLabel(connection, "dataflow"),
-    })),
+    flows: story.document.connections.map((connection, index) => {
+      const fromIndex = story.document.sections.findIndex(
+        (section) => section.id === connection.from,
+      );
+      const toIndex = story.document.sections.findIndex(
+        (section) => section.id === connection.to,
+      );
+      const label = requiredConnectionLabel(connection, "dataflow");
+      const endpointGap = Math.abs(toIndex - fromIndex) *
+          dataflowReadability.stageCenterGap -
+        (layout.nodeWidths[fromIndex]! + layout.nodeWidths[toIndex]!) / 2;
+      const labelWidth = Math.max(
+        dataflowReadability.minimumFlowLabelWidth,
+        dataflowTextUnits(label) * dataflowReadability.flowLabelWidthFactor +
+          dataflowReadability.flowLabelHorizontalPadding,
+      );
+      return {
+        id: stableId(
+          "flow",
+          `${index}\0${connection.from}\0${connection.to}`,
+        ),
+        from: nodeIds.get(connection.from)!,
+        to: nodeIds.get(connection.to)!,
+        label,
+        ...(labelWidth > endpointGap
+          ? { labelDy: dataflowReadability.flowLabelClearanceDy }
+          : {}),
+      };
+    }),
   };
 }
 
@@ -746,6 +849,7 @@ function commandError(error: unknown): Error {
 function improveStoryReadability(
   contents: string,
   family: "architecture" | "workflow" | "dataflow" | "lifecycle",
+  dataflowFontSize?: number,
 ): string {
   const headEnd = "</head>";
   if (!contents.includes(headEnd)) {
@@ -774,7 +878,7 @@ svg text[data-detail="context"],
 svg text[font-size="9"][font-weight="600"],
 svg g[data-edge-from] > text {
   font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', 'Liberation Mono', 'Noto Sans Mono CJK SC', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', monospace;
-  font-size: ${dataflowReadability.fontSize}px;
+  font-size: ${dataflowFontSize ?? dataflowReadability.maximumFontSize}px;
   font-weight: 600;
 }`
       : `
@@ -792,12 +896,15 @@ svg g[data-edge-from] > text {
 export function renderStory(story: ResolvedStoryDocument): StoryArtifact {
   const integrity = verifyVendoredArchifyIntegrity();
   const family = story.document.diagramFamily ?? "architecture";
+  const adaptiveDataflowLayout = family === "dataflow"
+    ? dataflowLayout(story)
+    : undefined;
   const spec = family === "workflow"
     ? workflowSpec(story)
     : family === "sequence"
       ? sequenceSpec(story)
       : family === "dataflow"
-        ? dataflowSpec(story)
+        ? dataflowSpec(story, adaptiveDataflowLayout!)
         : family === "lifecycle"
           ? lifecycleSpec(story)
           : archifySpec(story);
@@ -837,7 +944,11 @@ export function renderStory(story: ResolvedStoryDocument): StoryArtifact {
           family === "workflow" ||
           family === "dataflow" ||
           family === "lifecycle"
-        ? improveStoryReadability(contents, family)
+        ? improveStoryReadability(
+          contents,
+          family,
+          adaptiveDataflowLayout?.fontSize,
+        )
         : contents,
       renderer: {
         name: "archify",
