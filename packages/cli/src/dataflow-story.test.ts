@@ -1,6 +1,8 @@
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { buildCatalogueStories } from "./catalogue.js";
+import { validateStory } from "./story-validation.js";
 
 const repositoryRoot = fileURLToPath(new URL("../../../", import.meta.url));
 
@@ -33,6 +35,34 @@ describe("Dataflow story catalogue", () => {
     expect(story?.contents).toContain(
       'data-composition-frame-kind="stage"',
     );
+  });
+
+  it("grounds layout persistence and bundle validation in the exact source operations", async () => {
+    const story = await validateStory(
+      repositoryRoot,
+      join(repositoryRoot, "stories/repository-dataflow.topo.json"),
+    );
+    const anchors = new Map(
+      story.anchors.map(({ id, excerpt }) => [id, excerpt]),
+    );
+    const sections = new Map(
+      story.document.sections.map(({ id, anchorIds }) => [id, anchorIds]),
+    );
+
+    expect(anchors.get("compute-layout")).toBe(
+      "layoutGraphWithArchitecture(composedGraph, architecture, { previous, pins })",
+    );
+    expect(anchors.get("persist-layout")).toBe(
+      'writeGenerated(root, "graph/layout.json", serializeLayoutDeterministic(layout.layout))',
+    );
+    expect(anchors.get("validate-bundle")).toBe(
+      "validateComposedSite(root, sourceDirectory)",
+    );
+    expect(sections.get("site-artifacts")).toEqual(expect.arrayContaining([
+      "compute-layout",
+      "persist-layout",
+    ]));
+    expect(sections.get("static-bundle")).toContain("validate-bundle");
   });
 
   it("renders a separate non-source-grounded native Dataflow capability demo", async () => {
