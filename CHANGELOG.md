@@ -10,6 +10,10 @@ does not currently publish versioned releases.
 - Add source-grounded and capability Sequence stories with ordered native
   messages, a return semantic, five-viewport readable static previews, and
   canonical SVG exports. See #59.
+- Add a source-grounded repository pipeline Dataflow story and a separate
+  conceptual Dataflow capability demo with pinned-font adaptive native
+  rendering, preserved public-preview compatibility, and plain-static-bundle
+  coverage. See #60.
 - Add five native Archify story families with a backward-compatible Architecture
   default, explicit factual-versus-capability classification, separated gallery
   demos, responsive readable previews, and canonical SVG/PNG exports. See #61.

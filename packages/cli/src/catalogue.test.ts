@@ -156,6 +156,7 @@ describe("generated catalogue", () => {
 
     expect([...byFamily.keys()].sort()).toEqual([
       "architecture",
+      "dataflow",
       "lifecycle",
       "sequence",
       "workflow",
