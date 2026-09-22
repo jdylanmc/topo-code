@@ -249,6 +249,7 @@ const STORY_NAVIGATION_SCRIPT = `(() => {
   if (!(frame instanceof HTMLIFrameElement)) return;
   const storyId = document.body.dataset.storyId;
   if (!storyId) return;
+  const diagramFamily = document.body.dataset.diagramFamily;
   const nodeLinks = [...document.querySelectorAll("[data-node-id]")];
   const crossLinks = [...document.querySelectorAll("[data-cross-story]")];
   const params = new URLSearchParams(window.location.search);
@@ -312,7 +313,9 @@ const STORY_NAVIGATION_SCRIPT = `(() => {
       if (!focus) return;
       const candidates = crossLinks.filter((link) => link.getAttribute("data-source-node") === focus);
       rememberFocus(focus);
-      if (candidates.length === 1) follow(candidates[0]);
+      if (diagramFamily !== "sequence" && candidates.length === 1) {
+        follow(candidates[0]);
+      }
     };
     childDocument.addEventListener("click", () => setTimeout(syncSelectedNode));
     childDocument.addEventListener("keyup", () => setTimeout(syncSelectedNode));
@@ -438,7 +441,7 @@ export function renderStoryWrapper(
       iframe { display: block; width: 100vw; height: 100vh; border: 0; background: white; }
     </style>
   </head>
-  <body data-story-id="${escapeHtml(story.document.id)}" data-story-classification="${classification}">
+  <body data-story-id="${escapeHtml(story.document.id)}" data-story-classification="${classification}" data-diagram-family="${story.document.diagramFamily}">
     <iframe data-story-viewer title="${escapeHtml(story.document.title)} rendered story" src="viewer.html"></iframe>
     <details class="story-controls">
       <summary>

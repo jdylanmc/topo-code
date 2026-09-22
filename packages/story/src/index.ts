@@ -21,6 +21,7 @@ export interface StoryConnection {
   readonly from: string;
   readonly to: string;
   readonly label?: string;
+  readonly variant?: "return";
 }
 
 export type DiagramFamily =
@@ -276,7 +277,7 @@ function validateStoryDocument(value: unknown): string | undefined {
 
   for (const [index, connectionValue] of value.connections.entries()) {
     if (!isRecord(connectionValue)) return `connections[${index}] must be an object`;
-    const keys = exactKeys(connectionValue, ["from", "to"], ["label"]);
+    const keys = exactKeys(connectionValue, ["from", "to"], ["label", "variant"]);
     if (keys) return `connections[${index}] ${keys}`;
     if (!nonemptyString(connectionValue.from) || !sectionIds.has(connectionValue.from)) {
       return `connections[${index}].from must reference a section`;
@@ -286,6 +287,18 @@ function validateStoryDocument(value: unknown): string | undefined {
     }
     if (connectionValue.label !== undefined && !nonemptyString(connectionValue.label)) {
       return `connections[${index}].label must be nonempty`;
+    }
+    if (
+      connectionValue.variant !== undefined &&
+      connectionValue.variant !== "return"
+    ) {
+      return `connections[${index}].variant must be "return"`;
+    }
+    if (
+      connectionValue.variant === "return" &&
+      diagramFamily !== "sequence"
+    ) {
+      return `connections[${index}] return variant is only supported for sequence stories`;
     }
     if (
       (diagramFamily === "sequence" || diagramFamily === "dataflow") &&
