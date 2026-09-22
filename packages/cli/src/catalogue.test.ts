@@ -158,6 +158,7 @@ describe("generated catalogue", () => {
       "architecture",
       "dataflow",
       "lifecycle",
+      "sequence",
       "workflow",
     ]);
     expect(demos.every(({ document }) =>
@@ -169,6 +170,9 @@ describe("generated catalogue", () => {
       'data-composition-frame-kind="lane"',
     );
     expect(byFamily.get("lifecycle")?.contents).toContain("03 / Outcomes");
+    expect(byFamily.get("sequence")?.contents).toContain(
+      'stroke-dasharray="3,5"',
+    );
   });
 
   it("keeps a coherent explorer-only landing page with zero stories", async () => {
