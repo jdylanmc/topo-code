@@ -1,10 +1,25 @@
-import { access, readdir, readFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import {
+  access,
+  cp,
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  rm,
+  unlink,
+} from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { promisify } from "node:util";
+import { afterEach, describe, expect, it } from "vitest";
 import { buildCatalogueStories } from "./catalogue.js";
 
 const repositoryRoot = fileURLToPath(new URL("../../../", import.meta.url));
+const entry = fileURLToPath(new URL("../dist/main.js", import.meta.url));
+const execute = promisify(execFile);
+const directories: string[] = [];
 
 interface PackageManifest {
   readonly name: string;
@@ -39,6 +54,12 @@ async function workspacePaths(): Promise<string[]> {
   }
   return paths.sort();
 }
+
+afterEach(async () => {
+  for (const directory of directories.splice(0)) {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
 
 describe("Topocode package story", () => {
   it("maps every current workspace and only selected declared dependencies", async () => {
@@ -108,5 +129,52 @@ describe("Topocode package story", () => {
     expect(selected.size).toBeGreaterThan(0);
     expect(selected.size).toBeLessThan(declared.size);
     expect(packageStory?.contents).toContain("<svg");
+  });
+
+  it("rejects the authored story when selected manifest evidence is missing", async () => {
+    const root = await mkdtemp(join(tmpdir(), "topo-packages-story-"));
+    directories.push(root);
+    await execute("git", ["init", "--quiet", root]);
+    await execute("git", [
+      "-C", root, "remote", "add", "origin",
+      "https://github.com/example/topo-packages.git",
+    ]);
+    await cp(
+      join(repositoryRoot, "package.json"),
+      join(root, "package.json"),
+    );
+    const storyPath = join(root, "stories/topo-packages.topo.json");
+    await mkdir(dirname(storyPath), { recursive: true });
+    await cp(
+      join(repositoryRoot, "stories/topo-packages.topo.json"),
+      storyPath,
+    );
+    for (const path of await workspacePaths()) {
+      const manifestPath = join(root, path, "package.json");
+      await mkdir(dirname(manifestPath), { recursive: true });
+      await cp(
+        join(repositoryRoot, path, "package.json"),
+        manifestPath,
+      );
+    }
+    await execute("git", ["-C", root, "add", "."]);
+    await execute("git", [
+      "-C", root,
+      "-c", "user.name=Topo Test",
+      "-c", "user.email=topo@example.test",
+      "commit", "--quiet", "-m", "Package story fixture",
+    ]);
+
+    await execute(process.execPath, [
+      entry, "story", "validate", root, storyPath,
+    ]);
+    await unlink(join(root, "packages/diagram-core/package.json"));
+
+    await expect(execute(process.execPath, [
+      entry, "story", "validate", root, storyPath,
+    ])).rejects.toMatchObject({
+      code: 1,
+      stderr: expect.stringMatching(/diagram-core-manifest.*missing-file/s),
+    });
   });
 });
