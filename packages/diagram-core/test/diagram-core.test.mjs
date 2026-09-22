@@ -137,7 +137,7 @@ for (const sectionCount of [5, 6, 7, 10]) {
         connections: sections.slice(1).map((section, index) => ({
           from: sections[index].id,
           to: section.id,
-          label: "next",
+          label: `edge-${index}`,
         })),
       },
       anchors: [],
@@ -145,6 +145,9 @@ for (const sectionCount of [5, 6, 7, 10]) {
 
     assert.equal(result.renderer.name, "archify");
     assert.match(result.contents, new RegExp(`>Step ${sectionCount}</text>`));
+    for (let index = 0; index < sectionCount - 1; index += 1) {
+      assert.match(result.contents, new RegExp(`>edge-${index}</text>`));
+    }
   });
 }
 

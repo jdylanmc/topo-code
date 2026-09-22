@@ -286,6 +286,300 @@ test("converging Architecture relationships keep both labels readable", async ({
   }
 });
 
+test("ragged Architecture chains keep distinct labels and masks clear", async ({
+  page,
+  repository,
+}) => {
+  await writeFile(
+    join(repository, "package.json"),
+    '{"name":"architecture-chain-fixture","type":"module"}\n',
+  );
+  await writeFile(
+    join(repository, "source.ts"),
+    "export const architectureChainFixture = true;\n",
+  );
+  await mkdir(join(repository, "stories"), { recursive: true });
+  for (const sectionCount of [5, 6, 7, 10]) {
+    const sections = Array.from({ length: sectionCount }, (_, index) => ({
+      id: `node-${index}`,
+      title: `Step ${index + 1}`,
+      body: "A step.",
+      anchorIds: [],
+    }));
+    await writeFile(
+      join(repository, "stories", `chain-${sectionCount}.topo.json`),
+      `${JSON.stringify({
+        schemaVersion: "1.0",
+        diagramFamily: "architecture",
+        classification: "capability-demo",
+        id: `chain-${sectionCount}`,
+        title: `${sectionCount}-step Architecture chain`,
+        summary: "A consecutive Architecture chain.",
+        anchors: [],
+        sections,
+        connections: sections.slice(1).map((section, index) => ({
+          from: sections[index]!.id,
+          to: section.id,
+          label: `edge-${index}`,
+        })),
+      }, null, 2)}\n`,
+    );
+  }
+  await commit(
+    repository,
+    "Architecture chains",
+    "package.json",
+    "source.ts",
+    "stories",
+  );
+  await topo(repository, "scan");
+  for (const sectionCount of [5, 6, 7, 10]) {
+    await topo(
+      repository,
+      "story",
+      "preview",
+      repository,
+      join(repository, "stories", `chain-${sectionCount}.topo.json`),
+    );
+  }
+
+  const { server, url } = await startTopoServer(repository, ["--port", "0"]);
+  try {
+    for (const sectionCount of [5, 6, 7, 10]) {
+      for (const viewport of [
+        { width: 1024, height: 768 },
+        { width: 1280, height: 720 },
+        { width: 1440, height: 900 },
+        { width: 1600, height: 1000 },
+        { width: 1920, height: 1080 },
+      ]) {
+        await page.setViewportSize(viewport);
+        await page.goto(`${url}/stories/chain-${sectionCount}/`);
+        const frame = page.frameLocator("[data-story-viewer]");
+        const diagram = frame.locator('svg[role="img"]');
+        await expect(diagram).toBeVisible();
+        await expect(diagram.locator("g[data-node-id]")).toHaveCount(sectionCount);
+        await expect(diagram.locator("g[data-edge-from]"))
+          .toHaveCount(sectionCount - 1);
+
+        const iframe = page.locator("[data-story-viewer]");
+        const iframeScale = await iframe.evaluate((element) => {
+          const frameElement = element as HTMLIFrameElement;
+          const bounds = frameElement.getBoundingClientRect();
+          return Math.min(
+            bounds.width / frameElement.offsetWidth,
+            bounds.height / frameElement.offsetHeight,
+          );
+        });
+        const geometry = await diagram.evaluate((svg) => {
+          const overlap = (first: DOMRect, second: DOMRect) => ({
+            width: Math.max(
+              0,
+              Math.min(first.right, second.right) -
+                Math.max(first.left, second.left),
+            ),
+            height: Math.max(
+              0,
+              Math.min(first.bottom, second.bottom) -
+                Math.max(first.top, second.top),
+            ),
+          });
+          const nodes = [...svg.querySelectorAll<SVGGraphicsElement>(
+            "g[data-node-id] > rect:not(.c-mask)",
+          )].map((element) => element.getBoundingClientRect());
+          const labels = [...svg.querySelectorAll<SVGTextElement>(
+            "g[data-edge-from] > text",
+          )];
+          const masks = [...svg.querySelectorAll<SVGGraphicsElement>(
+            "g[data-edge-from] > rect.c-mask",
+          )];
+          const svgBounds = svg.getBoundingClientRect();
+          const contained = (elements: SVGGraphicsElement[]) =>
+            elements.every((element) => {
+              const bounds = element.getBoundingClientRect();
+              return bounds.left >= svgBounds.left &&
+                bounds.right <= svgBounds.right &&
+                bounds.top >= svgBounds.top &&
+                bounds.bottom <= svgBounds.bottom;
+            });
+          const pairwise = (elements: SVGGraphicsElement[]) =>
+            elements.flatMap((element, index) => {
+              const first = element.getBoundingClientRect();
+              return elements.slice(index + 1).flatMap((other) => {
+                const dimensions = overlap(
+                  first,
+                  other.getBoundingClientRect(),
+                );
+                return dimensions.width > 0 && dimensions.height > 0
+                  ? [dimensions]
+                  : [];
+              });
+            });
+          const nodeOverlaps = (elements: SVGGraphicsElement[]) =>
+            elements.flatMap((element) => {
+              const bounds = element.getBoundingClientRect();
+              return nodes.flatMap((node) => {
+                const dimensions = overlap(bounds, node);
+                return dimensions.width > 0 && dimensions.height > 0
+                  ? [dimensions]
+                  : [];
+              });
+            });
+          return {
+            labels: labels.map((label) => ({
+              effectiveFontSize:
+                Number.parseFloat(getComputedStyle(label).fontSize) *
+                Math.hypot(
+                  label.getScreenCTM()?.c ?? 0,
+                  label.getScreenCTM()?.d ?? 0,
+                ),
+              text: label.textContent?.trim() ?? "",
+            })),
+            labelNodeOverlaps: nodeOverlaps(labels),
+            labelOverlaps: pairwise(labels),
+            labelsContained: contained(labels),
+            maskNodeOverlaps: nodeOverlaps(masks),
+            maskOverlaps: pairwise(masks),
+            masksContained: contained(masks),
+          };
+        });
+
+        expect(geometry.labels.map(({ text }) => text)).toEqual(
+          Array.from(
+            { length: sectionCount - 1 },
+            (_, index) => `edge-${index}`,
+          ),
+        );
+        expect(
+          Math.min(...geometry.labels.map(({ effectiveFontSize }) =>
+            effectiveFontSize * iframeScale
+          )),
+          `${sectionCount} sections at ${viewport.width}x${viewport.height}`,
+        ).toBeGreaterThanOrEqual(12);
+        expect(geometry.labelNodeOverlaps).toEqual([]);
+        expect(geometry.labelsContained).toBe(true);
+        expect(
+          geometry.labelOverlaps,
+          `${sectionCount} label overlaps at ${viewport.width}x${viewport.height}`,
+        ).toEqual([]);
+        expect(geometry.maskNodeOverlaps).toEqual([]);
+        expect(geometry.masksContained).toBe(true);
+        expect(
+          geometry.maskOverlaps,
+          `${sectionCount} mask overlaps at ${viewport.width}x${viewport.height}`,
+        ).toEqual([]);
+      }
+
+      if (sectionCount === 7 || sectionCount === 10) {
+        const frame = page.frameLocator("[data-story-viewer]");
+        await frame.getByRole("button", { name: "Export diagram" }).click();
+        const svgDownloadEvent = page.waitForEvent("download");
+        await frame.locator('button[data-format="svg"]').click();
+        const svgDownload = await svgDownloadEvent;
+        const svgPath = await svgDownload.path();
+        expect(svgPath).not.toBeNull();
+        const exportedSvg = await readFile(svgPath!, "utf8");
+        for (let index = 0; index < sectionCount - 1; index += 1) {
+          expect(exportedSvg).toContain(`edge-${index}`);
+        }
+        const exportedPage = await page.context().newPage();
+        let svgDimensions: { width: number; height: number } | undefined;
+        try {
+          await exportedPage.setContent(exportedSvg);
+          const exportedDiagram = exportedPage.locator("svg");
+          await expect(exportedDiagram).toBeVisible();
+          await expect(exportedDiagram.locator("g[data-node-id]"))
+            .toHaveCount(sectionCount);
+          await expect(exportedDiagram.locator("g[data-edge-from]"))
+            .toHaveCount(sectionCount - 1);
+          svgDimensions = await exportedDiagram.evaluate((svg) => ({
+            width: Number(svg.getAttribute("width")),
+            height: Number(svg.getAttribute("height")),
+          }));
+          const exportedGeometry = await exportedDiagram.evaluate((svg) => {
+            const overlap = (first: DOMRect, second: DOMRect) => {
+              const width = Math.max(
+                0,
+                Math.min(first.right, second.right) -
+                  Math.max(first.left, second.left),
+              );
+              const height = Math.max(
+                0,
+                Math.min(first.bottom, second.bottom) -
+                  Math.max(first.top, second.top),
+              );
+              return width > 0 && height > 0;
+            };
+            const nodes = [...svg.querySelectorAll<SVGGraphicsElement>(
+              "g[data-node-id] > rect:not(.c-mask)",
+            )].map((element) => element.getBoundingClientRect());
+            const labels = [...svg.querySelectorAll<SVGGraphicsElement>(
+              "g[data-edge-from] > text",
+            )];
+            const masks = [...svg.querySelectorAll<SVGGraphicsElement>(
+              "g[data-edge-from] > rect.c-mask",
+            )];
+            const pairwiseOverlap = (elements: SVGGraphicsElement[]) =>
+              elements.some((element, index) =>
+                elements.slice(index + 1).some((other) =>
+                  overlap(
+                    element.getBoundingClientRect(),
+                    other.getBoundingClientRect(),
+                  )
+                )
+              );
+            const nodeOverlap = (elements: SVGGraphicsElement[]) =>
+              elements.some((element) =>
+                nodes.some((node) =>
+                  overlap(element.getBoundingClientRect(), node)
+                )
+              );
+            return {
+              labelNodeOverlap: nodeOverlap(labels),
+              labelOverlap: pairwiseOverlap(labels),
+              maskNodeOverlap: nodeOverlap(masks),
+              maskOverlap: pairwiseOverlap(masks),
+            };
+          });
+          expect(exportedGeometry).toEqual({
+            labelNodeOverlap: false,
+            labelOverlap: false,
+            maskNodeOverlap: false,
+            maskOverlap: false,
+          });
+        } finally {
+          await exportedPage.close();
+        }
+        expect(svgDimensions?.width).toBeGreaterThan(0);
+        expect(svgDimensions?.height).toBeGreaterThan(0);
+
+        await frame.getByRole("button", { name: "Export diagram" }).click();
+        const pngDownloadEvent = page.waitForEvent("download", {
+          timeout: 30_000,
+        });
+        await frame.locator('button[data-format="png"]').click();
+        const pngDownload = await pngDownloadEvent;
+        const pngPath = await pngDownload.path();
+        expect(pngPath).not.toBeNull();
+        const png = await readFile(pngPath!);
+        expect(png.subarray(1, 4).toString("ascii")).toBe("PNG");
+        const pngWidth = png.readUInt32BE(16);
+        const pngHeight = png.readUInt32BE(20);
+        expect(pngWidth / svgDimensions!.width)
+          .toBe(pngHeight / svgDimensions!.height);
+        expect(pngWidth).toBeGreaterThanOrEqual(svgDimensions!.width);
+        await expect(frame.locator("html"))
+          .toHaveAttribute("data-last-export-format", "png");
+        await expect(frame.locator("html"))
+          .toHaveAttribute("data-last-export-canonical", "true");
+      }
+    }
+  } finally {
+    await page.goto("about:blank");
+    await stopTopoServer(server);
+  }
+});
+
 test("actual package story stays readable from a plain static bundle", async ({
   page,
   repository,

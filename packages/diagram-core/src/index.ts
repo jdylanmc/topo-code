@@ -364,14 +364,25 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
       const adjacent = Math.abs(deltaRow) + Math.abs(deltaColumn) === 1;
       if (adjacent) {
         const vertical = deltaRow !== 0;
+        const horizontalLabelBelow = deltaColumn > 0;
+        const horizontalLabelSharesGap = horizontalLabelBelow
+          ? from.row < rowCount - 1
+          : from.row > 0;
         return {
           ...base,
           ...(vertical
             ? { labelDy: deltaRow > 0 ? 40 : -24 }
             : {
-                labelDy: deltaColumn > 0
+                labelDy: horizontalLabelBelow
                   ? boxHeight / 2 + rowGap / 2
                   : -(boxHeight / 2 + rowGap / 2),
+                ...(horizontalLabelSharesGap
+                  ? {
+                      labelDx: from.row % 2 === 0
+                        ? -columnGap / 2
+                        : columnGap / 2,
+                    }
+                  : {}),
               }),
           fromSide: vertical
             ? (deltaRow > 0 ? "bottom" as const : "top" as const)
