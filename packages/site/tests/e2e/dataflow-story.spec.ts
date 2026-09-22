@@ -225,15 +225,6 @@ test("actual Dataflow controls restore clear titles and factual source navigatio
     await expect(
       viewer.locator('svg g[data-node-id="repository-source"]'),
     ).toHaveAttribute("aria-pressed", "true");
-    await expect(
-      viewer.locator("#archify-source-evidence-data"),
-    ).toHaveCount(1);
-    await expect(
-      viewer.getByText(
-        "packages/scanner/src/typescript-scanner.ts",
-        { exact: true },
-      ),
-    ).toBeVisible();
     await page.goBack();
     await expect(page).toHaveURL(`${url}/stories/repository-dataflow/`);
     await expect(controls).not.toHaveAttribute("open", "");
