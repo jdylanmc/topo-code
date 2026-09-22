@@ -463,6 +463,32 @@ test("Sequence stories remain readable in a plain-server bundle", async ({
   }
 });
 
+test("actual repository Sequence stories validate and preview", async () => {
+  await withDisposableRepository(projectRoot, async (repository) => {
+    await topo(repository, "scan");
+    for (const story of stories) {
+      const validation = await topo(
+        repository,
+        "story",
+        "validate",
+        repository,
+        join(repository, story.path),
+      );
+      if (story.id === "story-preview-sequence") {
+        expect(validation.stdout).toContain(
+          "render: packages/diagram-core/src/index.ts:",
+        );
+      }
+      await topo(
+        repository,
+        "preview",
+        repository,
+        join(repository, story.path),
+      );
+    }
+  });
+});
+
 test("integrated Sequence stories preserve titles, navigation, and exports", async ({
   page,
 }) => {
@@ -472,26 +498,6 @@ test("integrated Sequence stories preserve titles, navigation, and exports", asy
     try {
       const output = join(workspace, "integration-bundle");
       await topo(repository, "scan");
-      for (const story of stories) {
-        const validation = await topo(
-          repository,
-          "story",
-          "validate",
-          repository,
-          join(repository, story.path),
-        );
-        if (story.id === "story-preview-sequence") {
-          expect(validation.stdout).toContain(
-            "render: packages/diagram-core/src/index.ts:",
-          );
-        }
-        await topo(
-          repository,
-          "preview",
-          repository,
-          join(repository, story.path),
-        );
-      }
       await topo(
         repository,
         "bundle",
