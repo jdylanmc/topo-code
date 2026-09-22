@@ -312,6 +312,9 @@ test("actual package story stays readable from a plain static bundle", async ({
         const masks = [...svg.querySelectorAll<SVGGraphicsElement>(
           "g[data-edge-from] > rect.c-mask",
         )];
+        const labels = [...svg.querySelectorAll<SVGGraphicsElement>(
+          "g[data-edge-from] > text",
+        )];
         const overlaps = masks.flatMap((mask) => {
           const maskBounds = mask.getBoundingClientRect();
           return nodes.flatMap((node) => {
@@ -329,7 +332,32 @@ test("actual package story stays readable from a plain static bundle", async ({
             return width > 0 && height > 0 ? [{ width, height }] : [];
           });
         });
+        const labelOverlaps = labels.flatMap((label, index) => {
+          const labelBounds = label.getBoundingClientRect();
+          return labels.slice(index + 1).flatMap((other) => {
+            const otherBounds = other.getBoundingClientRect();
+            const width = Math.max(
+              0,
+              Math.min(labelBounds.right, otherBounds.right) -
+                Math.max(labelBounds.left, otherBounds.left),
+            );
+            const height = Math.max(
+              0,
+              Math.min(labelBounds.bottom, otherBounds.bottom) -
+                Math.max(labelBounds.top, otherBounds.top),
+            );
+            return width > 0 && height > 0
+              ? [{
+                  first: label.textContent?.trim() ?? "",
+                  second: other.textContent?.trim() ?? "",
+                  width,
+                  height,
+                }]
+              : [];
+          });
+        });
         return {
+          labelOverlaps,
           maskCount: masks.length,
           overlaps,
           rows: [...rowCounts.values()],
@@ -340,6 +368,8 @@ test("actual package story stays readable from a plain static bundle", async ({
         .toBe(true);
       expect(geometry.maskCount).toBe(fixture.relationships.length);
       expect(geometry.overlaps).toEqual([]);
+      expect(geometry.labelOverlaps, `${viewport.width}x${viewport.height}`)
+        .toEqual([]);
     }
 
     const frame = page.frameLocator("[data-story-viewer]");
