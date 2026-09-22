@@ -41,7 +41,9 @@ describe("source-grounded UML story", () => {
       expect.stringMatching(/«interface» StoryRenderer$/),
       expect.stringMatching(/«class» StoryDocumentError$/),
       expect.stringMatching(/«type» DiagramFamily$/),
-      expect.stringMatching(/Legend.*«class».*«interface».*«type»/),
+      expect.stringMatching(
+        /Legend.*«class».*«interface».*«type».*extends.*declared type dependency/,
+      ),
     ]));
 
     expect(uml?.document.connections.map(({ from, to, label }) => [
