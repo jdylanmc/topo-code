@@ -70,8 +70,7 @@
       "anchorIds": [
         "cli-manifest",
         "cli-diagram-core-dependency",
-        "root-packages-workspace",
-        "root-workspaces"
+        "root-packages-workspace"
       ]
     },
     {
@@ -81,8 +80,7 @@
       "anchorIds": [
         "diagram-core-manifest",
         "diagram-core-story-dependency",
-        "root-packages-workspace",
-        "root-workspaces"
+        "root-packages-workspace"
       ]
     },
     {
@@ -91,8 +89,7 @@
       "body": "Authored story parsing and source-evidence resolution package. Its manifest declares no internal workspace dependency.",
       "anchorIds": [
         "story-manifest",
-        "root-packages-workspace",
-        "root-workspaces"
+        "root-packages-workspace"
       ]
     },
     {
@@ -111,8 +108,7 @@
       "body": "Report normalization package. Its manifest declares a workspace dependency on schema.",
       "anchorIds": [
         "reports-manifest",
-        "root-packages-workspace",
-        "root-workspaces"
+        "root-packages-workspace"
       ]
     },
     {
@@ -121,8 +117,7 @@
       "body": "Repository scanning package. Its manifest declares a workspace dependency on schema.",
       "anchorIds": [
         "scanner-manifest",
-        "root-packages-workspace",
-        "root-workspaces"
+        "root-packages-workspace"
       ]
     },
     {
@@ -131,8 +126,7 @@
       "body": "Local workspace and generated-artifact package. Its manifest declares a workspace dependency on schema.",
       "anchorIds": [
         "workspace-manifest",
-        "root-packages-workspace",
-        "root-workspaces"
+        "root-packages-workspace"
       ]
     },
     {
@@ -142,8 +136,7 @@
       "anchorIds": [
         "enrichment-manifest",
         "enrichment-schema-dependency",
-        "root-packages-workspace",
-        "root-workspaces"
+        "root-packages-workspace"
       ]
     },
     {
@@ -152,8 +145,7 @@
       "body": "Shared graph and artifact schema package. Its manifest declares no internal workspace dependency.",
       "anchorIds": [
         "schema-manifest",
-        "root-packages-workspace",
-        "root-workspaces"
+        "root-packages-workspace"
       ]
     },
     {
@@ -163,8 +155,7 @@
       "anchorIds": [
         "graph-manifest",
         "graph-schema-dependency",
-        "root-packages-workspace",
-        "root-workspaces"
+        "root-packages-workspace"
       ]
     },
     {
@@ -174,8 +165,7 @@
       "anchorIds": [
         "modules-manifest",
         "modules-graph-dependency",
-        "root-packages-workspace",
-        "root-workspaces"
+        "root-packages-workspace"
       ]
     },
     {
@@ -184,8 +174,7 @@
       "body": "Curated views package. Its manifest declares workspace dependencies on graph and schema; the map selects its graph relationship.",
       "anchorIds": [
         "views-manifest",
-        "root-packages-workspace",
-        "root-workspaces"
+        "root-packages-workspace"
       ]
     },
     {
@@ -195,8 +184,7 @@
       "anchorIds": [
         "site-manifest",
         "site-views-dependency",
-        "root-packages-workspace",
-        "root-workspaces"
+        "root-packages-workspace"
       ]
     }
   ],
