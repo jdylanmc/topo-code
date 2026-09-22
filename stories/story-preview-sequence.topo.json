@@ -19,6 +19,11 @@
       "symbol": "readCommittedStory"
     },
     {
+      "id": "build-catalogue",
+      "path": "packages/cli/src/catalogue.ts",
+      "symbol": "buildCatalogue"
+    },
+    {
       "id": "parse-story",
       "path": "packages/story/src/index.ts",
       "symbol": "parseStoryDocument"
@@ -56,10 +61,10 @@
   ],
   "sections": [
     {
-      "id": "cli-request",
-      "title": "CLI",
-      "body": "The story preview command checks the built site, requests the committed catalogue, and later selects the requested story.",
-      "anchorIds": ["cli-preview"]
+      "id": "preview-orchestrator",
+      "title": "Preview",
+      "body": "The story preview command asks the catalogue builder to load, validate, resolve, and render committed stories before it publishes the current catalogue.",
+      "anchorIds": ["cli-preview", "build-catalogue"]
     },
     {
       "id": "committed-story-read",
@@ -68,15 +73,15 @@
       "anchorIds": ["committed-story"]
     },
     {
-      "id": "parse-validation",
+      "id": "story-contract",
       "title": "Contract",
-      "body": "The committed JSON is parsed against the authored story contract before its declared anchors are resolved.",
-      "anchorIds": ["parse-story", "resolve-story"]
+      "body": "Catalogue construction parses each committed JSON document against the authored story contract.",
+      "anchorIds": ["parse-story"]
     },
     {
-      "id": "source-snapshot",
-      "title": "Snapshot",
-      "body": "A stable snapshot captures every declared source path and supplies the contents used to resolve source anchors.",
+      "id": "source-resolution",
+      "title": "Evidence",
+      "body": "Catalogue construction captures a stable source snapshot and supplies it while resolving every declared anchor.",
       "anchorIds": ["snapshot", "resolve-story"]
     },
     {
@@ -100,32 +105,32 @@
   ],
   "connections": [
     {
-      "from": "cli-request",
+      "from": "preview-orchestrator",
       "to": "committed-story-read",
-      "label": "load stories"
+      "label": "read HEAD"
     },
     {
-      "from": "committed-story-read",
-      "to": "parse-validation",
+      "from": "preview-orchestrator",
+      "to": "story-contract",
       "label": "parse JSON"
     },
     {
-      "from": "parse-validation",
-      "to": "source-snapshot",
+      "from": "preview-orchestrator",
+      "to": "source-resolution",
       "label": "resolve anchors"
     },
     {
-      "from": "source-snapshot",
+      "from": "preview-orchestrator",
       "to": "native-render",
       "label": "render"
     },
     {
-      "from": "native-render",
+      "from": "preview-orchestrator",
       "to": "stale-guard",
       "label": "check stale"
     },
     {
-      "from": "stale-guard",
+      "from": "preview-orchestrator",
       "to": "artifact-write",
       "label": "write artifacts"
     }
