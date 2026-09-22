@@ -742,7 +742,7 @@ svg text[data-detail="context"],
 svg text[font-size="9"][font-weight="600"],
 svg g[data-edge-from] > text {
   font-family: ui-sans-serif, system-ui, sans-serif;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
 }`
       : `
