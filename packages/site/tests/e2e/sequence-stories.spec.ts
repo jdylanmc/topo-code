@@ -88,6 +88,35 @@ test("browser fixture repositories are isolated from the real workspace", async 
   ).toBe(true);
 });
 
+test("a live browser fixture survives real workspace rotation", async ({
+  repository,
+}) => {
+  await writeFixture(repository);
+  const workspace = join(projectRoot, ".topo");
+  const backupRoot = await mkdtemp(join(tmpdir(), "topo-workspace-backup-"));
+  const backup = join(backupRoot, ".topo");
+  let preservedWorkspace = false;
+  try {
+    await rename(workspace, backup);
+    preservedWorkspace = true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
+
+  try {
+    await mkdir(join(workspace, "cache"), { recursive: true });
+    await rm(workspace, { recursive: true, force: true });
+    await topo(repository, "scan");
+    await expect
+      .poll(async () => readFile(join(repository, "package.json"), "utf8"))
+      .toContain("sequence-stories-fixture");
+  } finally {
+    await rm(workspace, { recursive: true, force: true });
+    if (preservedWorkspace) await rename(backup, workspace);
+    await rm(backupRoot, { recursive: true, force: true });
+  }
+});
+
 test("Sequence stories remain readable in a plain-server bundle", async ({
   page,
   repository,
