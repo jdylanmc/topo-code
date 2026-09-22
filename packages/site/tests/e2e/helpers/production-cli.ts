@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import { dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
-import { test as base } from "@playwright/test";
+import { test as base, type Page } from "@playwright/test";
 
 const execute = promisify(execFile);
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../..");
@@ -35,6 +35,32 @@ export async function stopTopoServer(server: ChildProcess): Promise<void> {
     server.once("error", reject);
     server.kill("SIGTERM");
   });
+}
+
+export async function stopTopoServerAfterPage(
+  page: Page,
+  server: ChildProcess,
+): Promise<void> {
+  const errors: unknown[] = [];
+  if (!page.isClosed()) {
+    try {
+      await page.goto("about:blank");
+    } catch (error) {
+      errors.push(error);
+    }
+  }
+  try {
+    await stopTopoServer(server);
+  } catch (error) {
+    errors.push(error);
+  }
+  if (errors.length === 1) throw errors[0];
+  if (errors.length > 1) {
+    throw new AggregateError(
+      errors,
+      "Failed to leave the owned page and stop its Topocode server",
+    );
+  }
 }
 
 export async function startTopoServer(

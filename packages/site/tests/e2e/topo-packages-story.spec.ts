@@ -1,12 +1,13 @@
 import { access, cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { expect } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import {
   commit,
   startStaticServer,
   startTopoServer,
   stopTopoServer,
+  stopTopoServerAfterPage,
   test,
   topo,
 } from "./helpers/production-cli.js";
@@ -286,26 +287,30 @@ test("converging Architecture relationships keep both labels readable", async ({
   }
 });
 
-test("ragged Architecture chains keep distinct labels and masks clear", async ({
-  page,
-  repository,
-}) => {
-  const labelSets = [
-    {
-      id: "short",
-      label: (index: number) => `edge-${index}`,
-    },
-    {
-      id: "manifest",
-      label: (index: number) => `manifest workspace:${index}`,
-    },
-  ] as const;
-  const sharedLabelsBySectionCount = new Map([
-    [5, [0, 1, 3]],
-    [6, [0, 1, 3, 4]],
-    [7, [0, 1, 3]],
-    [10, [0, 1, 2, 4, 5]],
-  ]);
+const raggedLabelSets = [
+  {
+    id: "short",
+    label: (index: number) => `edge-${index}`,
+  },
+  {
+    id: "manifest",
+    label: (index: number) => `manifest workspace:${index}`,
+  },
+] as const;
+const raggedSectionCounts = [5, 6, 7, 10] as const;
+const sharedLabelsBySectionCount = new Map([
+  [5, [0, 1, 3]],
+  [6, [0, 1, 3, 4]],
+  [7, [0, 1, 3]],
+  [10, [0, 1, 2, 4, 5]],
+]);
+
+async function verifyRaggedArchitectureScenario(
+  page: Page,
+  repository: string,
+  labelSet: (typeof raggedLabelSets)[number],
+  sectionCount: (typeof raggedSectionCounts)[number],
+): Promise<void> {
   await writeFile(
     join(repository, "package.json"),
     '{"name":"architecture-chain-fixture","type":"module"}\n',
@@ -315,38 +320,35 @@ test("ragged Architecture chains keep distinct labels and masks clear", async ({
     "export const architectureChainFixture = true;\n",
   );
   await mkdir(join(repository, "stories"), { recursive: true });
-  for (const labelSet of labelSets) {
-    for (const sectionCount of [5, 6, 7, 10]) {
-      const sections = Array.from({ length: sectionCount }, (_, index) => ({
-        id: `node-${index}`,
-        title: `Step ${index + 1}`,
-        body: "A step.",
-        anchorIds: [],
-      }));
-      await writeFile(
-        join(
-          repository,
-          "stories",
-          `chain-${labelSet.id}-${sectionCount}.topo.json`,
-        ),
-        `${JSON.stringify({
-          schemaVersion: "1.0",
-          diagramFamily: "architecture",
-          classification: "capability-demo",
-          id: `chain-${labelSet.id}-${sectionCount}`,
-          title: `${sectionCount}-step Architecture chain`,
-          summary: "A consecutive Architecture chain.",
-          anchors: [],
-          sections,
-          connections: sections.slice(1).map((section, index) => ({
-            from: sections[index]!.id,
-            to: section.id,
-            label: labelSet.label(index),
-          })),
-        }, null, 2)}\n`,
-      );
-    }
-  }
+  const sections = Array.from({ length: sectionCount }, (_, index) => ({
+    id: `node-${index}`,
+    title: `Step ${index + 1}`,
+    body: "A step.",
+    anchorIds: [],
+  }));
+  const storyPath = join(
+    repository,
+    "stories",
+    `chain-${labelSet.id}-${sectionCount}.topo.json`,
+  );
+  await writeFile(
+    storyPath,
+    `${JSON.stringify({
+      schemaVersion: "1.0",
+      diagramFamily: "architecture",
+      classification: "capability-demo",
+      id: `chain-${labelSet.id}-${sectionCount}`,
+      title: `${sectionCount}-step Architecture chain`,
+      summary: "A consecutive Architecture chain.",
+      anchors: [],
+      sections,
+      connections: sections.slice(1).map((section, index) => ({
+        from: sections[index]!.id,
+        to: section.id,
+        label: labelSet.label(index),
+      })),
+    }, null, 2)}\n`,
+  );
   await commit(
     repository,
     "Architecture chains",
@@ -355,26 +357,10 @@ test("ragged Architecture chains keep distinct labels and masks clear", async ({
     "stories",
   );
   await topo(repository, "scan");
-  for (const labelSet of labelSets) {
-    for (const sectionCount of [5, 6, 7, 10]) {
-      await topo(
-        repository,
-        "story",
-        "preview",
-        repository,
-        join(
-          repository,
-          "stories",
-          `chain-${labelSet.id}-${sectionCount}.topo.json`,
-        ),
-      );
-    }
-  }
+  await topo(repository, "story", "preview", repository, storyPath);
 
   const { server, url } = await startTopoServer(repository, ["--port", "0"]);
   try {
-    for (const labelSet of labelSets) {
-      for (const sectionCount of [5, 6, 7, 10]) {
       for (const viewport of [
         { width: 1024, height: 768 },
         { width: 1280, height: 720 },
@@ -783,13 +769,26 @@ test("ragged Architecture chains keep distinct labels and masks clear", async ({
         await expect(frame.locator("html"))
           .toHaveAttribute("data-last-export-canonical", "true");
       }
-    }
-    }
   } finally {
-    await page.goto("about:blank");
-    await stopTopoServer(server);
+    await stopTopoServerAfterPage(page, server);
   }
-});
+}
+
+for (const labelSet of raggedLabelSets) {
+  for (const sectionCount of raggedSectionCounts) {
+    test(`ragged Architecture chains keep ${labelSet.id} labels and masks clear for ${sectionCount} sections`, async ({
+      page,
+      repository,
+    }) => {
+      await verifyRaggedArchitectureScenario(
+        page,
+        repository,
+        labelSet,
+        sectionCount,
+      );
+    });
+  }
+}
 
 test("actual package story stays readable from a plain static bundle", async ({
   page,
