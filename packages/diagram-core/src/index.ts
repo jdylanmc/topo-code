@@ -197,6 +197,7 @@ const archifyCli = path.join(
   "bin",
   "archify.mjs",
 );
+const architectureFontSize = 24;
 
 function stableId(prefix: string, value: string): string {
   const hash = createHash("sha256").update(value).digest("hex").slice(0, 16);
@@ -255,34 +256,32 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
     );
     return { section, sectionAnchors, sublabel, width };
   });
-  // Lay components out in a snake grid (rows of 3-4, left-to-right then
-  // right-to-left) so consecutive sections stay adjacent and connections read
-  // as a clean flow without a tall vertical column.
-  const perRow = Math.min(2, Math.max(1, sections.length));
+  // Balance components across rows of at most four, then snake each row so
+  // consecutive sections stay adjacent without producing a tall column.
+  const maxRowSize = sections.length >= 10 ? 4 : 3;
+  const rowCount = Math.max(1, Math.ceil(sections.length / maxRowSize));
+  const shortRowSize = Math.floor(sections.length / rowCount);
+  const longRowCount = sections.length % rowCount;
+  const rowSizes = Array.from(
+    { length: rowCount },
+    (_, row) => shortRowSize + (row < longRowCount ? 1 : 0),
+  );
   const boxWidth = Math.max(280, ...resolved.map((entry) => entry.width));
   const boxHeight = 130;
-  const relationshipLabelWidth = (label: string) =>
-    Math.ceil(
-      Array.from(label).reduce(
-        (total, character) => total + (character.codePointAt(0)! > 0xff ? 2 : 1),
-        0,
-      ) * 21 * 0.6 + 10,
-    );
-  const columnGap = Math.max(
-    90,
-    ...story.document.connections.flatMap((connection) =>
-      connection.label === undefined
-        ? []
-        : [relationshipLabelWidth(connection.label) + 24]
-    ),
-  );
+  const columnGap = 90;
   const rowGap = 80;
   const margin = 80;
   const cellOf = (index: number) => {
-    const row = Math.floor(index / perRow);
-    const positionInRow = index % perRow;
+    let row = 0;
+    let rowStart = 0;
+    while (index >= rowStart + rowSizes[row]!) {
+      rowStart += rowSizes[row]!;
+      row += 1;
+    }
+    const rowSize = rowSizes[row]!;
+    const positionInRow = index - rowStart;
     // Reverse odd rows so the sequence snakes and stays adjacent at the wrap.
-    const column = row % 2 === 0 ? positionInRow : perRow - 1 - positionInRow;
+    const column = row % 2 === 0 ? positionInRow : rowSize - 1 - positionInRow;
     return { row, column };
   };
   const components = resolved.map(({ section, sectionAnchors, sublabel }, index) => {
@@ -310,13 +309,15 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
           }),
     };
   });
-  const rowCount = Math.max(1, Math.ceil(sections.length / perRow));
   const gridBottom = margin + rowCount * boxHeight + (rowCount - 1) * rowGap;
   const laneBase = gridBottom + 60;
   const laneGap = 40;
+  const widestRow = Math.max(...rowSizes);
+  const gridRight =
+    margin + widestRow * boxWidth + (widestRow - 1) * columnGap;
   const viewBoxWidth = Math.max(
     800,
-    margin * 2 + perRow * boxWidth + (perRow - 1) * columnGap,
+    gridRight + margin,
   );
   const viewBoxHeight = Math.max(
     500,
@@ -366,12 +367,11 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
         return {
           ...base,
           ...(vertical
-            ? {
-                labelDx: (from.column === 0 ? 1 : -1) *
-                  (boxWidth / 2 + columnGap / 2),
-              }
+            ? { labelDy: deltaRow > 0 ? 40 : -24 }
             : {
-                labelDy: boxHeight / 2 + rowGap / 2,
+                labelDy: deltaColumn > 0
+                  ? boxHeight / 2 + rowGap / 2
+                  : -(boxHeight / 2 + rowGap / 2),
               }),
           fromSide: vertical
             ? (deltaRow > 0 ? "bottom" as const : "top" as const)
@@ -384,12 +384,46 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
       const fromX = components[fromIndex]!.pos[0] + boxWidth / 2;
       const toX = components[toIndex]!.pos[0] + boxWidth / 2;
       const lane = laneBase + index * laneGap;
+      const blockedBelow = (endpointIndex: number) => {
+        const endpoint = cellOf(endpointIndex);
+        return sections.some((_, candidateIndex) => {
+          if (candidateIndex === endpointIndex) return false;
+          const candidate = cellOf(candidateIndex);
+          return candidate.column === endpoint.column &&
+            candidate.row > endpoint.row;
+        });
+      };
+      const outside = (column: number) =>
+        column < widestRow / 2 ? margin / 2 : gridRight + margin / 2;
+      const fromBlocked = blockedBelow(fromIndex);
+      const toBlocked = blockedBelow(toIndex);
+      const fromOutside = outside(from.column);
+      const toOutside = outside(to.column);
       return {
         ...base,
-        fromSide: "bottom" as const,
-        toSide: "bottom" as const,
-        via: [[fromX, lane], [toX, lane]] as const,
-        labelSegment: 1,
+        fromSide: fromBlocked
+          ? "top" as const
+          : "bottom" as const,
+        toSide: toBlocked
+          ? "top" as const
+          : "bottom" as const,
+        via: [
+          ...(fromBlocked
+            ? [
+                [fromX, margin / 2],
+                [fromOutside, margin / 2],
+                [fromOutside, lane],
+              ] as const
+            : [[fromX, lane]] as const),
+          ...(toBlocked
+            ? [
+                [toOutside, lane],
+                [toOutside, margin / 2],
+                [toX, margin / 2],
+              ] as const
+            : [[toX, lane]] as const),
+        ],
+        labelSegment: fromBlocked ? 3 : 1,
       };
     }),
   };
@@ -861,7 +895,7 @@ svg { max-height: 100vh; }
 svg [data-source-evidence-beacon] { display: none; }
 svg text[data-node-label],
 svg text[data-detail="context"],
-svg g[data-edge-from] > text { font-size: 21px; }`
+svg g[data-edge-from] > text { font-size: ${architectureFontSize}px; }`
     : family === "workflow"
       ? `
 svg text[data-node-label],

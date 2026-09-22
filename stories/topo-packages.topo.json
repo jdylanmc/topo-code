@@ -1,0 +1,199 @@
+{
+  "schemaVersion": "1.0",
+  "diagramFamily": "architecture",
+  "classification": "source-grounded",
+  "id": "topo-packages",
+  "title": "Topocode package boundaries",
+  "summary": "The root Yarn workspace configuration defines thirteen current packages. Selected arrows show compile-time workspace dependencies declared in package manifests, not runtime calls, deployment, ownership, or a complete import graph.",
+  "category": "Topocode internals",
+  "anchors": [
+    { "id": "root-workspaces", "path": "package.json" },
+    { "id": "cli-manifest", "path": "packages/cli/package.json" },
+    { "id": "diagram-core-manifest", "path": "packages/diagram-core/package.json" },
+    { "id": "story-manifest", "path": "packages/story/package.json" },
+    { "id": "eslint-config-manifest", "path": "tools/eslint-config/package.json" },
+    { "id": "reports-manifest", "path": "packages/reports/package.json" },
+    { "id": "scanner-manifest", "path": "packages/scanner/package.json" },
+    { "id": "workspace-manifest", "path": "packages/workspace/package.json" },
+    { "id": "enrichment-manifest", "path": "packages/enrichment/package.json" },
+    { "id": "schema-manifest", "path": "packages/schema/package.json" },
+    { "id": "graph-manifest", "path": "packages/graph/package.json" },
+    { "id": "modules-manifest", "path": "packages/modules/package.json" },
+    { "id": "views-manifest", "path": "packages/views/package.json" },
+    { "id": "site-manifest", "path": "packages/site/package.json" },
+    {
+      "id": "cli-diagram-core-dependency",
+      "path": "packages/cli/package.json",
+      "pattern": "\"@topo/diagram-core\": \"workspace:*\""
+    },
+    {
+      "id": "diagram-core-story-dependency",
+      "path": "packages/diagram-core/package.json",
+      "pattern": "\"@topo/story\": \"workspace:*\""
+    },
+    {
+      "id": "enrichment-schema-dependency",
+      "path": "packages/enrichment/package.json",
+      "pattern": "\"@topo/schema\": \"workspace:*\""
+    },
+    {
+      "id": "graph-schema-dependency",
+      "path": "packages/graph/package.json",
+      "pattern": "\"@topo/schema\": \"workspace:*\""
+    },
+    {
+      "id": "modules-graph-dependency",
+      "path": "packages/modules/package.json",
+      "pattern": "\"@topo/graph\": \"workspace:*\""
+    },
+    {
+      "id": "site-views-dependency",
+      "path": "packages/site/package.json",
+      "pattern": "\"@topo/views\": \"workspace:*\""
+    },
+    {
+      "id": "root-eslint-config-workspace",
+      "path": "package.json",
+      "pattern": "\"tools/eslint-config\""
+    },
+    {
+      "id": "root-packages-workspace",
+      "path": "package.json",
+      "pattern": "\"packages/*\""
+    }
+  ],
+  "sections": [
+    {
+      "id": "cli",
+      "title": "@topo/cli",
+      "body": "Command-line composition package. Its manifest declares workspace dependencies on diagram-core, enrichment, graph, modules, reports, scanner, schema, site, story, views, and workspace; the map selects its diagram-core relationship.",
+      "anchorIds": [
+        "cli-manifest",
+        "cli-diagram-core-dependency",
+        "root-packages-workspace"
+      ]
+    },
+    {
+      "id": "diagram-core",
+      "title": "@topo/diagram-core",
+      "body": "Pinned Archify rendering boundary. Its manifest declares a workspace dependency on story.",
+      "anchorIds": [
+        "diagram-core-manifest",
+        "diagram-core-story-dependency",
+        "root-packages-workspace"
+      ]
+    },
+    {
+      "id": "story",
+      "title": "@topo/story",
+      "body": "Authored story parsing and source-evidence resolution package. Its manifest declares no internal workspace dependency.",
+      "anchorIds": [
+        "story-manifest",
+        "root-packages-workspace"
+      ]
+    },
+    {
+      "id": "eslint-config",
+      "title": "@topo/eslint-config",
+      "body": "Shared lint configuration selected by the root tools/eslint-config workspace entry. Its manifest declares no internal workspace dependency.",
+      "anchorIds": [
+        "eslint-config-manifest",
+        "root-eslint-config-workspace",
+        "root-workspaces"
+      ]
+    },
+    {
+      "id": "reports",
+      "title": "@topo/reports",
+      "body": "Report normalization package. Its manifest declares a workspace dependency on schema.",
+      "anchorIds": [
+        "reports-manifest",
+        "root-packages-workspace"
+      ]
+    },
+    {
+      "id": "scanner",
+      "title": "@topo/scanner",
+      "body": "Repository scanning package. Its manifest declares a workspace dependency on schema.",
+      "anchorIds": [
+        "scanner-manifest",
+        "root-packages-workspace"
+      ]
+    },
+    {
+      "id": "workspace",
+      "title": "@topo/workspace",
+      "body": "Local workspace and generated-artifact package. Its manifest declares a workspace dependency on schema.",
+      "anchorIds": [
+        "workspace-manifest",
+        "root-packages-workspace"
+      ]
+    },
+    {
+      "id": "enrichment",
+      "title": "@topo/enrichment",
+      "body": "Enrichment document package. Its manifest declares a workspace dependency on schema.",
+      "anchorIds": [
+        "enrichment-manifest",
+        "enrichment-schema-dependency",
+        "root-packages-workspace"
+      ]
+    },
+    {
+      "id": "schema",
+      "title": "@topo/schema",
+      "body": "Shared graph and artifact schema package. Its manifest declares no internal workspace dependency.",
+      "anchorIds": [
+        "schema-manifest",
+        "root-packages-workspace"
+      ]
+    },
+    {
+      "id": "graph",
+      "title": "@topo/graph",
+      "body": "Graph projection and layout package. Its manifest declares a workspace dependency on schema.",
+      "anchorIds": [
+        "graph-manifest",
+        "graph-schema-dependency",
+        "root-packages-workspace"
+      ]
+    },
+    {
+      "id": "modules",
+      "title": "@topo/modules",
+      "body": "Module composition package. Its manifest declares workspace dependencies on graph and schema; the map selects its graph relationship.",
+      "anchorIds": [
+        "modules-manifest",
+        "modules-graph-dependency",
+        "root-packages-workspace"
+      ]
+    },
+    {
+      "id": "views",
+      "title": "@topo/views",
+      "body": "Curated views package. Its manifest declares workspace dependencies on graph and schema; the map selects its graph relationship.",
+      "anchorIds": [
+        "views-manifest",
+        "root-packages-workspace"
+      ]
+    },
+    {
+      "id": "site",
+      "title": "@topo/site",
+      "body": "Browser explorer package. Its manifest declares workspace dependencies on enrichment, graph, modules, schema, and views; the map selects its views relationship.",
+      "anchorIds": [
+        "site-manifest",
+        "site-views-dependency",
+        "root-packages-workspace"
+      ]
+    }
+  ],
+  "connections": [
+    { "from": "cli", "to": "diagram-core", "label": "manifest workspace:*" },
+    { "from": "diagram-core", "to": "story", "label": "manifest workspace:*" },
+    { "from": "enrichment", "to": "schema", "label": "manifest workspace:*" },
+    { "from": "graph", "to": "schema", "label": "manifest workspace:*" },
+    { "from": "modules", "to": "graph", "label": "manifest workspace:*" },
+    { "from": "site", "to": "views", "label": "manifest workspace:*" }
+  ]
+}

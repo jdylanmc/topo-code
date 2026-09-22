@@ -102,6 +102,18 @@ describe("story document contract", () => {
     const schema = JSON.parse(await readFile(schemaPath, "utf8"));
     const validate = new Ajv2020({ strict: true }).compile(schema);
     expect(validate(validStory())).toBe(true);
+    expect(validate({
+      ...validStory(),
+      anchors: [{
+        id: "manifest-dependency",
+        path: "package.json",
+        pattern: '"@topo/story": "workspace:*"',
+      }],
+      sections: [{
+        ...validStory().sections[0],
+        anchorIds: ["manifest-dependency"],
+      }],
+    })).toBe(true);
     expect(JSON.stringify(schema)).not.toMatch(/renderer|lineRange|startLine|endLine/);
   });
 
@@ -166,6 +178,11 @@ describe("story document contract", () => {
     ["missing-file", { path: "src/missing.ts" }, "missing-file"],
     ["missing-symbol", { symbol: "missing" }, "missing-symbol"],
     ["missing-pattern", { pattern: "refund(order)" }, "missing-pattern"],
+    [
+      "missing file-scoped pattern",
+      { symbol: undefined, pattern: "refund(order)" },
+      "missing-pattern",
+    ],
   ])("reports %s with the document and anchor", async (_label, change, code) => {
     const story = validStory();
     const anchor = { ...story.anchors[0], ...change };
@@ -181,6 +198,35 @@ describe("story document contract", () => {
       documentPath: "stories/checkout.topo.json",
       anchorId: "submit",
       code,
+    });
+  });
+
+  it("rejects an ambiguous file-scoped pattern", async () => {
+    const story = validStory();
+    await expect(resolveStoryDocument(
+      "/fixture",
+      {
+        ...story,
+        anchors: [{
+          id: "submit",
+          path: "src/checkout.ts",
+          pattern: "charge(order)",
+        }],
+      },
+      "stories/checkout.topo.json",
+      { revision: "abc123", dirty: false },
+      async (path) => path === "src/checkout.ts"
+        ? [
+          "export function submitCheckout(order: Order) {",
+          "  charge(order);",
+          "  return charge(order);",
+          "}",
+        ].join("\n")
+        : undefined,
+    )).rejects.toMatchObject<Partial<StoryDocumentError>>({
+      documentPath: "stories/checkout.topo.json",
+      anchorId: "submit",
+      code: "ambiguous-pattern",
     });
   });
 });
