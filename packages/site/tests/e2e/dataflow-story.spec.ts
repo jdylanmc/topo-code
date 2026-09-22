@@ -210,6 +210,10 @@ test("actual Dataflow controls restore clear titles and factual source navigatio
     await page.setViewportSize({ width: 1024, height: 768 });
     await page.goto(`${url}/stories/repository-dataflow/`);
     const controls = page.locator("details.story-controls");
+    const summary = controls.locator("summary");
+    await summary.focus();
+    await page.keyboard.press("Enter");
+    await expect(controls).toHaveAttribute("open", "");
     const sourceLink = page.locator('[data-node-id="repository-source"]');
     await sourceLink.focus();
     await page.keyboard.press("Enter");
@@ -217,8 +221,15 @@ test("actual Dataflow controls restore clear titles and factual source navigatio
       `${url}/stories/repository-dataflow/?focus=repository-source`,
     );
     await expect(controls).not.toHaveAttribute("open", "");
+    const viewer = page.frameLocator("[data-story-viewer]");
     await expect(
-      page.frameLocator("[data-story-viewer]").getByText(
+      viewer.locator('svg g[data-node-id="repository-source"]'),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect(
+      viewer.locator("#archify-source-evidence-data"),
+    ).toHaveCount(1);
+    await expect(
+      viewer.getByText(
         "packages/scanner/src/typescript-scanner.ts",
         { exact: true },
       ),
