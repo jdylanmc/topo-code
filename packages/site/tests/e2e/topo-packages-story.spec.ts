@@ -1,4 +1,4 @@
-import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
+import { access, cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect } from "@playwright/test";
@@ -198,6 +198,12 @@ test("actual package story stays readable from a plain static bundle", async ({
     "--base-path",
     "/published/topo/",
   );
+  await expect(access(
+    join(output, "published/topo/stories/topo-packages.topo.json"),
+  )).rejects.toMatchObject({ code: "ENOENT" });
+  await expect(access(
+    join(output, "published/topo/packages/cli/package.json"),
+  )).rejects.toMatchObject({ code: "ENOENT" });
   const { server, url } = await startStaticServer(output);
   try {
     const baseUrl = `${url}/published/topo/`;
@@ -335,6 +341,45 @@ test("actual package story stays readable from a plain static bundle", async ({
       expect(geometry.maskCount).toBe(fixture.relationships.length);
       expect(geometry.overlaps).toEqual([]);
     }
+
+    const frame = page.frameLocator("[data-story-viewer]");
+    await frame.getByRole("button", { name: "Export diagram" }).click();
+    const svgDownloadEvent = page.waitForEvent("download");
+    await frame.locator('button[data-format="svg"]').click();
+    const svgDownload = await svgDownloadEvent;
+    const svgPath = await svgDownload.path();
+    expect(svgPath).not.toBeNull();
+    const exportedSvg = await readFile(svgPath!, "utf8");
+    expect(exportedSvg).not.toContain('"schemaVersion"');
+    expect(exportedSvg).not.toContain('"anchors"');
+    for (const workspace of fixture.workspaces) {
+      expect(exportedSvg, workspace.name).toContain(workspace.name);
+    }
+    const exportedPage = await page.context().newPage();
+    try {
+      await exportedPage.setContent(exportedSvg);
+      const exportedDiagram = exportedPage.locator("svg");
+      await expect(exportedDiagram).toBeVisible();
+      await expect(exportedDiagram.locator("g[data-node-id]"))
+        .toHaveCount(fixture.workspaces.length);
+      await expect(exportedDiagram.locator("g[data-edge-from]"))
+        .toHaveCount(fixture.relationships.length);
+    } finally {
+      await exportedPage.close();
+    }
+
+    await frame.getByRole("button", { name: "Export diagram" }).click();
+    const pngDownloadEvent = page.waitForEvent("download", { timeout: 30_000 });
+    await frame.locator('button[data-format="png"]').click();
+    const pngDownload = await pngDownloadEvent;
+    const pngPath = await pngDownload.path();
+    expect(pngPath).not.toBeNull();
+    const png = await readFile(pngPath!);
+    expect(png.subarray(1, 4).toString("ascii")).toBe("PNG");
+    await expect(frame.locator("html"))
+      .toHaveAttribute("data-last-export-format", "png");
+    await expect(frame.locator("html"))
+      .toHaveAttribute("data-last-export-canonical", "true");
 
     const firstPackage = fixture.workspaces[0]!;
     const firstPackageId = firstPackage.name.replace("@topo/", "");
