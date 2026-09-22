@@ -10,6 +10,17 @@ does not currently publish versioned releases.
 - Add a source-grounded, bounded UML-intent Architecture story for Topocode's
   story and renderer contracts, with visible declaration markers, legend text,
   and only source-declared inheritance or selected type dependencies. See #57.
+- Add a source-grounded Architecture story covering every current Yarn
+  workspace and selected manifest-declared compile-time relationships, with a
+  readable balanced package layout. See #58.
+- Add source-grounded and capability Sequence stories with ordered native
+  messages, a return semantic, accessible full participant narratives in public
+  story wrappers, explicit cross-story navigation, content-fitted titles,
+  five-viewport readable static previews, and canonical SVG exports. See #59.
+- Add a source-grounded repository pipeline Dataflow story and a separate
+  conceptual Dataflow capability demo with pinned-font adaptive native
+  rendering, preserved public-preview compatibility, and plain-static-bundle
+  coverage. See #60.
 - Add five native Archify story families with a backward-compatible Architecture
   default, explicit factual-versus-capability classification, separated gallery
   demos, responsive readable previews, and canonical SVG/PNG exports. See #61.
@@ -54,6 +65,11 @@ does not currently publish versioned releases.
 
 ### Fixed
 
+- Keep consecutive Architecture relationships and their labels clear of
+  unrelated nodes and each other when balanced layouts use unequal row lengths.
+  See #58.
+- Keep native and final pinned-font Dataflow relationship labels and masks clear
+  of their endpoint nodes across adaptive readability sizes. See #60.
 - Keep complete authored story titles visible in closed navigation controls
   without obscuring native diagram titles, including after keyboard toggling.
   See #61.

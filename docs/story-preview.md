@@ -2,16 +2,21 @@
 
 Topo stories are committed JSON documents whose identity, narrative, and source
 anchors are independent of any renderer. The checked schema is exported as
-`@topo/story/story.schema.json`; anchors contain repository-relative `path`,
-optional `symbol`, and optional symbol-scoped `pattern` values. Source line
-ranges and excerpts are resolved from the current working tree at preview time
-and are never stored in the authored document.
+`@topo/story/story.schema.json`; anchors contain a repository-relative `path`,
+an optional `symbol`, and an optional exact `pattern`. A pattern with a symbol
+is matched within that symbol; without a symbol, it is matched within the
+explicit file. Source line ranges and excerpts are resolved from the current
+working tree at preview time and are never stored in the authored document.
 
 The optional `diagramFamily` selects `architecture`, `workflow`, `sequence`,
 `dataflow`, or `lifecycle`; omission retains the legacy Architecture behavior.
 Sequence and Dataflow connections require a nonempty `label` because their
 native schemas require explicit relationship meaning. Architecture, Workflow,
 and Lifecycle connections may omit labels, and Topocode does not invent them.
+Dataflow previews preserve single-line authored node text by selecting the
+largest intrinsic pinned-font size that satisfies native node bounds and gaps,
+then emit matching node widths and a compact native viewBox. Content that
+cannot satisfy the renderer's legible minimum still fails explicitly.
 Lifecycle state widths are derived from their authored titles, then all states
 are placed together within their semantic native lanes so a wide state cannot
 silently reuse a neighboring state's column.

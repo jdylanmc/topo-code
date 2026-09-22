@@ -1,10 +1,21 @@
 import { execFile, spawn, type ChildProcess } from "node:child_process";
 import { createServer, type Server } from "node:http";
-import { mkdir, mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import {
+  cp,
+  lstat,
+  mkdir,
+  mkdtemp,
+  readFile,
+  realpath,
+  readdir,
+  rm,
+  stat,
+} from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
-import { test as base } from "@playwright/test";
+import { test as base, type Page } from "@playwright/test";
 
 const execute = promisify(execFile);
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../..");
@@ -23,6 +34,91 @@ export async function commit(repository: string, message: string, ...paths: stri
   return (await execute("git", ["rev-parse", "HEAD"], { cwd: repository })).stdout.trim();
 }
 
+async function copyDirectoryIfPresent(
+  source: string,
+  destination: string,
+): Promise<void> {
+  let sourceStats;
+  try {
+    sourceStats = await lstat(source);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
+    throw error;
+  }
+  if (!sourceStats.isDirectory()) {
+    throw new Error(`Disposable repository anchor is not a directory: ${source}`);
+  }
+  await cp(source, destination, {
+    recursive: true,
+    dereference: true,
+    errorOnExist: true,
+    force: false,
+    preserveTimestamps: true,
+  });
+}
+
+function credentialFreeOrigin(origin: string): string {
+  if (/^git@[^:]+:.+/.test(origin)) return origin;
+
+  let parsed: URL;
+  try {
+    parsed = new URL(origin);
+  } catch {
+    throw new Error("Unsupported repository origin.");
+  }
+  if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+    parsed.username = "";
+    parsed.password = "";
+  } else if (parsed.protocol === "ssh:") {
+    parsed.password = "";
+  } else {
+    throw new Error("Unsupported repository origin.");
+  }
+  if (parsed.search || parsed.hash) {
+    throw new Error("Repository origin must not contain query or fragment data.");
+  }
+  return parsed.toString();
+}
+
+export async function withDisposableRepository<T>(
+  source: string,
+  use: (repository: string) => Promise<T>,
+): Promise<T> {
+  const owned = await mkdtemp(join(tmpdir(), "topo-disposable-repository-"));
+  const repository = join(owned, "repository");
+  try {
+    const sourceOrigin = (
+      await execute("git", ["remote", "get-url", "origin"], { cwd: source })
+    ).stdout.trim();
+    const origin = credentialFreeOrigin(sourceOrigin);
+    await execute(
+      "git",
+      ["clone", "--quiet", "--no-hardlinks", source, repository],
+    );
+    await execute("git", ["remote", "set-url", "origin", origin], {
+      cwd: repository,
+    });
+    await copyDirectoryIfPresent(
+      join(source, "node_modules"),
+      join(repository, "node_modules"),
+    );
+    for (
+      const entry of await readdir(join(source, "packages"), {
+        withFileTypes: true,
+      })
+    ) {
+      if (!entry.isDirectory()) continue;
+      await copyDirectoryIfPresent(
+        join(source, "packages", entry.name, "dist"),
+        join(repository, "packages", entry.name, "dist"),
+      );
+    }
+    return await use(await realpath(repository));
+  } finally {
+    await rm(owned, { recursive: true, force: true });
+  }
+}
+
 export async function stopTopoServer(server: ChildProcess): Promise<void> {
   if (!server.pid || server.exitCode !== null || server.signalCode !== null) return;
   await new Promise<void>((done, reject) => {
@@ -35,6 +131,32 @@ export async function stopTopoServer(server: ChildProcess): Promise<void> {
     server.once("error", reject);
     server.kill("SIGTERM");
   });
+}
+
+export async function stopTopoServerAfterPage(
+  page: Page,
+  server: ChildProcess,
+): Promise<void> {
+  const errors: unknown[] = [];
+  if (!page.isClosed()) {
+    try {
+      await page.goto("about:blank");
+    } catch (error) {
+      errors.push(error);
+    }
+  }
+  try {
+    await stopTopoServer(server);
+  } catch (error) {
+    errors.push(error);
+  }
+  if (errors.length === 1) throw errors[0];
+  if (errors.length > 1) {
+    throw new AggregateError(
+      errors,
+      "Failed to leave the owned page and stop its Topocode server",
+    );
+  }
 }
 
 export async function startTopoServer(
@@ -146,9 +268,7 @@ export const test = base.extend<{
   startSite: () => Promise<string>;
 }>({
   repository: async ({}, use) => {
-    const directory = join(root, ".topo/cache/production-browser");
-    await mkdir(directory, { recursive: true });
-    const owned = await mkdtemp(join(directory, "journey-"));
+    const owned = await mkdtemp(join(tmpdir(), "topo-production-browser-"));
     const repository = join(owned, "target repository");
     try {
       await mkdir(repository);

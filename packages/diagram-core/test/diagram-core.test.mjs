@@ -113,6 +113,44 @@ test("renders a resolved story through the vendored Archify CLI", async (context
   assert.match(first.contents, />Present</);
 });
 
+for (const sectionCount of [5, 6, 7, 10]) {
+  test(`renders a ${sectionCount}-section consecutive Architecture chain`, () => {
+    const sections = Array.from({ length: sectionCount }, (_, index) => ({
+      id: `node-${index}`,
+      title: `Step ${index + 1}`,
+      body: "A step.",
+      anchorIds: [],
+    }));
+    const result = renderStory({
+      documentPath: "stories/architecture-chain.topo.json",
+      repositoryRoot: packageRoot,
+      source: { revision: "fixture", dirty: false },
+      document: {
+        schemaVersion: "1.0",
+        diagramFamily: "architecture",
+        classification: "capability-demo",
+        id: `architecture-chain-${sectionCount}`,
+        title: `${sectionCount}-step Architecture chain`,
+        summary: "A consecutive Architecture chain.",
+        anchors: [],
+        sections,
+        connections: sections.slice(1).map((section, index) => ({
+          from: sections[index].id,
+          to: section.id,
+          label: `edge-${index}`,
+        })),
+      },
+      anchors: [],
+    });
+
+    assert.equal(result.renderer.name, "archify");
+    assert.match(result.contents, new RegExp(`>Step ${sectionCount}</text>`));
+    for (let index = 0; index < sectionCount - 1; index += 1) {
+      assert.match(result.contents, new RegExp(`>edge-${index}</text>`));
+    }
+  });
+}
+
 test("rejects a tampered vendored Archify file", async (context) => {
   const temporaryRoot = await mkdtemp(
     path.join(tmpdir(), "topo-diagram-core-"),

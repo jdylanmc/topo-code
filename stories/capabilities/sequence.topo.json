@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "1.0",
+  "diagramFamily": "sequence",
+  "classification": "capability-demo",
+  "id": "sequence-capability",
+  "title": "Sequence capability",
+  "summary": "A conceptual request and native return message; it does not describe Topocode source.",
+  "anchors": [],
+  "sections": [
+    {
+      "id": "caller",
+      "title": "Caller",
+      "body": "Starts the conceptual interaction.",
+      "anchorIds": []
+    },
+    {
+      "id": "service",
+      "title": "Service",
+      "body": "Handles the conceptual request.",
+      "anchorIds": []
+    }
+  ],
+  "connections": [
+    {
+      "from": "caller",
+      "to": "service",
+      "label": "request"
+    },
+    {
+      "from": "service",
+      "to": "caller",
+      "label": "result",
+      "variant": "return"
+    }
+  ]
+}
