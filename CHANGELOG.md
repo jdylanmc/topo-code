@@ -11,8 +11,9 @@ does not currently publish versioned releases.
   workspace and selected manifest-declared compile-time relationships, with a
   readable balanced package layout. See #58.
 - Add source-grounded and capability Sequence stories with ordered native
-  messages, a return semantic, five-viewport readable static previews, and
-  canonical SVG exports. See #59.
+  messages, a return semantic, accessible full participant narratives,
+  content-fitted titles, five-viewport readable static previews, and canonical
+  SVG exports. See #59.
 - Add a source-grounded repository pipeline Dataflow story and a separate
   conceptual Dataflow capability demo with pinned-font adaptive native
   rendering, preserved public-preview compatibility, and plain-static-bundle

@@ -111,6 +111,7 @@ interface ArchifySequence {
     readonly locale: "en";
     readonly legend: { readonly mode: "hidden" };
     readonly column_fit: "spread";
+    readonly viewBox: readonly [number, number];
   };
   readonly participants: readonly {
     readonly id: string;
@@ -199,6 +200,45 @@ const archifyCli = path.join(
   "archify.mjs",
 );
 const architectureFontSize = 24;
+const sequenceReadability = {
+  minimumViewBoxWidth: 480,
+  minimumViewBoxHeight: 480,
+  messageStartY: 180,
+  minimumMessageSpacing: 28,
+  timelineBottomPadding: 83,
+  sideMargin: 62,
+  participantGapAllowance: 24,
+  minimumParticipantGap: 108,
+  rightMargin: 40,
+  maximumParticipantWidth: 190,
+  minimumParticipantWidth: 86,
+  nativeLabelWidthFactor: 6.8,
+  nativeLabelTolerance: 6,
+  textHorizontalPadding: 8,
+  textWidthFactor: 0.6,
+  targetEffectiveFontSize: 12,
+  maximumNativeFontSize: 13,
+  viewerBodyHorizontalPadding: 64,
+  compactViewerDiagramPadding: 32,
+  regularViewerDiagramPadding: 48,
+  compactViewerMaximumHeight: 920,
+  maximumReaderWidth: 1440,
+  supportedViewports: [
+    [1024, 768],
+    [1280, 720],
+    [1440, 900],
+    [1600, 1000],
+    [1920, 1080],
+  ],
+} as const;
+
+interface SequenceLayout {
+  readonly viewBox: readonly [number, number];
+  readonly fontSize: number;
+  readonly participantWidth: number;
+  readonly inlineBodyIds: ReadonlySet<string>;
+  readonly messageYs: readonly number[];
+}
 
 function stableId(prefix: string, value: string): string {
   const hash = createHash("sha256").update(value).digest("hex").slice(0, 16);
@@ -209,6 +249,199 @@ function componentId(sectionId: string): string {
   return /^[a-zA-Z][a-zA-Z0-9_-]*$/.test(sectionId)
     ? sectionId
     : stableId("component", sectionId);
+}
+
+// Match the pinned renderer's text-unit model before deciding whether prose
+// can remain inline at the final readable font size.
+const fullwidthCharacter =
+  /[\u1100-\u115F\u231A-\u231B\u2329-\u232A\u23E9-\u23EC\u23F0\u23F3\u25FD-\u25FE\u2614-\u2615\u2630-\u2637\u2648-\u2653\u267F\u268A-\u268F\u2693\u26A1\u26AA-\u26AB\u26BD-\u26BE\u26C4-\u26C5\u26CE\u26D4\u26EA\u26F2-\u26F3\u26F5\u26FA\u26FD\u2705\u270A-\u270B\u2728\u274C\u274E\u2753-\u2755\u2757\u2795-\u2797\u27B0\u27BF\u2B1B-\u2B1C\u2B50\u2B55\u2E80-\uA4CF\uA960-\uA97C\uAC00-\uD7A3\uF900-\uFAFF\uFE10-\uFE19\uFE30-\uFE6F\uFF01-\uFF60\uFFE0-\uFFE6\u{16FE0}-\u{18DFF}\u{1AFF0}-\u{1AFFF}\u{1B000}-\u{1B2FF}\u{1F000}-\u{1FAFF}\u{20000}-\u{3FFFD}]/u;
+
+function sequenceTextUnits(text: string): number {
+  const characters = Array.from(text);
+  let units = 0;
+  for (let index = 0; index < characters.length; index += 1) {
+    const codePoint = characters[index]!.codePointAt(0)!;
+    if (codePoint >= 0xfe00 && codePoint <= 0xfe0f) continue;
+    const next = characters[index + 1]?.codePointAt(0) ?? -1;
+    if (next === 0xfe0f) units += 2;
+    else if (next === 0xfe0e) units += 1;
+    else units += fullwidthCharacter.test(characters[index]!) ? 2 : 1;
+  }
+  return units;
+}
+
+function requiredSequenceParticipantWidth(text: string): number {
+  return Math.ceil(
+    sequenceTextUnits(text) * sequenceReadability.nativeLabelWidthFactor -
+      sequenceReadability.nativeLabelTolerance,
+  );
+}
+
+function fittedSequenceFontSize(text: string, width: number): number {
+  const units = Math.max(1, sequenceTextUnits(text));
+  const available = Math.max(
+    1,
+    width - sequenceReadability.textHorizontalPadding,
+  );
+  return Math.floor(
+    Math.min(
+        sequenceReadability.maximumNativeFontSize,
+        available / (units * sequenceReadability.textWidthFactor),
+      ) * 10,
+  ) / 10;
+}
+
+function sequenceLayout(story: ResolvedStoryDocument): SequenceLayout {
+  const participantCount = Math.max(1, story.document.sections.length);
+  const requiredParticipantWidth = Math.min(
+    sequenceReadability.maximumParticipantWidth,
+    Math.max(
+      sequenceReadability.minimumParticipantWidth,
+      ...story.document.sections.map(({ title }) =>
+        requiredSequenceParticipantWidth(title)
+      ),
+    ),
+  );
+  const viewBoxWidth = Math.max(
+    sequenceReadability.minimumViewBoxWidth,
+    participantCount *
+        (requiredParticipantWidth +
+          sequenceReadability.participantGapAllowance) +
+      sequenceReadability.sideMargin * 2,
+    sequenceReadability.sideMargin +
+      requiredParticipantWidth +
+      (participantCount - 1) * sequenceReadability.minimumParticipantGap +
+      sequenceReadability.rightMargin,
+  );
+  const messageYs = story.document.connections.map((_, index) =>
+    sequenceReadability.messageStartY +
+    index * sequenceReadability.minimumMessageSpacing
+  );
+  const lastMessageY = messageYs.at(-1) ??
+    sequenceReadability.messageStartY;
+  const viewBox = [
+    viewBoxWidth,
+    Math.max(
+      sequenceReadability.minimumViewBoxHeight,
+      lastMessageY + sequenceReadability.timelineBottomPadding,
+    ),
+  ] as const;
+  const minimumScale = Math.min(
+    ...sequenceReadability.supportedViewports.map(([width, height]) => {
+      const readerWidth = Math.min(
+        width - sequenceReadability.viewerBodyHorizontalPadding,
+        sequenceReadability.maximumReaderWidth,
+      );
+      const diagramPadding =
+        height <= sequenceReadability.compactViewerMaximumHeight
+          ? sequenceReadability.compactViewerDiagramPadding
+          : sequenceReadability.regularViewerDiagramPadding;
+      return Math.min(
+        (readerWidth - diagramPadding) / viewBox[0],
+        height / viewBox[1],
+      );
+    }),
+  );
+  const fontSize = Math.ceil(
+    sequenceReadability.targetEffectiveFontSize / minimumScale * 10,
+  ) / 10;
+  if (fontSize > sequenceReadability.maximumNativeFontSize) {
+    throw new Error(
+      `Sequence story requires ${fontSize}px native text to remain ` +
+        `${sequenceReadability.targetEffectiveFontSize}px effective across ` +
+        "supported viewports; reduce the message count or split the story",
+    );
+  }
+
+  const participantWidth = Math.max(
+    sequenceReadability.minimumParticipantWidth,
+    Math.min(
+      sequenceReadability.maximumParticipantWidth,
+      Math.round(
+          (viewBox[0] - sequenceReadability.sideMargin * 2) /
+            participantCount,
+        ) - sequenceReadability.participantGapAllowance,
+    ),
+  );
+  const inlineBodyIds = new Set<string>();
+  for (const section of story.document.sections) {
+    if (fittedSequenceFontSize(section.title, participantWidth) < fontSize) {
+      throw new Error(
+        `Sequence participant "${section.title}" cannot fit inside its ` +
+          `${participantWidth}px box at the ${fontSize}px native font ` +
+          `required for ${sequenceReadability.targetEffectiveFontSize}px ` +
+          "effective text",
+      );
+    }
+    if (fittedSequenceFontSize(section.body, participantWidth) >= fontSize) {
+      inlineBodyIds.add(section.id);
+    }
+  }
+
+  return {
+    viewBox,
+    fontSize,
+    participantWidth,
+    inlineBodyIds,
+    messageYs,
+  };
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+function addSequenceNarrativeDetails(
+  contents: string,
+  story: ResolvedStoryDocument,
+  layout: SequenceLayout,
+): string {
+  let result = contents;
+  for (const section of story.document.sections) {
+    if (layout.inlineBodyIds.has(section.id)) continue;
+    const id = componentId(section.id);
+    const marker = `data-node-id="${id}"`;
+    const markerIndex = result.indexOf(marker);
+    const tagStart = result.lastIndexOf("<g ", markerIndex);
+    const tagEnd = result.indexOf(">", markerIndex);
+    if (markerIndex < 0 || tagStart < 0 || tagEnd < 0) {
+      throw new Error(
+        `Archify sequence output is missing participant "${section.id}"`,
+      );
+    }
+
+    const body = escapeHtml(section.body);
+    const openTag = result.slice(tagStart, tagEnd);
+    const labelledTag = openTag.replace(
+      / aria-label="([^"]*)"/,
+      (_, label: string) => ` aria-label="${label}, ${body}"`,
+    );
+    if (labelledTag === openTag) {
+      throw new Error(
+        `Archify sequence output is missing participant label "${section.id}"`,
+      );
+    }
+    result = result.slice(0, tagStart) +
+      `${labelledTag} data-node-sublabel="${body}"` +
+      result.slice(tagEnd);
+
+    const titleStart = result.indexOf("<title>", tagEnd);
+    const titleEnd = result.indexOf("</title>", titleStart);
+    if (titleStart < 0 || titleEnd < 0) {
+      throw new Error(
+        `Archify sequence output is missing participant title "${section.id}"`,
+      );
+    }
+    const titleContentsStart = titleStart + "<title>".length;
+    result = result.slice(0, titleContentsStart) +
+      `${result.slice(titleContentsStart, titleEnd)} · ${body}` +
+      result.slice(titleEnd);
+  }
+  return result;
 }
 
 function repositoryMetadata(repositoryRoot: string): {
@@ -513,7 +746,10 @@ function requiredConnectionLabel(
   return connection.label;
 }
 
-function sequenceSpec(story: ResolvedStoryDocument): ArchifySequence {
+function sequenceSpec(
+  story: ResolvedStoryDocument,
+  layout: SequenceLayout,
+): ArchifySequence {
   const participantIds = new Map(
     story.document.sections.map((section) => [
       section.id,
@@ -529,6 +765,7 @@ function sequenceSpec(story: ResolvedStoryDocument): ArchifySequence {
       locale: "en",
       legend: { mode: "hidden" },
       column_fit: "spread",
+      viewBox: layout.viewBox,
     },
     participants: story.document.sections.map((section, index) => ({
       id: participantIds.get(section.id)!,
@@ -536,7 +773,7 @@ function sequenceSpec(story: ResolvedStoryDocument): ArchifySequence {
         ? "frontend"
         : "backend",
       label: section.title,
-      sublabel: "",
+      sublabel: layout.inlineBodyIds.has(section.id) ? section.body : "",
     })),
     messages: story.document.connections.map((connection, index) => ({
       id: stableId(
@@ -545,7 +782,7 @@ function sequenceSpec(story: ResolvedStoryDocument): ArchifySequence {
       ),
       from: participantIds.get(connection.from)!,
       to: participantIds.get(connection.to)!,
-      y: 180 + index * 90,
+      y: layout.messageYs[index]!,
       label: requiredConnectionLabel(connection, "sequence"),
       ...(connection.variant === undefined
         ? {}
@@ -893,6 +1130,7 @@ function improveStoryReadability(
     | "dataflow"
     | "lifecycle",
   dataflowFontSize?: number,
+  sequenceFontSize?: number,
 ): string {
   const headEnd = "</head>";
   if (!contents.includes(headEnd)) {
@@ -918,8 +1156,10 @@ svg g[data-edge-from] > text {
         ? `
 svg { max-height: 100vh; }
 svg text {
-  font-family: ui-sans-serif, system-ui, sans-serif;
-  font-size: 13px !important;
+  font-size: ${sequenceFontSize}px;
+}
+.semantic-passport-detail {
+  font-size: 0.875rem;
 }`
         : family === "dataflow"
           ? `
@@ -946,13 +1186,16 @@ svg g[data-edge-from] > text {
 export function renderStory(story: ResolvedStoryDocument): StoryArtifact {
   const integrity = verifyVendoredArchifyIntegrity();
   const family = story.document.diagramFamily ?? "architecture";
+  const adaptiveSequenceLayout = family === "sequence"
+    ? sequenceLayout(story)
+    : undefined;
   const adaptiveDataflowLayout = family === "dataflow"
     ? dataflowLayout(story)
     : undefined;
   const spec = family === "workflow"
     ? workflowSpec(story)
     : family === "sequence"
-      ? sequenceSpec(story)
+      ? sequenceSpec(story, adaptiveSequenceLayout!)
       : family === "dataflow"
         ? dataflowSpec(story, adaptiveDataflowLayout!)
         : family === "lifecycle"
@@ -986,7 +1229,13 @@ export function renderStory(story: ResolvedStoryDocument): StoryArtifact {
       maxBuffer: 32 * 1024 * 1024,
       stdio: ["ignore", "pipe", "pipe"],
     });
-    const contents = readFileSync(outputPath, "utf8");
+    const contents = family === "sequence"
+      ? addSequenceNarrativeDetails(
+        readFileSync(outputPath, "utf8"),
+        story,
+        adaptiveSequenceLayout!,
+      )
+      : readFileSync(outputPath, "utf8");
     return {
       kind: "html",
       mediaType: "text/html",
@@ -999,6 +1248,7 @@ export function renderStory(story: ResolvedStoryDocument): StoryArtifact {
           contents,
           family,
           adaptiveDataflowLayout?.fontSize,
+          adaptiveSequenceLayout?.fontSize,
         )
         : contents,
       renderer: {

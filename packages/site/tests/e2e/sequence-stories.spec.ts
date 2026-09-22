@@ -37,6 +37,37 @@ const stories = [
   },
 ] as const;
 
+const wideSequenceStory = {
+  schemaVersion: "1.0",
+  diagramFamily: "sequence",
+  classification: "capability-demo",
+  id: "sequence-wide-title",
+  title: "Wide Sequence title",
+  summary: "A valid wide participant title and short authored bodies.",
+  anchors: [],
+  sections: [
+    {
+      id: "wide-caller",
+      title: "W".repeat(25),
+      body: "Starts the request.",
+      anchorIds: [],
+    },
+    {
+      id: "service",
+      title: "Service",
+      body: "Validates the input.",
+      anchorIds: [],
+    },
+  ],
+  connections: [
+    {
+      from: "wide-caller",
+      to: "service",
+      label: "request",
+    },
+  ],
+} as const;
+
 async function writeFixture(repository: string): Promise<void> {
   await writeFile(
     join(repository, "package.json"),
@@ -81,6 +112,20 @@ async function writeFixture(repository: string): Promise<void> {
     await writeFile(destination, await readFile(join(projectRoot, story.path)));
   }
   await commit(repository, "Sequence gallery", "package.json", "packages", "stories");
+  await topo(repository, "scan");
+}
+
+async function writeWideSequenceStory(repository: string): Promise<void> {
+  const path = join(
+    repository,
+    "stories/capabilities/sequence-wide-title.topo.json",
+  );
+  await writeFile(path, `${JSON.stringify(wideSequenceStory, null, 2)}\n`);
+  await commit(
+    repository,
+    "Wide Sequence title",
+    "stories/capabilities/sequence-wide-title.topo.json",
+  );
   await topo(repository, "scan");
 }
 
@@ -293,6 +338,138 @@ test("a live browser fixture survives disposable workspace rotation", async ({
       .toContain("sequence-stories-fixture");
     await rename(backup, workspace);
   });
+});
+
+test("Sequence narratives remain readable inline and in native details", async ({
+  page,
+  repository,
+}) => {
+  await writeFixture(repository);
+  const { server, url } = await startTopoServer(repository, ["--port", "0"]);
+  try {
+    for (const story of stories) {
+      const document = JSON.parse(
+        await readFile(join(repository, story.path), "utf8"),
+      ) as {
+        sections: { id: string; body: string }[];
+      };
+
+      await page.goto(`${url}/stories/${story.id}/viewer.html`);
+      for (const [index, section] of document.sections.entries()) {
+        const participant = page.locator(
+          `svg g[data-node-id="${section.id}"]`,
+        );
+        if (index % 2 === 0) {
+          await participant.click();
+        } else {
+          await participant.focus();
+          await participant.press("Enter");
+        }
+        const detail = page.locator("#focus-detail");
+        await expect(detail).toBeVisible();
+        await expect(detail).toHaveText(section.body);
+        expect(
+          await detail.evaluate((element) =>
+            Number.parseFloat(getComputedStyle(element).fontSize)
+          ),
+          `${story.id} ${section.id} native detail font`,
+        ).toBeGreaterThanOrEqual(12);
+      }
+
+      await page.getByRole("button", { name: "Export diagram" }).click();
+      const downloadEvent = page.waitForEvent("download");
+      await page.locator('button[data-format="svg"]').click();
+      const download = await downloadEvent;
+      const downloadPath = await download.path();
+      expect(downloadPath).not.toBeNull();
+      const exportedSvg = await readFile(downloadPath!, "utf8");
+      for (const section of document.sections) {
+        expect(
+          exportedSvg,
+          `${story.id} SVG narrative: ${section.id}`,
+        ).toContain(section.body);
+      }
+    }
+  } finally {
+    if (!page.isClosed()) await page.goto("about:blank");
+    await stopTopoServer(server);
+  }
+});
+
+test("Sequence final typography preserves wide participant titles", async ({
+  page,
+  repository,
+}) => {
+  await writeFixture(repository);
+  await writeWideSequenceStory(repository);
+  const { server, url } = await startTopoServer(repository, ["--port", "0"]);
+  try {
+    for (const viewport of [
+      { width: 1024, height: 768 },
+      { width: 1280, height: 720 },
+      { width: 1440, height: 900 },
+      { width: 1600, height: 1000 },
+      { width: 1920, height: 1080 },
+    ]) {
+      await page.setViewportSize(viewport);
+      await page.goto(`${url}/stories/${wideSequenceStory.id}/`);
+      const viewer = page.frameLocator("[data-story-viewer]");
+      const diagram = viewer.locator('svg[role="img"]');
+      for (const section of wideSequenceStory.sections) {
+        await expect(viewer.getByText(section.body, { exact: true }))
+          .toBeVisible();
+      }
+      const measurement = await diagram.evaluate((svg) => {
+        const participant = svg.querySelector<SVGGElement>(
+          'g[data-node-id="wide-caller"]',
+        )!;
+        const title = participant.querySelector<SVGTextElement>(
+          "text[data-node-label]",
+        )!;
+        const participantBox = participant.querySelector<SVGRectElement>(
+          "rect:not(.c-mask)",
+        )!;
+        const titleBounds = title.getBoundingClientRect();
+        const participantBounds = participantBox.getBoundingClientRect();
+        const svgBounds = svg.getBoundingClientRect();
+        const matrix = title.getScreenCTM();
+        return {
+          effectiveFontSize:
+            Number.parseFloat(getComputedStyle(title).fontSize) *
+            Math.hypot(matrix?.c ?? 0, matrix?.d ?? 0),
+          participantContained:
+            titleBounds.left >= participantBounds.left &&
+            titleBounds.right <= participantBounds.right,
+          svgContained:
+            titleBounds.left >= svgBounds.left &&
+            titleBounds.right <= svgBounds.right,
+          completeText: title.textContent,
+        };
+      });
+      expect(measurement.completeText).toBe(wideSequenceStory.sections[0].title);
+      expect(
+        measurement.effectiveFontSize,
+        `wide title at ${viewport.width}x${viewport.height}`,
+      ).toBeGreaterThanOrEqual(12);
+      expect(measurement.participantContained).toBe(true);
+      expect(measurement.svgContained).toBe(true);
+    }
+
+    const viewer = page.frameLocator("[data-story-viewer]");
+    await viewer.getByRole("button", { name: "Export diagram" }).click();
+    const downloadEvent = page.waitForEvent("download");
+    await viewer.locator('button[data-format="svg"]').click();
+    const download = await downloadEvent;
+    const downloadPath = await download.path();
+    expect(downloadPath).not.toBeNull();
+    const exportedSvg = await readFile(downloadPath!, "utf8");
+    for (const section of wideSequenceStory.sections) {
+      expect(exportedSvg).toContain(section.body);
+    }
+  } finally {
+    if (!page.isClosed()) await page.goto("about:blank");
+    await stopTopoServer(server);
+  }
 });
 
 test("Sequence stories remain readable in a plain-server bundle", async ({
