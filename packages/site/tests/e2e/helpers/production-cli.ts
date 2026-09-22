@@ -1,6 +1,7 @@
 import { execFile, spawn, type ChildProcess } from "node:child_process";
 import { createServer, type Server } from "node:http";
 import { mkdir, mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
@@ -146,9 +147,7 @@ export const test = base.extend<{
   startSite: () => Promise<string>;
 }>({
   repository: async ({}, use) => {
-    const directory = join(root, ".topo/cache/production-browser");
-    await mkdir(directory, { recursive: true });
-    const owned = await mkdtemp(join(directory, "journey-"));
+    const owned = await mkdtemp(join(tmpdir(), "topo-production-browser-"));
     const repository = join(owned, "target repository");
     try {
       await mkdir(repository);
