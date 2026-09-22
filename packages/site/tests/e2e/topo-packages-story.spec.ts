@@ -180,6 +180,112 @@ test("package architecture renders a readable multi-row workspace map", async ({
   }
 });
 
+test("converging Architecture relationships keep both labels readable", async ({
+  page,
+  repository,
+}) => {
+  await writeFile(
+    join(repository, "package.json"),
+    '{"name":"architecture-label-fixture","type":"module"}\n',
+  );
+  await writeFile(
+    join(repository, "tsconfig.json"),
+    '{"compilerOptions":{"module":"NodeNext","moduleResolution":"NodeNext"}}\n',
+  );
+  await writeFile(
+    join(repository, "source.ts"),
+    [
+      "export const left = true;",
+      "export const shared = true;",
+      "export const right = true;",
+      "",
+    ].join("\n"),
+  );
+  await commit(repository, "Architecture sources", "package.json", "tsconfig.json", "source.ts");
+  await topo(repository, "scan");
+
+  const storyPath = join(repository, "stories/converging.topo.json");
+  await mkdir(dirname(storyPath), { recursive: true });
+  await writeFile(storyPath, `${JSON.stringify({
+    schemaVersion: "1.0",
+    diagramFamily: "architecture",
+    id: "converging",
+    title: "Converging package dependencies",
+    summary: "Two packages depend on one shared package.",
+    anchors: [
+      { id: "left", path: "source.ts", symbol: "left" },
+      { id: "shared", path: "source.ts", symbol: "shared" },
+      { id: "right", path: "source.ts", symbol: "right" },
+    ],
+    sections: [
+      {
+        id: "left",
+        title: "Left package",
+        body: "Declares a dependency on shared.",
+        anchorIds: ["left"],
+      },
+      {
+        id: "shared",
+        title: "Shared package",
+        body: "Provides the shared contract.",
+        anchorIds: ["shared"],
+      },
+      {
+        id: "right",
+        title: "Right package",
+        body: "Declares a dependency on shared.",
+        anchorIds: ["right"],
+      },
+    ],
+    connections: [
+      {
+        from: "left",
+        to: "shared",
+        label: "declared dependency from left",
+      },
+      {
+        from: "right",
+        to: "shared",
+        label: "declared dependency from right",
+      },
+    ],
+  }, null, 2)}\n`);
+  await commit(repository, "Architecture story", "stories");
+  await topo(repository, "story", "preview", repository, storyPath);
+
+  const { server, url } = await startTopoServer(repository, ["--port", "0"]);
+  try {
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await page.goto(`${url}/stories/converging/`);
+    const diagram = page.frameLocator("[data-story-viewer]")
+      .locator('svg[role="img"]');
+    await expect(diagram).toBeVisible();
+    const labels = diagram.locator("g[data-edge-from] > text");
+    await expect(labels).toHaveCount(2);
+    const overlap = await labels.evaluateAll((elements) => {
+      const [first, second] = elements.map((element) =>
+        element.getBoundingClientRect()
+      );
+      return {
+        width: Math.max(
+          0,
+          Math.min(first!.right, second!.right) -
+            Math.max(first!.left, second!.left),
+        ),
+        height: Math.max(
+          0,
+          Math.min(first!.bottom, second!.bottom) -
+            Math.max(first!.top, second!.top),
+        ),
+      };
+    });
+    expect(overlap.width === 0 || overlap.height === 0).toBe(true);
+  } finally {
+    await page.goto("about:blank");
+    await stopTopoServer(server);
+  }
+});
+
 test("actual package story stays readable from a plain static bundle", async ({
   page,
   repository,
