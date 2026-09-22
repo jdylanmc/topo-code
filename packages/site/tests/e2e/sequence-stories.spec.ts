@@ -1,4 +1,12 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rename,
+  rm,
+  writeFile,
+} from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect } from "@playwright/test";
@@ -235,6 +243,197 @@ test("Sequence stories remain readable in a plain-server bundle", async ({
     await new Promise<void>((resolve, reject) => {
       server.close((error) => error ? reject(error) : resolve());
     });
+  }
+});
+
+test("integrated Sequence stories preserve titles, navigation, and exports", async ({
+  page,
+}) => {
+  const workspace = join(projectRoot, ".topo");
+  const backupRoot = await mkdtemp(join(tmpdir(), "topo-sequence-workspace-"));
+  const backup = join(backupRoot, ".topo");
+  let preservedWorkspace = false;
+  try {
+    await rename(workspace, backup);
+    preservedWorkspace = true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
+
+  let server: Awaited<ReturnType<typeof startStaticServer>>["server"] | undefined;
+  try {
+    const output = join(workspace, "integration-bundle");
+    await topo(projectRoot, "scan");
+    for (const story of stories) {
+      await topo(
+        projectRoot,
+        "preview",
+        projectRoot,
+        join(projectRoot, story.path),
+      );
+    }
+    await topo(
+      projectRoot,
+      "bundle",
+      projectRoot,
+      "--output",
+      output,
+      "--base-path",
+      "/sequence/",
+    );
+
+    const started = await startStaticServer(output);
+    server = started.server;
+    const { url } = started;
+    const baseUrl = `${url}/sequence/`;
+    await page.goto(baseUrl);
+    await expect(
+      page.locator(
+        'section[data-category="Topocode internals"] ' +
+          'a[href="./stories/story-preview-sequence/"]',
+      ),
+    ).toBeVisible();
+    await expect(
+      page.locator(
+        'section[data-category="Diagram capabilities"] ' +
+          'a[href="./stories/sequence-capability/"]',
+      ),
+    ).toBeVisible();
+
+    for (const viewport of [
+      { width: 1024, height: 768 },
+      { width: 1280, height: 720 },
+      { width: 1440, height: 900 },
+      { width: 1600, height: 1000 },
+      { width: 1920, height: 1080 },
+    ]) {
+      await page.setViewportSize(viewport);
+      for (const story of stories) {
+        const document = JSON.parse(
+          await readFile(join(projectRoot, story.path), "utf8"),
+        ) as {
+          title: string;
+          sections: { title: string }[];
+          connections: { label: string }[];
+        };
+        await page.goto(`${baseUrl}stories/${story.id}/`);
+        const controls = page.locator("details.story-controls");
+        const summary = controls.locator("summary");
+        const viewer = page.frameLocator("[data-story-viewer]");
+        const diagram = viewer.locator('svg[role="img"]');
+        const authoredLabels = [
+          document.title,
+          ...document.sections.map(({ title }) => title),
+          ...document.connections.map(({ label }) => label),
+        ];
+        const overlaps = async () => {
+          const controlsBounds = await controls.boundingBox();
+          expect(controlsBounds).not.toBeNull();
+          const overlapping: string[] = [];
+          for (const label of authoredLabels) {
+            const labelBounds = await diagram.getByText(label, { exact: true })
+              .first()
+              .boundingBox();
+            expect(
+              labelBounds,
+              `${story.id} ${label} at ${viewport.width}x${viewport.height}`,
+            ).not.toBeNull();
+            if (
+              controlsBounds &&
+              labelBounds &&
+              Math.min(
+                  controlsBounds.x + controlsBounds.width,
+                  labelBounds.x + labelBounds.width,
+                ) > Math.max(controlsBounds.x, labelBounds.x) &&
+              Math.min(
+                  controlsBounds.y + controlsBounds.height,
+                  labelBounds.y + labelBounds.height,
+                ) > Math.max(controlsBounds.y, labelBounds.y)
+            ) {
+              overlapping.push(label);
+            }
+          }
+          return overlapping;
+        };
+
+        await expect(controls).not.toHaveAttribute("open", "");
+        await expect(viewer.locator("h1")).toHaveText(document.title);
+        await expect(controls.getByRole("heading", { level: 1 }))
+          .toHaveText(document.title);
+        expect(await overlaps()).toEqual([]);
+
+        await summary.focus();
+        await page.keyboard.press("Enter");
+        await expect(controls).toHaveAttribute("open", "");
+        expect((await overlaps()).length).toBeGreaterThan(0);
+
+        await summary.focus();
+        await page.keyboard.press("Enter");
+        await expect(controls).not.toHaveAttribute("open", "");
+        expect(await overlaps()).toEqual([]);
+      }
+    }
+
+    await page.goto(`${baseUrl}stories/story-preview-sequence/`);
+    const controls = page.locator("details.story-controls");
+    const summary = controls.locator("summary");
+    await summary.focus();
+    await page.keyboard.press("Enter");
+    const nativeRender = page.locator('[data-node-id="native-render"]');
+    await nativeRender.focus();
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(
+      `${baseUrl}stories/story-preview-sequence/?focus=native-render`,
+    );
+    await expect(controls).not.toHaveAttribute("open", "");
+    await expect(
+      page.frameLocator("[data-story-viewer]").getByText(
+        "packages/diagram-core/src/index.ts",
+        { exact: true },
+      ),
+    ).toBeVisible();
+    await page.goBack();
+    await expect(page).toHaveURL(
+      `${baseUrl}stories/story-preview-sequence/`,
+    );
+    await expect(controls).not.toHaveAttribute("open", "");
+
+    for (const story of stories) {
+      const document = JSON.parse(
+        await readFile(join(projectRoot, story.path), "utf8"),
+      ) as {
+        sections: { title: string }[];
+        connections: { label: string }[];
+      };
+      await page.goto(`${baseUrl}stories/${story.id}/`);
+      const viewer = page.frameLocator("[data-story-viewer]");
+      await viewer.getByRole("button", { name: "Export diagram" }).click();
+      const downloadEvent = page.waitForEvent("download");
+      await viewer.locator('button[data-format="svg"]').click();
+      const download = await downloadEvent;
+      const downloadPath = await download.path();
+      expect(downloadPath).not.toBeNull();
+      const exportedSvg = await readFile(downloadPath!, "utf8");
+      for (const label of [
+        ...document.sections.map(({ title }) => title),
+        ...document.connections.map(({ label }) => label),
+      ]) {
+        expect(exportedSvg, `${story.id} actual SVG export: ${label}`)
+          .toContain(label);
+      }
+      expect(exportedSvg).not.toContain("packages/");
+      expect(exportedSvg).not.toContain("data-source");
+    }
+  } finally {
+    await page.goto("about:blank");
+    if (server !== undefined) {
+      await new Promise<void>((resolve, reject) => {
+        server!.close((error) => error ? reject(error) : resolve());
+      });
+    }
+    await rm(workspace, { recursive: true, force: true });
+    if (preservedWorkspace) await rename(backup, workspace);
+    await rm(backupRoot, { recursive: true, force: true });
   }
 });
 
