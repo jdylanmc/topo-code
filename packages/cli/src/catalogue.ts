@@ -427,12 +427,13 @@ export function renderStoryWrapper(
       a { color: #7dd3fc; }
       [data-node-id][aria-current="true"] { color: white; font-weight: bold; }
       li { display: grid; gap: 0.35rem; padding: 0.65rem; background: #111c2e; border-radius: 0.5rem; }
-      .story-controls { position: fixed; z-index: 1; top: 0.75rem; left: 0.75rem; max-width: calc(100vw - 1.5rem); max-height: calc(100vh - 1.5rem); overflow: auto; border: 1px solid #475569; border-radius: 0.5rem; background: #09111f; box-shadow: 0 0.5rem 1.5rem #020617cc; }
-      .story-controls[open] { width: min(30rem, calc(100vw - 1.5rem)); }
+      .story-controls { position: fixed; z-index: 1; top: 0.75rem; max-width: calc(100vw - 1.5rem); max-height: calc(100vh - 1.5rem); overflow: auto; border: 1px solid #475569; border-radius: 0.5rem; background: #09111f; box-shadow: 0 0.5rem 1.5rem #020617cc; }
+      .story-controls:not([open]) { top: auto; right: auto; bottom: 0.75rem; left: 0.75rem; }
+      .story-controls[open] { top: 0.75rem; left: 0.75rem; width: min(30rem, calc(100vw - 1.5rem)); }
       summary { display: grid; max-width: 16rem; gap: 0.15rem; padding: 0.65rem 0.85rem; color: #7dd3fc; cursor: pointer; font-weight: 700; }
-      .story-heading { overflow: hidden; color: #e5edf7; font-size: 1rem; text-overflow: ellipsis; white-space: nowrap; }
+      .story-heading { color: #e5edf7; font-size: 1rem; white-space: normal; }
       .story-control-label { font-size: 0.8rem; }
-      .story-controls[open] summary { border-bottom: 1px solid #29364a; }
+      .story-controls[open] summary { width: auto; border-bottom: 1px solid #29364a; }
       aside { padding: 1rem 1.25rem; }
       iframe { display: block; width: 100vw; height: 100vh; border: 0; background: white; }
     </style>

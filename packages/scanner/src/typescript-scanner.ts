@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { readFile, realpath } from "node:fs/promises";
 import path from "node:path";
 import {
   GRAPH_SCHEMA_VERSION,
@@ -399,29 +399,26 @@ function manifestEntryStrings(value: unknown): string[] {
   return Object.values(value).flatMap(manifestEntryStrings);
 }
 
-function sourceCandidatePaths(
+function hasExactWorkspaceExport(
+  exports: unknown,
+  subpath: string,
+): boolean {
+  return (
+    exports === null ||
+    typeof exports !== "object" ||
+    Array.isArray(exports)
+      ? false
+      : Object.hasOwn(exports, subpath)
+  );
+}
+
+function sourceCandidatePathsForEntries(
   workspace: WorkspacePackage,
-  specifier: string,
+  entries: readonly string[],
 ): string[] {
-  const suffix =
-    specifier === workspace.name
-      ? ""
-      : specifier.slice(workspace.name.length + 1);
-  const manifest = workspace.manifest;
-  const declared =
-    suffix.length === 0
-      ? [
-          ...manifestEntryStrings(manifest.source),
-          ...manifestEntryStrings(manifest.exports),
-          ...manifestEntryStrings(manifest.module),
-          ...manifestEntryStrings(manifest.main),
-          ...manifestEntryStrings(manifest.types),
-        ]
-      : [suffix];
-  const bases = [...declared, ...(suffix.length === 0 ? ["src/index"] : [])];
   const candidates = new Set<string>();
-  for (const base of bases) {
-    const normalized = base.replace(/^\.\//u, "");
+  for (const entry of entries) {
+    const normalized = entry.replace(/^\.\//u, "");
     candidates.add(path.resolve(workspace.directory, normalized));
     if (normalized.startsWith("dist/")) {
       candidates.add(
@@ -435,10 +432,41 @@ function sourceCandidatePaths(
   return [...candidates];
 }
 
+function sourceCandidatePaths(
+  workspace: WorkspacePackage,
+  specifier: string,
+): string[] {
+  const suffix =
+    specifier === workspace.name
+      ? ""
+      : specifier.slice(workspace.name.length + 1);
+  const manifest = workspace.manifest;
+  const declared =
+    suffix.length === 0
+      ? [
+          ...manifestEntryStrings(manifest.source),
+          ...manifestEntryStrings(manifest.module),
+          ...manifestEntryStrings(manifest.main),
+          ...manifestEntryStrings(manifest.types),
+        ]
+      : manifest.exports === undefined
+        ? [suffix]
+        : [];
+  const bases = [...declared, ...(suffix.length === 0 ? ["src/index"] : [])];
+  return sourceCandidatePathsForEntries(workspace, bases);
+}
+
 function resolveSourceCandidate(
   candidates: readonly string[],
   sourceByAbsolutePath: ReadonlyMap<string, SourceRecord>,
 ): SourceRecord | undefined {
+  return resolveSourceCandidates(candidates, sourceByAbsolutePath)[0];
+}
+
+function resolveSourceCandidates(
+  candidates: readonly string[],
+  sourceByAbsolutePath: ReadonlyMap<string, SourceRecord>,
+): SourceRecord[] {
   const extensions = [
     "",
     ".ts",
@@ -456,6 +484,7 @@ function resolveSourceCandidate(
     "/index.js",
     "/index.jsx",
   ];
+  const matches = new Map<string, SourceRecord>();
   for (const candidate of candidates) {
     const withoutOutputExtension = candidate.replace(
       /\.(?:d\.ts|[cm]?[jt]sx?)$/u,
@@ -466,11 +495,33 @@ function resolveSourceCandidate(
         path.resolve(`${withoutOutputExtension}${extension}`),
       );
       if (source !== undefined) {
-        return source;
+        matches.set(source.absolutePath, source);
       }
     }
   }
-  return undefined;
+  return [...matches.values()];
+}
+
+const GENERATED_SOURCE_EXTENSIONS = [
+  [".d.mts", [".mts", ".mjs"]],
+  [".d.cts", [".cts", ".cjs"]],
+  [".d.ts", [".ts", ".tsx", ".js", ".jsx"]],
+  [".mjs", [".mts", ".mjs"]],
+  [".cjs", [".cts", ".cjs"]],
+  [".jsx", [".tsx", ".jsx"]],
+  [".js", [".ts", ".tsx", ".js", ".jsx"]],
+] as const;
+
+function generatedSourcePaths(outputPath: string): string[] {
+  for (const [outputExtension, sourceExtensions] of GENERATED_SOURCE_EXTENSIONS) {
+    if (outputPath.endsWith(outputExtension)) {
+      const basePath = outputPath.slice(0, -outputExtension.length);
+      return sourceExtensions.map(
+        (sourceExtension) => `${basePath}${sourceExtension}`,
+      );
+    }
+  }
+  return [];
 }
 
 function resolveGeneratedOutput(
@@ -490,15 +541,15 @@ function resolveGeneratedOutput(
       mapping.outputDirectory,
       resolvedFileName,
     );
-    const source = resolveSourceCandidate(
-      [path.join(mapping.rootDirectory, relativeOutputPath)],
-      sourceByAbsolutePath,
-    );
-    if (source !== undefined) {
-      matches.set(source.absolutePath, {
-        source,
-        configPath: mapping.configPath,
-      });
+    const sourcePath = path.join(mapping.rootDirectory, relativeOutputPath);
+    for (const generatedSourcePath of generatedSourcePaths(sourcePath)) {
+      const source = sourceByAbsolutePath.get(generatedSourcePath);
+      if (source !== undefined) {
+        matches.set(source.absolutePath, {
+          source,
+          configPath: mapping.configPath,
+        });
+      }
     }
   }
   if (matches.size === 0) {
@@ -509,10 +560,220 @@ function resolveGeneratedOutput(
   }
   return {
     kind: "ambiguous",
-    configPaths: [...matches.values()]
-      .map((match) => match.configPath)
-      .sort(compareText),
+    configPaths: [...new Set(
+      [...matches.values()].map((match) => match.configPath),
+    )].sort(compareText),
   };
+}
+
+function compilerPathCandidates(
+  root: string,
+  canonicalRoot: string,
+  resolvedFileName: string,
+): string[] {
+  const candidates = new Set<string>([path.resolve(resolvedFileName)]);
+  const canonicalPath =
+    ts.sys.realpath?.(resolvedFileName) ?? path.resolve(resolvedFileName);
+  candidates.add(path.resolve(canonicalPath));
+  if (isWithin(canonicalRoot, canonicalPath)) {
+    candidates.add(
+      path.resolve(root, path.relative(canonicalRoot, canonicalPath)),
+    );
+  }
+  return [...candidates];
+}
+
+function resolveCompilerSelectedSource(
+  root: string,
+  canonicalRoot: string,
+  resolvedFileName: string,
+  outputMappings: readonly OutputMapping[],
+  sourceByAbsolutePath: ReadonlyMap<string, SourceRecord>,
+):
+  | { kind: "none" }
+  | { kind: "resolved"; source: SourceRecord }
+  | { kind: "ambiguous"; configPaths: string[] } {
+  const candidates = compilerPathCandidates(
+    root,
+    canonicalRoot,
+    resolvedFileName,
+  );
+  for (const candidate of candidates) {
+    const source = sourceByAbsolutePath.get(candidate);
+    if (source !== undefined) {
+      return { kind: "resolved", source };
+    }
+  }
+  for (const candidate of candidates) {
+    if (!isWithin(root, candidate)) {
+      continue;
+    }
+    const generated = resolveGeneratedOutput(
+      candidate,
+      outputMappings,
+      sourceByAbsolutePath,
+    );
+    if (generated.kind !== "none") {
+      return generated;
+    }
+  }
+  return { kind: "none" };
+}
+
+function canonicalPath(fileName: string): string {
+  const resolved = path.resolve(fileName);
+  const canonical = ts.sys.realpath?.(resolved) ?? resolved;
+  return ts.sys.useCaseSensitiveFileNames
+    ? canonical
+    : canonical.toLowerCase();
+}
+
+function physicalWorkspacePackageState(
+  workspace: WorkspacePackage,
+  containingFile: string,
+): "absent" | "workspace" | "other" {
+  const packageSegments = workspace.name.split("/");
+  let directory = path.dirname(containingFile);
+  while (true) {
+    const packageDirectory = path.join(
+      directory,
+      "node_modules",
+      ...packageSegments,
+    );
+    if (ts.sys.fileExists(path.join(packageDirectory, "package.json"))) {
+      return canonicalPath(packageDirectory) ===
+        canonicalPath(workspace.directory)
+        ? "workspace"
+        : "other";
+    }
+    const parent = path.dirname(directory);
+    if (parent === directory) {
+      return "absent";
+    }
+    directory = parent;
+  }
+}
+
+function createWorkspaceModuleResolutionHost(
+  root: string,
+  canonicalRoot: string,
+  workspace: WorkspacePackage,
+  outputMappings: readonly OutputMapping[],
+  sourceByAbsolutePath: ReadonlyMap<string, SourceRecord>,
+  allowGeneratedOutput: boolean,
+): ts.ModuleResolutionHost {
+  const packageSegments = workspace.name.split("/");
+  const virtualPackageDirectories = [...new Set([root, canonicalRoot])]
+    .map((workspaceRoot) =>
+      path.join(workspaceRoot, "node_modules", ...packageSegments),
+    );
+  const workspaceMappings = outputMappings.filter(
+    (mapping) =>
+      isWithin(workspace.directory, mapping.rootDirectory) &&
+      isWithin(workspace.directory, mapping.outputDirectory),
+  );
+  const toWorkspacePath = (fileName: string): string | undefined => {
+    for (const virtualDirectory of virtualPackageDirectories) {
+      if (isWithin(virtualDirectory, fileName)) {
+        return path.resolve(
+          workspace.directory,
+          path.relative(virtualDirectory, fileName),
+        );
+      }
+    }
+    return undefined;
+  };
+  const hasGeneratedPath = (fileName: string): boolean =>
+    resolveGeneratedOutput(
+      fileName,
+      workspaceMappings,
+      sourceByAbsolutePath,
+    ).kind === "resolved";
+  const hasGeneratedDirectory = (directory: string): boolean =>
+    workspaceMappings.some(
+      (mapping) =>
+        isWithin(directory, mapping.outputDirectory) ||
+        isWithin(mapping.outputDirectory, directory),
+    );
+
+  return {
+    fileExists(fileName) {
+      if (ts.sys.fileExists(fileName)) {
+        return true;
+      }
+      const workspacePath = toWorkspacePath(fileName);
+      return workspacePath !== undefined &&
+        (ts.sys.fileExists(workspacePath) ||
+          (allowGeneratedOutput && hasGeneratedPath(workspacePath)));
+    },
+    readFile(fileName) {
+      const workspacePath = toWorkspacePath(fileName);
+      return ts.sys.readFile(workspacePath ?? fileName);
+    },
+    directoryExists(directory) {
+      if (ts.sys.directoryExists?.(directory) === true) {
+        return true;
+      }
+      if (
+        virtualPackageDirectories.some((virtualDirectory) =>
+          isWithin(directory, virtualDirectory),
+        )
+      ) {
+        return true;
+      }
+      const workspacePath = toWorkspacePath(directory);
+      return workspacePath !== undefined &&
+        (ts.sys.directoryExists?.(workspacePath) === true ||
+          (allowGeneratedOutput && hasGeneratedDirectory(workspacePath)));
+    },
+    realpath(fileName) {
+      const workspacePath = toWorkspacePath(fileName);
+      if (workspacePath !== undefined) {
+        return ts.sys.realpath?.(workspacePath) ?? workspacePath;
+      }
+      return ts.sys.realpath?.(fileName) ?? fileName;
+    },
+    getCurrentDirectory: () => root,
+    useCaseSensitiveFileNames: ts.sys.useCaseSensitiveFileNames,
+  };
+}
+
+function resolveWorkspaceModuleName(
+  root: string,
+  canonicalRoot: string,
+  workspace: WorkspacePackage,
+  source: SourceRecord,
+  specifier: string,
+  outputMappings: readonly OutputMapping[],
+  sourceByAbsolutePath: ReadonlyMap<string, SourceRecord>,
+): ts.ResolvedModuleFull | undefined {
+  for (const allowGeneratedOutput of [false, true]) {
+    const resolved = ts.resolveModuleName(
+      specifier,
+      source.absolutePath,
+      source.compilerOptions,
+      createWorkspaceModuleResolutionHost(
+        root,
+        canonicalRoot,
+        workspace,
+        outputMappings,
+        sourceByAbsolutePath,
+        allowGeneratedOutput,
+      ),
+      ts.createModuleResolutionCache(
+        path.dirname(source.absolutePath),
+        (fileName) =>
+          ts.sys.useCaseSensitiveFileNames
+            ? fileName
+            : fileName.toLowerCase(),
+        source.compilerOptions,
+      ),
+    ).resolvedModule;
+    if (resolved !== undefined) {
+      return resolved;
+    }
+  }
+  return undefined;
 }
 
 function assetSpecifierPath(specifier: string): string | undefined {
@@ -663,6 +924,7 @@ export async function scanRepository(
   const options = parseScanRepositoryOptions(input);
   const quality = { ...DEFAULT_QUALITY, ...options.quality };
   await assertDirectory(options.root);
+  const canonicalRoot = await realpath(options.root);
 
   const files = await walkFiles(options.root);
   const inventoryPaths = new Set(files.map((filePath) => path.resolve(filePath)));
@@ -803,23 +1065,113 @@ export async function scanRepository(
       const workspace = workspaceForSpecifier(specifier, workspaces);
 
       if (workspace !== undefined) {
-        const target = resolveSourceCandidate(
-          sourceCandidatePaths(workspace, specifier),
-          sourceByAbsolutePath,
-        );
-        if (target !== undefined) {
-          targetId = createPathNodeId(target.repositoryPath);
-          localImportCount += 1;
+        let target: SourceRecord | undefined;
+        if (resolved !== undefined) {
+          const selected = resolveCompilerSelectedSource(
+            options.root,
+            canonicalRoot,
+            resolved.resolvedFileName,
+            outputMappings,
+            sourceByAbsolutePath,
+          );
+          if (selected.kind === "resolved") {
+            target = selected.source;
+          } else if (selected.kind === "ambiguous") {
+            unresolvedImportCount += 1;
+            diagnostics.push({
+              code: "ambiguous-generated-output",
+              severity: "error",
+              message: `Generated output import "${specifier}" from "${source.repositoryPath}" maps to multiple source projects: ${selected.configPaths.join(", ")}.`,
+              path: source.repositoryPath,
+              specifier,
+            });
+            continue;
+          } else if (
+            resolved.resolvedFileName
+              .split(path.sep)
+              .includes("node_modules") ||
+            !isWithin(options.root, resolved.resolvedFileName)
+          ) {
+            const locator = externalLocator(specifier);
+            targetId = createExternalNodeId(locator);
+            externalImportCount += 1;
+            nodes.set(targetId, {
+              id: targetId,
+              label: packageName(specifier),
+              kind: "external",
+              identity: { kind: "external", value: locator },
+            });
+          }
         } else {
-          unresolvedImportCount += 1;
-          diagnostics.push({
-            code: "unresolved-workspace-import",
-            severity: "error",
-            message: `Could not resolve workspace import "${specifier}" from "${source.repositoryPath}".`,
-            path: source.repositoryPath,
-            specifier,
-          });
-          continue;
+          const suffix =
+            specifier === workspace.name
+              ? ""
+              : specifier.slice(workspace.name.length + 1);
+          const exportedSubpath =
+            suffix.length === 0
+              ? workspace.manifest.exports !== undefined
+              : hasExactWorkspaceExport(
+                  workspace.manifest.exports,
+                  `./${suffix}`,
+                );
+          const physicalPackage = physicalWorkspacePackageState(
+            workspace,
+            source.absolutePath,
+          );
+          if (exportedSubpath && physicalPackage !== "other") {
+            const virtualResolved = resolveWorkspaceModuleName(
+              options.root,
+              canonicalRoot,
+              workspace,
+              source,
+              specifier,
+              outputMappings,
+              sourceByAbsolutePath,
+            );
+            if (virtualResolved !== undefined) {
+              const selected = resolveCompilerSelectedSource(
+                options.root,
+                canonicalRoot,
+                virtualResolved.resolvedFileName,
+                outputMappings,
+                sourceByAbsolutePath,
+              );
+              if (selected.kind === "resolved") {
+                target = selected.source;
+              } else if (selected.kind === "ambiguous") {
+                unresolvedImportCount += 1;
+                diagnostics.push({
+                  code: "ambiguous-generated-output",
+                  severity: "error",
+                  message: `Generated output import "${specifier}" from "${source.repositoryPath}" maps to multiple source projects: ${selected.configPaths.join(", ")}.`,
+                  path: source.repositoryPath,
+                  specifier,
+                });
+                continue;
+              }
+            }
+          } else if (physicalPackage !== "other") {
+            target = resolveSourceCandidate(
+              sourceCandidatePaths(workspace, specifier),
+              sourceByAbsolutePath,
+            );
+          }
+        }
+        if (targetId === undefined) {
+          if (target !== undefined) {
+            targetId = createPathNodeId(target.repositoryPath);
+            localImportCount += 1;
+          } else {
+            unresolvedImportCount += 1;
+            diagnostics.push({
+              code: "unresolved-workspace-import",
+              severity: "error",
+              message: `Could not resolve workspace import "${specifier}" from "${source.repositoryPath}".`,
+              path: source.repositoryPath,
+              specifier,
+            });
+            continue;
+          }
         }
       } else if (
         resolved !== undefined &&
