@@ -366,7 +366,9 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
           ...(vertical
             ? { labelDy: deltaRow > 0 ? 40 : -24 }
             : {
-                labelDy: boxHeight / 2 + rowGap / 2,
+                labelDy: deltaColumn > 0
+                  ? boxHeight / 2 + rowGap / 2
+                  : -(boxHeight / 2 + rowGap / 2),
               }),
           fromSide: vertical
             ? (deltaRow > 0 ? "bottom" as const : "top" as const)
