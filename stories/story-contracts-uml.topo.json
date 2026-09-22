@@ -145,10 +145,20 @@
       "anchorIds": ["source-anchor"]
     },
     {
-      "id": "legend",
-      "title": "Legend «class» «interface» «type»: extends / declared type dependency",
-      "body": "Markers identify declaration kinds. Edges mean only extends or selected declared type dependency; no composition, aggregation, multiplicity, runtime calls, exhaustive associations, visibility, or generics semantics are asserted.",
+      "id": "legend-declarations",
+      "title": "Legend: «class» «interface» «type»",
+      "body": "Markers identify the source declaration kind shown by each generic Architecture component.",
       "anchorIds": ["story-document", "story-document-error", "diagram-family"]
+    },
+    {
+      "id": "legend-relationships",
+      "title": "Legend: extends / declared type dependency",
+      "body": "Edges mean only direct inheritance or a selected type named by a declaration; no composition, aggregation, multiplicity, runtime calls, exhaustive associations, visibility, or generics semantics are asserted.",
+      "anchorIds": [
+        "resolved-source-anchor",
+        "resolved-document-dependency",
+        "story-document-error-extends"
+      ]
     }
   ],
   "connections": [
