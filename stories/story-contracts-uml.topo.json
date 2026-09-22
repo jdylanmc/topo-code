@@ -87,22 +87,22 @@
   ],
   "sections": [
     {
-      "id": "source-anchor",
-      "title": "«interface» SourceAnchor",
-      "body": "Declares the stable identifier, repository-relative path, and optional symbol or pattern used to ground authored story evidence.",
-      "anchorIds": ["source-anchor"]
-    },
-    {
-      "id": "resolved-source-anchor",
-      "title": "«interface» ResolvedSourceAnchor",
-      "body": "Directly extends SourceAnchor with the resolved source location and excerpt.",
-      "anchorIds": ["resolved-source-anchor"]
-    },
-    {
       "id": "diagram-family",
       "title": "«type» DiagramFamily",
       "body": "Declares the supported native diagram-family string union selected by a story document.",
       "anchorIds": ["diagram-family"]
+    },
+    {
+      "id": "story-document-error",
+      "title": "«class» StoryDocumentError",
+      "body": "Directly extends Error and retains the document path, optional anchor identifier, and explicit failure code.",
+      "anchorIds": ["story-document-error", "story-document-error-extends"]
+    },
+    {
+      "id": "error",
+      "title": "«class» Error (built-in)",
+      "body": "The built-in base class named by StoryDocumentError's explicit extends clause; it is shown only as that declared inheritance target.",
+      "anchorIds": ["story-document-error-extends"]
     },
     {
       "id": "story-document",
@@ -121,28 +121,28 @@
       ]
     },
     {
-      "id": "story-artifact",
-      "title": "«interface» StoryArtifact",
-      "body": "Describes the HTML artifact and pinned renderer identity returned across the renderer boundary.",
-      "anchorIds": ["story-artifact"]
-    },
-    {
       "id": "story-renderer",
       "title": "«interface» StoryRenderer",
       "body": "Declares rendering from a ResolvedStoryDocument to a StoryArtifact, synchronously or through a promise.",
       "anchorIds": ["story-renderer", "renderer-input", "renderer-output"]
     },
     {
-      "id": "story-document-error",
-      "title": "«class» StoryDocumentError",
-      "body": "Directly extends Error and retains the document path, optional anchor identifier, and explicit failure code.",
-      "anchorIds": ["story-document-error", "story-document-error-extends"]
+      "id": "story-artifact",
+      "title": "«interface» StoryArtifact",
+      "body": "Describes the HTML artifact and pinned renderer identity returned across the renderer boundary.",
+      "anchorIds": ["story-artifact"]
     },
     {
-      "id": "error",
-      "title": "«class» Error (built-in)",
-      "body": "The built-in base class named by StoryDocumentError's explicit extends clause; it is shown only as that declared inheritance target.",
-      "anchorIds": ["story-document-error-extends"]
+      "id": "resolved-source-anchor",
+      "title": "«interface» ResolvedSourceAnchor",
+      "body": "Directly extends SourceAnchor with the resolved source location and excerpt.",
+      "anchorIds": ["resolved-source-anchor"]
+    },
+    {
+      "id": "source-anchor",
+      "title": "«interface» SourceAnchor",
+      "body": "Declares the stable identifier, repository-relative path, and optional symbol or pattern used to ground authored story evidence.",
+      "anchorIds": ["source-anchor"]
     },
     {
       "id": "legend",
