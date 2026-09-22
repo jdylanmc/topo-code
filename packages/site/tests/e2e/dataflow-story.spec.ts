@@ -407,34 +407,72 @@ test("actual Dataflow story text stays readable after page, frame, and SVG scali
               ).length,
             };
           });
-          const wideFontStyle = document.createElementNS(
+          const readabilitySelector = [
+            "text[data-node-label]",
+            'text[data-detail="context"]',
+            'text[font-size="9"][font-weight="600"]',
+            "g[data-edge-from] > text",
+          ].join(", ");
+          const productFontFamilies = [
+            ...svg.querySelectorAll<SVGTextElement>(readabilitySelector),
+          ].map((text) => getComputedStyle(text).fontFamily);
+          const pinnedFontStyle = document.createElementNS(
             "http://www.w3.org/2000/svg",
             "style",
           );
-          wideFontStyle.textContent =
-            'g[data-node-id] text { font-family: Arial, sans-serif !important; }';
-          svg.prepend(wideFontStyle);
-          const wideFontTextOverflow = nodes.flatMap(({ id, bounds }) =>
-            [...svg.querySelectorAll<SVGTextElement>(
-              `g[data-node-id="${id}"] text`,
-            )].filter((text) => {
-              const textBounds = text.getBoundingClientRect();
-              return textBounds.left < bounds.left ||
-                textBounds.right > bounds.right ||
-                textBounds.top < bounds.top ||
-                textBounds.bottom > bounds.bottom;
-            }).map((text) => ({
-              nodeId: id,
-              value: text.textContent?.trim() ?? "",
-            }))
+          pinnedFontStyle.textContent =
+            `${readabilitySelector} { font-family: "JetBrains Mono", monospace !important; }`;
+          svg.prepend(pinnedFontStyle);
+          const loadedPinnedFaces = await document.fonts.load(
+            '600 15px "JetBrains Mono"',
+            "Ready to scan. Layout + site.",
           );
-          wideFontStyle.remove();
+          await document.fonts.ready;
+          const pinnedFontNodes = nodes.map(({ id, bounds }) => {
+            const node = svg.querySelector<SVGGElement>(
+              `g[data-node-id="${id}"]`,
+            )!;
+            const nativeWidth = Number(
+              node.querySelector<SVGRectElement>("rect:not(.c-mask)")!
+                .getAttribute("width"),
+            );
+            const texts = [...node.querySelectorAll<SVGTextElement>("text")]
+              .map((text) => {
+                const value = text.textContent?.trim() ?? "";
+                const textBounds = text.getBoundingClientRect();
+                return {
+                  value,
+                  width: textBounds.width,
+                  fontFamily: getComputedStyle(text).fontFamily,
+                  outside:
+                    textBounds.left < bounds.left ||
+                    textBounds.right > bounds.right ||
+                    textBounds.top < bounds.top ||
+                    textBounds.bottom > bounds.bottom,
+                };
+              });
+            return {
+              id,
+              nativeWidth,
+              requiredWidth: Math.max(
+                ...texts.map(({ value }) =>
+                  Array.from(value).length * 15 * 0.6 + 8
+                ),
+              ),
+              texts,
+            };
+          });
+          pinnedFontStyle.remove();
           return {
             fontStatus: document.fonts.status,
             textOverflow: nodes.flatMap(({ id, textOverflow }) =>
               textOverflow.map((overflow) => ({ nodeId: id, ...overflow }))
             ),
-            wideFontTextOverflow,
+            productFontFamilies,
+            pinnedFontLoaded:
+              loadedPinnedFaces.length > 0 &&
+              document.fonts.check('600 15px "JetBrains Mono"'),
+            pinnedFontNodes,
             glyphCount: nodes.reduce(
               (count, { glyphCount }) => count + glyphCount,
               0,
@@ -483,9 +521,55 @@ test("actual Dataflow story text stays readable after page, frame, and SVG scali
           `${story.id} node text containment at ${viewport.width}x${viewport.height}`,
         ).toEqual([]);
         expect(
-          geometry.wideFontTextOverflow,
-          `${story.id} wide-font node text containment at ${viewport.width}x${viewport.height}`,
+          geometry.pinnedFontLoaded,
+          `${story.id} pinned font readiness at ${viewport.width}x${viewport.height}`,
+        ).toBe(true);
+        if (
+          story.id === "repository-dataflow" &&
+          viewport.width === 1024 &&
+          viewport.height === 768
+        ) {
+          const pinnedWidths = new Map(
+            geometry.pinnedFontNodes.flatMap(({ texts }) =>
+              texts.map(({ value, width }) => [value, width] as const)
+            ),
+          );
+          expect(
+            pinnedWidths.get("Ready to scan."),
+            "pinned Ready to scan. width discriminates hosted overflow",
+          ).toBeGreaterThanOrEqual(123.188);
+          expect(
+            pinnedWidths.get("Layout + site."),
+            "pinned Layout + site. width discriminates hosted overflow",
+          ).toBeGreaterThanOrEqual(115.938);
+        }
+        expect.soft(
+          geometry.pinnedFontNodes.flatMap(({ id, texts }) =>
+            texts.filter(({ outside }) => outside)
+              .map(({ value, width, fontFamily }) => ({
+                nodeId: id,
+                value,
+                width,
+                fontFamily,
+              }))
+          ),
+          `${story.id} pinned-font node text containment at ${viewport.width}x${viewport.height}`,
         ).toEqual([]);
+        expect.soft(
+          geometry.pinnedFontNodes.flatMap(
+            ({ id, nativeWidth, requiredWidth }) =>
+              nativeWidth >= requiredWidth
+                ? []
+                : [{ nodeId: id, nativeWidth, requiredWidth }],
+          ),
+          `${story.id} native widths fit emitted text at ${viewport.width}x${viewport.height}`,
+        ).toEqual([]);
+        expect.soft(
+          geometry.productFontFamilies.every((family) =>
+            family.includes("JetBrains Mono")
+          ),
+          `${story.id} production typography uses the pinned font at ${viewport.width}x${viewport.height}`,
+        ).toBe(true);
         expect(
           geometry.glyphCount,
           `${story.id} rendered semantic glyphs at ${viewport.width}x${viewport.height}`,
