@@ -534,16 +534,16 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
   const finalFontSize = usesFinalGeometry
     ? architectureFinalFontSize
     : architectureFontSize;
-  const edgeMaskHeight = usesFinalGeometry
-    ? architectureFinalEdgeMaskHeight
-    : architectureNativeEdgeMaskHeight;
-  const labelAscent = usesFinalGeometry ? edgeMaskHeight / 2 : 25;
-  const labelDescent = usesFinalGeometry ? edgeMaskHeight / 2 : 7;
+  const edgeMaskHeight =
+    architectureNativeEdgeMaskHeight *
+    (finalFontSize / architectureNativeEdgeFontSize);
+  const labelAscent = edgeMaskHeight / 2;
+  const labelDescent = edgeMaskHeight / 2;
   const connectionLabelWidth = (label: string) =>
     architectureLabelWidth(
       label,
       finalFontSize,
-      usesFinalGeometry ? 16 : 0,
+      16,
     );
   const resolved = sections.map((section) => {
     const sectionAnchors = section.anchorIds
@@ -568,10 +568,10 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
     const finalWidth = Math.max(
       280,
       Math.ceil(
-        architectureNodeTextWidth(section.title, architectureFinalFontSize),
+        architectureNodeTextWidth(section.title, finalFontSize),
       ),
       Math.ceil(
-        architectureNodeTextWidth(sublabel, architectureFinalFontSize),
+        architectureNodeTextWidth(sublabel, finalFontSize),
       ),
     );
     return {
@@ -583,7 +583,7 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
       finalWidth,
     };
   });
-  const boxHeight = usesFinalGeometry ? 88 : 130;
+  const boxHeight = usesFinalGeometry ? 87 : 130;
   const routeCorridorBand = 8;
   const baseColumnGap = (usesFinalGeometry ? 16 : 24) + routeCorridorBand;
   const balancedRowSizes = (maxRowSize: number) => {
@@ -659,14 +659,10 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
   // never let post-render readability typography outgrow native geometry.
   const componentWidth = (
     entry: (typeof resolved)[number],
-  ) => usesFinalGeometry
-    ? Math.max(
-      rowCount > 3 ? entry.compactWidth : entry.legacyWidth,
-      entry.finalWidth,
-    )
-    : rowCount > 3
-    ? entry.compactWidth
-    : entry.legacyWidth;
+  ) => Math.max(
+    rowCount > 3 ? entry.compactWidth : entry.legacyWidth,
+    entry.finalWidth,
+  );
   const cellOf = (index: number) => {
     return cellIn(rowSizes, index);
   };
@@ -747,7 +743,7 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
   );
   const labelLaneStep =
     labelAscent + labelDescent + 1;
-  const labelCorridorPadding = usesFinalGeometry ? 4 : 2;
+  const labelCorridorPadding = 8;
   const requiredRowGap = Math.max(
     0,
     ...[...sharedGapConnections.entries()].map(([gap, connections]) =>
@@ -862,7 +858,7 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
         labelDescent +
         4
       : 60);
-  const laneGap = usesFinalGeometry ? edgeMaskHeight + 8 : 40;
+  const laneGap = edgeMaskHeight + 8;
   const gridRight =
     horizontalMargin +
     columnWidths.reduce((total, width) => total + width, 0) +
@@ -899,7 +895,7 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
     const fromIndex = sectionIndexById.get(connection.from)!;
     const sourceX = componentCenterX(fromIndex);
     const width = connectionLabelWidth(connection.label!);
-    const routeClearance = 12;
+    const routeClearance = 14;
     const corridorXs = [...(gapRouteCorridors.get(gap) ?? [])]
       .sort((left, right) => left - right);
     const intervals: [number, number][] = [];
@@ -1598,8 +1594,13 @@ function improveStoryReadability(
   if (!contents.includes(headEnd)) {
     throw new Error(`Archify ${family} output is missing its closing head element`);
   }
-  const architectureContents = family === "architecture" &&
-      architectureFinalGeometry
+  const architectureOutputFontSize = architectureFinalGeometry
+    ? architectureFinalFontSize
+    : architectureFontSize;
+  const architectureOutputEdgeMaskHeight =
+    architectureNativeEdgeMaskHeight *
+    (architectureOutputFontSize / architectureNativeEdgeFontSize);
+  const architectureContents = family === "architecture"
     ? (() => {
         let replaced = 0;
         const adjusted = contents.replace(
@@ -1620,14 +1621,14 @@ function improveStoryReadability(
             const units = (nativeWidth - 10) / 4.8;
             const width = Math.max(
               nativeWidth,
-              units * architectureFinalFontSize * 0.6 + 16,
+              units * architectureOutputFontSize * 0.6 + 16,
             );
             const center = Number(xValue) + nativeWidth / 2;
             const baseline = Number(yValue) + 10;
             return `${prefix}${center - width / 2}${yPrefix}${
-              baseline - architectureFinalEdgeMaskHeight / 2 - 8
+              baseline - architectureOutputEdgeMaskHeight / 2 - 8
             }${widthPrefix}${width}${heightPrefix}${
-              architectureFinalEdgeMaskHeight
+              architectureOutputEdgeMaskHeight
             }${suffix}`;
           },
         );
