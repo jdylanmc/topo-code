@@ -815,7 +815,7 @@ test("actual story details restore unobscured authored content", async ({
       "3. Preserve generated evidence",
       "4. Author a source-grounded story",
       "5. Render at the pinned boundary",
-      "6. Browse the architecture storybook",
+      "6. Browse the storybook",
       "7. Bundle for static hosting",
     ];
     const overlappingTitles = async () => {
