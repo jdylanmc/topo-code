@@ -5,9 +5,9 @@ dist/
 build/
 *.tsbuildinfo
 
-# Only caches are safely ignorable. Config, normalized report inputs, and
-# generated architectural metadata are independently source-controllable
-# (see issue #1), so the .topo/ workspace is NOT ignored wholesale.
+# Keep the root policy cache-only. This repository's checked-in workspace policy
+# separately keeps generated maps and report outputs local while preserving
+# config, authored metadata, and normalized report inputs for source control.
 .topo/cache/
 .skill-log/
 

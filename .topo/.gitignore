@@ -1,0 +1,5 @@
+# Generated maps, local layout state, and output reports remain local.
+# Configuration, authored metadata, and normalized report inputs remain source-controllable.
+/cache/
+/graph/
+/reports/outputs/
