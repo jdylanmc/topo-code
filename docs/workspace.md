@@ -22,10 +22,15 @@ JSON and unsupported options are errors, not invitations to reset a workspace.
 | `cache/enrichment-runs/` | Temporary command input, prompt and staged output | Ignore; owned run directories are cleaned after execution |
 | `cache/write.lock` | Ephemeral single-writer lock | Ignore |
 
-The generated `.topo/.gitignore` ignores **only `/cache/`**. Do not blanket-ignore
-`.topo/`: doing so hides authored config, report evidence and architecture review.
-Generated graphs are not automatically staged or committed; teams choose which
-artifacts they share.
+The tool-generated `.topo/.gitignore` default ignores **only `/cache/`**. Do not
+blanket-ignore `.topo/`: doing so hides authored config, report evidence and
+architecture review. Existing workspace ignore files are preserved so each
+repository can choose a stricter policy without changing the initializer default.
+
+This repository checks in a project-specific policy that also ignores `/graph/`
+and `/reports/outputs/`. Generated maps, local layout state and output reports
+remain local here, while configuration, authored metadata and normalized report
+inputs remain source-controllable.
 
 ## Configuration
 

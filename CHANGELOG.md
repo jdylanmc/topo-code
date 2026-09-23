@@ -52,6 +52,8 @@ does not currently publish versioned releases.
 
 ### Changed
 
+- Track the repository's Topocode configuration while keeping generated graph
+  snapshots, local layout state, and output reports local.
 - Keep current skill diagnostics local by ignoring `.skill-log/` while retaining
   previously committed evidence in Git history.
 - Publish the existing Orca orchestration skill and its lock entry alongside the
