@@ -96,6 +96,12 @@
       "skillPath": ".agents/skills/joe-mode/SKILL.md",
       "computedHash": "21af741aef915f99dbdb509e09969e37cdb29e8d95d20ea3e0944e9c64f9137b"
     },
+    "joe-mode-orca": {
+      "source": "jdylanmc/agent-skills",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/joe-mode-orca/SKILL.md",
+      "computedHash": "7f6fd63a9385b6943b75b9d4997b7bb22c9dec408ef83558d9237909a01a7b98"
+    },
     "joe-mode-paseo": {
       "source": "jdylanmc/agent-skills",
       "sourceType": "github",
@@ -108,6 +114,12 @@
       "sourceType": "github",
       "skillPath": ".agents/skills/migration/SKILL.md",
       "computedHash": "5278fa96fbbdac21805bc5c571ef94d8e4d5bdcb3a39fe993a4a559fe393a6b4"
+    },
+    "orchestration": {
+      "source": "stablyai/orca",
+      "sourceType": "github",
+      "skillPath": "skills/orchestration/SKILL.md",
+      "computedHash": "247d274538eafa19d2fc622681dd7373d752e15e77b0efe41087e4790f062c50"
     },
     "patch": {
       "source": "jdylanmc/agent-skills",
