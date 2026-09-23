@@ -130,7 +130,8 @@ it("serves only generated site data on loopback with explicit errors", async () 
   expect(response.headers.get("content-security-policy")).toContain("connect-src 'self'");
   expect(response.headers.get("content-security-policy")).toContain("frame-ancestors 'none'");
   expect(await (await fetch(`${url}/data.json`)).json()).toEqual({ ok: true });
-  expect(await (await fetch(`${url}/explorer/data.json`)).json()).toEqual({ ok: true });
+  expect((await fetch(`${url}/explorer/`)).status).toBe(404);
+  expect((await fetch(`${url}/explorer/data.json`)).status).toBe(404);
   expect((await fetch(`${url}/not-found`)).status).toBe(404);
   expect((await fetch(url, { method: "POST" })).status).toBe(405);
   expect((await fetch(`${url}/.hidden`)).status).toBe(403);

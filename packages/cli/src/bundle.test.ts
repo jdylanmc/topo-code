@@ -114,9 +114,11 @@ describe("static site bundle", () => {
       siteDirectory: join(output, "architecture/topo"),
     });
     expect(await readFile(join(result.siteDirectory, "index.html"), "utf8"))
-      .toContain("./explorer/");
-    expect(await readFile(join(result.siteDirectory, "explorer/data.json"), "utf8"))
-      .toBe(await readFile(join(result.siteDirectory, "data.json"), "utf8"));
+      .not.toContain("./explorer/");
+    await expect(readFile(
+      join(result.siteDirectory, "explorer/index.html"),
+      "utf8",
+    )).rejects.toMatchObject({ code: "ENOENT" });
     expect(await readFile(
       join(result.siteDirectory, "THIRD_PARTY_NOTICES.txt"),
       "utf8",
@@ -166,7 +168,7 @@ describe("static site bundle", () => {
     let live: { curatedViews: { views: { definition: { id: string } }[] } };
     try {
       live = await (
-        await fetch(`${liveServer.url}/explorer/data.json`)
+        await fetch(`${liveServer.url}/data.json`)
       ).json() as typeof live;
     } finally {
       await new Promise<void>((done, reject) => {
@@ -177,7 +179,7 @@ describe("static site bundle", () => {
     const output = join(await temp("topo-bundle-parent-"), "site");
     const result = await bundleSite(root, output);
     const bundled = JSON.parse(
-      await readFile(join(result.siteDirectory, "explorer/data.json"), "utf8"),
+      await readFile(join(result.siteDirectory, "data.json"), "utf8"),
     ) as typeof live;
 
     expect(live.curatedViews.views.map(({ definition }) => definition.id))
@@ -191,7 +193,7 @@ describe("static site bundle", () => {
     const output = join(await temp("topo-bundle-parent-"), "site");
     const first = await bundleSite(root, output);
     const working = await readFile(
-      join(first.siteDirectory, "explorer/data.json"),
+      join(first.siteDirectory, "data.json"),
       "utf8",
     );
     const dataPath = join(root, ".topo/cache/site/data.json");
@@ -205,7 +207,7 @@ describe("static site bundle", () => {
       "logicalArchitecture",
     );
     expect(await readFile(
-      join(first.siteDirectory, "explorer/data.json"),
+      join(first.siteDirectory, "data.json"),
       "utf8",
     )).toBe(working);
   });
@@ -216,7 +218,7 @@ describe("static site bundle", () => {
     const output = join(await temp("topo-bundle-parent-"), "site");
     const first = await bundleSite(root, output);
     const working = await readFile(
-      join(first.siteDirectory, "explorer/data.json"),
+      join(first.siteDirectory, "data.json"),
       "utf8",
     );
     const dataPath = join(root, ".topo/cache/site/data.json");
@@ -234,7 +236,7 @@ describe("static site bundle", () => {
       stderr: expect.stringContaining("architecture.json"),
     });
     expect(await readFile(
-      join(first.siteDirectory, "explorer/data.json"),
+      join(first.siteDirectory, "data.json"),
       "utf8",
     )).toBe(working);
   });

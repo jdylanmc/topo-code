@@ -34,6 +34,27 @@ export async function commit(repository: string, message: string, ...paths: stri
   return (await execute("git", ["rev-parse", "HEAD"], { cwd: repository })).stdout.trim();
 }
 
+export async function commitAt(
+  repository: string,
+  message: string,
+  date: string,
+  ...paths: string[]
+): Promise<string> {
+  await execute("git", ["add", "--", ...paths], { cwd: repository });
+  await execute("git", [
+    "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
+    "-c", "commit.gpgsign=false", "commit", "--quiet", "-m", message,
+  ], {
+    cwd: repository,
+    env: {
+      ...process.env,
+      GIT_AUTHOR_DATE: date,
+      GIT_COMMITTER_DATE: date,
+    },
+  });
+  return (await execute("git", ["rev-parse", "HEAD"], { cwd: repository })).stdout.trim();
+}
+
 async function copyDirectoryIfPresent(
   source: string,
   destination: string,

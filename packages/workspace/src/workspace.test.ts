@@ -88,11 +88,6 @@ describe("workspace lifecycle", () => {
         accentColor: "#7c3aed",
         categoryOrder: ["Journeys", "Reference"],
         storyCategories: { checkout: "Journeys" },
-        explorer: {
-          title: "Repository explorer",
-          summary: "Browse every discovered dependency.",
-          category: "Reference",
-        },
       },
     }).catalogue).toEqual({
       title: "Architecture journeys",
@@ -100,11 +95,6 @@ describe("workspace lifecycle", () => {
       accentColor: "#7c3aed",
       categoryOrder: ["Journeys", "Reference"],
       storyCategories: { checkout: "Journeys" },
-      explorer: {
-        title: "Repository explorer",
-        summary: "Browse every discovered dependency.",
-        category: "Reference",
-      },
     });
   });
 
@@ -113,7 +103,7 @@ describe("workspace lifecycle", () => {
     { catalogue: { accentColor: "purple" }, error: "accentColor" },
     { catalogue: { categoryOrder: ["Stories", "Stories"] }, error: "categoryOrder" },
     { catalogue: { storyCategories: { checkout: "" } }, error: "storyCategories" },
-    { catalogue: { explorer: { title: "Map", extra: true } }, error: "explorer keys" },
+    { catalogue: { explorer: { title: "Map" } }, error: "catalogue keys" },
     { catalogue: { extra: true }, error: "catalogue keys" },
   ])("rejects invalid catalogue config: $error", ({ catalogue, error }) => {
     expect(() => parseConfig({

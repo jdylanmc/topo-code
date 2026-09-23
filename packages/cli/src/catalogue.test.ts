@@ -175,15 +175,16 @@ describe("generated catalogue", () => {
     );
   });
 
-  it("keeps a coherent explorer-only landing page with zero stories", async () => {
+  it("keeps a coherent shell with zero stories and no explorer fallback", async () => {
     const root = await repository();
     const stories = await buildCatalogueStories(root);
     const page = renderCataloguePage(stories, (await loadConfig(root)).catalogue);
 
     expect(stories).toEqual([]);
-    expect(page).toContain("Explore the repository");
-    expect(page).toContain('href="./explorer/"');
-    expect(page).toContain("No authored stories yet");
+    expect(page).toContain('aria-label="Diagram catalogue"');
+    expect(page).not.toContain("Explore the repository");
+    expect(page).not.toContain('href="./explorer/"');
+    expect(page).toMatch(/no diagrams/i);
   });
 
   it("discovers every committed story and derives categories from metadata and paths", async () => {
@@ -282,13 +283,8 @@ describe("generated catalogue", () => {
         title: "System tours",
         description: "Choose a guided path.",
         accentColor: "#ff5500",
-        categoryOrder: ["Maps", "Critical paths"],
+        categoryOrder: ["Critical paths"],
         storyCategories: { checkout: "Critical paths" },
-        explorer: {
-          title: "Dependency atlas",
-          summary: "Inspect the complete repository.",
-          category: "Maps",
-        },
       },
     }, null, 2)}\n`);
 
@@ -299,12 +295,11 @@ describe("generated catalogue", () => {
 
     expect(page).toContain("<title>System tours</title>");
     expect(page).toContain("--accent: #ff5500");
-    expect(page.indexOf("Maps")).toBeLessThan(page.indexOf("Critical paths"));
-    expect(page).toContain("Dependency atlas");
-    expect(page).toContain("Inspect the complete repository.");
+    expect(page).toContain("Critical paths");
+    expect(page).not.toContain("Dependency atlas");
   });
 
-  it("writes the landing page, retained explorer, and all rendered stories", async () => {
+  it("writes the shell and all rendered stories without a legacy explorer route", async () => {
     const root = await repository();
     await addStory(root, "stories/checkout.topo.json", "checkout", "Checkout");
     await commit(root);
@@ -318,8 +313,10 @@ describe("generated catalogue", () => {
 
     expect(await readFile(join(root, ".topo/cache/site/index.html"), "utf8"))
       .toContain("Checkout");
-    expect(await readFile(join(root, ".topo/cache/site/explorer/index.html"), "utf8"))
-      .toContain("<title>Explorer</title>");
+    await expect(readFile(
+      join(root, ".topo/cache/site/explorer/index.html"),
+      "utf8",
+    )).rejects.toMatchObject({ code: "ENOENT" });
     expect(await readFile(join(root, ".topo/cache/site/stories/checkout/index.html"), "utf8"))
       .toContain("Checkout");
     expect(await readFile(join(root, ".topo/cache/site/stories/checkout/index.html"), "utf8"))

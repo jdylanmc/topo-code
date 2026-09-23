@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { expect } from "@playwright/test";
 import {
   commit,
+  commitAt,
   startStaticServer,
   startTopoServer,
   stopTopoServer,
@@ -32,6 +33,9 @@ async function story(
   options?: {
     anchor?: { id: string; path: string; symbol: string };
     section?: { id: string; title: string; body: string };
+    sections?: { id: string; title: string; body: string }[];
+    connections?: { from: string; to: string; label: string }[];
+    diagramFamily?: "architecture" | "dataflow" | "lifecycle" | "sequence" | "workflow";
   },
 ): Promise<void> {
   const directory = join(repository, "stories", path);
@@ -46,44 +50,46 @@ async function story(
     title: "Source",
     body: "Follow the source.",
   };
+  const sections = options?.sections ?? [section];
   await writeFile(join(directory, `${id}.topo.json`), `${JSON.stringify({
     schemaVersion: "1.0",
     id,
     title,
     summary: `${title} summary.`,
     ...(category === undefined ? {} : { category }),
+    ...(options?.diagramFamily === undefined
+      ? {}
+      : { diagramFamily: options.diagramFamily }),
     anchors: [anchor],
-    sections: [{
-      ...section,
+    sections: sections.map((item) => ({
+      ...item,
       anchorIds: [anchor.id],
-    }],
-    connections: [],
+    })),
+    connections: options?.connections ?? [],
   }, null, 2)}\n`);
 }
 
-test("topo serve uses the default port for an explorer-only catalogue", async ({
+test("topo serve presents an empty shell without restoring the retired explorer", async ({
   page,
   repository,
 }) => {
   await sourceFixture(repository);
   await topo(repository, "scan");
-  const { server, url } = await startTopoServer(repository, []);
+  const { server, url } = await startTopoServer(repository, ["--port", "0"]);
   try {
-    expect(url).toBe("http://127.0.0.1:4173");
+    expect(new URL(url).port).not.toBe("4173");
     await page.goto(url);
-    await expect(page.getByRole("heading", { name: "Topocode" })).toBeVisible();
-    await expect(page.locator('[data-kind="story"]')).toHaveCount(0);
-    await expect(page.getByText("No authored stories yet")).toBeVisible();
-    await page.getByRole("link", { name: /Explore the repository/ }).click();
-    await page.evaluate(() => window.__TOPO_READY__);
-    await expect(page.locator("canvas.topo-webgl")).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Diagram catalogue" })).toBeVisible();
+    await expect(page.locator('a[href*="/stories/"]')).toHaveCount(0);
+    expect((await page.request.get(`${url}/explorer/`)).status()).toBe(404);
+    await expect(page.locator('a[href*="explorer"], canvas.topo-webgl')).toHaveCount(0);
   } finally {
     await page.goto("about:blank");
     await stopTopoServer(server);
   }
 });
 
-test("bundled catalogue, story, and explorer run under a static base path", async ({
+test("bundled shell and stories run under a static base path without explorer assets", async ({
   page,
   repository,
 }) => {
@@ -105,14 +111,12 @@ test("bundled catalogue, story, and explorer run under a static base path", asyn
   try {
     const baseUrl = `${url}/published/topo/`;
     await page.goto(baseUrl);
-    await expect(page.getByRole("heading", { name: "Topocode" })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Diagram catalogue" })).toBeVisible();
     await page.getByRole("link", { name: /Checkout/ }).click();
     await expect(page).toHaveURL(`${baseUrl}stories/checkout/`);
     await expect(page.getByRole("heading", { name: "Checkout" })).toBeVisible();
-    await page.goto(baseUrl);
-    await page.getByRole("link", { name: /Explore the repository/ }).click();
-    await page.evaluate(() => window.__TOPO_READY__);
-    await expect(page.locator("canvas.topo-webgl")).toBeVisible();
+    expect((await page.request.get(`${baseUrl}explorer/`)).status()).toBe(404);
+    expect((await page.request.get(`${baseUrl}explorer/index.html`)).status()).toBe(404);
 
     const notices = await readFile(
       join(output, "published/topo/THIRD_PARTY_NOTICES.txt"),
@@ -136,7 +140,7 @@ test("bundled catalogue, story, and explorer run under a static base path", asyn
   }
 });
 
-test("configured catalogue selects stories and retains the explorer on an explicit port", async ({
+test("configured catalogue remains complete without an explorer entry", async ({
   page,
   repository,
   startSite,
@@ -154,13 +158,8 @@ test("configured catalogue selects stories and retains the explorer on an explic
       title: "System tours",
       description: "Choose a guided path.",
       accentColor: "#ff5500",
-      categoryOrder: ["Maps", "Critical paths", "Operations"],
+      categoryOrder: ["Critical paths", "Operations"],
       storyCategories: { checkout: "Critical paths" },
-      explorer: {
-        title: "Dependency atlas",
-        summary: "Inspect the complete repository.",
-        category: "Maps",
-      },
     },
   }, null, 2)}\n`);
   await topo(repository, "scan");
@@ -169,14 +168,290 @@ test("configured catalogue selects stories and retains the explorer on an explic
   expect(new URL(url).port).not.toBe("4173");
   await page.goto(url);
   await expect(page).toHaveTitle("System tours");
-  await expect(page.locator('[data-kind="story"]')).toHaveCount(2);
-  await expect(page.locator("section").first()).toHaveAttribute("data-category", "Maps");
+  await expect(page.getByRole("navigation", { name: "Diagram catalogue" })
+    .locator('a[href*="/stories/"]')).toHaveCount(2);
+  await page.getByLabel("Group diagrams by").selectOption("category");
+  await expect(page.getByRole("button", { name: "Critical paths" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Operations" })).toBeVisible();
   await page.getByRole("link", { name: /Checkout/ }).click();
   await expect(page.getByRole("heading", { name: "Checkout" })).toBeVisible();
+  expect((await page.request.get(`${url}/explorer/`)).status()).toBe(404);
+});
+
+test("shell groups, sorts, filters, persists, navigates, and contains every diagram", async ({
+  page,
+  repository,
+  startSite,
+}) => {
+  await sourceFixture(repository);
+  await story(repository, "core", "alpha", "Alpha architecture", "Foundations", {
+    diagramFamily: "architecture",
+  });
+  await story(repository, "flows", "beta", "Beta workflow", "Journeys", {
+    diagramFamily: "workflow",
+  });
+  await commitAt(
+    repository,
+    "First stories",
+    "2024-01-01T12:00:00Z",
+    "stories/core/alpha.topo.json",
+    "stories/flows/beta.topo.json",
+  );
+  await story(repository, "flows", "gamma", "Gamma sequence", "Journeys", {
+    diagramFamily: "sequence",
+    sections: [
+      { id: "request", title: "Request", body: "Start the request." },
+      { id: "response", title: "Response", body: "Return the response." },
+    ],
+    connections: [{ from: "request", to: "response", label: "calls" }],
+  });
+  await commitAt(
+    repository,
+    "Sequence story",
+    "2024-01-02T12:00:00Z",
+    "stories/flows/gamma.topo.json",
+  );
+  await story(repository, "data", "delta", "Delta dataflow", "Data", {
+    diagramFamily: "dataflow",
+    sections: [
+      { id: "source", title: "Source", body: "Read source data." },
+      { id: "output", title: "Output", body: "Write output data." },
+    ],
+    connections: [{ from: "source", to: "output", label: "flows" }],
+  });
+  await commitAt(
+    repository,
+    "Dataflow story",
+    "2024-01-03T12:00:00Z",
+    "stories/data/delta.topo.json",
+  );
+  await story(repository, "states", "epsilon", "Epsilon lifecycle", "Journeys", {
+    diagramFamily: "lifecycle",
+    sections: [
+      { id: "draft", title: "Draft", body: "Begin in draft." },
+      { id: "published", title: "Published", body: "Finish published." },
+    ],
+    connections: [{ from: "draft", to: "published", label: "publish" }],
+  });
+  await commitAt(
+    repository,
+    "Lifecycle story",
+    "2024-01-04T12:00:00Z",
+    "stories/states/epsilon.topo.json",
+  );
+  await story(repository, "flows", "beta", "Beta workflow", "Journeys", {
+    diagramFamily: "workflow",
+    section: {
+      id: "section",
+      title: "Updated source",
+      body: "Follow the updated source.",
+    },
+  });
+  await commitAt(
+    repository,
+    "Update workflow",
+    "2024-01-05T12:00:00Z",
+    "stories/flows/beta.topo.json",
+  );
+  await topo(repository, "scan");
+
+  const url = await startSite();
+  await page.goto(`${url}/stories/alpha/`);
+  const catalogue = page.getByRole("navigation", { name: "Diagram catalogue" });
+  const storyLinks = catalogue.locator('a[href*="/stories/"]');
+  const titles = () => storyLinks.allTextContents()
+    .then((values) => values.map((value) => value.trim()));
+
+  await expect(storyLinks).toHaveCount(5);
+  await expect(page.getByRole("link", { name: "Alpha architecture" }))
+    .toHaveAttribute("aria-current", "page");
+  for (const group of ["Architecture", "Dataflow", "Lifecycle", "Sequence", "Workflow"]) {
+    await expect(page.getByRole("button", { name: group })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+  }
+
+  await page.getByLabel("Group diagrams by").selectOption("category");
+  for (const group of ["Data", "Foundations", "Journeys"]) {
+    await expect(page.getByRole("button", { name: group })).toBeVisible();
+  }
+  await page.getByLabel("Group diagrams by").selectOption("folder");
+  for (const group of ["core", "data", "flows", "states"]) {
+    await expect(page.getByRole("button", { name: group })).toBeVisible();
+  }
+  await page.getByLabel("Group diagrams by").selectOption("flat");
+  await expect(catalogue.locator("button[aria-expanded]")).toHaveCount(0);
+
+  await page.getByLabel("Sort diagrams by").selectOption("title");
+  await page.getByLabel("Sort direction").selectOption("ascending");
+  expect(await titles()).toEqual([
+    "Alpha architecture",
+    "Beta workflow",
+    "Delta dataflow",
+    "Epsilon lifecycle",
+    "Gamma sequence",
+  ]);
+  await page.getByLabel("Sort direction").selectOption("descending");
+  expect(await titles()).toEqual([
+    "Gamma sequence",
+    "Epsilon lifecycle",
+    "Delta dataflow",
+    "Beta workflow",
+    "Alpha architecture",
+  ]);
+  await page.getByLabel("Sort diagrams by").selectOption("created");
+  await page.getByLabel("Sort direction").selectOption("ascending");
+  expect(await titles()).toEqual([
+    "Alpha architecture",
+    "Beta workflow",
+    "Gamma sequence",
+    "Delta dataflow",
+    "Epsilon lifecycle",
+  ]);
+  await page.getByLabel("Sort direction").selectOption("descending");
+  expect(await titles()).toEqual([
+    "Epsilon lifecycle",
+    "Delta dataflow",
+    "Gamma sequence",
+    "Alpha architecture",
+    "Beta workflow",
+  ]);
+  await page.getByLabel("Sort diagrams by").selectOption("modified");
+  await page.getByLabel("Sort direction").selectOption("ascending");
+  expect(await titles()).toEqual([
+    "Alpha architecture",
+    "Gamma sequence",
+    "Delta dataflow",
+    "Epsilon lifecycle",
+    "Beta workflow",
+  ]);
+  await page.getByLabel("Sort direction").selectOption("descending");
+  expect(await titles()).toEqual([
+    "Beta workflow",
+    "Epsilon lifecycle",
+    "Delta dataflow",
+    "Gamma sequence",
+    "Alpha architecture",
+  ]);
+
+  const filter = page.getByLabel("Filter diagrams");
+  await filter.focus();
+  await page.keyboard.type("Gamma");
+  await expect(storyLinks).toHaveCount(1);
+  await expect(storyLinks).toHaveText(["Gamma sequence"]);
+  await filter.clear();
+
+  await page.getByRole("link", { name: "Gamma sequence" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(`${url}/stories/gamma/`);
+  await expect(page.getByRole("link", { name: "Gamma sequence" }))
+    .toHaveAttribute("aria-current", "page");
+  await page.getByRole("link", { name: "Beta workflow" }).click();
+  await expect(page).toHaveURL(`${url}/stories/beta/`);
+  await page.goBack();
+  await expect(page).toHaveURL(`${url}/stories/gamma/`);
+  await expect(page.getByRole("link", { name: "Gamma sequence" }))
+    .toHaveAttribute("aria-current", "page");
+  await page.goForward();
+  await expect(page).toHaveURL(`${url}/stories/beta/`);
+
+  await page.getByLabel("Group diagrams by").selectOption("category");
+  await page.getByLabel("Sort diagrams by").selectOption("created");
+  await page.getByLabel("Sort direction").selectOption("descending");
+  await page.getByRole("button", { name: "Collapse diagram navigation" }).click();
+  await expect(page.getByRole("button", { name: "Expand diagram navigation" })).toBeVisible();
+  await page.reload();
+  await expect(page.getByLabel("Group diagrams by")).toHaveValue("category");
+  await expect(page.getByLabel("Sort diagrams by")).toHaveValue("created");
+  await expect(page.getByLabel("Sort direction")).toHaveValue("descending");
+  await expect(page.getByRole("button", { name: "Expand diagram navigation" })).toBeVisible();
+
+  for (const viewport of [
+    { width: 1024, height: 768 },
+    { width: 1280, height: 720 },
+    { width: 1440, height: 900 },
+    { width: 1600, height: 1000 },
+    { width: 1920, height: 1080 },
+  ]) {
+    await page.setViewportSize(viewport);
+    const expand = page.getByRole("button", { name: "Expand diagram navigation" });
+    if (await expand.isVisible()) await expand.click();
+    const frame = page.locator("iframe");
+    await expect(frame).toBeVisible();
+    const bounds = await frame.boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(bounds!.x).toBeGreaterThanOrEqual(0);
+    expect(bounds!.y).toBeGreaterThanOrEqual(0);
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(viewport.width + 1);
+    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(viewport.height + 1);
+    expect(await page.evaluate(() =>
+      document.documentElement.scrollWidth <= window.innerWidth
+    )).toBe(true);
+    const rendered = frame.contentFrame();
+    expect(await rendered.locator("svg text").evaluateAll((elements) =>
+      Math.min(...elements.map((element) =>
+        Number.parseFloat(getComputedStyle(element).fontSize)
+      ))
+    )).toBeGreaterThanOrEqual(12);
+    await page.getByRole("button", { name: "Collapse diagram navigation" }).click();
+    await expect(frame).toBeVisible();
+  }
+
+  await page.goto(`${url}/stories/gamma/?focus=section`);
+  await expect(page.locator("iframe")).toHaveAttribute(
+    "src",
+    "viewer.html#focus=section",
+  );
+  await expect(page.locator('a[href*="explorer"], canvas.topo-webgl')).toHaveCount(0);
+  expect((await page.request.get(`${url}/explorer/`)).status()).toBe(404);
+});
+
+test("shallow history is explicit and unknown dates remain deterministic", async ({
+  page,
+  repository,
+  startSite,
+}) => {
+  await sourceFixture(repository);
+  await story(repository, "older", "alpha", "Alpha architecture", undefined, {
+    diagramFamily: "architecture",
+  });
+  await commitAt(
+    repository,
+    "Older story",
+    "2024-01-01T12:00:00Z",
+    "stories/older/alpha.topo.json",
+  );
+  await story(repository, "newer", "beta", "Beta workflow", undefined, {
+    diagramFamily: "workflow",
+  });
+  const head = await commitAt(
+    repository,
+    "Newer story",
+    "2024-01-02T12:00:00Z",
+    "stories/newer/beta.topo.json",
+  );
+  await writeFile(join(repository, ".git/shallow"), `${head}\n`);
+  await topo(repository, "scan");
+
+  const url = await startSite();
   await page.goto(url);
-  await page.getByRole("link", { name: /Dependency atlas/ }).click();
-  await page.evaluate(() => window.__TOPO_READY__);
-  await expect(page.locator("canvas.topo-webgl")).toBeVisible();
+  await expect(page.getByRole("status")).toContainText(/history.*incomplete/i);
+  await expect(page.getByText(/creation date unavailable/i)).toBeVisible();
+  await page.getByLabel("Group diagrams by").selectOption("flat");
+  await page.getByLabel("Sort diagrams by").selectOption("created");
+  const hrefs = () => page.getByRole("navigation", { name: "Diagram catalogue" })
+    .locator('a[href*="/stories/"]')
+    .evaluateAll((links) => links.map((link) => link.getAttribute("href")));
+
+  await page.getByLabel("Sort direction").selectOption("ascending");
+  const ascending = await hrefs();
+  await page.reload();
+  expect(await hrefs()).toEqual(ascending);
+  await page.getByLabel("Sort direction").selectOption("descending");
+  const descending = await hrefs();
+  await page.reload();
+  expect(await hrefs()).toEqual(descending);
 });
 
 test("linked story nodes keep durable focus across drill-down, reload, direct open, and return", async ({
