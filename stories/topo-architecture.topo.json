@@ -1,8 +1,8 @@
 {
   "schemaVersion": "1.0",
   "id": "topo-architecture",
-  "title": "How Topocode turns source into an explorable architecture site",
-  "summary": "Topo scans a Git repository into a deterministic graph, generates a static site, serves an explorer, and lets you author source-grounded stories that render through a pinned viewer and bundle for plain static hosting.",
+  "title": "How Topocode turns source into an architecture storybook",
+  "summary": "Topo scans a Git repository into deterministic evidence, renders committed source-grounded stories through pinned Archify, and publishes them inside one navigable static application shell.",
   "category": "Topocode internals",
   "anchors": [
     { "id": "scan", "path": "packages/scanner/src/typescript-scanner.ts", "symbol": "scanRepository" },
@@ -30,8 +30,8 @@
     },
     {
       "id": "serve",
-      "title": "3. Compose and serve the explorer",
-      "body": "One composition contract assembles the served payload (including curated views), and a single local server binds 127.0.0.1 to serve the WebGL explorer. Bundling reuses the exact same composition.",
+      "title": "3. Preserve generated evidence",
+      "body": "One composition contract keeps scanner, graph, layout, report, enrichment, and curated-view data current for command-line validation and future source-grounded capabilities without exposing the retired WebGL explorer.",
       "anchorIds": ["compose", "serve"]
     },
     {
@@ -48,14 +48,14 @@
     },
     {
       "id": "catalogue",
-      "title": "6. Browse the story catalogue",
-      "body": "Every authored story plus the retained explorer are gathered, categorized, and published as one generated landing page \u2014 derived, never hand-maintained.",
+      "title": "6. Browse the storybook",
+      "body": "Every committed story is gathered into one persistent shell with filtering, grouping, Git-backed sorting, deep links, and a selected real Archify viewer \u2014 generated, never hand-maintained.",
       "anchorIds": ["catalogue"]
     },
     {
       "id": "bundle",
       "title": "7. Bundle for static hosting",
-      "body": "The composed site \u2014 stories, catalogue, explorer, assets, and license notices \u2014 is emitted as deployable static files that any plain file server can host, with no topo process running.",
+      "body": "The composed site \u2014 shell, stories, Archify viewer artifacts, and license notices \u2014 is emitted as deployable static files that any plain file server can host, with no topo process running.",
       "anchorIds": ["bundle"]
     }
   ],

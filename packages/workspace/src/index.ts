@@ -18,11 +18,6 @@ export interface WorkspaceCatalogueConfig {
   accentColor?: string;
   categoryOrder?: string[];
   storyCategories?: Record<string, string>;
-  explorer?: {
-    title?: string;
-    summary?: string;
-    category?: string;
-  };
 }
 
 export interface WorkspaceConfig {
@@ -103,44 +98,6 @@ function parseCatalogueConfig(input: unknown): WorkspaceCatalogueConfig {
     }
     storyCategories = Object.fromEntries(entries);
   }
-  let explorer: WorkspaceCatalogueConfig["explorer"];
-  if (value.explorer !== undefined) {
-    if (
-      typeof value.explorer !== "object" ||
-      value.explorer === null ||
-      Array.isArray(value.explorer)
-    ) {
-      throw new Error("Workspace catalogue explorer must be an object");
-    }
-    const configured = value.explorer as Record<string, unknown>;
-    const unknown = Object.keys(configured).filter(
-      (key) => !["title", "summary", "category"].includes(key),
-    );
-    if (unknown.length) {
-      throw new Error(
-        `Unknown workspace catalogue explorer keys: ${unknown.join(", ")}`,
-      );
-    }
-    const explorerTitle = optionalNonemptyString(
-      configured.title,
-      "explorer title",
-    );
-    const explorerSummary = optionalNonemptyString(
-      configured.summary,
-      "explorer summary",
-    );
-    const explorerCategory = optionalNonemptyString(
-      configured.category,
-      "explorer category",
-    );
-    explorer = {
-      ...(explorerTitle === undefined ? {} : { title: explorerTitle }),
-      ...(explorerSummary === undefined ? {} : { summary: explorerSummary }),
-      ...(explorerCategory === undefined
-        ? {}
-        : { category: explorerCategory }),
-    };
-  }
   const unknown = Object.keys(value).filter(
     (key) =>
       ![
@@ -149,7 +106,6 @@ function parseCatalogueConfig(input: unknown): WorkspaceCatalogueConfig {
         "accentColor",
         "categoryOrder",
         "storyCategories",
-        "explorer",
       ].includes(key),
   );
   if (unknown.length) {
@@ -161,7 +117,6 @@ function parseCatalogueConfig(input: unknown): WorkspaceCatalogueConfig {
     ...(accentColor === undefined ? {} : { accentColor }),
     ...(categoryOrder === undefined ? {} : { categoryOrder }),
     ...(storyCategories === undefined ? {} : { storyCategories }),
-    ...(explorer === undefined ? {} : { explorer }),
   };
 }
 

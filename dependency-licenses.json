@@ -15,11 +15,6 @@
       "license": "MIT",
       "source": "https://registry.npmjs.org/ignore/7.0.8"
     },
-    "pixi.js": {
-      "range": "^8.13.2",
-      "license": "MIT",
-      "source": "https://github.com/pixijs/pixijs/blob/v8.20.1/LICENSE"
-    },
     "typescript-compiler-api": {
       "range": "npm:typescript@^6.0.0",
       "license": "Apache-2.0",

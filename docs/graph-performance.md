@@ -3,8 +3,8 @@
 This iteration improves graph derivation without changing its output or
 substituting a smaller fixture. It also removes a separate browser-startup
 bottleneck in graph-aware layout validation. The real headless measurements
-are recorded in [renderer.md](./renderer.md), alongside the subsequent
-WebGL-only decision and current 30 FPS whole-workload floor.
+are retained as historical evidence for the retired WebGL explorer. They do not
+describe the current generated shell or establish a current performance floor.
 
 ## Measured bottlenecks
 
@@ -146,10 +146,10 @@ show cheaper layout work but did not establish the then-current expanded-scene
 
 ## Reproduction and remaining work
 
-Use the [bounded harness](./benchmark-harness.md) with `--prepare-only` and one
-real fixture at a time to measure current preparation. Preserve the recorded
-input hash when comparing implementations. The frozen graphs are intentionally
-not duplicated into Git.
+The retired [benchmark archive](./benchmark-harness.md) records the original
+preparation observations and input hashes. Its harness is no longer runnable;
+new performance work requires a separately designed, source-bound measurement
+that targets the current shell and Archify boundary.
 
 Standalone Node preparation already completed in seconds before this change;
 it did not exercise the browser's graph-aware validation of a persisted layout.

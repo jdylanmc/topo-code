@@ -71,35 +71,15 @@ other unlisted, complex, or copyleft license identifiers.
 
 ## Reviewed license overrides
 
-An override is permitted only when an installed package declares an approved
-SPDX identifier but omits its license file. Each
-`licenses/third-party/overrides.json` entry pins:
+An override is permitted only when an installed shipped package declares an
+approved SPDX identifier but omits its license file. Each entry pins the exact
+package version, vendored license digest, immutable official source, and npm
+metadata page. Version drift, digest drift, unused overrides, and unpinned
+sources fail the gate.
 
-- the exact package name and version;
-- the SPDX identifier, which must match the installed manifest;
-- a vendored license file and its SHA-256 digest;
-- an immutable official source commit and license URL;
-- the exact npm package metadata page.
-
-The walker validates all fields and the vendored file digest. It uses an
-override only for the matching installed package version when no installed
-license text exists. Version drift, digest drift, unpinned source URLs, license
-mismatches, and unused overrides fail the gate. There is no generic fallback.
-
-`@pixi/colord@2.9.6` is the sole current override. The package’s npm metadata
-declares MIT and points at the Colord project, but its published file allowlist
-omitted `LICENSE.md`. PixiJS maintainer evidence in
-[pixijs/pixijs#9691](https://github.com/pixijs/pixijs/issues/9691#issuecomment-1732259263)
-states that `2.9.6` was released from the official
-[`pixijs/colord`](https://github.com/pixijs/colord) fork. Its annotated
-[`v2.9.6`](https://github.com/pixijs/colord/tree/v2.9.6) tag resolves to
-commit
-[`5344fbf77b736f81cd33c21050021bc09bc9dd1d`](https://github.com/pixijs/colord/commit/5344fbf77b736f81cd33c21050021bc09bc9dd1d),
-whose manifest is `@pixi/colord@2.9.6` under MIT. The vendored `LICENSE.md` is
-from that exact commit and has SHA-256
-`7613d4594ee8b6163926af3435dae61c9e3d5a27cd137bd76a543ba40002d8fc`.
+There are currently no overrides. PixiJS and its retired WebGL explorer source
+are no longer dependencies of any maintained package, so their transitive
+license data is not part of the installed or shipped dependency closure.
 
 The generated file contains package/version ordering, alias information, and
 dependency-chain provenance, but never local absolute paths or credentials.
-The WebGL-only integrated runtime closure contains 20 dependencies, including
-`ignore@7.0.8`.

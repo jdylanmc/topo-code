@@ -154,7 +154,7 @@ headless; do not infer renderer gains from cross-mode FPS differences.
 Long frames remain in the score, including a 506.82 ms repository-map frame.
 This is a workload floor, not a worst-frame latency guarantee.
 
-Reproduce with the frozen graph files and their checked-in provenance using
-the [benchmark harness](./benchmark-harness.md): select `--fixture mermaid,vscode`,
-run once with and once without `--curated`, and repeat both with `--headed`.
-Run sequentially, after a root build, without concurrent scans or builds.
+These captures belong to the retired
+[WebGL benchmark archive](./benchmark-harness.md). The original harness and
+external frozen graph inputs are no longer part of the maintained tree, so the
+measurements are preserved evidence rather than a current reproduction recipe.

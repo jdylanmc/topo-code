@@ -16,9 +16,10 @@ claim the tool makes about a codebase is backed by evidence you can follow, and
 everything a human adds is recorded as such.
 
 > **Status: Local preview.** The scan-to-site workflow, deterministic reports,
-> stable layouts, human-authored views, static analysis modules, optional AI commentary and WebGL renderer are implemented. WebGL is the sole supported
-> renderer, with a 30 FPS acceptable floor and no frame-rate cap; see the
-> [renderer decision and measurements](./docs/renderer.md). This is not yet a published npm CLI.
+> source-grounded stories, static analysis modules, optional AI commentary, and
+> pinned Archify rendering are implemented. Topo is the storybook for
+> architects: the generated shell inventories every diagram while preserving
+> real Archify viewers. This is not yet a published npm CLI.
 
 ## Run locally
 
@@ -36,14 +37,13 @@ corepack yarn topo scan /absolute/path/to/a/typescript-repository
 corepack yarn topo serve /absolute/path/to/a/typescript-repository
 ```
 
-Open the printed `http://127.0.0.1:4173` address. The generated catalogue lists
-every committed `stories/**/*.topo.json` document and the repository explorer.
-Open the explorer to expand directories, inspect file dependencies, toggle
-externals, and navigate the WebGL map with pointer or keyboard.
-The site is compiled once; rescanning replaces its data without rebuilding it.
-These static commands upload nothing and install nothing in the scanned repository.
-WebGL support is required. If initialization fails, the site shows an actionable
-error; it does not switch to another renderer.
+Open the printed address. The persistent left navigation inventories every
+committed `stories/**/*.topo.json` document by diagram family, authored
+category, source folder, or flat list. Selecting a story keeps navigation
+available while its real Archify artifact occupies the main canvas. Search,
+Git-backed creation/update sorting, deep links, focus navigation, exports,
+theme, presentation, and zoom work in the generated static shell.
+These commands upload nothing and install nothing in the scanned repository.
 
 To create deployable static files with no Topocode server process:
 
@@ -57,23 +57,23 @@ Serve `--output` with any static file server and open the configured base path
 (for example `/architecture/`). The default output is `.topo/bundle` and the
 default base path is `/`. A base path must be `/` or an absolute URL path ending
 in `/`; Topocode writes that path beneath the output root so all relative
-catalogue, story, explorer, and asset URLs remain host-independent. The bundle
+shell, story, viewer, and notice URLs remain host-independent. The bundle
 includes Topocode, Archify MIT, third-party, and JetBrains Mono SIL OFL 1.1
 notices. Deployment, upload, public URLs, and authentication remain the hosting
 owner's responsibility.
 
 `topo scan` renders every committed source-grounded story under
 `/stories/<story-id>/`; `topo story validate` checks an uncommitted authored
-draft, and `topo story preview` refreshes one committed story. The explorer
-remains available at `/explorer/`. See the
+draft, and `topo story preview` refreshes one committed story. The retired
+WebGL explorer is not generated or bundled. See the
 [local agent authoring workflow](./docs/story-authoring.md),
 [catalogue configuration](./docs/story-catalogue.md), the
 [story contract and anchor behavior](./docs/story-preview.md), and the
 [committed example](./examples/story-preview/stories/checkout.topo.json).
 
-To open on a responsibility-first logical architecture with compiler-backed
-entities, signatures, members, and static dependents, supply an explicit
-grouping proposal:
+To generate responsibility-first logical-architecture evidence with
+compiler-backed entities, signatures, members, and static dependents, supply an
+explicit grouping proposal:
 
 ```sh
 corepack yarn topo scan /absolute/path/to/repository \
@@ -81,19 +81,11 @@ corepack yarn topo scan /absolute/path/to/repository \
 ```
 
 Topocode never invokes a model while scanning. Invalid or stale anchors fail
-loudly, unassigned entities remain visible, and the existing source map remains
-available. See [logical architecture](./docs/logical-architecture.md), including
-the checked-in Topocode self-demo grouping.
-
-Use **New view** to define path membership, explicit overrides, and anchored
-pins. Save definitions locally and review source-change deltas against an
-explicit baseline; rescanning never rewrites authored intent. Exported sites
-can select and export saved views but cannot edit them. See
-[human-authored views](./docs/curated-views.md).
-
-Optional degree and cycle modules add derived inspector views without changing
-source identity. Enable them through `.topo/config.json`; compiled-view support
-and generated-data support are checked independently. See
+loudly, and unassigned entities remain explicit in the generated artifacts.
+The retired explorer no longer presents these artifacts as an interactive map;
+they remain validated inputs for reports, authored stories, and future Archify
+capabilities. See [logical architecture](./docs/logical-architecture.md),
+[human-authored views](./docs/curated-views.md), and
 [static module composition](./docs/modules.md).
 
 Run an explicitly configured repository command with `topo enrich` to add
@@ -158,7 +150,7 @@ Requirements:
 - Node.js 22 or newer
 - Corepack and the pinned Yarn 4.18.0
 - Git on `PATH` (the regression suite creates local fixture repositories)
-- A Chromium-capable environment with WebGL and permission to bind local test
+- A Chromium-capable environment and permission to bind local test
   servers; the browser suite uses port 4178 by default and must not run
   concurrently against the same checkout
 
@@ -228,7 +220,7 @@ first in `yarn check`/`yarn test:regression`; CI shows a dedicated lint step bef
 browser installation. Any lint error or warning fails the command.
 
 The baseline covers maintained package source, tests (including browser tests),
-configuration, root scripts, benchmark harnesses, and lint tooling itself.
+configuration, root scripts, and lint tooling itself.
 The root lint contract test derives eligible source files from Git's tracked
 inventory and compares them with actual ESLint file results, so an overly broad
 exclusion cannot silently remove a maintained package from coverage. JSX/TSX
@@ -250,8 +242,7 @@ requirement. The tooling workspace is development-only, not a shipped package.
 
 Explicit lint exclusions preserve copied `.agents/` skills, `.skill-log/`,
 the entire archived `experiments/` tree, and recorded `benchmarks/results/`
-evidence without rewriting historical bytes. Generated schema validators,
-benchmark fixtures (`benchmarks/.generated/`), local
+evidence without rewriting historical bytes. Generated schema validators, local
 `.joe-mode/` and `.playwright-mcp/` captures, dependencies (`node_modules/`,
 `.yarn/`), and build/test output (`dist/`, `build/`, `coverage/`,
 `playwright-report/`, `test-results/`) are also excluded. These are lint
@@ -274,18 +265,11 @@ controlled gate exits. They protect ordering and failure propagation, not
 application correctness; the full command still runs the real suites.
 
 Fake enrichment providers and synthetic fixture commentary establish the
-runner/data/rendering contract, **not AI semantic quality or real-model latency**.
-The hardware-dependent [renderer measurements](./docs/renderer.md) remain separate
-evidence for the WebGL-only, uncapped **30 whole-workload delivered FPS** floor;
-ordinary regression success is not a new performance measurement or a worst-frame
+runner/data/rendering contract, **not AI semantic quality or real-model
+latency**. Historical WebGL explorer measurements remain checked-in evidence for
+the retired implementation; they are not current shell or Archify performance
+claims. Ordinary regression success is not a perceptual-quality or worst-frame
 guarantee.
-
-A [source-bound generated scale smoke](./benchmarks/results/mvp-scan-to-map.json)
-at `33da32c5` observed **1.530 s** from scan launch through interactive WebGL
-mapping for **100,802 code lines, 202 files and 400 authoritative imports**.
-This was one deliberately regular generated fixture on the recorded Apple M5 Pro,
-64 GiB machine (Node 24.20.0, headless Chrome 153), not an ordinary regression
-test, FPS result, real-repository benchmark or universal performance guarantee.
 
 ### Package and licence checks
 

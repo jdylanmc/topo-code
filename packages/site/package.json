@@ -7,27 +7,25 @@
     "dist"
   ],
   "exports": {
-    "./index.html": "./dist/index.html",
+    "./notices": "./dist/THIRD_PARTY_NOTICES.txt",
     "./data": {
       "types": "./src/data.ts",
       "default": "./dist/data-contract/data.js"
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json --noEmit && vite build && tsc -p tsconfig.data.json",
+    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.json --noEmit && tsc -p tsconfig.data.json",
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false && yarn typecheck:browser",
     "typecheck:browser": "tsc -p tsconfig.browser-tests.json --noEmit --pretty false",
     "test": "vitest run --config vitest.config.ts",
-    "test:browser": "playwright test --config playwright.config.mjs",
-    "benchmark": "node ../../benchmarks/renderer-bakeoff.mjs"
+    "test:browser": "playwright test --config playwright.config.mjs"
   },
   "dependencies": {
     "@topo/enrichment": "workspace:*",
     "@topo/graph": "workspace:*",
     "@topo/modules": "workspace:*",
     "@topo/schema": "workspace:*",
-    "@topo/views": "workspace:*",
-    "pixi.js": "^8.13.2"
+    "@topo/views": "workspace:*"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.0",

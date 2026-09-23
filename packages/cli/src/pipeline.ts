@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readFile, readdir, rmdir, stat, unlink, writeFile } from "node:fs/promises";
+import { readFile, readdir, rmdir, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   hashAnalysis,
@@ -74,29 +74,33 @@ async function copySite(
   config: Awaited<ReturnType<typeof loadConfig>>,
 ): Promise<void> {
   const stories = catalogue?.stories ?? [];
-  if (!(await stat(join(assets, "index.html"))).isFile()) throw new Error("Built site must contain index.html");
   const expected = new Set([
     "data.json",
     "index.html",
-    "explorer/index.html",
+    "shell.js",
     "story-navigation.js",
     ...stories.map(({ document }) => `stories/${document.id}/index.html`),
     ...stories.map(({ document }) => `stories/${document.id}/viewer.html`),
   ]);
-  let explorerIndex: string | undefined;
   async function copy(relative: string) {
-    const entries = await readdir(join(assets, relative), { withFileTypes: true });
+    const entries = await readdir(join(assets, relative), {
+      withFileTypes: true,
+    });
     for (const entry of entries) {
       const name = relative ? `${relative}/${entry.name}` : entry.name;
-      if (entry.isDirectory()) await copy(name);
-      else if (entry.isFile()) {
-        if (name === "index.html") {
-          explorerIndex = await readFile(join(assets, name), "utf8");
-          continue;
-        }
+      if (entry.isDirectory()) {
+        await copy(name);
+      } else if (entry.isFile()) {
+        if (name === "index.html") continue;
         expected.add(name);
-        await writeGenerated(root, `cache/site/${name}`, await readFile(join(assets, name)));
-      } else throw new Error(`Unsupported site asset type: ${name}`);
+        await writeGenerated(
+          root,
+          `cache/site/${name}`,
+          await readFile(join(assets, name)),
+        );
+      } else {
+        throw new Error(`Unsupported site asset type: ${name}`);
+      }
     }
   }
   async function prune(relative: string) {
@@ -113,8 +117,7 @@ async function copySite(
     }
   }
   await copy("");
-  if (explorerIndex === undefined) throw new Error("Built site must contain index.html");
-  await writeComposedSite(root, explorerIndex, catalogue, config.catalogue);
+  await writeComposedSite(root, "", catalogue, config.catalogue);
   await prune("");
 }
 

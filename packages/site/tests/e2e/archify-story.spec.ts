@@ -15,7 +15,7 @@ const galleryStories = [
   {
     path: "stories/topo-architecture.topo.json",
     id: "topo-architecture",
-    title: "How Topocode turns source into an explorable architecture site",
+    title: "How Topocode turns source into an architecture storybook",
   },
   {
     path: "stories/story-authoring-workflow.topo.json",
@@ -250,7 +250,143 @@ test("actual gallery story text remains readable at a desktop viewport", async (
   }
 });
 
-test("actual gallery titles remain clear of closed story controls", async ({
+test("actual Topocode architecture catalogue text stays inside its node", async ({
+  page,
+  repository,
+}) => {
+  await writeActualGalleryFixture(repository);
+
+  const { server, url } = await startTopoServer(repository, ["--port", "0"]);
+  const screenshotDirectory = process.env.TOPO_SCREENSHOT_DIR;
+  const evidence: unknown[] = [];
+  if (screenshotDirectory) {
+    await mkdir(screenshotDirectory, { recursive: true });
+  }
+  try {
+    for (const viewport of [
+      { width: 1024, height: 768 },
+      { width: 1280, height: 720 },
+      { width: 1440, height: 900 },
+      { width: 1600, height: 1000 },
+      { width: 1920, height: 1080 },
+    ]) {
+      await page.setViewportSize(viewport);
+      await page.goto(`${url}/stories/topo-architecture/`);
+      for (const state of ["expanded", "collapsed"] as const) {
+        const shell = page.locator("[data-topo-shell]");
+        const collapsed = await shell.getAttribute("data-navigation-collapsed");
+        const shouldCollapse = state === "collapsed";
+        if ((collapsed === "true") !== shouldCollapse) {
+          await page.getByRole("button", {
+            name: shouldCollapse
+              ? "Collapse diagram navigation"
+              : "Expand diagram navigation",
+          }).click();
+        }
+        await expect(shell).toHaveAttribute(
+          "data-navigation-collapsed",
+          String(shouldCollapse),
+        );
+
+        const iframe = page.locator("[data-story-viewer]");
+        const iframeScale = await iframe.evaluate((element) => {
+          const frame = element as HTMLIFrameElement;
+          const bounds = frame.getBoundingClientRect();
+          return Math.min(
+            bounds.width / frame.offsetWidth,
+            bounds.height / frame.offsetHeight,
+          );
+        });
+        const catalogueNode = page.frameLocator("[data-story-viewer]")
+          .locator('svg g[data-node-id="catalogue"]');
+        await expect(catalogueNode).toBeVisible();
+        const geometry = await catalogueNode.evaluate((node) => {
+          const rect = node.querySelector<SVGGraphicsElement>(
+            "rect:not(.c-mask)",
+          );
+          if (!rect) throw new Error("Catalogue node has no visible boundary");
+          const nodeBounds = rect.getBoundingClientRect();
+          const title = node.querySelector<SVGTextElement>(
+            "text[data-node-label]",
+          );
+          if (!title) throw new Error("Catalogue node has no title");
+          const titleBounds = title.getBoundingClientRect();
+          const matrix = title.getScreenCTM();
+          return {
+            node: {
+              left: nodeBounds.left,
+              right: nodeBounds.right,
+              top: nodeBounds.top,
+              bottom: nodeBounds.bottom,
+            },
+            title: {
+              text: title.textContent?.trim() ?? "",
+              effectiveFontSize:
+                Number.parseFloat(getComputedStyle(title).fontSize) *
+                Math.hypot(matrix?.c ?? 0, matrix?.d ?? 0),
+              bounds: {
+                left: titleBounds.left,
+                right: titleBounds.right,
+                top: titleBounds.top,
+                bottom: titleBounds.bottom,
+              },
+            },
+          };
+        });
+        evidence.push({
+          viewport,
+          state,
+          collapsed: shouldCollapse,
+          toggleLabel: shouldCollapse
+            ? "Expand diagram navigation"
+            : "Collapse diagram navigation",
+          iframeBounds: await iframe.boundingBox(),
+          ...geometry,
+        });
+        if (screenshotDirectory) {
+          await page.screenshot({
+            path: join(
+              screenshotDirectory,
+              `topo-architecture-${viewport.width}x${viewport.height}-${state}.png`,
+            ),
+            fullPage: true,
+          });
+        }
+        expect.soft(
+          geometry.title.bounds.left,
+          `${geometry.title.text} left at ${viewport.width}x${viewport.height} ${state}`,
+        ).toBeGreaterThanOrEqual(geometry.node.left);
+        expect.soft(
+          geometry.title.bounds.right,
+          `${geometry.title.text} right at ${viewport.width}x${viewport.height} ${state}`,
+        ).toBeLessThanOrEqual(geometry.node.right);
+        expect.soft(
+          geometry.title.bounds.top,
+          `${geometry.title.text} top at ${viewport.width}x${viewport.height} ${state}`,
+        ).toBeGreaterThanOrEqual(geometry.node.top);
+        expect.soft(
+          geometry.title.bounds.bottom,
+          `${geometry.title.text} bottom at ${viewport.width}x${viewport.height} ${state}`,
+        ).toBeLessThanOrEqual(geometry.node.bottom);
+        expect.soft(
+          geometry.title.effectiveFontSize * iframeScale,
+          `${geometry.title.text} size at ${viewport.width}x${viewport.height} ${state}`,
+        ).toBeGreaterThanOrEqual(12);
+      }
+    }
+    if (screenshotDirectory) {
+      await writeFile(
+        join(screenshotDirectory, "topo-architecture-geometry.json"),
+        `${JSON.stringify(evidence, null, 2)}\n`,
+      );
+    }
+  } finally {
+    await page.goto("about:blank");
+    await stopTopoServer(server);
+  }
+});
+
+test("actual gallery titles remain clear of expanded and collapsed shell navigation", async ({
   page,
   repository,
 }) => {
@@ -260,7 +396,7 @@ test("actual gallery titles remain clear of closed story controls", async ({
   const collisions: {
     story: string;
     viewport: string;
-    state: "default" | "restored";
+    state: "expanded" | "collapsed" | "restored";
     title: { x: number; y: number; width: number; height: number };
     controls: { x: number; y: number; width: number; height: number };
   }[] = [];
@@ -275,14 +411,17 @@ test("actual gallery titles remain clear of closed story controls", async ({
       await page.setViewportSize(viewport);
       for (const story of galleryStories) {
         await page.goto(`${url}/stories/${story.id}/`);
-        const controls = page.locator("details.story-controls");
-        const summary = controls.locator("summary");
+        const controls = page.getByRole("navigation", { name: "Diagram catalogue" });
         const title = page.frameLocator("[data-story-viewer]").locator("h1");
-        await expect(controls).not.toHaveAttribute("open", "");
+        await expect(
+          page.getByRole("button", { name: "Collapse diagram navigation" }),
+        ).toBeVisible();
         await expect(title).toHaveText(story.title);
         await expect(title).toBeVisible();
 
-        const recordCollision = async (state: "default" | "restored") => {
+        const recordCollision = async (
+          state: "expanded" | "collapsed" | "restored",
+        ) => {
           const [titleBounds, controlsBounds, titleLayout] = await Promise.all([
             title.boundingBox(),
             controls.boundingBox(),
@@ -321,12 +460,22 @@ test("actual gallery titles remain clear of closed story controls", async ({
           }
         };
 
-        await recordCollision("default");
-        await summary.focus();
-        await page.keyboard.press("Enter");
-        await expect(controls).toHaveAttribute("open", "");
-        await page.keyboard.press("Enter");
-        await expect(controls).not.toHaveAttribute("open", "");
+        await recordCollision("expanded");
+        await page.getByRole(
+          "button",
+          { name: "Collapse diagram navigation" },
+        ).click();
+        await expect(
+          page.getByRole("button", { name: "Expand diagram navigation" }),
+        ).toBeVisible();
+        await recordCollision("collapsed");
+        await page.getByRole(
+          "button",
+          { name: "Expand diagram navigation" },
+        ).click();
+        await expect(
+          page.getByRole("button", { name: "Collapse diagram navigation" }),
+        ).toBeVisible();
         await recordCollision("restored");
       }
     }
@@ -658,15 +807,15 @@ test("actual story details restore unobscured authored content", async ({
   const { server, url } = await startTopoServer(repository, ["--port", "0"]);
   try {
     await page.goto(`${url}/stories/topo-architecture/`);
-    const controls = page.locator("details.story-controls");
+    const controls = page.locator("details.story-details");
     const summary = controls.locator("summary");
     const authoredTitles = [
       "1. Scan source into a graph",
       "2. Generate site artifacts",
-      "3. Compose and serve the explorer",
+      "3. Preserve generated evidence",
       "4. Author a source-grounded story",
       "5. Render at the pinned boundary",
-      "6. Browse the story catalogue",
+      "6. Browse the storybook",
       "7. Bundle for static hosting",
     ];
     const overlappingTitles = async () => {

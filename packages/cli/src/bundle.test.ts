@@ -114,9 +114,11 @@ describe("static site bundle", () => {
       siteDirectory: join(output, "architecture/topo"),
     });
     expect(await readFile(join(result.siteDirectory, "index.html"), "utf8"))
-      .toContain("./explorer/");
-    expect(await readFile(join(result.siteDirectory, "explorer/data.json"), "utf8"))
-      .toBe(await readFile(join(result.siteDirectory, "data.json"), "utf8"));
+      .not.toContain("./explorer/");
+    await expect(readFile(
+      join(result.siteDirectory, "explorer/index.html"),
+      "utf8",
+    )).rejects.toMatchObject({ code: "ENOENT" });
     expect(await readFile(
       join(result.siteDirectory, "THIRD_PARTY_NOTICES.txt"),
       "utf8",
@@ -124,6 +126,30 @@ describe("static site bundle", () => {
     await expect(readFile(join(output, "stale.txt"))).rejects.toMatchObject({
       code: "ENOENT",
     });
+  });
+
+  it("retires cached explorer assets and removed stories before publishing an upgrade", async () => {
+    const root = await repository();
+    await writeCachedSite(root);
+    const cachedSite = join(root, ".topo/cache/site");
+    await mkdir(join(cachedSite, "explorer"), { recursive: true });
+    await mkdir(join(cachedSite, "assets"), { recursive: true });
+    await mkdir(join(cachedSite, "stories/removed"), { recursive: true });
+    await writeFile(join(cachedSite, "explorer/index.html"), "legacy explorer");
+    await writeFile(join(cachedSite, "assets/legacy.js"), "legacy asset");
+    await writeFile(join(cachedSite, "stories/removed/index.html"), "removed story");
+
+    const output = join(await temp("topo-bundle-parent-"), "site");
+    const result = await bundleSite(root, output);
+
+    for (const relativePath of [
+      "explorer/index.html",
+      "assets/legacy.js",
+      "stories/removed/index.html",
+    ]) {
+      await expect(readFile(join(result.siteDirectory, relativePath), "utf8"))
+        .rejects.toMatchObject({ code: "ENOENT" });
+    }
   });
 
   it("leaves no partial output when the composed site is malformed", async () => {
@@ -166,7 +192,7 @@ describe("static site bundle", () => {
     let live: { curatedViews: { views: { definition: { id: string } }[] } };
     try {
       live = await (
-        await fetch(`${liveServer.url}/explorer/data.json`)
+        await fetch(`${liveServer.url}/data.json`)
       ).json() as typeof live;
     } finally {
       await new Promise<void>((done, reject) => {
@@ -177,7 +203,7 @@ describe("static site bundle", () => {
     const output = join(await temp("topo-bundle-parent-"), "site");
     const result = await bundleSite(root, output);
     const bundled = JSON.parse(
-      await readFile(join(result.siteDirectory, "explorer/data.json"), "utf8"),
+      await readFile(join(result.siteDirectory, "data.json"), "utf8"),
     ) as typeof live;
 
     expect(live.curatedViews.views.map(({ definition }) => definition.id))
@@ -191,7 +217,7 @@ describe("static site bundle", () => {
     const output = join(await temp("topo-bundle-parent-"), "site");
     const first = await bundleSite(root, output);
     const working = await readFile(
-      join(first.siteDirectory, "explorer/data.json"),
+      join(first.siteDirectory, "data.json"),
       "utf8",
     );
     const dataPath = join(root, ".topo/cache/site/data.json");
@@ -205,7 +231,7 @@ describe("static site bundle", () => {
       "logicalArchitecture",
     );
     expect(await readFile(
-      join(first.siteDirectory, "explorer/data.json"),
+      join(first.siteDirectory, "data.json"),
       "utf8",
     )).toBe(working);
   });
@@ -216,7 +242,7 @@ describe("static site bundle", () => {
     const output = join(await temp("topo-bundle-parent-"), "site");
     const first = await bundleSite(root, output);
     const working = await readFile(
-      join(first.siteDirectory, "explorer/data.json"),
+      join(first.siteDirectory, "data.json"),
       "utf8",
     );
     const dataPath = join(root, ".topo/cache/site/data.json");
@@ -234,7 +260,7 @@ describe("static site bundle", () => {
       stderr: expect.stringContaining("architecture.json"),
     });
     expect(await readFile(
-      join(first.siteDirectory, "explorer/data.json"),
+      join(first.siteDirectory, "data.json"),
       "utf8",
     )).toBe(working);
   });

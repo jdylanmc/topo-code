@@ -7,10 +7,7 @@
       "ES2022"
     ],
     "outDir": "dist/data-contract",
-    "rootDir": "src",
-    "types": [
-      "vite/client"
-    ]
+    "rootDir": "src"
   },
   "include": [
     "src/contracts.ts",

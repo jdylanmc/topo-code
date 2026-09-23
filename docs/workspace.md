@@ -54,9 +54,9 @@ and [commentary contract](./enrichment-contract.md). A repository command can us
 its provider's network/account and its normal user permissions; it is not
 sandboxed by Topocode.
 
-Optional `catalogue` configuration changes the generated landing page's title,
-description, accent color, category order, per-story category overrides, and
-explorer card. It cannot add executable extensions or replace the explorer.
+Optional `catalogue` configuration changes the generated shell's title,
+description, accent color, category order, and per-story category overrides.
+It cannot add executable extensions or replace the pinned Archify renderer.
 See the [story catalogue walkthrough](./story-catalogue.md).
 
 ## Layout and authored pins

@@ -36,7 +36,7 @@ Serve binds only to 127.0.0.1. Config and authored metadata are never overwritte
 `;
 
 async function siteAssets(): Promise<string> {
-  const assets = dirname(fileURLToPath(import.meta.resolve("@topo/site/index.html")));
+  const assets = dirname(fileURLToPath(import.meta.resolve("@topo/site/notices")));
   try {
     await Promise.all(["LICENSE.txt", "THIRD_PARTY_NOTICES.txt"].map((name) => readFile(resolve(assets, name))));
   } catch (error) {

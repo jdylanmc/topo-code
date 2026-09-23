@@ -180,7 +180,7 @@
     {
       "id": "site",
       "title": "@topo/site",
-      "body": "Browser explorer package. Its manifest declares workspace dependencies on enrichment, graph, modules, schema, and views; the map selects its views relationship.",
+      "body": "Site-data contract and browser-regression package. Its manifest declares workspace dependencies on enrichment, graph, modules, schema, and views; the map selects its views relationship. It has no browser application entry: @topo/cli generates the shell and @topo/diagram-core supplies the pinned Archify viewers.",
       "anchorIds": [
         "site-manifest",
         "site-views-dependency",

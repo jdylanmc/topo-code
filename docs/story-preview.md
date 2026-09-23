@@ -38,15 +38,13 @@ corepack yarn topo serve /absolute/path/to/repository
 
 Each story wrapper is written to
 `.topo/cache/site/stories/<story-id>/index.html`, with the native renderer
-artifact at `viewer.html`. Topocode keeps the vendored Archify runtime and
-integrity pin unchanged while adding scoped output rules for readable authored
-text and responsive containment. The wrapper keeps the diagram at the full
-reading viewport and exposes navigation, classification, summary, return, and
-node controls through an accessible details panel. When closed, the panel keeps
-the complete authored story title visible in a compact lower-left control away
-from native title and export controls; opening it deliberately restores the full
-overlay. The catalogue
-is served at `/`, and the explorer remains available at `/explorer/`. Run
+artifact at `viewer.html`. Topocode keeps the vendored Archify runtime and integrity pin unchanged while
+adding scoped output rules for readable authored text and responsive
+containment. The generated application shell keeps a persistent diagram
+inventory beside the main viewer iframe. Classification, summary, return, and
+node controls remain available without placing a second navigation card over
+the rendered diagram. The shell is served at `/` and on every story route; the
+retired repository explorer is not generated. Run
 `topo preview` to refresh a specific committed story's viewer without rescanning:
 
 ```sh
@@ -85,7 +83,7 @@ partial story.
 The viewer exports the same canonical authored geometry as SVG or a
 resolution-scaled PNG. Local serving permits blob images only for generated
 story viewers so the pinned runtime can rasterize its serialized SVG without
-broadening the Content Security Policy for catalogue or explorer pages.
+broadening the Content Security Policy for shell pages.
 
 Successful structure and anchor validation does not establish semantic accuracy
 or complete explanation coverage. It is objective evidence for the author and

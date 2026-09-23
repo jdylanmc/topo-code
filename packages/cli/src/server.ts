@@ -176,7 +176,7 @@ export async function serveSite(root: string, port = 4173): Promise<{ server: Se
 
       if (
         request.method === "POST" &&
-        ["/__topo/views", "/explorer/__topo/views"].includes(pathname)
+        pathname === "/__topo/views"
       ) {
         const expectedOrigin = `http://${expectedHost}`;
         if (request.headers.origin !== expectedOrigin) throw new HttpError(403, "Invalid origin");
@@ -232,9 +232,7 @@ export async function serveSite(root: string, port = 4173): Promise<{ server: Se
       if (pathname.includes("\\") || pathname.includes("\0") || pathname.split("/").some((part) => part.startsWith("."))) {
         throw new HttpError(403, "Forbidden path");
       }
-      const requestedPath = pathname === "/explorer/data.json"
-        ? "/data.json"
-        : pathname === "/"
+      const requestedPath = pathname === "/"
         ? "/index.html"
         : pathname.endsWith("/")
           ? `${pathname}index.html`

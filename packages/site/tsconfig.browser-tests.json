@@ -13,7 +13,6 @@
     ]
   },
   "include": [
-    "src/global.d.ts",
     "tests/e2e/**/*.ts"
   ]
 }

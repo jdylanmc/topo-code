@@ -162,10 +162,7 @@ export async function bundleSite(
       await mkdir(stagedSite, { recursive: true });
     }
     await cp(sourceDirectory, stagedSite, { recursive: true });
-    await Promise.all([
-      writeFile(join(stagedSite, "data.json"), composedData),
-      writeFile(join(stagedSite, "explorer", "data.json"), composedData),
-    ]);
+    await writeFile(join(stagedSite, "data.json"), composedData);
     if (await exists(outputDirectory)) {
       await rename(outputDirectory, backup);
       movedExisting = true;

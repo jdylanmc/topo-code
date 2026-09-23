@@ -492,14 +492,16 @@ test("Sequence stories remain readable in a plain-server bundle", async ({
   try {
     const baseUrl = `${url}/sequence/`;
     await page.goto(baseUrl);
-    const factual = page.locator(
-      'section[data-category="Topocode internals"] ' +
-        'a[href="./stories/story-preview-sequence/"]',
-    );
-    const capability = page.locator(
-      'section[data-category="Diagram capabilities"] ' +
-        'a[href="./stories/sequence-capability/"]',
-    );
+    await page.getByLabel("Group diagrams by").selectOption("category");
+    const catalogue = page.getByRole("navigation", {
+      name: "Diagram catalogue",
+    });
+    const factual = catalogue.getByRole("link", {
+      name: "How Topocode previews a committed story",
+    });
+    const capability = catalogue.getByRole("link", {
+      name: "Sequence capability",
+    });
     await expect(factual).toBeVisible();
     await expect(capability).toBeVisible();
 
@@ -726,7 +728,7 @@ test("public Sequence participants retain native details before explicit navigat
       }
 
       await page.goto(`${baseUrl}stories/story-preview-sequence/`);
-      const controls = page.locator("details.story-controls");
+      const controls = page.locator("details.story-details");
       await controls.locator("summary").click();
       const explicitCrossStoryLink = page.locator(
         '[data-cross-story][data-source-node="preview-orchestrator"]',
@@ -741,7 +743,7 @@ test("public Sequence participants retain native details before explicit navigat
       await expect(page).toHaveURL(
         `${baseUrl}stories/story-preview-sequence/?focus=preview-orchestrator`,
       );
-      await expect(page.locator("details.story-controls"))
+      await expect(page.locator("details.story-details"))
         .not.toHaveAttribute("open", "");
       await expect(
         page.locator('[data-node-id="preview-orchestrator"]'),
@@ -785,17 +787,17 @@ test("integrated Sequence stories preserve titles, navigation, and exports", asy
       const { url } = started;
       const baseUrl = `${url}/sequence/`;
       await page.goto(baseUrl);
+      await page.getByLabel("Group diagrams by").selectOption("category");
+      const catalogue = page.getByRole("navigation", {
+        name: "Diagram catalogue",
+      });
       await expect(
-        page.locator(
-          'section[data-category="Topocode internals"] ' +
-            'a[href="./stories/story-preview-sequence/"]',
-        ),
+        catalogue.getByRole("link", {
+          name: "How Topocode previews a committed story",
+        }),
       ).toBeVisible();
       await expect(
-        page.locator(
-          'section[data-category="Diagram capabilities"] ' +
-            'a[href="./stories/sequence-capability/"]',
-        ),
+        catalogue.getByRole("link", { name: "Sequence capability" }),
       ).toBeVisible();
 
     for (const viewport of [
@@ -815,7 +817,7 @@ test("integrated Sequence stories preserve titles, navigation, and exports", asy
           connections: { label: string }[];
         };
         await page.goto(`${baseUrl}stories/${story.id}/`);
-        const controls = page.locator("details.story-controls");
+        const controls = page.locator("details.story-details");
         const summary = controls.locator("summary");
         const viewer = page.frameLocator("[data-story-viewer]");
         const diagram = viewer.locator('svg[role="img"]');
@@ -874,25 +876,24 @@ test("integrated Sequence stories preserve titles, navigation, and exports", asy
 
         await expect(controls).not.toHaveAttribute("open", "");
         await expect(viewer.locator("h1")).toHaveText(document.title);
-        await expect(controls.getByRole("heading", { level: 1 }))
-          .toHaveText(document.title);
+        await expect(page.getByRole("navigation", {
+          name: "Diagram catalogue",
+        }).getByRole("link", { name: document.title }))
+          .toHaveAttribute("aria-current", "page");
         expect(await overlaps()).toEqual([]);
 
         await summary.focus();
         await page.keyboard.press("Enter");
         await expect(controls).toHaveAttribute("open", "");
-        await expect(controls.getByRole("heading", { level: 1 }))
-          .toHaveText(document.title);
-
-        await summary.focus();
         await page.keyboard.press("Enter");
         await expect(controls).not.toHaveAttribute("open", "");
+
         expect(await overlaps()).toEqual([]);
       }
     }
 
     await page.goto(`${baseUrl}stories/story-preview-sequence/`);
-    const controls = page.locator("details.story-controls");
+    const controls = page.locator("details.story-details");
     const summary = controls.locator("summary");
     await summary.focus();
     await page.keyboard.press("Enter");
@@ -910,6 +911,9 @@ test("integrated Sequence stories preserve titles, navigation, and exports", asy
       page.frameLocator("[data-story-viewer]")
         .locator('svg g[data-node-id="native-render"]'),
     ).toBeVisible();
+    await summary.focus();
+    await page.keyboard.press("Enter");
+    await expect(controls).toHaveAttribute("open", "");
     await page.goBack();
     await expect(page).toHaveURL(
       `${baseUrl}stories/story-preview-sequence/`,

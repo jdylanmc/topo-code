@@ -71,7 +71,7 @@
     {
       "id": "bundled",
       "title": "Bundled",
-      "body": "The generated story joins the catalogue and explorer in the static site bundle.",
+      "body": "The generated story joins the persistent diagram shell and pinned Archify viewer artifacts in the static site bundle.",
       "anchorIds": ["bundle"]
     }
   ],

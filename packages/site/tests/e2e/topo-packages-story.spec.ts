@@ -817,11 +817,16 @@ test("actual package story stays readable from a plain static bundle", async ({
   const { server, url } = await startStaticServer(output);
   try {
     const baseUrl = `${url}/published/topo/`;
+    const screenshotDirectory = process.env.TOPO_SCREENSHOT_DIR;
+    const navigationEvidence: unknown[] = [];
+    if (screenshotDirectory) {
+      await mkdir(screenshotDirectory, { recursive: true });
+    }
     await page.goto(baseUrl);
-    const category = page.locator(
-      'section[data-category="Topocode internals"]',
-    );
-    const storyLink = category.getByRole("link", {
+    await page.getByLabel("Group diagrams by").selectOption("category");
+    const storyLink = page.getByRole("navigation", {
+      name: "Diagram catalogue",
+    }).getByRole("link", {
       name: /Topocode package boundaries/,
     });
     await storyLink.click();
@@ -840,6 +845,103 @@ test("actual package story stays readable from a plain static bundle", async ({
     ]) {
       await page.setViewportSize(viewport);
       await page.goto(`${baseUrl}stories/topo-packages/`);
+      const shell = page.locator("[data-topo-shell]");
+      if (await shell.getAttribute("data-navigation-collapsed") === "true") {
+        await page.getByRole("button", {
+          name: "Expand diagram navigation",
+        }).click();
+      }
+      await expect(shell).toHaveAttribute("data-navigation-collapsed", "false");
+      const catalogue = page.getByRole("navigation", {
+        name: "Diagram catalogue",
+      });
+      const storyLinks = catalogue.locator('a[href*="/stories/"]');
+      await expect(storyLinks).toHaveCount(1);
+      await expect(storyLink).toHaveAttribute("aria-current", "page");
+
+      const assertLeftNavigation = async (
+        state: "expanded" | "collapsed",
+      ) => {
+        const [navigationBounds, frameBounds] = await Promise.all([
+          catalogue.boundingBox(),
+          page.locator("[data-story-viewer]").boundingBox(),
+        ]);
+        expect(navigationBounds, `${viewport.width}x${viewport.height} ${state} navigation`)
+          .not.toBeNull();
+        expect(frameBounds, `${viewport.width}x${viewport.height} ${state} frame`)
+          .not.toBeNull();
+        if (!navigationBounds || !frameBounds) return;
+        navigationEvidence.push({
+          viewport,
+          state,
+          collapsed: state === "collapsed",
+          toggleLabel: state === "collapsed"
+            ? "Expand diagram navigation"
+            : "Collapse diagram navigation",
+          navigationBounds,
+          frameBounds,
+        });
+        expect.soft(
+          navigationBounds.x,
+          `${viewport.width}x${viewport.height} ${state} left edge`,
+        ).toBeLessThanOrEqual(1);
+        expect.soft(
+          navigationBounds.height,
+          `${viewport.width}x${viewport.height} ${state} vertical navigation`,
+        ).toBeGreaterThan(navigationBounds.width);
+        expect.soft(
+          navigationBounds.y + navigationBounds.height,
+          `${viewport.width}x${viewport.height} ${state} viewport height`,
+        ).toBeGreaterThanOrEqual(viewport.height - 1);
+        expect.soft(
+          frameBounds.x,
+          `${viewport.width}x${viewport.height} ${state} frame beside navigation`,
+        ).toBeGreaterThanOrEqual(
+          navigationBounds.x + navigationBounds.width - 1,
+        );
+      };
+
+      await assertLeftNavigation("expanded");
+      if (screenshotDirectory) {
+        await page.screenshot({
+          path: join(
+            screenshotDirectory,
+            `topo-packages-${viewport.width}x${viewport.height}-expanded.png`,
+          ),
+          fullPage: true,
+        });
+      }
+      const collapse = page.getByRole("button", {
+        name: "Collapse diagram navigation",
+      });
+      await collapse.focus();
+      await page.keyboard.press("Enter");
+      await expect(shell).toHaveAttribute("data-navigation-collapsed", "true");
+      await expect(storyLinks.first()).toBeHidden();
+      await page.keyboard.press("Tab");
+      expect(await page.evaluate(() => {
+        const navigation = document.querySelector(
+          'nav[aria-label="Diagram catalogue"]',
+        );
+        return navigation?.contains(document.activeElement) ?? false;
+      })).toBe(false);
+      await assertLeftNavigation("collapsed");
+      if (screenshotDirectory) {
+        await page.screenshot({
+          path: join(
+            screenshotDirectory,
+            `topo-packages-${viewport.width}x${viewport.height}-collapsed.png`,
+          ),
+          fullPage: true,
+        });
+      }
+      const expand = page.getByRole("button", {
+        name: "Expand diagram navigation",
+      });
+      await expand.focus();
+      await page.keyboard.press("Enter");
+      await expect(shell).toHaveAttribute("data-navigation-collapsed", "false");
+
       const frame = page.frameLocator("[data-story-viewer]");
       const diagram = frame.locator('svg[role="img"]');
       await expect(diagram).toBeVisible();
@@ -981,6 +1083,12 @@ test("actual package story stays readable from a plain static bundle", async ({
       expect(geometry.labelOverlaps, `${viewport.width}x${viewport.height}`)
         .toEqual([]);
     }
+    if (screenshotDirectory) {
+      await writeFile(
+        join(screenshotDirectory, "topo-packages-navigation.json"),
+        `${JSON.stringify(navigationEvidence, null, 2)}\n`,
+      );
+    }
 
     const frame = page.frameLocator("[data-story-viewer]");
     await frame.getByRole("button", { name: "Export diagram" }).click();
@@ -1023,7 +1131,7 @@ test("actual package story stays readable from a plain static bundle", async ({
 
     const firstPackage = fixture.workspaces[0]!;
     const firstPackageId = firstPackage.name.replace("@topo/", "");
-    const controls = page.locator("details.story-controls");
+    const controls = page.locator("details.story-details");
     await controls.locator("summary").click();
     await expect(controls).toHaveAttribute("open", "");
     const sourceLink = page.locator(`[data-node-id="${firstPackageId}"]`);

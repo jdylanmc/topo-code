@@ -546,7 +546,7 @@ describe("story preview", () => {
     )).rejects.toMatchObject({ code: "ENOENT" });
   });
 
-  it("serves the rendered story without replacing the explorer", async () => {
+  it("serves the rendered story without replacing the existing shell", async () => {
     const { root, documentPath } = await fixture();
     await previewStory(root, documentPath);
     const server = await serveSite(root, 0);
