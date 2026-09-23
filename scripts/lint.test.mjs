@@ -33,8 +33,8 @@ test("actual lint results cover the eligible tracked source inventory", async (c
 test("correctness rules cover maintained source, tests, scripts and tooling", async () => {
   for (const filePath of [
     "packages/cli/src/main.ts",
-    "packages/site/src/main.ts",
-    "packages/site/src/site.test.ts",
+    "packages/site/src/data.ts",
+    "packages/site/src/data.test.ts",
     "packages/site/tests/e2e/workflow.spec.ts",
     "packages/site/vite.config.ts",
     "packages/site/playwright.config.mjs",

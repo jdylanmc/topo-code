@@ -1,4 +1,4 @@
-import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { readFile, readdir, writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { expect } from "@playwright/test";
 import {
@@ -117,6 +117,10 @@ test("bundled shell and stories run under a static base path without explorer as
     await expect(page.getByRole("heading", { name: "Checkout" })).toBeVisible();
     expect((await page.request.get(`${baseUrl}explorer/`)).status()).toBe(404);
     expect((await page.request.get(`${baseUrl}explorer/index.html`)).status()).toBe(404);
+    expect(
+      (await readdir(join(output, "published/topo"), { recursive: true }))
+        .filter((path) => /(?:explorer|webgl|pixi)/i.test(path)),
+    ).toEqual([]);
 
     const notices = await readFile(
       join(output, "published/topo/THIRD_PARTY_NOTICES.txt"),
@@ -256,6 +260,10 @@ test("shell groups, sorts, filters, persists, navigates, and contains every diag
   await topo(repository, "scan");
 
   const url = await startSite();
+  const screenshotDirectory = process.env.TOPO_SCREENSHOT_DIR;
+  if (screenshotDirectory) {
+    await mkdir(screenshotDirectory, { recursive: true });
+  }
   await page.goto(`${url}/stories/alpha/`);
   const catalogue = page.getByRole("navigation", { name: "Diagram catalogue" });
   const storyLinks = catalogue.locator('a[href*="/stories/"]');
@@ -359,6 +367,14 @@ test("shell groups, sorts, filters, persists, navigates, and contains every diag
   await page.getByLabel("Group diagrams by").selectOption("category");
   await page.getByLabel("Sort diagrams by").selectOption("created");
   await page.getByLabel("Sort direction").selectOption("descending");
+  const firstCategory = page.locator(".catalogue-group").first();
+  const firstCategoryToggle = firstCategory.locator("> button");
+  const firstCategoryLinks = firstCategory.locator(".story-links");
+  await firstCategoryToggle.click();
+  await expect(firstCategoryToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(firstCategoryLinks).toBeHidden();
+  await firstCategoryToggle.click();
+  await expect(firstCategoryLinks).toBeVisible();
   await page.getByRole("button", { name: "Collapse diagram navigation" }).click();
   await expect(page.getByRole("button", { name: "Expand diagram navigation" })).toBeVisible();
   await page.reload();
@@ -394,8 +410,36 @@ test("shell groups, sorts, filters, persists, navigates, and contains every diag
         Number.parseFloat(getComputedStyle(element).fontSize)
       ))
     )).toBeGreaterThanOrEqual(12);
+    if (screenshotDirectory) {
+      await page.screenshot({
+        path: join(
+          screenshotDirectory,
+          `shell-${viewport.width}x${viewport.height}-expanded.png`,
+        ),
+        fullPage: true,
+      });
+      const firstGroup = page.locator(".catalogue-group > button").first();
+      await firstGroup.click();
+      await page.screenshot({
+        path: join(
+          screenshotDirectory,
+          `shell-${viewport.width}x${viewport.height}-group-collapsed.png`,
+        ),
+        fullPage: true,
+      });
+      await firstGroup.click();
+    }
     await page.getByRole("button", { name: "Collapse diagram navigation" }).click();
     await expect(frame).toBeVisible();
+    if (screenshotDirectory) {
+      await page.screenshot({
+        path: join(
+          screenshotDirectory,
+          `shell-${viewport.width}x${viewport.height}-collapsed.png`,
+        ),
+        fullPage: true,
+      });
+    }
   }
 
   await page.goto(`${url}/stories/gamma/?focus=section`);

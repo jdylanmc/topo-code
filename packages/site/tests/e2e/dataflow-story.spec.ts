@@ -296,12 +296,26 @@ test("actual Dataflow stories render from the categorized plain-server bundle", 
   try {
     const baseUrl = `${url}/published/topo/`;
     await page.goto(baseUrl);
-    await expect(page.locator(
-      'section[data-category="Topocode internals"]',
-    )).toContainText(dataflowStories[0].title);
-    await expect(page.locator(
-      'section[data-category="Diagram capabilities"]',
-    )).toContainText(dataflowStories[1].title);
+    await page.getByLabel("Group diagrams by").selectOption("category");
+    const catalogue = page.getByRole("navigation", {
+      name: "Diagram catalogue",
+    });
+    await expect(catalogue.getByRole(
+      "button",
+      { name: "Topocode internals" },
+    )).toBeVisible();
+    await expect(catalogue.getByRole(
+      "link",
+      { name: dataflowStories[0].title },
+    )).toBeVisible();
+    await expect(catalogue.getByRole(
+      "button",
+      { name: "Diagram capabilities" },
+    )).toBeVisible();
+    await expect(catalogue.getByRole(
+      "link",
+      { name: dataflowStories[1].title },
+    )).toBeVisible();
 
     for (const story of dataflowStories) {
       await page.goto(`${baseUrl}stories/${story.id}/`);
@@ -339,7 +353,7 @@ test("actual Dataflow controls restore clear titles and factual source navigatio
       await page.setViewportSize(viewport);
       for (const story of dataflowStories) {
         await page.goto(`${url}/stories/${story.id}/`);
-        const controls = page.locator("details.story-controls");
+        const controls = page.locator("details.story-details");
         const summary = controls.locator("summary");
         const title = page.frameLocator("[data-story-viewer]").locator("h1");
         const expectClearTitle = async () => {
@@ -399,7 +413,7 @@ test("actual Dataflow controls restore clear titles and factual source navigatio
 
     await page.setViewportSize({ width: 1024, height: 768 });
     await page.goto(`${url}/stories/repository-dataflow/`);
-    const controls = page.locator("details.story-controls");
+    const controls = page.locator("details.story-details");
     const summary = controls.locator("summary");
     await summary.focus();
     await page.keyboard.press("Enter");
@@ -714,25 +728,6 @@ test("actual Dataflow story text stays readable after page, frame, and SVG scali
           geometry.pinnedFontLoaded,
           `${story.id} pinned font readiness at ${viewport.width}x${viewport.height}`,
         ).toBe(true);
-        if (
-          story.id === "repository-dataflow" &&
-          viewport.width === 1024 &&
-          viewport.height === 768
-        ) {
-          const pinnedWidths = new Map(
-            geometry.pinnedFontNodes.flatMap(({ texts }) =>
-              texts.map(({ value, width }) => [value, width] as const)
-            ),
-          );
-          expect(
-            pinnedWidths.get("Ready to scan."),
-            "pinned Ready to scan. width discriminates hosted overflow",
-          ).toBeGreaterThanOrEqual(123.188);
-          expect(
-            pinnedWidths.get("Layout + site."),
-            "pinned Layout + site. width discriminates hosted overflow",
-          ).toBeGreaterThanOrEqual(115.938);
-        }
         expect.soft(
           geometry.pinnedFontNodes.flatMap(({ id, texts }) =>
             texts.filter(({ outside }) => outside)

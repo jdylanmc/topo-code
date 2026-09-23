@@ -94,6 +94,28 @@ afterEach(async () => {
 });
 
 describe("generated catalogue", () => {
+  it("keeps Topocode's factual architecture stories source-grounded and current", async () => {
+    const stories = await buildCatalogueStories(repositoryRoot);
+    const factual = ["topo-architecture", "topo-packages"].map((id) => {
+      const story = stories.find(({ document }) => document.id === id);
+      expect(story, id).toBeDefined();
+      expect(story?.document.classification).not.toBe("capability-demo");
+      expect(story?.document.anchors.length, id).toBeGreaterThan(0);
+      expect(story?.document.sections.every(
+        ({ anchorIds }) => anchorIds.length > 0,
+      ), id).toBe(true);
+      expect(story?.contents, id).toContain("<svg");
+      return story!;
+    });
+    const architectureNarrative = factual[0].document.sections
+      .flatMap(({ title, body }) => [title, body])
+      .join(" ");
+    expect(architectureNarrative).toMatch(/persistent shell/i);
+    expect(architectureNarrative).toMatch(/filtering, grouping, Git-backed sorting/i);
+    expect(architectureNarrative).toMatch(/real Archify viewer/i);
+    expect(architectureNarrative).toMatch(/retired WebGL explorer/i);
+  });
+
   it("includes a source-grounded Workflow story for the authoring loop", async () => {
     const stories = await buildCatalogueStories(repositoryRoot);
     const workflow = stories.find(({ document }) =>

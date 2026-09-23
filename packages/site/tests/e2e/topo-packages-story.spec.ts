@@ -818,10 +818,10 @@ test("actual package story stays readable from a plain static bundle", async ({
   try {
     const baseUrl = `${url}/published/topo/`;
     await page.goto(baseUrl);
-    const category = page.locator(
-      'section[data-category="Topocode internals"]',
-    );
-    const storyLink = category.getByRole("link", {
+    await page.getByLabel("Group diagrams by").selectOption("category");
+    const storyLink = page.getByRole("navigation", {
+      name: "Diagram catalogue",
+    }).getByRole("link", {
       name: /Topocode package boundaries/,
     });
     await storyLink.click();
@@ -1023,7 +1023,7 @@ test("actual package story stays readable from a plain static bundle", async ({
 
     const firstPackage = fixture.workspaces[0]!;
     const firstPackageId = firstPackage.name.replace("@topo/", "");
-    const controls = page.locator("details.story-controls");
+    const controls = page.locator("details.story-details");
     await controls.locator("summary").click();
     await expect(controls).toHaveAttribute("open", "");
     const sourceLink = page.locator(`[data-node-id="${firstPackageId}"]`);

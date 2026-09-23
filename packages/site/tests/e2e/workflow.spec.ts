@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
 import { mkdir, readFile, readdir, rename, writeFile } from "node:fs/promises";
-import { basename, dirname, join } from "node:path";
+import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 import { expect, type Page } from "@playwright/test";
 import type { GraphDocument, LayoutDocument } from "@topo/schema";
@@ -31,27 +31,17 @@ async function artifactBytes(repository: string): Promise<Record<string, Buffer>
   ].map(async (path) => [path, await readFile(join(repository, ".topo", path))])));
 }
 
-async function selectFile(page: Page, path: string): Promise<void> {
-  await page.locator(`.webgl-a11y [data-entity-id="path:${path}"]`).focus();
-  await page.keyboard.press("Enter");
-  await expect(page.locator('[data-details="selection"] h3').first()).toHaveText(basename(path));
-}
-
 async function load(page: Page, url: string) {
-  const dataResponse = page.waitForResponse(
-    (response) => new URL(response.url()).pathname === "/explorer/data.json",
-  );
-  const response = await page.goto(`${url}/explorer/`);
+  const response = await page.goto(url);
   expect(response?.status()).toBe(200);
   expect(response?.headers()["content-security-policy"]).toContain("script-src 'self'");
   expect(response?.headers()["content-security-policy"]).not.toContain("'unsafe-eval'");
-  const data = await dataResponse;
+  await expect(page.getByRole("navigation", { name: "Diagram catalogue" })).toBeVisible();
+  await expect(page.locator('a[href*="/stories/"]')).toHaveCount(0);
+  expect((await page.request.get(`${url}/explorer/`)).status()).toBe(404);
+  const data = await page.request.get(`${url}/data.json`);
   expect(data.status()).toBe(200);
-  const bundle = await data.json();
-  await page.evaluate(() => window.__TOPO_READY__);
-  await expect(page.locator("canvas.topo-webgl")).toBeVisible();
-  await expect(page.locator(".authority-banner, .error-banner")).toBeHidden();
-  return bundle;
+  return data.json();
 }
 
 test("target-repository CLI journey preserves evidence and intent through a committed source change", async ({
@@ -172,26 +162,19 @@ test("target-repository CLI journey preserves evidence and intent through a comm
     expect(await artifactBytes(repository)).toEqual(before);
   });
 
-  await test.step("serve the built CLI on loopback and inspect the real scanned map", async () => {
+  await test.step("serve the shell and exact scanner evidence without a legacy explorer", async () => {
     url = await startSite();
     const bundle = await load(page, url);
     expect(bundle.graph).toEqual(initialGraph);
     expect(bundle.dashboard).toEqual(await readJson(repository, "reports/outputs/dashboard.json"));
-    await expect(page.locator('[data-status="dashboard"]')).toHaveText("Dashboard: available");
-    await expect(page.locator("svg, [data-renderer]")).toHaveCount(0);
-    await expect(page.locator('.webgl-a11y [data-entity-id="path:lib/value.ts"]')).toHaveCount(0);
-    await page.locator('.webgl-a11y [data-entity-id="directory:lib"]').focus();
-    await page.keyboard.press("Enter");
-    await selectFile(page, "lib/value.ts");
-    await expect(page.locator('[data-details="selection"]')).toContainText("incoming: path:main.ts → path:lib/value.ts");
-    await expect(page.locator('[data-details="selection"] .provenance-observed')).toHaveText("observed");
-    await expect(page.locator('[data-details="selection"]')).toContainText("source:");
-    await page.getByRole("button", { name: "Collapse lib", exact: true }).click();
-    await expect(page.locator('.webgl-a11y [data-entity-id="path:lib/value.ts"]')).toHaveCount(0);
-    await selectFile(page, "main.ts");
-    await page.getByLabel("Module view", { exact: true }).selectOption("@topo/module-degree/dependency-degree");
-    await expect(page.locator("[data-module-attribute]")).toHaveText(["0", "1"]);
-    await expect(page.locator('[data-details="enrichment"]')).toBeHidden();
+    expect(bundle.graph.attributes).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        subject: { id: "path:main.ts", kind: "node" },
+        key: "@topo/module-degree/outgoing-edge-count",
+        value: 1,
+      }),
+    ]));
+    expect(bundle.enrichment).toBeUndefined();
   });
 
   await test.step("reject stale evidence without publishing a mixed revision, then regenerate explicitly", async () => {
@@ -209,7 +192,9 @@ test("target-repository CLI journey preserves evidence and intent through a comm
     const retained = await load(page, url);
     expect(retained.graph.repository.revision).toBe(revision);
     expect(retained.dashboard.revision).toBe(revision);
-    await expect(page.locator('.webgl-a11y [data-entity-id="path:extra.js"]')).toHaveCount(0);
+    expect(retained.graph.nodes.some((node: GraphDocument["nodes"][number]) =>
+      node.id === "path:extra.js"
+    )).toBe(false);
 
     // Revision-bound reports must be retired explicitly; scanning cannot invent replacement evidence.
     const archive = join(dirname(repository), "retired-reports");
@@ -246,23 +231,43 @@ test("target-repository CLI journey preserves evidence and intent through a comm
     expect(bundle.layout).toEqual(layout);
     expect(bundle.dashboard).toBeNull();
     expect(bundle.enrichment).toBeUndefined();
-    await expect(page.locator('[data-status="dashboard"]')).toHaveText("Dashboard: unavailable");
-    await selectFile(page, "main.ts");
-    await expect(page.locator('[data-details="selection"]')).toContainText("outgoing: path:main.ts → path:extra.js");
-    await page.getByLabel("Module view", { exact: true }).selectOption("@topo/module-degree/dependency-degree");
-    await expect(page.locator("[data-module-attribute]")).toHaveText(["0", "2"]);
+    expect(bundle.graph.attributes).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        subject: { id: "path:main.ts", kind: "node" },
+        key: "@topo/module-degree/outgoing-edge-count",
+        value: 2,
+      }),
+    ]));
   });
 
-  await test.step("retain authored view membership and pins against the refreshed browser graph", async () => {
-    await page.getByLabel("Curated view", { exact: true }).selectOption("library");
-    await expect(page.locator('[data-status="view"]')).toContainText("Human-authored view: Library intent");
-    expect(await page.evaluate(() => window.__TOPO_BENCHMARK__!.snapshot().visibleEntityIds))
-      .toEqual(["path:extra.js", "path:lib/value.ts", "path:main.ts"]);
-    await selectFile(page, "extra.js");
-    await expect(page.locator('[data-details="selection"]')).toContainText("incoming: path:main.ts → path:extra.js");
-    await selectFile(page, "main.ts");
-    await expect(page.getByLabel("Pin X", { exact: true })).toHaveValue("900");
-    await expect(page.getByLabel("Pin Y", { exact: true })).toHaveValue("0");
+  await test.step("retain authored view membership and pins across regeneration", async () => {
+    const curated = await readJson<{
+      views: {
+        definition: {
+          id: string;
+          includes: { path: string }[];
+          excludes: { path: string }[];
+          pathRules: string[];
+          expandedPaths: string[];
+          pins: { anchor: { path: string }; position: { x: number; y: number } }[];
+        };
+      }[];
+    }>(repository, "reports/outputs/curated-views.json");
+    expect(curated.views).toEqual([
+      expect.objectContaining({
+        definition: expect.objectContaining({
+          id: "library",
+          includes: [],
+          excludes: [{ kind: "node", path: "stable.js" }],
+          pathRules: ["*.js", "lib/**"],
+          expandedPaths: ["lib"],
+          pins: [expect.objectContaining({
+            anchor: { kind: "node", path: "main.ts" },
+            position: { x: 900, y: 0 },
+          })],
+        }),
+      }),
+    ]);
     for (const [path, bytes] of Object.entries(authored)) {
       expect(await readFile(join(repository, ".topo", path), "utf8"), `authored ${path}`).toBe(bytes);
     }
@@ -270,9 +275,9 @@ test("target-repository CLI journey preserves evidence and intent through a comm
     await expect(readdir(join(repository, "node_modules"))).rejects.toMatchObject({ code: "ENOENT" });
     expect((await execute("git", ["diff", "--exit-code", "HEAD"], { cwd: repository })).stdout).toBe("");
     expect((await execute("git", ["diff", "--cached", "--exit-code"], { cwd: repository })).stdout).toBe("");
-    expect(requests.filter(
-      (request) => new URL(request).pathname === "/explorer/data.json",
-    )).toHaveLength(3);
+    expect(requests.some(
+      (request) => new URL(request).pathname.startsWith("/explorer"),
+    )).toBe(false);
     expect(requests.every((request) => new URL(request).origin === url)).toBe(true);
     expect(errors).toEqual([]);
   });

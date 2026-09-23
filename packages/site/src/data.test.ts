@@ -5,10 +5,21 @@ import {
   type GraphDocument,
 } from "@topo/schema";
 import { deriveArchitecture, layoutGraph } from "@topo/graph";
-import { getEntityDetails } from "./details.js";
-import { ArtifactLoadError, loadArtifacts } from "./load.js";
+import type { StaticModuleManifest } from "@topo/modules";
+import { ArtifactLoadError, parseSiteData } from "./data.js";
 import type { CuratedViewsSnapshot } from "@topo/views";
 import { BUILTIN_MODULE_MANIFESTS, composeModules } from "@topo/modules";
+
+async function loadArtifacts(
+  compiledModules: readonly StaticModuleManifest[] = BUILTIN_MODULE_MANIFESTS,
+) {
+  const response = await fetch("./data.json", { cache: "no-store" });
+  return parseSiteData(
+    await response.json(),
+    compiledModules,
+    response.headers.get("X-Topo-Views-Token") ?? undefined,
+  );
+}
 
 function fixture(): GraphDocument {
   return createGraphDocument({
@@ -233,21 +244,4 @@ describe("site data contract", () => {
     });
   });
 
-  it("provides incoming dependency provenance and evidence", () => {
-    const graph = fixture();
-    const entity = {
-      id: "path:src/b.ts",
-      kind: "node" as const,
-      label: "b.ts",
-      memberNodeIds: ["path:src/b.ts"],
-      external: false,
-      collapsed: false,
-    };
-    expect(getEntityDetails(graph, entity).dependencies).toEqual([
-      expect.objectContaining({
-        direction: "incoming",
-        evidence: [expect.objectContaining({ id: "evidence:a" })],
-      }),
-    ]);
-  });
 });

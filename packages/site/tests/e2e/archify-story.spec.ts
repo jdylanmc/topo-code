@@ -15,7 +15,7 @@ const galleryStories = [
   {
     path: "stories/topo-architecture.topo.json",
     id: "topo-architecture",
-    title: "How Topocode turns source into an explorable architecture site",
+    title: "How Topocode turns source into an architecture storybook",
   },
   {
     path: "stories/story-authoring-workflow.topo.json",
@@ -250,7 +250,7 @@ test("actual gallery story text remains readable at a desktop viewport", async (
   }
 });
 
-test("actual gallery titles remain clear of closed story controls", async ({
+test("actual gallery titles remain clear of expanded and collapsed shell navigation", async ({
   page,
   repository,
 }) => {
@@ -260,7 +260,7 @@ test("actual gallery titles remain clear of closed story controls", async ({
   const collisions: {
     story: string;
     viewport: string;
-    state: "default" | "restored";
+    state: "expanded" | "collapsed" | "restored";
     title: { x: number; y: number; width: number; height: number };
     controls: { x: number; y: number; width: number; height: number };
   }[] = [];
@@ -275,14 +275,17 @@ test("actual gallery titles remain clear of closed story controls", async ({
       await page.setViewportSize(viewport);
       for (const story of galleryStories) {
         await page.goto(`${url}/stories/${story.id}/`);
-        const controls = page.locator("details.story-controls");
-        const summary = controls.locator("summary");
+        const controls = page.getByRole("navigation", { name: "Diagram catalogue" });
         const title = page.frameLocator("[data-story-viewer]").locator("h1");
-        await expect(controls).not.toHaveAttribute("open", "");
+        await expect(
+          page.getByRole("button", { name: "Collapse diagram navigation" }),
+        ).toBeVisible();
         await expect(title).toHaveText(story.title);
         await expect(title).toBeVisible();
 
-        const recordCollision = async (state: "default" | "restored") => {
+        const recordCollision = async (
+          state: "expanded" | "collapsed" | "restored",
+        ) => {
           const [titleBounds, controlsBounds, titleLayout] = await Promise.all([
             title.boundingBox(),
             controls.boundingBox(),
@@ -321,12 +324,22 @@ test("actual gallery titles remain clear of closed story controls", async ({
           }
         };
 
-        await recordCollision("default");
-        await summary.focus();
-        await page.keyboard.press("Enter");
-        await expect(controls).toHaveAttribute("open", "");
-        await page.keyboard.press("Enter");
-        await expect(controls).not.toHaveAttribute("open", "");
+        await recordCollision("expanded");
+        await page.getByRole(
+          "button",
+          { name: "Collapse diagram navigation" },
+        ).click();
+        await expect(
+          page.getByRole("button", { name: "Expand diagram navigation" }),
+        ).toBeVisible();
+        await recordCollision("collapsed");
+        await page.getByRole(
+          "button",
+          { name: "Expand diagram navigation" },
+        ).click();
+        await expect(
+          page.getByRole("button", { name: "Collapse diagram navigation" }),
+        ).toBeVisible();
         await recordCollision("restored");
       }
     }
@@ -658,15 +671,15 @@ test("actual story details restore unobscured authored content", async ({
   const { server, url } = await startTopoServer(repository, ["--port", "0"]);
   try {
     await page.goto(`${url}/stories/topo-architecture/`);
-    const controls = page.locator("details.story-controls");
+    const controls = page.locator("details.story-details");
     const summary = controls.locator("summary");
     const authoredTitles = [
       "1. Scan source into a graph",
       "2. Generate site artifacts",
-      "3. Compose and serve the explorer",
+      "3. Preserve generated evidence",
       "4. Author a source-grounded story",
       "5. Render at the pinned boundary",
-      "6. Browse the story catalogue",
+      "6. Browse the architecture storybook",
       "7. Bundle for static hosting",
     ];
     const overlappingTitles = async () => {
