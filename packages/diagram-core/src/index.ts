@@ -201,10 +201,12 @@ const archifyCli = path.join(
   "archify.mjs",
 );
 const architectureFontSize = 24;
-// The pinned renderer measures 8px monospace labels at 0.6em per text unit;
-// authored Architecture CSS scales the same glyphs to 24px.
-const architectureLabelAscent = 25;
-const architectureLabelDescent = 7;
+const architectureFinalFontSize = 26;
+const architectureNativeEdgeFontSize = 8;
+const architectureNativeEdgeMaskHeight = 14;
+const architectureFinalEdgeMaskHeight =
+  architectureNativeEdgeMaskHeight *
+  (architectureFinalFontSize / architectureNativeEdgeFontSize);
 
 function architectureLabelUnits(label: string): number {
   return Array.from(label).reduce(
@@ -214,13 +216,21 @@ function architectureLabelUnits(label: string): number {
   );
 }
 
-function architectureLabelWidth(label: string): number {
+function architectureLabelWidth(
+  label: string,
+  fontSize = architectureFontSize,
+  padding = 0,
+): number {
   const units = architectureLabelUnits(label);
   return Math.max(
     30,
     units * 4.8 + 10,
-    units * architectureFontSize * 0.6,
+    units * fontSize * 0.6 + padding,
   );
+}
+
+function architectureLabelGlyphWidth(label: string, fontSize: number): number {
+  return architectureLabelUnits(label) * fontSize * 0.6;
 }
 
 function architectureNodeTextWidth(text: string, fontSize: number): number {
@@ -491,6 +501,26 @@ function repositoryMetadata(repositoryRoot: string): {
   };
 }
 
+function usesFinalArchitectureGeometry(story: ResolvedStoryDocument): boolean {
+  const anchors = new Map(story.anchors.map((anchor) => [anchor.id, anchor]));
+  return story.document.sections.length > 10 &&
+    story.document.sections.some((section) => {
+      const primary = section.anchorIds
+        .map((anchorId) => anchors.get(anchorId))
+        .find((anchor) => anchor !== undefined);
+      const sublabel = primary === undefined
+        ? ""
+        : primary.symbol ?? primary.path.split("/").pop() ?? primary.path;
+      return Math.max(
+        architectureNodeTextWidth(
+          section.title,
+          architectureFinalFontSize,
+        ),
+        architectureNodeTextWidth(sublabel, architectureFinalFontSize),
+      ) >= 400;
+    });
+}
+
 function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
   const anchors = new Map(story.anchors.map((anchor) => [anchor.id, anchor]));
   const componentIds = new Map(
@@ -500,6 +530,21 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
     ]),
   );
   const sections = story.document.sections;
+  const usesFinalGeometry = usesFinalArchitectureGeometry(story);
+  const finalFontSize = usesFinalGeometry
+    ? architectureFinalFontSize
+    : architectureFontSize;
+  const edgeMaskHeight = usesFinalGeometry
+    ? architectureFinalEdgeMaskHeight
+    : architectureNativeEdgeMaskHeight;
+  const labelAscent = usesFinalGeometry ? edgeMaskHeight / 2 : 25;
+  const labelDescent = usesFinalGeometry ? edgeMaskHeight / 2 : 7;
+  const connectionLabelWidth = (label: string) =>
+    architectureLabelWidth(
+      label,
+      finalFontSize,
+      usesFinalGeometry ? 16 : 0,
+    );
   const resolved = sections.map((section) => {
     const sectionAnchors = section.anchorIds
       .map((anchorId) => anchors.get(anchorId))
@@ -520,17 +565,27 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
       Math.ceil(architectureNodeTextWidth(section.title, 11)),
       Math.ceil(architectureNodeTextWidth(sublabel, 9)),
     );
+    const finalWidth = Math.max(
+      280,
+      Math.ceil(
+        architectureNodeTextWidth(section.title, architectureFinalFontSize),
+      ),
+      Math.ceil(
+        architectureNodeTextWidth(sublabel, architectureFinalFontSize),
+      ),
+    );
     return {
       section,
       sectionAnchors,
       sublabel,
       legacyWidth,
       compactWidth,
+      finalWidth,
     };
   });
-  const boxHeight = 130;
+  const boxHeight = usesFinalGeometry ? 88 : 130;
   const routeCorridorBand = 8;
-  const columnGap = 24 + routeCorridorBand;
+  const baseColumnGap = (usesFinalGeometry ? 16 : 24) + routeCorridorBand;
   const balancedRowSizes = (maxRowSize: number) => {
     const rowCount = Math.max(1, Math.ceil(sections.length / maxRowSize));
     const shortRowSize = Math.floor(sections.length / rowCount);
@@ -560,14 +615,14 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
         280,
         ...resolved.flatMap((entry, index) =>
           cellIn(rowSizes, index).column === column
-            ? [entry.legacyWidth]
+            ? [usesFinalGeometry ? entry.finalWidth : entry.legacyWidth]
             : []
         ),
       ),
     );
     const width =
       columnWidths.reduce((total, columnWidth) => total + columnWidth, 0) +
-      (columnCount - 1) * columnGap;
+      (columnCount - 1) * baseColumnGap;
     const height =
       rowSizes.length * boxHeight +
       (rowSizes.length - 1) * 80;
@@ -576,7 +631,9 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
   // Compare the existing three- and four-column choices against the geometric
   // midpoint of the supported 4:3 through 16:9 desktop aspect-ratio range.
   const targetAspectRatio = Math.sqrt((4 / 3) * (16 / 9));
-  const rowSizeCandidates = sections.length > 10
+  const rowSizeCandidates = usesFinalGeometry
+    ? [2, 3, 4]
+    : sections.length > 10
     ? [3, 4]
     : [sections.length >= 10 ? 4 : 3];
   const rowSizes = rowSizeCandidates
@@ -588,11 +645,28 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
         : best
     );
   const rowCount = rowSizes.length;
-  // Deeper grids need native preferred text widths to retain a readable
-  // canvas; compact/ragged layouts keep their established wider proportions.
+  const columnGap = rowCount === 1
+    ? Math.max(
+      baseColumnGap,
+      ...story.document.connections.flatMap((connection) =>
+        connection.label === undefined
+          ? []
+          : [Math.ceil(connectionLabelWidth(connection.label) + 16)]
+      ),
+    )
+    : baseColumnGap;
+  // Keep established proportions where they exceed final text needs, but
+  // never let post-render readability typography outgrow native geometry.
   const componentWidth = (
     entry: (typeof resolved)[number],
-  ) => rowCount > 3 ? entry.compactWidth : entry.legacyWidth;
+  ) => usesFinalGeometry
+    ? Math.max(
+      rowCount > 3 ? entry.compactWidth : entry.legacyWidth,
+      entry.finalWidth,
+    )
+    : rowCount > 3
+    ? entry.compactWidth
+    : entry.legacyWidth;
   const cellOf = (index: number) => {
     return cellIn(rowSizes, index);
   };
@@ -606,6 +680,18 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
   const detourLaneByConnection = new Map<number, number>();
   let detourLaneCount = 0;
   let hasBottomOuterLabels = false;
+  const horizontalLabelGap = (row: number, deltaColumn: number) =>
+    usesFinalGeometry
+      ? row === 0
+        ? 0
+        : row === rowCount - 1
+        ? row - 1
+        : deltaColumn > 0
+        ? row
+        : row - 1
+      : deltaColumn > 0
+      ? row
+      : row - 1;
   for (
     const [connectionIndex, connection] of
       story.document.connections.entries()
@@ -630,9 +716,19 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
       crossRowRouteGaps.add(gap);
     }
     if (connection.label === undefined) continue;
+    const deltaRow = to.row - from.row;
     const deltaColumn = to.column - from.column;
-    if (from.row !== to.row || Math.abs(deltaColumn) !== 1) continue;
-    const gap = deltaColumn > 0 ? from.row : from.row - 1;
+    if (
+      !usesFinalGeometry &&
+      (from.row !== to.row || Math.abs(deltaColumn) !== 1)
+    ) {
+      continue;
+    }
+    const adjacent = Math.abs(deltaRow) + Math.abs(deltaColumn) === 1;
+    if (!adjacent) continue;
+    const gap = deltaRow !== 0
+      ? Math.min(from.row, to.row)
+      : horizontalLabelGap(from.row, deltaColumn);
     if (gap === rowCount - 1) {
       hasBottomOuterLabels = true;
     }
@@ -650,36 +746,36 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
     ),
   );
   const labelLaneStep =
-    architectureLabelAscent + architectureLabelDescent + 1;
-  const labelCorridorPadding = 2;
+    labelAscent + labelDescent + 1;
+  const labelCorridorPadding = usesFinalGeometry ? 4 : 2;
   const requiredRowGap = Math.max(
     0,
     ...[...sharedGapConnections.entries()].map(([gap, connections]) =>
       labelCorridorPadding * 2 +
-      architectureLabelAscent +
-      architectureLabelDescent +
+      labelAscent +
+      labelDescent +
       (connections.length - 1) * labelLaneStep +
       (crossRowRouteGaps.has(gap) ? routeCorridorBand : 0)
     ),
   );
   const rowGap = Math.max(
-    80,
+    usesFinalGeometry ? 64 : 80,
     requiredRowGap,
   );
   const maxSharedLabelWidth = Math.max(
     0,
     ...[...sharedGapLaneByConnection.keys()].map((connectionIndex) =>
-      architectureLabelWidth(
+      connectionLabelWidth(
         story.document.connections[connectionIndex]!.label!,
       )
     ),
   );
-  const maxConnectionLabelWidth = Math.max(
+  const maxConnectionLabelGlyphWidth = Math.max(
     0,
     ...story.document.connections.flatMap((connection) =>
       connection.label === undefined
         ? []
-        : [architectureLabelWidth(connection.label)]
+        : [architectureLabelGlyphWidth(connection.label, finalFontSize)]
     ),
   );
   const maxNodeLabelOverhang = Math.max(
@@ -687,7 +783,7 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
     ...resolved.map((entry) =>
       Math.max(
         0,
-        (architectureLabelWidth(entry.section.title) -
+        (architectureLabelWidth(entry.section.title, finalFontSize) -
           componentWidth(entry)) / 2,
       )
     ),
@@ -706,12 +802,24 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
       ),
     ),
   );
-  const margin = Math.max(
+  const legacyMargin = Math.max(
     80,
-    Math.ceil(maxConnectionLabelWidth / 2 + labelCorridorPadding),
+    Math.ceil(
+      Math.max(
+        0,
+        ...story.document.connections.flatMap((connection) =>
+          connection.label === undefined
+            ? []
+            : [connectionLabelWidth(connection.label)]
+        ),
+      ) / 2 + labelCorridorPadding,
+    ),
   );
+  const verticalMargin = usesFinalGeometry ? 80 : legacyMargin;
   const horizontalMargin = Math.max(
-    margin,
+    usesFinalGeometry
+      ? Math.max(80, Math.ceil(maxConnectionLabelGlyphWidth / 2 + 12))
+      : legacyMargin,
     Math.ceil(maxNodeLabelOverhang + labelCorridorPadding),
   );
   const columnLefts = columnWidths.map((_, column) =>
@@ -731,7 +839,7 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
       sublabel,
       pos: [
         columnLefts[column]!,
-        margin + row * (boxHeight + rowGap),
+        verticalMargin + row * (boxHeight + rowGap),
       ] as const,
       size: [columnWidths[column]!, boxHeight] as const,
       ...(sectionAnchors.length === 0
@@ -745,15 +853,16 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
           }),
     };
   });
-  const gridBottom = margin + rowCount * boxHeight + (rowCount - 1) * rowGap;
+  const gridBottom =
+    verticalMargin + rowCount * boxHeight + (rowCount - 1) * rowGap;
   const laneBase = gridBottom +
     (hasBottomOuterLabels
       ? rowGap / 2 +
-        architectureLabelAscent +
-        architectureLabelDescent +
+        labelAscent +
+        labelDescent +
         4
       : 60);
-  const laneGap = 40;
+  const laneGap = usesFinalGeometry ? edgeMaskHeight + 8 : 40;
   const gridRight =
     horizontalMargin +
     columnWidths.reduce((total, width) => total + width, 0) +
@@ -789,7 +898,7 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
     const connection = story.document.connections[connectionIndex]!;
     const fromIndex = sectionIndexById.get(connection.from)!;
     const sourceX = componentCenterX(fromIndex);
-    const width = architectureLabelWidth(connection.label!);
+    const width = connectionLabelWidth(connection.label!);
     const routeClearance = 12;
     const corridorXs = [...(gapRouteCorridors.get(gap) ?? [])]
       .sort((left, right) => left - right);
@@ -823,8 +932,10 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
   );
   const viewBoxHeight = Math.max(
     500,
-    gridBottom + margin,
-    laneBase + Math.max(0, detourLaneCount - 1) * laneGap + margin,
+    gridBottom + verticalMargin,
+    laneBase +
+      Math.max(0, detourLaneCount - 1) * laneGap +
+      verticalMargin,
   );
   return {
     schema_version: 1,
@@ -866,29 +977,30 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
       const adjacent = Math.abs(deltaRow) + Math.abs(deltaColumn) === 1;
       if (adjacent) {
         const vertical = deltaRow !== 0;
-        const horizontalLabelBelow = deltaColumn > 0;
+        const horizontalLabelBelow =
+          horizontalLabelGap(from.row, deltaColumn) === from.row;
         const sharedGapLane = sharedGapLaneByConnection.get(index);
         return {
           ...base,
-          ...(vertical
-            ? { labelDy: deltaRow > 0 ? 40 : -24 }
-            : sharedGapLane === undefined
-            ? {
-                labelDy: horizontalLabelBelow
-                  ? boxHeight / 2 + rowGap / 2
-                  : -(boxHeight / 2 + rowGap / 2),
-              }
+          ...(sharedGapLane === undefined
+            ? vertical
+              ? { labelDy: deltaRow > 0 ? 40 : -24 }
+              : {
+                  labelDy: horizontalLabelBelow
+                    ? boxHeight / 2 + rowGap / 2
+                    : -(boxHeight / 2 + rowGap / 2),
+                }
             : {
                 labelAt: [
                   sharedGapLabelX(index, sharedGapLane.gap),
-                  margin +
+                  verticalMargin +
                     sharedGapLane.gap * (boxHeight + rowGap) +
                     boxHeight +
                     (crossRowRouteGaps.has(sharedGapLane.gap)
                       ? routeCorridorBand
                       : 0) +
                     labelCorridorPadding +
-                    architectureLabelAscent +
+                    labelAscent +
                     sharedGapLane.lane * labelLaneStep,
                 ] as const,
               }),
@@ -919,8 +1031,8 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
           : gridRight + horizontalMargin / 2;
       const upperCorridor = (endpointIndex: number) => {
         const endpoint = cellOf(endpointIndex);
-        if (endpoint.row === 0) return margin / 2;
-        return margin +
+        if (endpoint.row === 0) return verticalMargin / 2;
+        return verticalMargin +
           endpoint.row * (boxHeight + rowGap) -
           rowGap +
           routeCorridorBand / 2;
@@ -931,6 +1043,8 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
       const toOutside = outside(to.column);
       const fromUpperCorridor = upperCorridor(fromIndex);
       const toUpperCorridor = upperCorridor(toIndex);
+      const fromLaneX = fromBlocked ? fromOutside : fromX;
+      const toLaneX = toBlocked ? toOutside : toX;
       return {
         ...base,
         fromSide: fromBlocked
@@ -955,7 +1069,9 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
               ] as const
             : [[toX, lane]] as const),
         ],
-        labelSegment: fromBlocked ? 3 : 1,
+        ...(connection.label === undefined
+          ? {}
+          : { labelAt: [(fromLaneX + toLaneX) / 2, lane] as const }),
       };
     }),
   };
@@ -1476,13 +1592,66 @@ function improveStoryReadability(
     | "lifecycle",
   dataflowLayout?: DataflowLayout,
   sequenceFontSize?: number,
+  architectureFinalGeometry = false,
 ): string {
   const headEnd = "</head>";
   if (!contents.includes(headEnd)) {
     throw new Error(`Archify ${family} output is missing its closing head element`);
   }
+  const architectureContents = family === "architecture" &&
+      architectureFinalGeometry
+    ? (() => {
+        let replaced = 0;
+        const adjusted = contents.replace(
+          /(<g data-detail="context"[^>]*>\s*<rect x=")(-?\d+(?:\.\d+)?)(" y=")(-?\d+(?:\.\d+)?)(" width=")(\d+(?:\.\d+)?)(" height=")14(" rx="3" class="c-mask"\/>)/g,
+          (
+            _match,
+            prefix: string,
+            xValue: string,
+            yPrefix: string,
+            yValue: string,
+            widthPrefix: string,
+            nativeWidthValue: string,
+            heightPrefix: string,
+            suffix: string,
+          ) => {
+            replaced += 1;
+            const nativeWidth = Number(nativeWidthValue);
+            const units = (nativeWidth - 10) / 4.8;
+            const width = Math.max(
+              nativeWidth,
+              units * architectureFinalFontSize * 0.6 + 16,
+            );
+            const center = Number(xValue) + nativeWidth / 2;
+            const baseline = Number(yValue) + 10;
+            return `${prefix}${center - width / 2}${yPrefix}${
+              baseline - architectureFinalEdgeMaskHeight / 2 - 8
+            }${widthPrefix}${width}${heightPrefix}${
+              architectureFinalEdgeMaskHeight
+            }${suffix}`;
+          },
+        );
+        const expected =
+          contents.match(/<g data-detail="context"[^>]*>\s*<rect/g)?.length ?? 0;
+        if (replaced !== expected) {
+          throw new Error(
+            `Archify architecture output exposed ${expected} edge masks but ${replaced} were resized`,
+          );
+        }
+        return adjusted;
+      })()
+    : contents;
   const rules = family === "architecture"
-    ? `
+    ? architectureFinalGeometry
+      ? `
+svg { max-height: 100vh; }
+svg [data-source-evidence-beacon] { display: none; }
+svg text[data-node-label],
+svg text[data-detail="context"],
+svg g[data-edge-from] > text { font-size: ${architectureFinalFontSize}px; }
+svg text[data-node-label] { transform: translateY(-8px); }
+svg text[data-detail="context"] { transform: translateY(8px); }`
+      : `
 svg { max-height: 100vh; }
 svg [data-source-evidence-beacon] { display: none; }
 svg text[data-node-label],
@@ -1578,8 +1747,8 @@ svg g[data-edge-from] > text {
           );
         }
         return next;
-      }, contents)
-    : contents;
+      }, architectureContents)
+    : architectureContents;
   return adjustedContents.replace(headEnd, `${style}\n${headEnd}`);
 }
 
@@ -1649,6 +1818,8 @@ export function renderStory(story: ResolvedStoryDocument): StoryArtifact {
           family,
           adaptiveDataflowLayout,
           adaptiveSequenceLayout?.fontSize,
+          family === "architecture" &&
+            usesFinalArchitectureGeometry(story),
         )
         : contents,
       renderer: {
