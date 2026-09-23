@@ -559,7 +559,10 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
   // Compare the existing three- and four-column choices against the geometric
   // midpoint of the supported 4:3 through 16:9 desktop aspect-ratio range.
   const targetAspectRatio = Math.sqrt((4 / 3) * (16 / 9));
-  const rowSizes = (sections.length >= 10 ? [3, 4] : [3])
+  const rowSizeCandidates = sections.length > 10
+    ? [3, 4]
+    : [sections.length >= 10 ? 4 : 3];
+  const rowSizes = rowSizeCandidates
     .map(balancedRowSizes)
     .reduce((best, candidate) =>
       Math.abs(estimatedAspectRatio(candidate) - targetAspectRatio) <
