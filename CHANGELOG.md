@@ -52,6 +52,10 @@ does not currently publish versioned releases.
 
 ### Changed
 
+- Keep current skill diagnostics local by ignoring `.skill-log/` while retaining
+  previously committed evidence in Git history.
+- Publish the existing Orca orchestration skill and its lock entry alongside the
+  pending Joe-mode-orca lock entry.
 - Retire the PixiJS/WebGL repository explorer from generated, served, and
   bundled output while retaining scanner, graph, evidence, view, report, and
   enrichment foundations for future source-grounded Archify capabilities.

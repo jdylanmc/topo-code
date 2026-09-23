@@ -9,6 +9,7 @@ build/
 # generated architectural metadata are independently source-controllable
 # (see issue #1), so the .topo/ workspace is NOT ignored wholesale.
 .topo/cache/
+.skill-log/
 
 .DS_Store
 *.log

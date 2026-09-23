@@ -130,10 +130,11 @@ Design decisions are made against measurements taken on real repositories
 (`mermaid`, `wezterm`, `d3`, and others), not from assumption. Several settled
 decisions have been overturned by those measurements.
 
-`.skill-log/` holds the append-only chronicle of that work: what was measured,
-what it showed, what was decided, and what was later retracted. It is committed
-deliberately. When the reasoning behind a decision is unclear, the chronicle is
-the record — not memory, and not this README.
+`.skill-log/` holds local append-only diagnostic chronicles of that work. Current
+logs are ignored so measurements and agent diagnostics remain local; previously
+committed chronicles remain available as historical evidence in Git history.
+When the reasoning behind a decision is unclear, consult that history rather
+than memory or this README.
 
 ## Licence
 
