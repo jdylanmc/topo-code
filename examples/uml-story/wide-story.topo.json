@@ -1,0 +1,213 @@
+{
+  "schemaVersion": "1.0",
+  "diagramFamily": "architecture",
+  "classification": "source-grounded",
+  "id": "wide-uml-declarations",
+  "title": "Wide source-grounded UML declaration fixture",
+  "summary": "Representative exact identifiers exercise content-aware Architecture row selection.",
+  "anchors": [
+    {
+      "id": "anchor",
+      "path": "wide-declarations.ts",
+      "symbol": "RepositorySourceEvidenceAnchor"
+    },
+    {
+      "id": "resolved-anchor",
+      "path": "wide-declarations.ts",
+      "symbol": "ResolvedRepositorySourceEvidenceAnchor",
+      "pattern": "extends RepositorySourceEvidenceAnchor"
+    },
+    {
+      "id": "family",
+      "path": "wide-declarations.ts",
+      "symbol": "SupportedNativeDiagramFamily"
+    },
+    {
+      "id": "document",
+      "path": "wide-declarations.ts",
+      "symbol": "SourceGroundedStoryDocument"
+    },
+    {
+      "id": "document-family",
+      "path": "wide-declarations.ts",
+      "symbol": "SourceGroundedStoryDocument",
+      "pattern": "readonly diagramFamily?: SupportedNativeDiagramFamily;"
+    },
+    {
+      "id": "resolved-document",
+      "path": "wide-declarations.ts",
+      "symbol": "ResolvedSourceGroundedStoryDocument"
+    },
+    {
+      "id": "resolved-document-input",
+      "path": "wide-declarations.ts",
+      "symbol": "ResolvedSourceGroundedStoryDocument",
+      "pattern": "readonly document: SourceGroundedStoryDocument;"
+    },
+    {
+      "id": "resolved-document-anchors",
+      "path": "wide-declarations.ts",
+      "symbol": "ResolvedSourceGroundedStoryDocument",
+      "pattern": "readonly anchors: readonly ResolvedRepositorySourceEvidenceAnchor[];"
+    },
+    {
+      "id": "artifact",
+      "path": "wide-declarations.ts",
+      "symbol": "RenderedSourceGroundedStoryArtifact"
+    },
+    {
+      "id": "renderer",
+      "path": "wide-declarations.ts",
+      "symbol": "SourceGroundedStoryRenderer"
+    },
+    {
+      "id": "renderer-input",
+      "path": "wide-declarations.ts",
+      "symbol": "SourceGroundedStoryRenderer",
+      "pattern": "story: ResolvedSourceGroundedStoryDocument"
+    },
+    {
+      "id": "renderer-output",
+      "path": "wide-declarations.ts",
+      "symbol": "SourceGroundedStoryRenderer",
+      "pattern": "RenderedSourceGroundedStoryArtifact"
+    },
+    {
+      "id": "error",
+      "path": "wide-declarations.ts",
+      "symbol": "SourceGroundedStoryDocumentError",
+      "pattern": "extends Error"
+    },
+    {
+      "id": "validation",
+      "path": "wide-declarations.ts",
+      "symbol": "SourceGroundedStoryValidationResult",
+      "pattern": "readonly error?: SourceGroundedStoryDocumentError;"
+    },
+    {
+      "id": "implementation",
+      "path": "wide-declarations.ts",
+      "symbol": "SourceGroundedStoryRendererImplementation",
+      "pattern": "implements SourceGroundedStoryRenderer"
+    }
+  ],
+  "sections": [
+    {
+      "id": "family",
+      "title": "«type» SupportedNativeDiagramFamily",
+      "body": "A representative declared type.",
+      "anchorIds": ["family"]
+    },
+    {
+      "id": "document",
+      "title": "«interface» SourceGroundedStoryDocument",
+      "body": "Declares the selected diagram family.",
+      "anchorIds": ["document", "document-family"]
+    },
+    {
+      "id": "resolved-document",
+      "title": "«interface» ResolvedSourceGroundedStoryDocument",
+      "body": "Declares resolved document and anchor dependencies.",
+      "anchorIds": [
+        "resolved-document",
+        "resolved-document-input",
+        "resolved-document-anchors"
+      ]
+    },
+    {
+      "id": "renderer",
+      "title": "«interface» SourceGroundedStoryRenderer",
+      "body": "Declares renderer input and output dependencies.",
+      "anchorIds": ["renderer", "renderer-input", "renderer-output"]
+    },
+    {
+      "id": "artifact",
+      "title": "«interface» RenderedSourceGroundedStoryArtifact",
+      "body": "Declares the renderer result.",
+      "anchorIds": ["artifact"]
+    },
+    {
+      "id": "implementation",
+      "title": "«class» SourceGroundedStoryRendererImplementation",
+      "body": "Directly implements the renderer contract.",
+      "anchorIds": ["implementation"]
+    },
+    {
+      "id": "error",
+      "title": "«class» SourceGroundedStoryDocumentError",
+      "body": "Directly extends Error.",
+      "anchorIds": ["error"]
+    },
+    {
+      "id": "built-in-error",
+      "title": "«class» Error",
+      "body": "The explicit declared base class.",
+      "anchorIds": ["error"]
+    },
+    {
+      "id": "validation",
+      "title": "«interface» SourceGroundedStoryValidationResult",
+      "body": "Declares the story error dependency.",
+      "anchorIds": ["validation"]
+    },
+    {
+      "id": "resolved-anchor",
+      "title": "«interface» ResolvedRepositorySourceEvidenceAnchor",
+      "body": "Directly extends the source anchor.",
+      "anchorIds": ["resolved-anchor"]
+    },
+    {
+      "id": "anchor",
+      "title": "«interface» RepositorySourceEvidenceAnchor",
+      "body": "Declares source evidence identity.",
+      "anchorIds": ["anchor"]
+    }
+  ],
+  "connections": [
+    {
+      "from": "document",
+      "to": "family",
+      "label": "declared type dependency"
+    },
+    {
+      "from": "resolved-document",
+      "to": "document",
+      "label": "declared type dependency"
+    },
+    {
+      "from": "resolved-document",
+      "to": "resolved-anchor",
+      "label": "declared type dependency"
+    },
+    {
+      "from": "renderer",
+      "to": "resolved-document",
+      "label": "declared type dependency"
+    },
+    {
+      "from": "renderer",
+      "to": "artifact",
+      "label": "declared type dependency"
+    },
+    {
+      "from": "implementation",
+      "to": "renderer",
+      "label": "implements"
+    },
+    {
+      "from": "error",
+      "to": "built-in-error",
+      "label": "extends"
+    },
+    {
+      "from": "validation",
+      "to": "error",
+      "label": "declared type dependency"
+    },
+    {
+      "from": "resolved-anchor",
+      "to": "anchor",
+      "label": "extends"
+    }
+  ]
+}
