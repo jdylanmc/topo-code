@@ -33,6 +33,12 @@ is reported without turning navigation into a failure. Malformed or obsolete
 saved values are ignored independently and the complete inventory renders with
 documented defaults.
 
+Navigation stays on the left at desktop widths. Below 1100px, a permanent
+left-side activator rail opens the complete inventory as a temporary drawer
+over the canvas instead of moving navigation above the diagram or permanently
+reducing the viewer width. Collapsing the drawer or selecting a story exposes
+the readable viewer while retaining keyboard access and the saved preference.
+
 The retired WebGL repository explorer is not generated, served, or bundled.
 Repositories with no stories show an explicit empty diagram inventory. Scanner,
 graph, layout, evidence, module, view, and enrichment artifacts remain available

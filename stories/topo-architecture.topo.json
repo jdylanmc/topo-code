@@ -48,7 +48,7 @@
     },
     {
       "id": "catalogue",
-      "title": "6. Browse the architecture storybook",
+      "title": "6. Browse the storybook",
       "body": "Every committed story is gathered into one persistent shell with filtering, grouping, Git-backed sorting, deep links, and a selected real Archify viewer \u2014 generated, never hand-maintained.",
       "anchorIds": ["catalogue"]
     },
