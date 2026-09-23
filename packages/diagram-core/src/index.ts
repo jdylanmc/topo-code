@@ -513,20 +513,19 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
     );
     return { section, sectionAnchors, sublabel, width };
   });
-  // Balance components across rows of at most four, then snake each row so
-  // consecutive sections stay adjacent without producing a tall column.
-  const maxRowSize = sections.length >= 10 ? 4 : 3;
-  const rowCount = Math.max(1, Math.ceil(sections.length / maxRowSize));
-  const shortRowSize = Math.floor(sections.length / rowCount);
-  const longRowCount = sections.length % rowCount;
-  const rowSizes = Array.from(
-    { length: rowCount },
-    (_, row) => shortRowSize + (row < longRowCount ? 1 : 0),
-  );
-  const baseBoxWidth = Math.max(280, ...resolved.map((entry) => entry.width));
   const boxHeight = 130;
-  const columnGap = 90;
-  const cellOf = (index: number) => {
+  const routeCorridorBand = 8;
+  const columnGap = 24 + routeCorridorBand;
+  const balancedRowSizes = (maxRowSize: number) => {
+    const rowCount = Math.max(1, Math.ceil(sections.length / maxRowSize));
+    const shortRowSize = Math.floor(sections.length / rowCount);
+    const longRowCount = sections.length % rowCount;
+    return Array.from(
+      { length: rowCount },
+      (_, row) => shortRowSize + (row < longRowCount ? 1 : 0),
+    );
+  };
+  const cellIn = (rowSizes: readonly number[], index: number) => {
     let row = 0;
     let rowStart = 0;
     while (index >= rowStart + rowSizes[row]!) {
@@ -535,9 +534,42 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
     }
     const rowSize = rowSizes[row]!;
     const positionInRow = index - rowStart;
-    // Reverse odd rows so the sequence snakes and stays adjacent at the wrap.
     const column = row % 2 === 0 ? positionInRow : rowSize - 1 - positionInRow;
     return { row, column };
+  };
+  const estimatedAspectRatio = (rowSizes: readonly number[]) => {
+    const columnCount = Math.max(...rowSizes);
+    const columnWidths = Array.from(
+      { length: columnCount },
+      (_, column) => Math.max(
+        280,
+        ...resolved.flatMap((entry, index) =>
+          cellIn(rowSizes, index).column === column ? [entry.width] : []
+        ),
+      ),
+    );
+    const width =
+      columnWidths.reduce((total, columnWidth) => total + columnWidth, 0) +
+      (columnCount - 1) * columnGap;
+    const height =
+      rowSizes.length * boxHeight +
+      (rowSizes.length - 1) * 80;
+    return width / height;
+  };
+  // Compare the existing three- and four-column choices against the geometric
+  // midpoint of the supported 4:3 through 16:9 desktop aspect-ratio range.
+  const targetAspectRatio = Math.sqrt((4 / 3) * (16 / 9));
+  const rowSizes = (sections.length >= 10 ? [3, 4] : [3])
+    .map(balancedRowSizes)
+    .reduce((best, candidate) =>
+      Math.abs(estimatedAspectRatio(candidate) - targetAspectRatio) <
+          Math.abs(estimatedAspectRatio(best) - targetAspectRatio)
+        ? candidate
+        : best
+    );
+  const rowCount = rowSizes.length;
+  const cellOf = (index: number) => {
+    return cellIn(rowSizes, index);
   };
   const sectionIndexById = new Map(
     sections.map((section, index) => [section.id, index]),
@@ -595,7 +627,6 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
   const labelLaneStep =
     architectureLabelAscent + architectureLabelDescent + 1;
   const labelCorridorPadding = 2;
-  const routeCorridorBand = 8;
   const requiredRowGap = Math.max(
     0,
     ...[...sharedGapConnections.entries()].map(([gap, connections]) =>
@@ -626,13 +657,28 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
         : [architectureLabelWidth(connection.label)]
     ),
   );
-  const boxWidth = Math.max(
-    baseBoxWidth,
+  const widestRow = Math.max(...rowSizes);
+  const minimumColumnWidth = Math.max(
+    280,
     Math.ceil(maxSharedLabelWidth + labelCorridorPadding * 2),
+  );
+  const columnWidths = Array.from(
+    { length: widestRow },
+    (_, column) => Math.max(
+      minimumColumnWidth,
+      ...resolved.flatMap((entry, index) =>
+        cellOf(index).column === column ? [entry.width] : []
+      ),
+    ),
   );
   const margin = Math.max(
     80,
     Math.ceil(maxConnectionLabelWidth / 2 + labelCorridorPadding),
+  );
+  const columnLefts = columnWidths.map((_, column) =>
+    margin +
+    columnWidths.slice(0, column).reduce((total, width) => total + width, 0) +
+    column * columnGap
   );
   const components = resolved.map(({ section, sectionAnchors, sublabel }, index) => {
     const { row, column } = cellOf(index);
@@ -644,10 +690,10 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
       label: section.title,
       sublabel,
       pos: [
-        margin + column * (boxWidth + columnGap),
+        columnLefts[column]!,
         margin + row * (boxHeight + rowGap),
       ] as const,
-      size: [boxWidth, boxHeight] as const,
+      size: [columnWidths[column]!, boxHeight] as const,
       ...(sectionAnchors.length === 0
         ? {}
         : {
@@ -668,9 +714,14 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
         4
       : 60);
   const laneGap = 40;
-  const widestRow = Math.max(...rowSizes);
   const gridRight =
-    margin + widestRow * boxWidth + (widestRow - 1) * columnGap;
+    margin +
+    columnWidths.reduce((total, width) => total + width, 0) +
+    (widestRow - 1) * columnGap;
+  const componentCenterX = (index: number) => {
+    const column = cellOf(index).column;
+    return columnLefts[column]! + columnWidths[column]! / 2;
+  };
   const gapRouteCorridors = new Map<number, Set<number>>();
   for (const connection of story.document.connections) {
     const fromIndex = sectionIndexById.get(connection.from)!;
@@ -678,8 +729,8 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
     const from = cellOf(fromIndex);
     const to = cellOf(toIndex);
     if (from.row === to.row) continue;
-    const fromX = components[fromIndex]!.pos[0] + boxWidth / 2;
-    const toX = components[toIndex]!.pos[0] + boxWidth / 2;
+    const fromX = componentCenterX(fromIndex);
+    const toX = componentCenterX(toIndex);
     for (
       let gap = Math.min(from.row, to.row);
       gap < Math.max(from.row, to.row);
@@ -697,7 +748,7 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
   ): number => {
     const connection = story.document.connections[connectionIndex]!;
     const fromIndex = sectionIndexById.get(connection.from)!;
-    const sourceX = components[fromIndex]!.pos[0] + boxWidth / 2;
+    const sourceX = componentCenterX(fromIndex);
     const width = architectureLabelWidth(connection.label!);
     const routeClearance = 12;
     const corridorXs = [...(gapRouteCorridors.get(gap) ?? [])]
@@ -809,8 +860,8 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
             : (deltaColumn > 0 ? "left" as const : "right" as const),
         };
       }
-      const fromX = components[fromIndex]!.pos[0] + boxWidth / 2;
-      const toX = components[toIndex]!.pos[0] + boxWidth / 2;
+      const fromX = componentCenterX(fromIndex);
+      const toX = componentCenterX(toIndex);
       const lane =
         laneBase + detourLaneByConnection.get(index)! * laneGap;
       const blockedBelow = (endpointIndex: number) => {

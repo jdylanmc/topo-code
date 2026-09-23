@@ -87,12 +87,6 @@
   ],
   "sections": [
     {
-      "id": "diagram-family",
-      "title": "«type» DiagramFamily",
-      "body": "Declares the supported native diagram-family string union selected by a story document.",
-      "anchorIds": ["diagram-family"]
-    },
-    {
       "id": "story-document-error",
       "title": "«class» StoryDocumentError",
       "body": "Directly extends Error and retains the document path, optional anchor identifier, and explicit failure code.",
@@ -103,6 +97,12 @@
       "title": "«class» Error (built-in)",
       "body": "The built-in base class named by StoryDocumentError's explicit extends clause; it is shown only as that declared inheritance target.",
       "anchorIds": ["story-document-error-extends"]
+    },
+    {
+      "id": "diagram-family",
+      "title": "«type» DiagramFamily",
+      "body": "Declares the supported native diagram-family string union selected by a story document.",
+      "anchorIds": ["diagram-family"]
     },
     {
       "id": "story-document",
