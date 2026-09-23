@@ -554,9 +554,9 @@ const SHELL_SCRIPT = `(() => {
   function render() {
     const dateSort = controls.sort.value !== "title";
     controls.direction.options[0].textContent =
-      dateSort ? "Direction: Oldest first" : "Direction: A to Z";
+      dateSort ? "Oldest first" : "A to Z";
     controls.direction.options[1].textContent =
-      dateSort ? "Direction: Newest first" : "Direction: Z to A";
+      dateSort ? "Newest first" : "Z to A";
     const query = controls.filter.value.trim().toLocaleLowerCase();
     const visible = entries.filter((entry) =>
       !query ||
@@ -884,9 +884,9 @@ function renderShellPage(
         [data-navigation-collapsed="true"] { grid-template-columns: minmax(0, 1fr); grid-template-rows: 3rem minmax(0, 1fr); }
         .catalogue-panel { display: flex; min-width: 0; border-right: 0; border-bottom: 1px solid #29364a; }
         body[data-story-id] .catalogue-panel { padding-right: 14rem; }
-        .brand-row { flex: 0 1 12rem; padding: 0.35rem; border-bottom: 0; border-right: 1px solid #29364a; }
+        .brand-row { flex: 0 0 10rem; overflow: hidden; padding: 0.35rem; border-bottom: 0; border-right: 1px solid #29364a; }
         .brand-row strong, .brand-row h1 { font-size: 0.88rem; }
-        .catalogue-controls { display: flex; flex: 0 1 30rem; align-items: center; gap: 0.4rem; min-width: 24rem; padding: 0.25rem; border-bottom: 0; border-right: 1px solid #29364a; }
+        .catalogue-controls { display: flex; flex: 0 0 26rem; align-items: center; gap: 0.4rem; min-width: 0; padding: 0.25rem; border-bottom: 0; border-right: 1px solid #29364a; }
         .catalogue-controls label { flex: 1 1 8rem; min-width: 0; }
         .catalogue-controls label > span { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
         .sort-controls { display: contents; }
@@ -910,7 +910,7 @@ function renderShellPage(
       @media (min-width: 1100px) and (max-width: 1280px) and (max-height: 760px) {
         [data-topo-shell] { grid-template-columns: 14rem minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
         [data-navigation-collapsed="true"] { grid-template-columns: 3.5rem minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
-        .catalogue-panel, body[data-story-id] .catalogue-panel { display: grid; grid-template-rows: auto auto auto minmax(0, 1fr) auto; padding-right: 0; border-right: 1px solid #29364a; border-bottom: 0; }
+        .catalogue-panel, body[data-story-id] .catalogue-panel { display: grid; grid-template-rows: auto auto auto minmax(0, 1fr) auto; padding-right: 0; padding-bottom: 2.6rem; border-right: 1px solid #29364a; border-bottom: 0; }
         .brand-row { display: flex; flex-basis: auto; padding: 0.65rem; border-right: 0; border-bottom: 1px solid #29364a; }
         .brand-row strong, .brand-row h1 { font-size: 0.92rem; }
         .catalogue-controls { display: grid; min-width: 0; padding: 0.55rem; border-right: 0; border-bottom: 1px solid #29364a; }
@@ -926,6 +926,10 @@ function renderShellPage(
         .catalogue-footer { display: block; }
         [data-navigation-collapsed="true"] .brand-row { flex-basis: auto; border-right: 0; }
         .story-main, .empty-main { grid-column: 2; grid-row: 1; }
+        .story-details { top: auto; right: auto; bottom: 0; left: 0; width: 14rem; max-height: min(70vh, 36rem); border-radius: 0 0.5rem 0 0; }
+        [data-navigation-collapsed="true"] .story-details:not([open]) { width: 3.5rem; }
+        [data-navigation-collapsed="true"] .story-details:not([open]) summary { overflow: hidden; font-size: 0; text-align: center; }
+        [data-navigation-collapsed="true"] .story-details:not([open]) summary::after { content: "…"; font-size: 1rem; }
       }
     </style>
   </head>
@@ -942,24 +946,24 @@ function renderShellPage(
           <label><span>Filter diagrams</span><input data-filter type="search" autocomplete="off" placeholder="Filter diagrams" /></label>
           <label><span>Group diagrams by</span>
             <select data-group>
-              <option value="type">Group: Diagram type</option>
-              <option value="category">Group: Authored category</option>
-              <option value="folder">Group: Source folder</option>
-              <option value="flat">Group: Flat list</option>
+              <option value="type">Group: Type</option>
+              <option value="category">Group: Category</option>
+              <option value="folder">Group: Folder</option>
+              <option value="flat">Group: Flat</option>
             </select>
           </label>
           <div class="sort-controls">
             <label><span>Sort diagrams by</span>
               <select data-sort>
                 <option value="title">Sort: Title</option>
-                <option value="created">Sort: Git created</option>
-                <option value="modified">Sort: Git updated</option>
+                <option value="created">Sort: Created</option>
+                <option value="modified">Sort: Updated</option>
               </select>
             </label>
             <label><span>Sort direction</span>
               <select data-direction>
-                <option value="ascending">Direction: A to Z</option>
-                <option value="descending">Direction: Z to A</option>
+                <option value="ascending">A to Z</option>
+                <option value="descending">Z to A</option>
               </select>
             </label>
           </div>
