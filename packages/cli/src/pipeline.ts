@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readFile, readdir, rmdir, stat, unlink, writeFile } from "node:fs/promises";
+import { readFile, readdir, rmdir, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   hashAnalysis,
@@ -74,21 +74,35 @@ async function copySite(
   config: Awaited<ReturnType<typeof loadConfig>>,
 ): Promise<void> {
   const stories = catalogue?.stories ?? [];
-  const notices = [
-    "LICENSE.txt",
-    "THIRD_PARTY_NOTICES.txt",
-    "ARCHIFY_LICENSE.txt",
-    "JETBRAINS_MONO_LICENSE.txt",
-  ];
   const expected = new Set([
     "data.json",
     "index.html",
     "shell.js",
     "story-navigation.js",
-    ...notices,
     ...stories.map(({ document }) => `stories/${document.id}/index.html`),
     ...stories.map(({ document }) => `stories/${document.id}/viewer.html`),
   ]);
+  async function copy(relative: string) {
+    const entries = await readdir(join(assets, relative), {
+      withFileTypes: true,
+    });
+    for (const entry of entries) {
+      const name = relative ? `${relative}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) {
+        await copy(name);
+      } else if (entry.isFile()) {
+        if (name === "index.html") continue;
+        expected.add(name);
+        await writeGenerated(
+          root,
+          `cache/site/${name}`,
+          await readFile(join(assets, name)),
+        );
+      } else {
+        throw new Error(`Unsupported site asset type: ${name}`);
+      }
+    }
+  }
   async function prune(relative: string) {
     const directory = await workspacePath(root, relative ? `cache/site/${relative}` : "cache/site");
     for (const entry of await readdir(directory, { withFileTypes: true })) {
@@ -102,16 +116,7 @@ async function copySite(
       } else throw new Error(`Unsupported cached site asset type: ${name}`);
     }
   }
-  await Promise.all(notices.map(async (name) => {
-    if (!(await stat(join(assets, name))).isFile()) {
-      throw new Error(`Built site must contain ${name}`);
-    }
-    await writeGenerated(
-      root,
-      `cache/site/${name}`,
-      await readFile(join(assets, name)),
-    );
-  }));
+  await copy("");
   await writeComposedSite(root, "", catalogue, config.catalogue);
   await prune("");
 }

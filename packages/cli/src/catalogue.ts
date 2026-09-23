@@ -737,7 +737,7 @@ function renderShellPage(
   content: string,
 ): string {
   const entries = catalogueEntries(stories, config, selected !== undefined);
-  const title = config?.title ?? "Topo";
+  const title = config?.title ?? "Topocode";
   const description =
     config?.description ??
     "The storybook for architects: source-grounded diagrams rendered through Archify.";
@@ -868,7 +868,7 @@ export function renderCataloguePage(
   config: WorkspaceCatalogueConfig | undefined,
   historyIncomplete = false,
 ): string {
-  const title = config?.title ?? "Topo";
+  const title = config?.title ?? "Topocode";
   const description =
     config?.description ??
     "The storybook for architects: source-grounded diagrams rendered through Archify.";
