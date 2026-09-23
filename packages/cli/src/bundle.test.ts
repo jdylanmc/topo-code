@@ -128,6 +128,30 @@ describe("static site bundle", () => {
     });
   });
 
+  it("retires cached explorer assets and removed stories before publishing an upgrade", async () => {
+    const root = await repository();
+    await writeCachedSite(root);
+    const cachedSite = join(root, ".topo/cache/site");
+    await mkdir(join(cachedSite, "explorer"), { recursive: true });
+    await mkdir(join(cachedSite, "assets"), { recursive: true });
+    await mkdir(join(cachedSite, "stories/removed"), { recursive: true });
+    await writeFile(join(cachedSite, "explorer/index.html"), "legacy explorer");
+    await writeFile(join(cachedSite, "assets/legacy.js"), "legacy asset");
+    await writeFile(join(cachedSite, "stories/removed/index.html"), "removed story");
+
+    const output = join(await temp("topo-bundle-parent-"), "site");
+    const result = await bundleSite(root, output);
+
+    for (const relativePath of [
+      "explorer/index.html",
+      "assets/legacy.js",
+      "stories/removed/index.html",
+    ]) {
+      await expect(readFile(join(result.siteDirectory, relativePath), "utf8"))
+        .rejects.toMatchObject({ code: "ENOENT" });
+    }
+  });
+
   it("leaves no partial output when the composed site is malformed", async () => {
     const root = await repository();
     await writeCachedSite(root);

@@ -22,11 +22,16 @@ path; updated means the newest observed commit. Git's single-path rename
 following is heuristic and does not prove copy history. In shallow repositories
 the shell states that history is incomplete and does not claim a creation date.
 Unknown dates sort after known dates, and ties use title then story ID for
-deterministic output.
+deterministic output. Titles, IDs, and unconfigured group names use ascending
+Unicode code-point order rather than the browser's locale, so one static bundle
+has the same order in every locale. Descending title order reverses that
+comparison; date ties remain ascending by title and ID in both date directions.
 
 The selected group, sort, direction, and collapsed-navigation preference persist
 in browser storage when available. Storage failure leaves the shell usable and
-is reported without turning navigation into a failure.
+is reported without turning navigation into a failure. Malformed or obsolete
+saved values are ignored independently and the complete inventory renders with
+documented defaults.
 
 The retired WebGL repository explorer is not generated, served, or bundled.
 Repositories with no stories show an explicit empty diagram inventory. Scanner,

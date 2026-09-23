@@ -77,9 +77,9 @@ package version, vendored license digest, immutable official source, and npm
 metadata page. Version drift, digest drift, unused overrides, and unpinned
 sources fail the gate.
 
-There are currently no overrides. PixiJS moved to development-only historical
-explorer tests when the WebGL product entry was retired, so its transitive
-license override is no longer part of the shipped dependency closure.
+There are currently no overrides. PixiJS and its retired WebGL explorer source
+are no longer dependencies of any maintained package, so their transitive
+license data is not part of the installed or shipped dependency closure.
 
 The generated file contains package/version ordering, alias information, and
 dependency-chain provenance, but never local absolute paths or credentials.

@@ -460,6 +460,7 @@ test("shallow history is explicit and unknown dates remain deterministic", async
   await story(repository, "older", "alpha", "Alpha architecture", undefined, {
     diagramFamily: "architecture",
   });
+
   await commitAt(
     repository,
     "Older story",
@@ -496,6 +497,85 @@ test("shallow history is explicit and unknown dates remain deterministic", async
   const descending = await hrefs();
   await page.reload();
   expect(await hrefs()).toEqual(descending);
+});
+
+test("invalid saved preferences cannot block the diagram inventory", async ({
+  page,
+  repository,
+  startSite,
+}) => {
+  await sourceFixture(repository);
+  await story(repository, "core", "alpha", "Alpha architecture");
+  await commit(repository, "Story", "stories");
+  await topo(repository, "scan");
+  const url = await startSite();
+
+  for (const stored of ["null", "42", "\"invalid shape\"", "{"]) {
+    await page.addInitScript((value) => {
+      localStorage.setItem("topo.diagram-catalogue.preferences.v1", value);
+    }, stored);
+    await page.goto(url);
+    await expect(page.getByRole("link", { name: "Alpha architecture" }))
+      .toBeVisible();
+    await expect(page.getByLabel("Group diagrams by")).toHaveValue("type");
+    await expect(page.getByLabel("Sort diagrams by")).toHaveValue("title");
+    await expect(page.getByRole("status")).toContainText(
+      "Saved preferences were ignored.",
+    );
+  }
+
+  const unavailablePage = await page.context().newPage();
+  try {
+    await unavailablePage.addInitScript(() => {
+      Object.defineProperty(Storage.prototype, "getItem", {
+        configurable: true,
+        value() {
+          throw new DOMException("Storage disabled", "SecurityError");
+        },
+      });
+    });
+    await unavailablePage.goto(url);
+    await expect(
+      unavailablePage.getByRole("link", { name: "Alpha architecture" }),
+    ).toBeVisible();
+    await expect(unavailablePage.getByRole("status")).toContainText(
+      "Preferences cannot persist in this browser.",
+    );
+  } finally {
+    await unavailablePage.close();
+  }
+});
+
+test("catalogue ordering uses one locale-independent Unicode code-point order", async ({
+  page,
+  repository,
+  startSite,
+}) => {
+  await sourceFixture(repository);
+  for (const [id, title] of [
+    ["aardvark", "Aardvark"],
+    ["zulu", "Zulu"],
+    ["angstrom", "Ångström"],
+    ["aether", "Äther"],
+  ] as const) {
+    await story(repository, "core", id, title);
+  }
+  await commitAt(repository, "Stories", "2024-01-01T12:00:00Z", "stories");
+  await topo(repository, "scan");
+  const url = await startSite();
+  await page.goto(url);
+  await page.getByLabel("Group diagrams by").selectOption("flat");
+  const titles = () => page.getByRole("navigation", { name: "Diagram catalogue" })
+    .locator('a[href*="/stories/"]')
+    .allTextContents()
+    .then((values) => values.map((value) => value.trim()));
+
+  await page.getByLabel("Sort diagrams by").selectOption("title");
+  await page.getByLabel("Sort direction").selectOption("ascending");
+  expect(await titles()).toEqual(["Aardvark", "Zulu", "Äther", "Ångström"]);
+  await page.getByLabel("Sort diagrams by").selectOption("created");
+  await page.getByLabel("Sort direction").selectOption("descending");
+  expect(await titles()).toEqual(["Aardvark", "Zulu", "Äther", "Ångström"]);
 });
 
 test("linked story nodes keep durable focus across drill-down, reload, direct open, and return", async ({

@@ -36,11 +36,11 @@ test("correctness rules cover maintained source, tests, scripts and tooling", as
     "packages/site/src/data.ts",
     "packages/site/src/data.test.ts",
     "packages/site/tests/e2e/workflow.spec.ts",
-    "packages/site/vite.config.ts",
+    "packages/site/vitest.config.ts",
     "packages/site/playwright.config.mjs",
     "packages/schema/scripts/generate-validator.mjs",
     "scripts/lint.test.mjs",
-    "benchmarks/browser-measurements.mjs",
+    "scripts/test-regression.test.mjs",
     "eslint.config.mjs",
     "tools/eslint-config/eslint.config.mjs",
   ]) {

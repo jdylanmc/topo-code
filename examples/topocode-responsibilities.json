@@ -30,10 +30,10 @@
     {
       "id": "interactive-presentation",
       "name": "Interactive presentation",
-      "purpose": "Loads artifacts and translates application state into the WebGL scene.",
+      "purpose": "Builds the story catalogue shell and renders source-grounded stories through the pinned Archify boundary.",
       "entities": [
-        { "path": "packages/site/src/load.ts", "symbol": "loadArtifacts" },
-        { "path": "packages/site/src/scene.ts", "symbol": "createScene" }
+        { "path": "packages/cli/src/catalogue.ts", "symbol": "buildCatalogue" },
+        { "path": "packages/diagram-core/src/index.ts", "symbol": "renderStory" }
       ]
     },
     {

@@ -146,10 +146,10 @@ show cheaper layout work but did not establish the then-current expanded-scene
 
 ## Reproduction and remaining work
 
-Use the [bounded harness](./benchmark-harness.md) with `--prepare-only` and one
-real fixture at a time to measure current preparation. Preserve the recorded
-input hash when comparing implementations. The frozen graphs are intentionally
-not duplicated into Git.
+The retired [benchmark archive](./benchmark-harness.md) records the original
+preparation observations and input hashes. Its harness is no longer runnable;
+new performance work requires a separately designed, source-bound measurement
+that targets the current shell and Archify boundary.
 
 Standalone Node preparation already completed in seconds before this change;
 it did not exercise the browser's graph-aware validation of a persisted layout.

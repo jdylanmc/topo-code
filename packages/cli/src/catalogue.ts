@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
+import { readdir, rm } from "node:fs/promises";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
 import { renderStory } from "@topo/diagram-core";
@@ -11,6 +12,7 @@ import {
 } from "@topo/story";
 import {
   writeGenerated,
+  workspacePath,
   type WorkspaceCatalogueConfig,
 } from "@topo/workspace";
 import {
@@ -375,6 +377,44 @@ const STORY_NAVIGATION_SCRIPT = `(() => {
   setFocus(params.get("focus") || "");
 })();\n`;
 
+async function retireLegacySiteEntries(
+  root: string,
+  stories: readonly CatalogueStory[],
+  retireLegacyAssets: boolean,
+): Promise<void> {
+  await Promise.all([
+    rm(await workspacePath(root, "cache/site/explorer"), {
+      recursive: true,
+      force: true,
+    }),
+    ...(retireLegacyAssets
+      ? [rm(await workspacePath(root, "cache/site/assets"), {
+          recursive: true,
+          force: true,
+        })]
+      : []),
+    ...["favicon.svg", "main.js", "styles.css"].map(async (name) =>
+      rm(await workspacePath(root, `cache/site/${name}`), { force: true })),
+  ]);
+  const storyRoot = await workspacePath(root, "cache/site/stories");
+  const expected = new Set(stories.map(({ document }) => document.id));
+  let entries;
+  try {
+    entries = await readdir(storyRoot, { withFileTypes: true });
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      return;
+    }
+    throw error;
+  }
+  await Promise.all(entries
+    .filter((entry) => !expected.has(entry.name))
+    .map(async (entry) => rm(
+      await workspacePath(root, `cache/site/stories/${entry.name}`),
+      { recursive: entry.isDirectory(), force: true },
+    )));
+}
+
 const SHELL_SCRIPT = `(() => {
   const root = document.querySelector("[data-topo-shell]");
   const template = document.querySelector("template[data-catalogue-data]");
@@ -396,7 +436,6 @@ const SHELL_SCRIPT = `(() => {
       !(controls.direction instanceof HTMLSelectElement) ||
       !(controls.collapse instanceof HTMLButtonElement)) return;
 
-  const status = document.querySelector("[data-shell-status]");
   const entries = [...template.content.querySelectorAll("a[data-kind=story]")].map((link) => ({
     id: link.dataset.id || "",
     title: link.dataset.title || "",
@@ -410,13 +449,34 @@ const SHELL_SCRIPT = `(() => {
     active: link.dataset.active === "true",
   }));
 
+  const status = document.querySelector("[data-shell-status]");
+  function announce(message) {
+    if (!status) return;
+    status.hidden = false;
+    status.textContent = [status.textContent, message]
+      .filter(Boolean).join(" ");
+  }
+
   const storageKey = "topo.diagram-catalogue.preferences.v1";
   let storageAvailable = true;
   let saved = {};
   try {
-    saved = JSON.parse(localStorage.getItem(storageKey) || "{}");
+    const stored = localStorage.getItem(storageKey);
+    if (stored !== null) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) {
+          saved = parsed;
+        } else {
+          announce("Saved preferences were ignored.");
+        }
+      } catch {
+        announce("Saved preferences were ignored.");
+      }
+    }
   } catch {
     storageAvailable = false;
+    announce("Preferences cannot persist in this browser.");
   }
   const allowed = {
     group: ["type", "category", "folder", "flat"],
@@ -439,31 +499,39 @@ const SHELL_SCRIPT = `(() => {
       }));
     } catch {
       storageAvailable = false;
-      if (status) {
-        status.hidden = false;
-        status.textContent = [status.textContent, "Preferences cannot persist in this browser."]
-          .filter(Boolean).join(" ");
-      }
+      announce("Preferences cannot persist in this browser.");
     }
+  }
+
+  function compareText(left, right) {
+    const leftPoints = Array.from(left);
+    const rightPoints = Array.from(right);
+    const length = Math.min(leftPoints.length, rightPoints.length);
+    for (let index = 0; index < length; index += 1) {
+      const leftPoint = leftPoints[index].codePointAt(0);
+      const rightPoint = rightPoints[index].codePointAt(0);
+      if (leftPoint !== rightPoint) return leftPoint - rightPoint;
+    }
+    return leftPoints.length - rightPoints.length;
   }
 
   function compare(left, right) {
     const field = controls.sort.value;
     const direction = controls.direction.value === "descending" ? -1 : 1;
     if (field === "title") {
-      const value = left.title.localeCompare(right.title);
-      return value === 0 ? left.id.localeCompare(right.id) : value * direction;
+      const value = compareText(left.title, right.title);
+      return value === 0 ? compareText(left.id, right.id) : value * direction;
     }
     const leftDate = left[field];
     const rightDate = right[field];
     if (leftDate === null || rightDate === null) {
       if (leftDate === rightDate) {
-        return left.title.localeCompare(right.title) || left.id.localeCompare(right.id);
+        return compareText(left.title, right.title) || compareText(left.id, right.id);
       }
       return leftDate === null ? 1 : -1;
     }
     if (leftDate !== rightDate) return (leftDate - rightDate) * direction;
-    return left.title.localeCompare(right.title) || left.id.localeCompare(right.id);
+    return compareText(left.title, right.title) || compareText(left.id, right.id);
   }
 
   function groupName(entry) {
@@ -484,6 +552,11 @@ const SHELL_SCRIPT = `(() => {
   }
 
   function render() {
+    const dateSort = controls.sort.value !== "title";
+    controls.direction.options[0].textContent =
+      dateSort ? "Direction: Oldest first" : "Direction: A to Z";
+    controls.direction.options[1].textContent =
+      dateSort ? "Direction: Newest first" : "Direction: Z to A";
     const query = controls.filter.value.trim().toLocaleLowerCase();
     const visible = entries.filter((entry) =>
       !query ||
@@ -527,7 +600,7 @@ const SHELL_SCRIPT = `(() => {
         if (rightIndex < 0) return -1;
         return leftIndex - rightIndex;
       }
-      return left.localeCompare(right);
+      return compareText(left, right);
     });
     for (const name of names) {
       const values = groups.get(name);
@@ -670,17 +743,14 @@ export function renderStoryWrapper(
     </li>`;
   }).join("\n");
   return renderShellPage(stories, config, historyIncomplete, story, `\
-    <header class="story-header">
-      <div>
-        <p class="classification">${classificationLabel}</p>
-        <h1>${escapeHtml(story.document.title)}</h1>
-      </div>
-      <p>${escapeHtml(story.document.summary)}</p>
-      <a data-return hidden></a>
-    </header>
     <iframe data-story-viewer title="${escapeHtml(story.document.title)} rendered story" src="viewer.html"></iframe>
     <details class="story-details">
       <summary>Story navigation and details</summary>
+      <div class="story-context">
+        <p class="classification">${classificationLabel}</p>
+        <p>${escapeHtml(story.document.summary)}</p>
+        <a data-return hidden></a>
+      </div>
       <ul>${nodes}</ul>
     </details>`);
 }
@@ -763,6 +833,7 @@ function renderShellPage(
       * { box-sizing: border-box; }
       html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
       body { background: #07101d; color: #e5edf7; }
+      [hidden] { display: none !important; }
       button, input, select { font: inherit; }
       button, input, select, a { min-height: 2.25rem; }
       button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px solid #ffd33d; outline-offset: 2px; }
@@ -770,10 +841,10 @@ function renderShellPage(
       [data-navigation-collapsed="true"] { grid-template-columns: 3.5rem minmax(0, 1fr); }
       .catalogue-panel { display: grid; grid-template-rows: auto auto auto minmax(0, 1fr) auto; min-width: 0; min-height: 0; border-right: 1px solid #29364a; background: #0b1524; }
       .brand-row { display: flex; align-items: center; gap: 0.5rem; min-width: 0; padding: 0.75rem; border-bottom: 1px solid #29364a; }
-      .brand-row strong { min-width: 0; overflow: hidden; color: white; font-size: 1.05rem; text-overflow: ellipsis; white-space: nowrap; }
+      .brand-row strong, .brand-row h1 { min-width: 0; margin: 0; overflow: hidden; color: white; font-size: 1.05rem; text-overflow: ellipsis; white-space: nowrap; }
       [data-collapse] { flex: 0 0 2.25rem; margin-left: auto; border: 1px solid #3a4a61; border-radius: 0.45rem; background: #111f32; color: white; cursor: pointer; }
       [data-navigation-collapsed="true"] .catalogue-panel > :not(.brand-row),
-      [data-navigation-collapsed="true"] .brand-row strong { display: none; }
+      [data-navigation-collapsed="true"] .brand-row > :not([data-collapse]) { display: none; }
       [data-navigation-collapsed="true"] .brand-row { padding: 0.65rem; }
       .catalogue-controls { display: grid; gap: 0.55rem; padding: 0.75rem; border-bottom: 1px solid #29364a; }
       .catalogue-controls label { display: grid; gap: 0.25rem; color: #a9b7ca; font-size: 0.75rem; font-weight: 650; }
@@ -791,28 +862,70 @@ function renderShellPage(
       .story-links a[aria-current="page"] { background: #17324d; color: white; box-shadow: inset 3px 0 var(--accent); font-weight: 700; }
       .catalogue-empty { margin: 0; padding: 1rem 0.65rem; color: #a9b7ca; line-height: 1.5; }
       .catalogue-footer { padding: 0.7rem 0.85rem; border-top: 1px solid #29364a; color: #7f8da1; font-size: 0.75rem; }
-      .story-main { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-width: 0; min-height: 0; background: #f8fafc; }
-      .story-header { display: flex; align-items: center; gap: 1rem; min-width: 0; min-height: 4.25rem; padding: 0.65rem 1rem; border-bottom: 1px solid #cbd5e1; background: #f8fafc; color: #0f172a; }
-      .story-header > div { min-width: 0; }
-      .story-header h1, .story-header p { margin: 0; }
-      .story-header h1 { overflow: hidden; font-size: 1.1rem; text-overflow: ellipsis; white-space: nowrap; }
-      .story-header > p { margin-left: auto; max-width: 50rem; color: #475569; font-size: 0.82rem; line-height: 1.35; }
+      .story-main { display: grid; grid-template-rows: minmax(0, 1fr) auto; min-width: 0; min-height: 0; background: #f8fafc; }
       .classification { color: #a9b7ca; font-size: 0.9rem; font-weight: 600; }
       a { color: #7dd3fc; }
       [data-node-id][aria-current="true"] { color: white; font-weight: bold; }
       iframe { display: block; width: 100%; height: 100%; min-width: 0; min-height: 0; border: 0; background: white; }
       .story-details { max-height: 38vh; overflow: auto; border-top: 1px solid #29364a; background: #09111f; }
       .story-details summary { padding: 0.65rem 0.85rem; color: #7dd3fc; cursor: pointer; font-weight: 700; }
+      .story-context { display: flex; align-items: center; gap: 0.75rem; padding: 0 0.85rem 0.65rem; color: #a9b7ca; }
+      .story-context p { margin: 0; }
+      .story-context .classification { flex: 0 0 auto; }
+      .story-context [data-return] { margin-left: auto; }
       .story-details ul { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 0.5rem; margin: 0; padding: 0 0.75rem 0.75rem; list-style: none; }
       .story-details li { display: grid; gap: 0.35rem; padding: 0.65rem; background: #111c2e; border-radius: 0.5rem; }
       .empty-main { display: grid; place-items: center; min-width: 0; min-height: 0; padding: 2rem; background: radial-gradient(circle at 50% 35%, #162640, #07101d 65%); text-align: center; }
       .empty-main div { max-width: 38rem; }
       .empty-main h1 { margin: 0 0 0.75rem; font-size: clamp(2rem, 5vw, 4rem); }
       .empty-main p { margin: 0; color: #a9b7ca; font-size: 1.05rem; line-height: 1.6; }
-      @media (max-width: 900px) {
-        [data-topo-shell] { grid-template-columns: minmax(15rem, 78vw) minmax(0, 1fr); }
-        [data-navigation-collapsed="true"] { grid-template-columns: 3.5rem minmax(0, 1fr); }
-        .story-header > p { display: none; }
+      @media (max-width: 1280px) {
+        [data-topo-shell] { grid-template-columns: minmax(0, 1fr); grid-template-rows: 3rem minmax(0, 1fr); }
+        [data-navigation-collapsed="true"] { grid-template-columns: minmax(0, 1fr); grid-template-rows: 3rem minmax(0, 1fr); }
+        .catalogue-panel { display: flex; min-width: 0; border-right: 0; border-bottom: 1px solid #29364a; }
+        body[data-story-id] .catalogue-panel { padding-right: 14rem; }
+        .brand-row { flex: 0 1 12rem; padding: 0.35rem; border-bottom: 0; border-right: 1px solid #29364a; }
+        .brand-row strong, .brand-row h1 { font-size: 0.88rem; }
+        .catalogue-controls { display: flex; flex: 0 1 30rem; align-items: center; gap: 0.4rem; min-width: 24rem; padding: 0.25rem; border-bottom: 0; border-right: 1px solid #29364a; }
+        .catalogue-controls label { flex: 1 1 8rem; min-width: 0; }
+        .catalogue-controls label > span { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+        .sort-controls { display: contents; }
+        [data-shell-status] { flex: 0 1 12rem; align-self: stretch; overflow: auto; padding: 0.45rem 0.6rem; border-bottom: 0; border-right: 1px solid #29364a; }
+        [data-story-list] { display: flex; flex: 1 1 auto; align-items: center; min-width: 8rem; overflow: auto; padding: 0.35rem; }
+        .catalogue-group { display: flex; align-items: center; margin: 0 0.25rem 0 0; }
+        .catalogue-group > button { width: auto; white-space: nowrap; }
+        .story-links { display: flex; gap: 0.15rem; }
+        .story-links a { flex: 0 0 auto; padding: 0.45rem 0.65rem; white-space: nowrap; }
+        .catalogue-footer { display: none; }
+        [data-navigation-collapsed="true"] .catalogue-panel { width: 100%; }
+        [data-navigation-collapsed="true"] .brand-row { flex-basis: 3.5rem; border-right: 0; }
+        .story-main, .empty-main { grid-row: 2; }
+        .story-main { grid-template-rows: minmax(0, 1fr); }
+        .story-details { position: fixed; z-index: 2; top: 0.2rem; right: 0.35rem; width: 13.3rem; max-height: calc(100vh - 0.4rem); border: 1px solid #29364a; border-radius: 0.5rem; box-shadow: 0 0.4rem 1.2rem rgb(0 0 0 / 35%); }
+        .story-details summary { padding: 0.35rem 0.65rem; }
+        .story-details summary { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .story-context { display: grid; }
+        .story-context [data-return] { margin-left: 0; }
+      }
+      @media (min-width: 1100px) and (max-width: 1280px) and (max-height: 760px) {
+        [data-topo-shell] { grid-template-columns: 14rem minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+        [data-navigation-collapsed="true"] { grid-template-columns: 3.5rem minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+        .catalogue-panel, body[data-story-id] .catalogue-panel { display: grid; grid-template-rows: auto auto auto minmax(0, 1fr) auto; padding-right: 0; border-right: 1px solid #29364a; border-bottom: 0; }
+        .brand-row { display: flex; flex-basis: auto; padding: 0.65rem; border-right: 0; border-bottom: 1px solid #29364a; }
+        .brand-row strong, .brand-row h1 { font-size: 0.92rem; }
+        .catalogue-controls { display: grid; min-width: 0; padding: 0.55rem; border-right: 0; border-bottom: 1px solid #29364a; }
+        .catalogue-controls label { display: grid; }
+        .catalogue-controls label > span { position: static; width: auto; height: auto; padding: 0; margin: 0; overflow: visible; clip: auto; white-space: normal; }
+        .sort-controls { display: grid; grid-template-columns: minmax(0, 1fr); }
+        [data-shell-status] { padding: 0.55rem; border-right: 0; border-bottom: 1px solid #29364a; }
+        [data-story-list] { display: block; min-width: 0; padding: 0.45rem; }
+        .catalogue-group { display: block; margin: 0 0 0.35rem; }
+        .catalogue-group > button { width: 100%; }
+        .story-links { display: grid; }
+        .story-links a { padding: 0.4rem 0.55rem 0.4rem 1.35rem; white-space: normal; }
+        .catalogue-footer { display: block; }
+        [data-navigation-collapsed="true"] .brand-row { flex-basis: auto; border-right: 0; }
+        .story-main, .empty-main { grid-column: 2; grid-row: 1; }
       }
     </style>
   </head>
@@ -820,31 +933,33 @@ function renderShellPage(
     <div data-topo-shell data-navigation-collapsed="false" data-category-order="${escapeHtml(JSON.stringify(config?.categoryOrder ?? []))}">
       <nav class="catalogue-panel" aria-label="Diagram catalogue">
         <div class="brand-row">
-          <strong>${escapeHtml(title)}</strong>
+          ${selected === undefined
+            ? `<strong>${escapeHtml(title)}</strong>`
+            : `<h1 title="${escapeHtml(selected.document.title)}">${escapeHtml(selected.document.title)}</h1>`}
           <button type="button" data-collapse aria-label="Collapse diagram navigation" title="Collapse diagram navigation">‹</button>
         </div>
         <div class="catalogue-controls">
-          <label>Filter diagrams<input data-filter type="search" autocomplete="off" /></label>
-          <label>Group diagrams by
+          <label><span>Filter diagrams</span><input data-filter type="search" autocomplete="off" placeholder="Filter diagrams" /></label>
+          <label><span>Group diagrams by</span>
             <select data-group>
-              <option value="type">Diagram type</option>
-              <option value="category">Authored category</option>
-              <option value="folder">Source folder</option>
-              <option value="flat">Flat list</option>
+              <option value="type">Group: Diagram type</option>
+              <option value="category">Group: Authored category</option>
+              <option value="folder">Group: Source folder</option>
+              <option value="flat">Group: Flat list</option>
             </select>
           </label>
           <div class="sort-controls">
-            <label>Sort diagrams by
+            <label><span>Sort diagrams by</span>
               <select data-sort>
-                <option value="title">Title</option>
-                <option value="created">Git created</option>
-                <option value="modified">Git updated</option>
+                <option value="title">Sort: Title</option>
+                <option value="created">Sort: Git created</option>
+                <option value="modified">Sort: Git updated</option>
               </select>
             </label>
-            <label>Sort direction
+            <label><span>Sort direction</span>
               <select data-direction>
-                <option value="ascending">Ascending / oldest</option>
-                <option value="descending">Descending / newest</option>
+                <option value="ascending">Direction: A to Z</option>
+                <option value="descending">Direction: Z to A</option>
               </select>
             </label>
           </div>
@@ -935,6 +1050,7 @@ export async function writeBuiltCatalogue(
     catalogue.stories,
     config,
     catalogue.historyIncomplete,
+    true,
   );
 }
 
@@ -943,6 +1059,7 @@ export async function writeCatalogue(
   stories: readonly CatalogueStory[],
   config: WorkspaceCatalogueConfig | undefined,
   historyIncomplete = false,
+  retireLegacyAssets = false,
 ): Promise<void> {
   const links = storyLinks(stories);
   await Promise.all([
@@ -976,4 +1093,5 @@ export async function writeCatalogue(
       ),
     ]),
   ]);
+  await retireLegacySiteEntries(root, stories, retireLegacyAssets);
 }

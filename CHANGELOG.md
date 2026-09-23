@@ -55,6 +55,9 @@ does not currently publish versioned releases.
 - Retire the PixiJS/WebGL repository explorer from generated, served, and
   bundled output while retaining scanner, graph, evidence, view, report, and
   enrichment foundations for future source-grounded Archify capabilities.
+- Remove the retired explorer's source, build entry, dependencies, and
+  non-runnable benchmark harness while preserving its checked-in result archive
+  as explicitly historical evidence.
 - Update Joe-mode-paseo and related bundled skills from `jdylanmc/agent-skills`
   at `507dda0`, including team coordination, state validation, and delivery
   lifecycle guidance. Installation does not activate orchestration.
@@ -69,6 +72,11 @@ does not currently publish versioned releases.
 
 ### Fixed
 
+- Keep real Archify diagrams readable and fully contained at the supported
+  desktop viewports by using a compact horizontal catalogue toolbar at narrow
+  widths, without changing renderer geometry or text thresholds.
+- Make collapsed catalogue groups leave visual, keyboard, and accessibility
+  navigation until explicitly expanded.
 - Keep consecutive Architecture relationships and their labels clear of
   unrelated nodes and each other when balanced layouts use unequal row lengths.
   See #58.

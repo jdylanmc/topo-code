@@ -18,8 +18,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false && yarn typecheck:browser",
     "typecheck:browser": "tsc -p tsconfig.browser-tests.json --noEmit --pretty false",
     "test": "vitest run --config vitest.config.ts",
-    "test:browser": "playwright test --config playwright.config.mjs",
-    "benchmark": "node ../../benchmarks/renderer-bakeoff.mjs"
+    "test:browser": "playwright test --config playwright.config.mjs"
   },
   "dependencies": {
     "@topo/enrichment": "workspace:*",
@@ -31,7 +30,6 @@
   "devDependencies": {
     "@playwright/test": "^1.55.0",
     "@types/node": "^22.18.0",
-    "pixi.js": "^8.13.2",
     "typescript": "^7.0.2",
     "vite": "8.2.2",
     "vitest": "^5.0.0"

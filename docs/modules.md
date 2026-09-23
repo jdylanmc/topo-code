@@ -119,8 +119,7 @@ Optional analysis also has a real generation cost: composing both modules added
 about 3.94-4.38 seconds to the expanded-source VSCode fixture's preparation.
 That cost is reported separately, not hidden in the frame score.
 
-Reproduce using the [benchmark harness](./benchmark-harness.md) with
-`--fixture mermaid,vscode`: run without modules, with
-`--module @topo/module-degree,@topo/module-cycles`, and with both modules plus
-`--curated`; repeat each with `--headed`. Keep preparation and measurements
-sequential, without concurrent builds or scans.
+These captures belong to the retired
+[WebGL benchmark archive](./benchmark-harness.md). The original harness and
+external frozen graph inputs are no longer part of the maintained tree, so the
+measurements are preserved evidence rather than a current reproduction recipe.

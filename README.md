@@ -220,7 +220,7 @@ first in `yarn check`/`yarn test:regression`; CI shows a dedicated lint step bef
 browser installation. Any lint error or warning fails the command.
 
 The baseline covers maintained package source, tests (including browser tests),
-configuration, root scripts, benchmark harnesses, and lint tooling itself.
+configuration, root scripts, and lint tooling itself.
 The root lint contract test derives eligible source files from Git's tracked
 inventory and compares them with actual ESLint file results, so an overly broad
 exclusion cannot silently remove a maintained package from coverage. JSX/TSX
@@ -242,8 +242,7 @@ requirement. The tooling workspace is development-only, not a shipped package.
 
 Explicit lint exclusions preserve copied `.agents/` skills, `.skill-log/`,
 the entire archived `experiments/` tree, and recorded `benchmarks/results/`
-evidence without rewriting historical bytes. Generated schema validators,
-benchmark fixtures (`benchmarks/.generated/`), local
+evidence without rewriting historical bytes. Generated schema validators, local
 `.joe-mode/` and `.playwright-mcp/` captures, dependencies (`node_modules/`,
 `.yarn/`), and build/test output (`dist/`, `build/`, `coverage/`,
 `playwright-report/`, `test-results/`) are also excluded. These are lint
