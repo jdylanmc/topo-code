@@ -7,6 +7,10 @@ does not currently publish versioned releases.
 
 ### Added
 
+- Add a persistent Storybook-like diagram shell with complete inventory,
+  filtering, collapsible type/category/folder/flat grouping, Git-backed
+  creation/update sorting, locally persisted preferences, responsive Archify
+  iframe containment, and preserved story focus/deep-link behavior.
 - Add a source-grounded Architecture story covering every current Yarn
   workspace and selected manifest-declared compile-time relationships, with a
   readable balanced package layout. See #58.
@@ -24,16 +28,16 @@ does not currently publish versioned releases.
 - Render authored architecture stories through the pinned, integrity-checked
   Archify runtime, including Content Security Policy-compatible live previews
   and static bundles. See #41.
-- Add `topo bundle` for atomically publishing the composed catalogue, stories,
-  explorer, assets, and required notices beneath a configurable deployment
+- Add `topo bundle` for atomically publishing the composed shell, stories,
+  viewer artifacts, and required notices beneath a configurable deployment
   base path. See #45.
 - Add a local agent skill and `topo story validate` workflow for creating and
   identity-preservingly updating authored stories before committed preview.
   See #46.
 - Add wrapper-owned cross-story node navigation with durable focus and return
   URLs while keeping pinned renderer artifacts unchanged. See #44.
-- Generate one configurable catalogue landing page from every committed story
-  plus the retained repository explorer, including coherent empty repositories.
+- Generate one configurable catalogue shell from every committed story,
+  including coherent empty repositories.
   See #43.
 - Preview committed renderer-independent architecture stories with source anchors,
   explicit validation failures, atomic renderer output, and the existing local
@@ -48,6 +52,9 @@ does not currently publish versioned releases.
 
 ### Changed
 
+- Retire the PixiJS/WebGL repository explorer from generated, served, and
+  bundled output while retaining scanner, graph, evidence, view, report, and
+  enrichment foundations for future source-grounded Archify capabilities.
 - Update Joe-mode-paseo and related bundled skills from `jdylanmc/agent-skills`
   at `507dda0`, including team coordination, state validation, and delivery
   lifecycle guidance. Installation does not activate orchestration.

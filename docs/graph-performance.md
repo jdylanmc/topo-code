@@ -3,8 +3,8 @@
 This iteration improves graph derivation without changing its output or
 substituting a smaller fixture. It also removes a separate browser-startup
 bottleneck in graph-aware layout validation. The real headless measurements
-are recorded in [renderer.md](./renderer.md), alongside the subsequent
-WebGL-only decision and current 30 FPS whole-workload floor.
+are retained as historical evidence for the retired WebGL explorer. They do not
+describe the current generated shell or establish a current performance floor.
 
 ## Measured bottlenecks
 

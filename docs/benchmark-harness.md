@@ -1,5 +1,9 @@
 # WebGL benchmark harness
 
+> **Historical only.** This harness measures the retired PixiJS/WebGL repository
+> explorer. It is preserved as implementation evidence and does not describe a
+> shipped Topo surface or a current performance requirement.
+
 `--enriched` adds one deterministic commentary fixture per graph node, using the
 same snapshot hash and validation contract as `topo enrich`. It does not run a
 model or claim real AI analysis. Browser readiness verifies the commentary
