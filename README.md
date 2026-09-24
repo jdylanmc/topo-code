@@ -121,8 +121,9 @@ reviewable and safe to ignore. The tool never stages files or overwrites notes.
 
 ## Design
 
-The product requirements live in **[issue #1](https://github.com/jdylanmc/topo-code/issues/1)**.
-That issue governs; anything here that contradicts it is wrong.
+The maintained product intent lives in the
+**[product specification](./docs/product-spec.md)**. GitHub issues track bounded
+work and preserve the history behind that specification.
 
 ## Provenance of the design
 
