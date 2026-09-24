@@ -89,7 +89,9 @@ scanning and structural validation.
   **AC-06, S-E2**
 - `.topo/config.json` may set the shell title, description, accent color,
   category order, and story category overrides. Configuration cannot load
-  executable add-ons or replace the renderer. **FR-06, AC-11**
+  executable add-ons or replace the renderer. These controls ship categorisation
+  and presentation only; owner-controlled composition and extensibility remain
+  required. **FR-06, AC-11**
 - `topo serve [root] --port` serves the composed site. The default port is
   `4173`; an explicit port is supported. **FR-04, AC-07**
 - `topo bundle [root] --output <directory> --base-path <path>` emits static
@@ -125,12 +127,22 @@ for this work. These clauses are requirements, not waivers:
 | **AC-10, NFR-02** | The shipped license gate uses scoped handling for embedded font notices. Its literal allowlist does not contain `OFL-1.1`. This is a specification reconciliation gap, not evidence of a license violation or missing notices. | Decide how the original narrow `OFL-1.1` allowlist wording maps to the scoped implementation. Do not silently broaden license policy. |
 | **AC-16** | The runtime package integrity-checks the 62 files it ships. | Also preserve and verify the exact pristine upstream inventory of 214 files at `d673e8300df60a5c8166abe78787fdc78f6b8000`. Drift must fail loudly without rewriting the historical baseline. |
 | **AC-17** | Topocode smoke and regression tests exercise the integrated renderer. | Run the real upstream test suite that accompanies the pristine pin in Node.js 22/Linux CI. Do not replace it with an empty gate or Topocode-only smoke tests. |
-| **AC-18, CON-07** | Required license and notice material is shipped with the runtime subset. | Retain upstream `LICENSE`, `THIRD_PARTY_NOTICES.md`, brand attribution, and trademark disclaimer verbatim. Contribute changes upstream first. If blocked, use an explicit listed patch set over the pristine copy. Never make silent in-place edits. |
+| **AC-18, CON-07** | Required license and notice material is shipped with the runtime subset. | Retain upstream `LICENSE`, `THIRD_PARTY_NOTICES.md`, brand attribution, and trademark disclaimer verbatim. Contribute changes upstream first. If blocked, use an explicit listed patch set over the pristine copy. Each patch records whether it is still needed or has landed upstream. Never make silent in-place edits. |
 
 The vendored package is a swappable seam, not a goal to maintain a divergent
 fork. If upstream publishes a usable package, `@topo/diagram-core` may become a
 thin adapter and remove the copy. Upstream tracking cadence remains an owner
 decision. **CON-02, U-2, U-6**
+
+## Other unresolved commitments
+
+These requirements have no assigned follow-up tracker:
+
+| Original clause | Shipped evidence | Remaining requirement |
+| --- | --- | --- |
+| **FR-06, AC-11** | Bounded catalogue controls. | Broader owner-controlled composition/extensibility and one manual customization walkthrough. Automated tests do not prove the manual check. |
+| **NFR-03, AC-03** | Two equivalent renders in one tested environment. | Reproducibility across runs and machines. Cross-machine evidence is required and unverified. |
+| **FR-07, AC-12** | Local agent workflows without a mandatory model service. | One manual agent-authoring walkthrough. Automated tests do not prove it occurred. |
 
 ## Migration map
 
@@ -143,13 +155,13 @@ This table preserves the disposition of every numbered original requirement.
 | **FR-03; AC-05, AC-06** | Shipped story catalogue and empty state. The requirement to index the old explorer is superseded by PR #71. |
 | **FR-04; AC-07** | Shipped through the existing serve command. |
 | **FR-05; NFR-04; AC-08** | Shipped host-agnostic static bundles. |
-| **FR-06; AC-11** | Shipped bounded catalogue configuration. |
-| **FR-07; AC-12** | Shipped local agent authoring and preview workflow. |
+| **FR-06; AC-11** | Partly shipped: bounded catalogue configuration. Broader composition/extensibility and the required manual walkthrough remain unresolved above. |
+| **FR-07; AC-12** | Workflow shipped; the required manual agent-authoring walkthrough remains unresolved above. |
 | **FR-08; AC-02** | Shipped objective anchor failures; no heuristic staleness gate. |
 | **FR-09; AC-04** | Shipped package boundary and exact revision pin. Full-copy obligations remain below. |
 | **NFR-01; AC-09** | Shipped notices in generated and bundled output. |
 | **NFR-02; AC-10** | Unresolved wording-to-implementation reconciliation in #41. |
-| **NFR-03; AC-03** | Shipped repeat-render equivalence for the pinned renderer and tested input. |
+| **NFR-03; AC-03** | Same-environment repeat-render equivalence shipped; required cross-machine reproducibility remains unverified above. |
 | **NFR-05** | Historical POC sizes remain evidence, not budgets or current performance claims. |
 | **NFR-06** | No extra accessibility, security, privacy, reliability, or operability target was agreed. Existing safeguards still apply. |
 | **CON-01** | Maintained: building Topocode and a consumer's deployment pipeline are separate systems. |
