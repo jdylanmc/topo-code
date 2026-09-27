@@ -19,6 +19,8 @@ JSON and unsupported options are errors, not invitations to reset a workspace.
 | `metadata/` | Human-authored notes and pins | Commit and review; never overwritten by generation |
 | `metadata/views/<id>.json` | Named path view, overrides, pins, review baseline | Commit and review; explicit local saves only |
 | `cache/site/` | Compiled site assets and atomic data snapshot | Ignore; regenerate |
+| `cache/site/repository.json` | Generated repository hierarchy, source evidence and page index | Ignore; regenerate with scan |
+| `cache/site/repository/<view-id>/viewer.html` | Pinned Archify views for bounded repository scopes | Ignore; included in static bundles |
 | `cache/enrichment-runs/` | Temporary command input, prompt and staged output | Ignore; owned run directories are cleaned after execution |
 | `cache/write.lock` | Ephemeral single-writer lock | Ignore |
 

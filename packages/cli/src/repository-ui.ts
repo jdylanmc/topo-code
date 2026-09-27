@@ -11,7 +11,7 @@ export function repositoryMarkup(index: RepositoryIndex, current?: RepositorySou
       <span data-repository-page aria-live="polite"></span>
       <button type="button" data-repository-next>Next</button>
     </div>
-    <p data-repository-status role="status"></p>
+    <p data-repository-status aria-label="Repository scan evidence"></p>
     <p data-repository-error role="alert" hidden></p>
   </header>
   <iframe data-repository-viewer title="Repository architecture"></iframe>
@@ -85,7 +85,8 @@ export const REPOSITORY_SCRIPT = `(() => {
     if (node.kind === "external") return href(scope.id, page.number, node.id);
     if (node.kind === "file" || node.childIds.length > 0) return href(node.id);
     const parent = nodes.get(node.parentId);
-    const number = Math.floor(parent.childIds.indexOf(node.id) / 3) + 1;
+    const number = index.pages.find((candidate) =>
+      candidate.scopeId === parent.id && candidate.nodeIds.includes(node.id)).number;
     return href(parent.id, number, node.id);
   }
   function inside(nodeId, ancestorId) {
@@ -116,7 +117,7 @@ export const REPOSITORY_SCRIPT = `(() => {
     if (node.members.length) {
       evidence.append(element("h3", "Declared members"));
       for (const member of node.members) {
-        evidence.append(element("p", member.kind + " " + member.name));
+        evidence.append(element("p", member.kind + " " + member.name + (member.type ? ": " + member.type : "")));
         for (const signature of member.signatures) evidence.append(element("pre", signature));
       }
     }
@@ -168,6 +169,12 @@ export const REPOSITORY_SCRIPT = `(() => {
     if (!scope || !/^\\d+$/.test(numberText) || !page ||
         (params.has("focus") && !selected)) {
       frame.hidden = true;
+      previous.disabled = true;
+      next.disabled = true;
+      back.disabled = true;
+      pageLabel.textContent = "Unavailable";
+      evidence.replaceChildren();
+      details.open = false;
       fail("This repository scope, page, or selection is unavailable. Open Repository to return to the current scan.");
       return;
     }
@@ -218,12 +225,22 @@ export const REPOSITORY_SCRIPT = `(() => {
   next.addEventListener("click", () => navigate(href(scope.id, page.number + 1)));
   back.addEventListener("click", () => {
     if (selected) navigate(href(scope.id, page.number));
-    else navigate(href(scope.parentId || index.rootId));
+    else {
+      const parentId = scope.parentId || index.rootId;
+      const parentPage = index.pages.find((candidate) =>
+        candidate.scopeId === parentId && candidate.nodeIds.includes(scope.id));
+      navigate(href(parentId, parentPage ? parentPage.number : 1));
+    }
   });
   frame.addEventListener("load", () => {
+    if (frame.hidden) return;
     try {
       const document = frame.contentDocument;
       if (!document) throw new Error("The Archify document is unavailable.");
+      if (!document.querySelector('svg[role="img"]')) {
+        throw new Error("The generated Archify artifact is missing; run topo scan again.");
+      }
+      error.hidden = true;
       const activate = (event) => {
         if (event.type === "keydown" && event.key !== "Enter" && event.key !== " ") return;
         const target = event.target;

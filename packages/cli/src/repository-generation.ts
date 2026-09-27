@@ -8,6 +8,7 @@ import type { ResolvedStoryDocument, StoryConnection } from "@topo/story";
 import { readOptionalArtifact } from "@topo/workspace";
 import {
   buildRepositoryIndex,
+  repositoryId,
   type RepositoryIndex,
   type RepositoryNode,
   type RepositoryPage,
@@ -176,6 +177,35 @@ export async function readRepositoryIndex(root: string): Promise<RepositoryIndex
   return value;
 }
 
+function sourceLocation(value: unknown): boolean {
+  if (
+    typeof value !== "object" || value === null ||
+    !("path" in value) || typeof value.path !== "string" || value.path.length === 0 ||
+    value.path.startsWith("/") || value.path.includes("\\") ||
+    value.path.split("/").includes("..") ||
+    !("start" in value) || typeof value.start !== "object" || value.start === null ||
+    !("line" in value.start) || typeof value.start.line !== "number" ||
+    !Number.isInteger(value.start.line) || value.start.line < 1 ||
+    !("column" in value.start) || typeof value.start.column !== "number" ||
+    !Number.isInteger(value.start.column) || value.start.column < 1
+  ) return false;
+  if (!("end" in value) || value.end === undefined) return true;
+  return typeof value.end === "object" && value.end !== null &&
+    "line" in value.end && typeof value.end.line === "number" &&
+    Number.isInteger(value.end.line) && value.end.line >= value.start.line &&
+    "column" in value.end && typeof value.end.column === "number" &&
+    Number.isInteger(value.end.column) && value.end.column >= 1;
+}
+
+function semanticMember(value: unknown): boolean {
+  return typeof value === "object" && value !== null &&
+    "name" in value && typeof value.name === "string" &&
+    "kind" in value && ["method", "property", "constructor"].includes(String(value.kind)) &&
+    "signatures" in value && Array.isArray(value.signatures) &&
+    value.signatures.every((signature: unknown) => typeof signature === "string") &&
+    (!("type" in value) || value.type === undefined || typeof value.type === "string");
+}
+
 function assertRepositoryIndex(value: unknown): asserts value is RepositoryIndex {
   if (
     typeof value !== "object" || value === null ||
@@ -197,25 +227,31 @@ function assertRepositoryIndex(value: unknown): asserts value is RepositoryIndex
     !("relationships" in value) || !Array.isArray(value.relationships) ||
     !("pages" in value) || !Array.isArray(value.pages)
   ) throw new Error("Invalid generated repository index; run topo scan again.");
-  const nodes = new Map<string, { childIds: string[]; parentId?: string }>();
+  const nodes = new Map<string, { kind: string; childIds: string[]; parentId?: string }>();
+  const kinds = new Set(["repository", "directory", "package", "file", "external", "class", "function", "interface", "type", "enum", "variable"]);
   for (const node of value.nodes) {
     if (
       typeof node !== "object" || node === null ||
       typeof node.id !== "string" || !/^[a-z][a-z0-9-]*$/.test(node.id) ||
       typeof node.name !== "string" || typeof node.kind !== "string" ||
+      !kinds.has(node.kind) ||
       typeof node.path !== "string" ||
       (node.parentId !== undefined && typeof node.parentId !== "string") ||
       (node.fingerprint !== undefined && typeof node.fingerprint !== "string") ||
       !Array.isArray(node.childIds) || node.childIds.some((id: unknown) => typeof id !== "string") ||
+      new Set(node.childIds).size !== node.childIds.length ||
       !Array.isArray(node.locations) || !Array.isArray(node.signatures) ||
+      !node.locations.every(sourceLocation) ||
       node.signatures.some((signature: unknown) => typeof signature !== "string") ||
-      !Array.isArray(node.members) || nodes.has(node.id)
+      !Array.isArray(node.members) || !node.members.every(semanticMember) || nodes.has(node.id)
     ) throw new Error("Invalid generated repository node; run topo scan again.");
     nodes.set(node.id, node);
   }
   if (!nodes.has(value.rootId)) throw new Error("Generated repository root is missing.");
   for (const [id, node] of nodes) {
-    if (node.childIds.some((child) => nodes.get(child)?.parentId !== id)) {
+    if (node.childIds.some((child) => nodes.get(child)?.parentId !== id) ||
+        (node.parentId !== undefined && !nodes.get(node.parentId)?.childIds.includes(id)) ||
+        (node.parentId === undefined && id !== value.rootId && node.kind !== "external")) {
       throw new Error("Invalid generated repository hierarchy.");
     }
     const visited = new Set<string>([id]);
@@ -227,23 +263,38 @@ function assertRepositoryIndex(value: unknown): asserts value is RepositoryIndex
     }
   }
   const pages = new Set<string>();
+  const scopePages = new Map<string, string[]>();
+  const scopePageCounts = new Map<string, number>();
   for (const page of value.pages) {
     if (
       typeof page !== "object" || page === null ||
       typeof page.id !== "string" || !/^view-[a-f0-9]{24}$/.test(page.id) ||
       !nodes.has(page.scopeId) || !Number.isInteger(page.number) || page.number < 1 ||
       !Array.isArray(page.nodeIds) || page.nodeIds.length > 3 || pages.has(page.id) ||
-      JSON.stringify(page.nodeIds) !== JSON.stringify(
-        nodes.get(page.scopeId)!.childIds.slice((page.number - 1) * 3, page.number * 3),
-      )
+      page.number !== (scopePageCounts.get(page.scopeId) ?? 0) + 1 ||
+      page.id !== repositoryId("view", `${page.scopeId}:${page.number}`)
     ) throw new Error("Invalid generated repository page; run topo scan again.");
+    const children = scopePages.get(page.scopeId) ?? [];
+    children.push(...page.nodeIds);
+    scopePages.set(page.scopeId, children);
+    scopePageCounts.set(page.scopeId, page.number);
     pages.add(page.id);
+  }
+  for (const [scope, children] of scopePages) {
+    if (JSON.stringify(children) !== JSON.stringify(nodes.get(scope)!.childIds)) {
+      throw new Error("Generated repository pages do not cover their scope.");
+    }
+    for (const [id, node] of nodes) {
+      if ((node.childIds.length > 0 || node.kind === "file" || id === value.rootId) &&
+          !scopePages.has(id)) throw new Error("Generated repository scope has no page.");
+    }
   }
   for (const edge of value.relationships) {
     if (
       typeof edge !== "object" || edge === null ||
       typeof edge.id !== "string" || typeof edge.kind !== "string" ||
-      !nodes.has(edge.from) || !nodes.has(edge.to) || !Array.isArray(edge.locations)
+      !nodes.has(edge.from) || !nodes.has(edge.to) || !Array.isArray(edge.locations) ||
+      !edge.locations.every(sourceLocation)
     ) throw new Error("Invalid generated repository relationship.");
   }
 }

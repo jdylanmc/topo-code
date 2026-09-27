@@ -7,6 +7,7 @@ import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
 import { bundleSite } from "./bundle.js";
 import { readRepositoryIndex } from "./repository-generation.js";
+import { buildCatalogue, writeBuiltCatalogue } from "./catalogue.js";
 
 const execute = promisify(execFile);
 const entry = fileURLToPath(new URL("../dist/main.js", import.meta.url));
@@ -96,5 +97,41 @@ describe("generated repository delivery", () => {
     const index = await readRepositoryIndex(root);
     expect(index?.quality.authoritative).toBe(false);
     expect(index?.quality.warnings.some((warning) => warning.includes("not-present"))).toBe(true);
+  });
+
+  it("rejects changed untracked content even when Git status and revision are unchanged", async () => {
+    const root = await repository();
+    await writeFile(join(root, "src/untracked.ts"), "export const value = 1;\n");
+    await execute(process.execPath, [entry, "scan", root]);
+    const output = join(root, ".topo/deploy");
+    await bundleSite(root, output);
+    const before = await readFile(join(output, "index.html"), "utf8");
+    await writeFile(join(root, "src/untracked.ts"), "export const value = 2;\n");
+    await expect(bundleSite(root, output)).rejects.toThrow("stale for src/untracked.ts");
+    expect(await readFile(join(output, "index.html"), "utf8")).toBe(before);
+  });
+
+  it("preserves the prior repository snapshot with an explicit stale state during story refresh", async () => {
+    const root = await repository();
+    await execute(process.execPath, [entry, "scan", root]);
+    const original = await readFile(join(root, ".topo/cache/site/repository.json"), "utf8");
+    await writeFile(join(root, "src/order.ts"), "export class Changed {}\n");
+    await writeBuiltCatalogue(root, await buildCatalogue(root), undefined);
+    expect(await readFile(join(root, ".topo/cache/site/index.html"), "utf8")).toContain('"stale":true');
+    expect(await readFile(join(root, ".topo/cache/site/repository.json"), "utf8")).toBe(original);
+  });
+
+  it("rejects malformed cached source evidence before updating a static bundle", async () => {
+    const root = await repository();
+    await execute(process.execPath, [entry, "scan", root]);
+    const output = join(root, ".topo/deploy");
+    await bundleSite(root, output);
+    const before = await readFile(join(output, "index.html"), "utf8");
+    const path = join(root, ".topo/cache/site/repository.json");
+    const index = JSON.parse(await readFile(path, "utf8"));
+    index.nodes.find((node: { kind: string }) => node.kind === "class").locations = [{ path: "../outside", start: { line: 0 } }];
+    await writeFile(path, JSON.stringify(index));
+    await expect(bundleSite(root, output)).rejects.toThrow(/Invalid generated repository node/);
+    expect(await readFile(join(output, "index.html"), "utf8")).toBe(before);
   });
 });

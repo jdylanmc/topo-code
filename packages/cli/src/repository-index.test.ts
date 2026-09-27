@@ -168,6 +168,26 @@ describe("generated repository index", () => {
     expect(index.runtimeBehavior).toBe(false);
   });
 
+  it("uses smaller pages for wide identifiers without shortening source names", () => {
+    const { graph, logical } = fixture();
+    const names = [
+      "createSourceRecord",
+      "createTypeScriptScannerAdapter",
+      "createWorkspaceModuleResolutionHost",
+    ];
+    const declaration = logical.entities[0]!.declarations;
+    logical.entities = names.map((name) => ({
+      id: `symbol:${name}`, name, kind: "function", exported: true,
+      declarations: declaration, signatures: [], members: [],
+    }));
+    logical.relationships = [];
+    const index = buildRepositoryIndex(graph, logical, source);
+    const file = index.nodes.find((node) => node.kind === "file" && node.path.endsWith("order.ts"))!;
+    const pages = index.pages.filter((page) => page.scopeId === file.id);
+    expect(pages.map((page) => page.nodeIds.length)).toEqual([2, 1]);
+    expect(file.childIds.map((id) => index.nodes.find((node) => node.id === id)!.name)).toEqual(names);
+  });
+
   it("never treats partial or missing scanner provenance as authoritative", () => {
     const { graph, logical } = fixture();
     graph.extensions["dev.topo.scanner"] = {

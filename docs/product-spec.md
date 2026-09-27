@@ -18,6 +18,11 @@ both surfaces, or required restoring the explorer, are superseded. Scanner,
 graph, layout, report, view, module, and enrichment data remain useful inputs.
 They are not a second visual explorer.
 
+Issue #70's owner-aligned replacement adds a default Repository canvas in this
+same shell: structural packages/directories, files, and compiler declarations
+rendered as bounded Archify views. This replaces neither authored stories nor
+their renderer-neutral contract and does not restore WebGL.
+
 ## People and core workflow
 
 | Person | Goal |
@@ -85,7 +90,13 @@ scanning and structural validation.
   collapsible grouping, diagram-family/category/folder/flat views, Git-backed
   sorting, deep links, and responsive left navigation. No hand-maintained index
   is required. **FR-03, AC-05**
-- A repository with no stories still gets a clear, usable empty shell.
+- Repository exploration is the default landing canvas. It supports
+  package/directory-to-file-to-declaration drill-down, breadcrumbs, paginated
+  native diagrams, source evidence and durable scope/page/focus URLs. Scanner
+  and compiler facts remain distinct from runtime behavior; dirty, partial,
+  stale and missing-evidence states are explicit. **#70**
+- A repository with no stories still gets repository exploration and a clear
+  empty authored-story inventory.
   **AC-06, S-E2**
 - `.topo/config.json` may set the shell title, description, accent color,
   category order, and story category overrides. Configuration cannot load
@@ -167,7 +178,7 @@ This table preserves the disposition of every numbered original requirement.
 | **CON-01** | Maintained: building Topocode and a consumer's deployment pipeline are separate systems. |
 | **CON-02** | Maintained: exact vendored pin behind `@topo/diagram-core`; full-copy work remains in #41. |
 | **CON-03; AC-14** | Shipped CI baseline; **AC-17** remains unresolved in #41. |
-| **CON-04; U-3** | Superseded: PR #71 removed the WebGL explorer. #70 tracks any future replacement exploration. |
+| **CON-04; U-3** | Superseded: PR #71 removed the WebGL explorer. #70 supplies the bounded source-grounded Archify replacement in the same shell. |
 | **CON-05, CON-06** | Maintained platform and evidence-preservation constraints. |
 | **CON-07; AC-16, AC-18** | Unresolved pristine-copy and explicit-patch obligations in #41. |
 | **CON-08; AC-19** | Shipped wrapper-side links and focus restoration. |
@@ -186,11 +197,12 @@ This specification does not add hosting or public preview pipelines (**N-1**),
 authentication (**N-2**), a repository documentation gate (**N-3**), a human
 sketch canvas (**N-4**), manual JSON authoring (**N-5**), an unlisted renderer
 fork or font changes (**N-6**), rebuilt commodity diagramming infrastructure
-(**N-7**), heuristic coverage gates (**N-8**), or a replacement repository
-explorer. It does not authorize publishing under the `archify` name.
+(**N-7**), heuristic coverage gates (**N-8**), or restoration of the retired
+WebGL explorer. It does not authorize publishing under the `archify` name.
 
 Public npm release remains unshipped in #13. #57 is paused Unified Modeling
-Language work. #70 is future explorer research. #74, #75, #76, and #77 cover
+Language work. #70 is the separately aligned repository exploration delivery.
+#74, #75, #76, and #77 cover
 marketing, public documentation, manual operator authoring, and library
 investigation. They are separate work, not completed MVP requirements.
 

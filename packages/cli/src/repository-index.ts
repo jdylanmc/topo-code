@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { posix } from "node:path";
+import { architectureComponentWidth } from "@topo/diagram-core";
 import type {
   GraphDocument,
   LogicalArchitectureDocument,
@@ -233,15 +234,28 @@ export function buildRepositoryIndex(
   const pages: RepositoryPage[] = [];
   for (const node of orderedNodes) {
     if (node.childIds.length === 0 && node.kind !== "file" && node.id !== rootId) continue;
-    const count = Math.max(1, Math.ceil(node.childIds.length / 3));
-    for (let page = 0; page < count; page += 1) {
+    let offset = 0;
+    let number = 1;
+    do {
+      let count = Math.min(3, node.childIds.length - offset);
+      // Keep one native row within 1280 SVG units, leaving room for readable
+      // 24px labels at the shell's narrower desktop canvas widths.
+      while (count > 1) {
+        const widths = node.childIds.slice(offset, offset + count)
+          .map((id) => architectureComponentWidth(nodes.get(id)!.name, "", true));
+        const width = 160 + count * Math.max(...widths) + (count - 1) * 90;
+        if (width <= 1280) break;
+        count -= 1;
+      }
       pages.push({
-        id: repositoryId("view", `${node.id}:${page + 1}`),
+        id: repositoryId("view", `${node.id}:${number}`),
         scopeId: node.id,
-        number: page + 1,
-        nodeIds: node.childIds.slice(page * 3, page * 3 + 3),
+        number,
+        nodeIds: node.childIds.slice(offset, offset + count),
       });
-    }
+      offset += count;
+      number += 1;
+    } while (offset < node.childIds.length);
   }
   return {
     schemaVersion: "1.0", rootId, source, graphId: graph.graphId,

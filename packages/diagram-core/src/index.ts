@@ -487,6 +487,18 @@ function repositoryMetadata(repositoryRoot: string): {
   };
 }
 
+export function architectureComponentWidth(
+  title: string,
+  sublabel = "",
+  finalTypography = false,
+): number {
+  const units = Array.from(title).reduce(
+    (total, character) => total + (character.codePointAt(0)! > 127 ? 2 : 1), 0,
+  );
+  const titleWidth = finalTypography ? units * 24 * 0.6 : title.length * 11;
+  return Math.max(280, titleWidth + 80, sublabel.length * 9 + 80);
+}
+
 function archifySpec(
   story: ResolvedStoryDocument,
   nativeSourceEvidence = true,
@@ -506,14 +518,10 @@ function archifySpec(
     const primary = sectionAnchors[0];
     // Short, legible sublabel (a code reference), never the full narrative body:
     // Archify enforces a per-component minimum-legibility width.
-    const sublabel = primary === undefined
+    const sublabel = primary === undefined || !nativeSourceEvidence
       ? ""
       : primary.symbol ?? primary.path.split("/").pop() ?? primary.path;
-    const width = Math.max(
-      280,
-      section.title.length * 11 + 80,
-      sublabel.length * 9 + 80,
-    );
+    const width = architectureComponentWidth(section.title, sublabel, !nativeSourceEvidence);
     return { section, sectionAnchors, sublabel, width };
   });
   // Balance components across rows of at most four, then snake each row so
@@ -641,7 +649,7 @@ function archifySpec(
     const { row, column } = cellOf(index);
     return {
       id: componentIds.get(section.id)!,
-      type: index === sections.length - 1
+      type: nativeSourceEvidence && index === sections.length - 1
         ? "frontend" as const
         : "backend" as const,
       label: section.title,

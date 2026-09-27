@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { expect } from "@playwright/test";
 import { commit, startStaticServer, test, topo } from "./helpers/production-cli.js";
 
-async function fixture(root: string): Promise<void> {
+async function fixture(root: string, wide = false): Promise<void> {
   await mkdir(join(root, "packages/api/src"), { recursive: true });
   await writeFile(join(root, "package.json"), '{"private":true,"workspaces":["packages/*"]}\n');
   await writeFile(join(root, "packages/api/package.json"), '{"name":"@fixture/api","type":"module"}\n');
@@ -17,6 +17,13 @@ async function fixture(root: string): Promise<void> {
   await writeFile(join(root, "packages/api/src/store.ts"), "export function save() { return true; }\n");
   for (const name of ["a", "b", "z"]) {
     await writeFile(join(root, `packages/api/src/${name}.ts`), `export const ${name} = 1;\n`);
+  }
+  if (wide) {
+    await writeFile(join(root, "packages/api/src/wide.ts"), [
+      "export function createSourceRecord() {}",
+      "export function createTypeScriptScannerAdapter() {}",
+      "export function createWorkspaceModuleResolutionHost() {}",
+    ].join("\n"));
   }
   await commit(root, "Repository exploration fixture", "package.json", "packages");
   await topo(root, "scan");
@@ -81,6 +88,13 @@ test("bounded repository pages and source evidence survive a plain static base p
     await page.getByRole("button", { name: "Next", exact: true }).click();
     await expect(page).toHaveURL(`${base}?scope=${src.id}&page=2`);
     await expect(page.locator("[data-repository-viewer]").contentFrame().locator('svg[role="img"]')).toBeVisible();
+    const store = index.nodes.find((item: { path: string; kind: string }) =>
+      item.path === "packages/api/src/store.ts" && item.kind === "file");
+    await page.locator("[data-repository-viewer]").contentFrame()
+      .locator(`svg[role="img"] [data-node-id="${store.id}"]`).click();
+    await expect(page).toHaveURL(`${base}?scope=${store.id}`);
+    await page.getByRole("button", { name: "Back", exact: true }).click();
+    await expect(page).toHaveURL(`${base}?scope=${src.id}&page=2`);
     await page.reload();
     await expect(page.locator("[data-repository-page]")).toHaveText("Page 2 of 2 / 5 entries");
     await page.getByRole("navigation", { name: "Repository breadcrumbs" })
@@ -88,6 +102,7 @@ test("bounded repository pages and source evidence survive a plain static base p
     await expect(page).toHaveURL(base);
     await page.goto(`${base}?scope=missing`);
     await expect(page.getByRole("alert")).toContainText("unavailable");
+    await expect(page.getByRole("button", { name: "Next", exact: true })).toBeDisabled();
     expect((await page.request.get(`${base}explorer/`)).status()).toBe(404);
   } finally {
     await page.goto("about:blank");
@@ -98,10 +113,11 @@ test("bounded repository pages and source evidence survive a plain static base p
 test("repository diagrams retain effective readable text at supported desktop sizes", async ({
   page, repository, startSite,
 }) => {
-  await fixture(repository);
+  await fixture(repository, true);
   const url = await startSite();
   const index = JSON.parse(await readFile(join(repository, ".topo/cache/site/repository.json"), "utf8"));
-  const src = index.nodes.find((item: { path: string }) => item.path === "packages/api/src");
+  const src = index.nodes.find((item: { path: string; kind: string }) =>
+    item.path === "packages/api/src/wide.ts" && item.kind === "file");
   await page.goto(`${url}/?scope=${src.id}`);
   const frame = page.locator("[data-repository-viewer]").contentFrame();
   for (const [width, height] of [[1024, 768], [1280, 720], [1440, 900], [1600, 1000], [1920, 1080]]) {
@@ -112,9 +128,15 @@ test("repository diagrams retain effective readable text at supported desktop si
       return texts.map((text) => {
         const transform = text.getScreenCTM();
         const bounds = text.getBoundingClientRect();
+        const box = text.closest("[data-node-id]")?.querySelector("rect")?.getBoundingClientRect();
         return {
           text: text.textContent,
           size: transform ? parseFloat(getComputedStyle(text).fontSize) * Math.hypot(transform.c, transform.d) : 0,
+          bounds: { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height },
+          insideNode: box === undefined || (
+            bounds.left >= box.left - 1 && bounds.right <= box.right + 1 &&
+            bounds.top >= box.top - 1 && bounds.bottom <= box.bottom + 1
+          ),
           contained: bounds.left >= 0 && bounds.top >= 0 &&
             bounds.right <= innerWidth + 1 && bounds.bottom <= innerHeight + 1,
         };
@@ -124,6 +146,16 @@ test("repository diagrams retain effective readable text at supported desktop si
     for (const measured of measurements) {
       expect(measured.size, `${width}x${height}: ${measured.text}`).toBeGreaterThanOrEqual(12);
       expect(measured.contained, `${width}x${height}: ${measured.text}`).toBe(true);
+      expect(measured.insideNode, `${width}x${height}: ${measured.text} must fit its node`).toBe(true);
+    }
+    for (let left = 0; left < measurements.length; left += 1) {
+      for (let right = left + 1; right < measurements.length; right += 1) {
+        const a = measurements[left]!.bounds;
+        const b = measurements[right]!.bounds;
+        const overlap = a.x < b.x + b.width && b.x < a.x + a.width &&
+          a.y < b.y + b.height && b.y < a.y + a.height;
+        expect(overlap, "Generated labels must not overlap one another").toBe(false);
+      }
     }
     const bounds = await page.locator("[data-repository-viewer]").boundingBox();
     expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width! + 1);

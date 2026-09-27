@@ -1,7 +1,7 @@
 # Logical architecture
 
-Topocode can publish a responsibility-first architecture view beside its
-existing file/import map. The source inventory and semantic facts are produced
+Topocode publishes compiler-backed logical-architecture evidence alongside its
+file/import graph. The source inventory and semantic facts are produced
 by the TypeScript compiler API. Responsibility names and membership come only
 from an explicit JSON proposal supplied by the user or an agent; scanning never
 invokes a model or provider.
@@ -26,10 +26,11 @@ corepack yarn topo scan "$PWD" \
 corepack yarn topo serve "$PWD"
 ```
 
-When valid responsibilities are present, the site opens on the logical
-architecture. **Source map** switches to the preserved file/import workflow.
-A scan without `--responsibilities` keeps the source map as the default and
-records that semantic entities are unassigned.
+The site opens on [Repository exploration](./repository-exploration.md), which
+uses structural package/directory/file scopes and compiler declarations.
+Responsibility proposals remain in the logical-architecture artifact; they do
+not replace the default scope hierarchy. A scan without `--responsibilities`
+still records compiler entities and marks them unassigned.
 
 ## Grouping format
 
@@ -63,24 +64,15 @@ warning; Topocode does not invent a responsibility.
 
 - Responsibility boxes are proposals. Entity kinds, declarations, signatures,
   members, exports, and relationships are compiler-backed facts.
-- **Expand here** retains the overview and reveals a responsibility's members.
-  **Drill in** replaces the scope with those members and provides **Back to
-  overview**.
-- **What depends on this?** shows direct incoming represented `calls`,
-  `constructs`, `type-use`, and `heritage` relationships. It is static potential
-  impact, not runtime execution, complete blast radius, or guaranteed breakage.
-- Curved edges are the default; Straight is a comparison mode. Both terminate
-  on box perimeters and retain selection, scope, expansion, impact, and positions.
-- Dragging a box moves it without panning the camera. Expanded member positions
-  are stored as offsets inside their responsibility boundary, remain contained,
-  and move with that boundary. Drilled member positions use a separate view
-  scope.
-- Positions are stored in browser local storage under a namespace derived from
-  repository revision, source snapshot, the full responsibility definition,
-  and logical view format. Unchanged inputs reload compatible positions;
-  revision, source, grouping, or view-format changes ignore incompatible state.
-  **Reset positions** removes the current namespace. No source-authored pin is
-  changed.
+- Select a file in Repository exploration to inspect its compiler declarations.
+  The source-evidence panel includes signatures, members, locations and
+  represented incoming/outgoing `calls`, `constructs`, `type-use` and `heritage`
+  relationships. This is static potential impact, not runtime execution,
+  complete blast radius or guaranteed breakage.
+- The retired explorer's responsibility expansion, drag positions, curved/
+  straight comparison and position-reset controls are no longer product UI.
+  Current navigation uses bounded Archify pages and durable scope/focus URLs;
+  it does not modify authored pins or proposed responsibility membership.
 
 ## Identity and coverage limits
 
