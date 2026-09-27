@@ -15,6 +15,9 @@ The same view works in `topo serve` and a plain static `topo bundle`.
 - Use breadcrumbs, Back, Previous and Next to navigate. Scope, page and
   selection are encoded in the root URL's `scope`, `page` and `focus` parameters;
   browser Back, reload and direct links restore those states.
+- Generated-node selection is coordinated by the wrapper: it highlights the
+  source entry without activating native service-role passports or zooming
+  neighboring entries out of view. Authored-story navigation is unchanged.
 - Authored stories remain in the existing catalogue. Its Repository link
   returns to the generated overview; no `/explorer/` route is restored.
 

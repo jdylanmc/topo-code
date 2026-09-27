@@ -118,6 +118,8 @@ test("repository diagrams retain effective readable text at supported desktop si
   const index = JSON.parse(await readFile(join(repository, ".topo/cache/site/repository.json"), "utf8"));
   const src = index.nodes.find((item: { path: string; kind: string }) =>
     item.path === "packages/api/src/wide.ts" && item.kind === "file");
+  const selected = index.nodes.find((item: { name: string; kind: string }) =>
+    item.name === "createSourceRecord" && item.kind === "function");
   await page.goto(`${url}/?scope=${src.id}`);
   const frame = page.locator("[data-repository-viewer]").contentFrame();
   for (const [width, height] of [[1024, 768], [1280, 720], [1440, 900], [1600, 1000], [1920, 1080]]) {
@@ -160,5 +162,23 @@ test("repository diagrams retain effective readable text at supported desktop si
     const bounds = await page.locator("[data-repository-viewer]").boundingBox();
     expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width! + 1);
     expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(height! + 1);
+    await frame.locator(`svg[role="img"] [data-node-id="${selected.id}"]`).click();
+    await expect(page.locator(".repository-evidence")).toHaveAttribute("open", "");
+    const selectedGeometry = await frame.locator('svg[role="img"]').evaluate((svg) =>
+      [...svg.querySelectorAll("text")].filter((text) => text.textContent?.trim()).map((text) => {
+        const bounds = text.getBoundingClientRect();
+        const transform = text.getScreenCTM()!;
+        return {
+          text: text.textContent,
+          size: parseFloat(getComputedStyle(text).fontSize) * Math.hypot(transform.c, transform.d),
+          visible: bounds.left >= 0 && bounds.top >= 0 &&
+            bounds.right <= innerWidth + 1 && bounds.bottom <= innerHeight + 1,
+        };
+      }));
+    for (const measured of selectedGeometry) {
+      expect(measured.size, `Selected ${width}x${height}: ${measured.text}`).toBeGreaterThanOrEqual(12);
+      expect(measured.visible, `Selection must preserve peer visibility: ${measured.text}`).toBe(true);
+    }
+    await page.locator(".repository-evidence summary").click();
   }
 });

@@ -76,8 +76,7 @@ export const REPOSITORY_SCRIPT = `(() => {
     anchor.addEventListener("click", (event) => {
       if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       event.preventDefault();
-      history.pushState({}, "", anchor.href);
-      render();
+      navigate(anchor.href);
     });
     return anchor;
   }
@@ -96,6 +95,22 @@ export const REPOSITORY_SCRIPT = `(() => {
       node = nodes.get(node.parentId);
     }
     return false;
+  }
+  function highlight() {
+    const document = frame.contentDocument;
+    if (!document) return;
+    for (const node of document.querySelectorAll("[data-repository-selected]")) {
+      node.removeAttribute("data-repository-selected");
+      node.removeAttribute("data-focus-selected");
+      node.removeAttribute("aria-current");
+    }
+    if (!selected) return;
+    const node = document.querySelector('svg[role="img"] [data-node-id="' + selected.id + '"]');
+    if (node) {
+      node.setAttribute("data-repository-selected", "");
+      node.setAttribute("data-focus-selected", "");
+      node.setAttribute("aria-current", "true");
+    }
   }
   function locations(parent, values) {
     const list = element("ul");
@@ -212,13 +227,14 @@ export const REPOSITORY_SCRIPT = `(() => {
     const empty = page.nodeIds.length === 0 && scope.locations.length === 0;
     frame.hidden = empty;
     if (!empty) {
-      const target = "repository/" + page.id + "/viewer.html" +
-        (selected ? "#focus=" + encodeURIComponent(selected.id) : "");
+      const target = "repository/" + page.id + "/viewer.html";
       if (frame.getAttribute("src") !== target) frame.setAttribute("src", target);
+      else highlight();
     }
   }
   function navigate(target) {
-    history.pushState({}, "", target);
+    const url = new URL(target, window.location.href);
+    if (url.href !== window.location.href) history.pushState({}, "", url);
     render();
   }
   previous.addEventListener("click", () => navigate(href(scope.id, page.number - 1)));
@@ -249,10 +265,12 @@ export const REPOSITORY_SCRIPT = `(() => {
         const node = nodeElement && nodes.get(nodeElement.getAttribute("data-node-id"));
         if (!node) return;
         event.preventDefault();
+        event.stopPropagation();
         navigate(node.id === scope.id ? href(scope.id, page.number, node.id) : destination(node));
       };
-      document.addEventListener("click", activate);
-      document.addEventListener("keydown", activate);
+      document.addEventListener("click", activate, true);
+      document.addEventListener("keydown", activate, true);
+      highlight();
     } catch (cause) { fail("Cannot connect to the Archify view: " + String(cause)); }
   });
   window.addEventListener("popstate", render);
