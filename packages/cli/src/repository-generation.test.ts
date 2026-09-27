@@ -1,0 +1,100 @@
+import { execFile } from "node:child_process";
+import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
+import { afterEach, describe, expect, it } from "vitest";
+import { bundleSite } from "./bundle.js";
+import { readRepositoryIndex } from "./repository-generation.js";
+
+const execute = promisify(execFile);
+const entry = fileURLToPath(new URL("../dist/main.js", import.meta.url));
+const directories: string[] = [];
+
+async function repository(): Promise<string> {
+  const root = await mkdtemp(join(tmpdir(), "topo-repository-"));
+  directories.push(root);
+  await execute("git", ["init", "--quiet", root]);
+  await mkdir(join(root, "src"));
+  await writeFile(join(root, "package.json"), '{"name":"repository-fixture","type":"module"}\n');
+  await writeFile(join(root, "tsconfig.json"), '{"compilerOptions":{"module":"NodeNext","moduleResolution":"NodeNext"}}\n');
+  await writeFile(join(root, "src/order.ts"), [
+    'import { save } from "./store.js";',
+    "export class Order {",
+    "  submit() { save(); }",
+    "}",
+    "",
+  ].join("\n"));
+  await writeFile(join(root, "src/store.ts"), "export function save() { return true; }\n");
+  await execute("git", ["-C", root, "add", "."]);
+  await execute("git", [
+    "-C", root, "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
+    "-c", "commit.gpgsign=false", "commit", "--quiet", "-m", "Fixture",
+  ]);
+  return root;
+}
+
+afterEach(async () => {
+  for (const directory of directories.splice(0)) await rm(directory, { recursive: true });
+});
+
+describe("generated repository delivery", () => {
+  it("scans a local-only repository into real Archify pages without creating authored stories", async () => {
+    const root = await repository();
+    await execute(process.execPath, [entry, "scan", root]);
+    const index = await readRepositoryIndex(root);
+    expect(index?.nodes.some((node) => node.kind === "class" && node.name === "Order")).toBe(true);
+    expect(index?.nodes.some((node) => node.kind === "function" && node.name === "save")).toBe(true);
+    expect(index?.nodes.filter((node) => node.kind === "file")).toHaveLength(2);
+    const html = await readFile(join(root, ".topo/cache/site/index.html"), "utf8");
+    expect(html).toContain("data-repository-breadcrumbs");
+    expect(html).toContain("repository-navigation.js");
+    expect(await readdir(root)).not.toContain("stories");
+    for (const page of index!.pages) {
+      const viewer = await readFile(join(root, `.topo/cache/site/repository/${page.id}/viewer.html`), "utf8");
+      expect(viewer).toContain("<svg");
+      expect(viewer).toContain("Export diagram");
+      expect(viewer).not.toContain("github.com/example");
+    }
+  });
+
+  it("labels new dirty declarations as working-tree evidence without fake pinned links", async () => {
+    const root = await repository();
+    await writeFile(join(root, "src/store.ts"), "\n\nexport function changed() { return 'dirty'; }\n");
+    await writeFile(join(root, "src/order.ts"), "export class Order {}\n");
+    await execute(process.execPath, [entry, "scan", root]);
+    const index = await readRepositoryIndex(root);
+    expect(index?.source.dirty).toBe(true);
+    expect(index?.nodes.some((node) => node.name === "changed")).toBe(true);
+    const page = index!.pages.find((item) => item.nodeIds.some((id) =>
+      index!.nodes.find((node) => node.id === id)?.name === "changed"))!;
+    const viewer = await readFile(join(root, `.topo/cache/site/repository/${page.id}/viewer.html`), "utf8");
+    expect(viewer).toContain("changed");
+    expect(viewer).not.toContain('<script id="archify-source-evidence-data"');
+  });
+
+  it("bundles the same generated pages and rejects changed evidence before replacement", async () => {
+    const root = await repository();
+    await execute(process.execPath, [entry, "scan", root]);
+    const output = join(root, ".topo/deploy");
+    await bundleSite(root, output, { basePath: "/architecture/" });
+    const destination = join(output, "architecture/index.html");
+    const before = await readFile(destination, "utf8");
+    expect(before).toContain("data-repository-index");
+    await writeFile(join(root, "src/order.ts"), "export class Changed {}\n");
+    await expect(bundleSite(root, output, { basePath: "/architecture/" }))
+      .rejects.toThrow(/exploration is stale/);
+    expect(await readFile(destination, "utf8")).toBe(before);
+  });
+
+  it("keeps partial scan failures explicit in the generated index", async () => {
+    const root = await repository();
+    await writeFile(join(root, "src/missing.ts"), 'import "./not-present.js";\n');
+    await expect(execute(process.execPath, [entry, "scan", root, "--allow-partial"]))
+      .rejects.toMatchObject({ code: 2 });
+    const index = await readRepositoryIndex(root);
+    expect(index?.quality.authoritative).toBe(false);
+    expect(index?.quality.warnings.some((warning) => warning.includes("not-present"))).toBe(true);
+  });
+});

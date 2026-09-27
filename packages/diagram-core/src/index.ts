@@ -487,7 +487,10 @@ function repositoryMetadata(repositoryRoot: string): {
   };
 }
 
-function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
+function archifySpec(
+  story: ResolvedStoryDocument,
+  nativeSourceEvidence = true,
+): ArchifyArchitecture {
   const anchors = new Map(story.anchors.map((anchor) => [anchor.id, anchor]));
   const componentIds = new Map(
     story.document.sections.map((section) => [
@@ -648,7 +651,7 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
         margin + row * (boxHeight + rowGap),
       ] as const,
       size: [boxWidth, boxHeight] as const,
-      ...(sectionAnchors.length === 0
+      ...(sectionAnchors.length === 0 || !nativeSourceEvidence
         ? {}
         : {
             sources: sectionAnchors.map((anchor) => ({
@@ -744,7 +747,7 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
       locale: "en",
       viewBox: [viewBoxWidth, viewBoxHeight],
       legend: { mode: "hidden" },
-      ...(story.document.classification === "capability-demo"
+      ...(story.document.classification === "capability-demo" || !nativeSourceEvidence
         ? {}
         : {
             repository: {
@@ -1488,6 +1491,46 @@ svg g[data-edge-from] > text {
       }, contents)
     : contents;
   return adjustedContents.replace(headEnd, `${style}\n${headEnd}`);
+}
+
+export function renderArchitectureStories(
+  stories: readonly ResolvedStoryDocument[],
+  options: { readonly sourceEvidence?: "native" | "wrapper" } = {},
+): StoryArtifact[] {
+  const integrity = verifyVendoredArchifyIntegrity();
+  if (stories.length === 0) return [];
+  const directory = mkdtempSync(path.join(tmpdir(), "topo-architecture-batch-"));
+  try {
+    const jobs = stories.map((story, index) => {
+      if ((story.document.diagramFamily ?? "architecture") !== "architecture") {
+        throw new Error("Architecture batch only accepts Architecture stories");
+      }
+      const input = path.join(directory, `${index}.json`);
+      const output = path.join(directory, `${index}.html`);
+      writeFileSync(input, JSON.stringify(archifySpec(story, options.sourceEvidence !== "wrapper")));
+      return { input, output, repository: story.repositoryRoot };
+    });
+    const manifest = path.join(directory, "batch.json");
+    writeFileSync(manifest, JSON.stringify(jobs));
+    execFileSync(process.execPath, [
+      fileURLToPath(new URL("./architecture-batch.js", import.meta.url)),
+      manifest,
+    ], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, stdio: ["ignore", "pipe", "pipe"] });
+    return jobs.map(({ output }) => ({
+      kind: "html",
+      mediaType: "text/html",
+      contents: improveStoryReadability(readFileSync(output, "utf8"), "architecture"),
+      renderer: {
+        name: "archify",
+        pin: integrity.version,
+        sha256: integrity.archiveSha256,
+      },
+    }));
+  } catch (error) {
+    throw commandError(error);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 }
 
 export function renderStory(story: ResolvedStoryDocument): StoryArtifact {

@@ -16,7 +16,7 @@ import {
 } from "./views.js";
 
 const MAX_SAVE_BODY = 1024 * 1024;
-const STORY_VIEWER_PATH = /^\/stories\/[^/]+\/viewer\.html$/;
+const STORY_VIEWER_PATH = /^\/(?:stories|repository)\/[^/]+\/viewer\.html$/;
 
 const MIME: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
