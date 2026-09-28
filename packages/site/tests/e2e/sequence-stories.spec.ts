@@ -16,6 +16,7 @@ import { promisify } from "node:util";
 import { expect } from "@playwright/test";
 import {
   commit,
+  scanActualRepository,
   startStaticServer,
   startTopoServer,
   stopTopoServer,
@@ -643,8 +644,9 @@ test("Sequence stories remain readable in a plain-server bundle", async ({
 });
 
 test("actual repository Sequence stories validate and preview", async () => {
+  test.slow();
   await withDisposableRepository(projectRoot, async (repository) => {
-    await topo(repository, "scan");
+    await scanActualRepository(repository);
     for (const story of stories) {
       const validation = await topo(
         repository,
@@ -671,11 +673,12 @@ test("actual repository Sequence stories validate and preview", async () => {
 test("public Sequence participants retain native details before explicit navigation", async ({
   page,
 }) => {
+  test.slow();
   let server: Awaited<ReturnType<typeof startStaticServer>>["server"] | undefined;
   await withDisposableRepository(projectRoot, async (repository) => {
     const output = join(repository, ".topo/public-sequence-details");
     try {
-      await topo(repository, "scan");
+      await scanActualRepository(repository);
       await topo(
         repository,
         "bundle",
@@ -766,12 +769,13 @@ test("public Sequence participants retain native details before explicit navigat
 test("integrated Sequence stories preserve titles, navigation, and exports", async ({
   page,
 }) => {
+  test.slow();
   let server: Awaited<ReturnType<typeof startStaticServer>>["server"] | undefined;
   await withDisposableRepository(projectRoot, async (repository) => {
     const workspace = join(repository, ".topo");
     try {
       const output = join(workspace, "integration-bundle");
-      await topo(repository, "scan");
+      await scanActualRepository(repository);
       await topo(
         repository,
         "bundle",

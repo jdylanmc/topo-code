@@ -215,6 +215,12 @@ committed source change, checking stale-evidence rejection and preserved authore
 views and layout positions.
 
 Successful runs show the Node/Vitest and Playwright results and exit **0**.
+Ordinary browser-test CLI commands have a 30-second timeout. The three
+complete-repository Sequence integration cases explicitly allow 120 seconds
+for scanning and pre-rendering the repository's Archify views, log the actual
+duration, and use Playwright's bounded slow-test budget (180 seconds). These
+are integration-runner limits, not product performance guarantees; assertions,
+retry policy, and concurrency are unchanged.
 Missing tools/scripts/browser binaries, failed builds, assertions, or licence
 checks exit **nonzero**; the first failed gate stops later gates. Browser startup
 or port conflicts are failures, not skips. Fix the reported cause and rerun the
