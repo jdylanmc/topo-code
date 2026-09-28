@@ -90,6 +90,7 @@ async function copySite(
     ...stories.map(({ document }) => `stories/${document.id}/viewer.html`),
     ...(repository === undefined ? [] : [
       "repository.json", "repository-navigation.js",
+      ...(repository.runtimeFiles ?? []).map((name) => `repository-runtime/${name}`),
       ...repository.pages.map((page) => `repository/${page.id}/viewer.html`),
     ]),
   ]);

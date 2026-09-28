@@ -134,4 +134,18 @@ describe("generated repository delivery", () => {
     await expect(bundleSite(root, output)).rejects.toThrow(/Invalid generated repository node/);
     expect(await readFile(join(output, "index.html"), "utf8")).toBe(before);
   });
+
+  it("deduplicates runtime assets and rejects tampering before bundle replacement", async () => {
+    const root = await repository();
+    await execute(process.execPath, [entry, "scan", root]);
+    const index = (await readRepositoryIndex(root))!;
+    expect(index.runtimeFiles?.filter((file) => file.endsWith(".js"))).toHaveLength(2);
+    const output = join(root, ".topo/deploy");
+    await bundleSite(root, output);
+    const before = await readFile(join(output, "index.html"), "utf8");
+    const runtime = join(root, ".topo/cache/site/repository-runtime", index.runtimeFiles![0]!);
+    await writeFile(runtime, "tampered");
+    await expect(bundleSite(root, output)).rejects.toThrow(/runtime asset integrity failure/);
+    expect(await readFile(join(output, "index.html"), "utf8")).toBe(before);
+  });
 });

@@ -1,13 +1,13 @@
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, posix } from "node:path";
 import { promisify } from "node:util";
 import { renderArchitectureStoryBatch } from "@topo/diagram-core";
 import type { GraphDocument, LogicalArchitectureDocument } from "@topo/schema";
 import type { ResolvedStoryDocument, StoryConnection } from "@topo/story";
-import { readOptionalArtifact } from "@topo/workspace";
+import { readOptionalArtifact, workspacePath } from "@topo/workspace";
 import {
   buildRepositoryIndex,
   repositoryId,
@@ -21,12 +21,14 @@ import {
   captureSourceSnapshot,
   type SourceSnapshot,
 } from "./source-snapshot.js";
+import { shareViewerAssets } from "./viewer-assets.js";
 
 const execute = promisify(execFile);
 
 export interface GeneratedRepository {
   readonly index: RepositoryIndex;
   readonly viewerFiles: ReadonlyMap<string, string>;
+  readonly runtimeFiles: ReadonlyMap<string, string>;
   dispose(): Promise<void>;
 }
 
@@ -166,6 +168,7 @@ export async function generateRepository(
   const dispose = () => rm(directory, { recursive: true, force: true });
   try {
     const viewerFiles = new Map<string, string>();
+    const assets = new Map<string, string>();
     const artifacts = renderArchitectureStoryBatch(
       renderable.map((page) => pageStory(root, index, page, snapshot, nodes)),
       { sourceEvidence: "wrapper" },
@@ -174,11 +177,20 @@ export async function generateRepository(
     for (const artifact of artifacts) {
       const page = renderable[offset++]!;
       const file = join(directory, `${page.id}.html`);
-      await writeFile(file, artifact.contents);
+      await writeFile(file, shareViewerAssets(artifact.contents, assets));
       viewerFiles.set(page.id, file);
     }
+    const runtimeFiles = new Map<string, string>();
+    for (const [name, contents] of assets) {
+      const file = join(directory, name);
+      await writeFile(file, contents);
+      runtimeFiles.set(name, file);
+    }
     await assertSourceSnapshot(root, snapshot);
-    return { index, viewerFiles, dispose };
+    return {
+      index: { ...index, runtimeFiles: [...runtimeFiles.keys()].sort() },
+      viewerFiles, runtimeFiles, dispose,
+    };
   } catch (error) {
     await dispose();
     throw error;
@@ -242,6 +254,11 @@ function assertRepositoryIndex(value: unknown): asserts value is RepositoryIndex
     !("relationships" in value) || !Array.isArray(value.relationships) ||
     !("pages" in value) || !Array.isArray(value.pages)
   ) throw new Error("Invalid generated repository index; run topo scan again.");
+  if ("runtimeFiles" in value && (
+    !Array.isArray(value.runtimeFiles) ||
+    value.runtimeFiles.some((file: unknown) =>
+      typeof file !== "string" || !/^[a-f0-9]{64}\.(?:js|css)$/.test(file))
+  )) throw new Error("Invalid generated repository runtime assets.");
   const nodes = new Map<string, { kind: string; childIds: string[]; parentId?: string }>();
   const kinds = new Set(["repository", "directory", "package", "file", "external", "class", "function", "interface", "type", "enum", "variable"]);
   for (const node of value.nodes) {
@@ -321,6 +338,12 @@ export async function assertRepositoryCurrent(
 ): Promise<void> {
   if (index.source.fingerprint !== source.fingerprint || index.source.revision !== source.revision) {
     throw new Error("Repository exploration is stale; run topo scan before bundling.");
+  }
+  for (const file of index.runtimeFiles ?? []) {
+    const content = await readFile(await workspacePath(root, `cache/site/repository-runtime/${file}`));
+    if (createHash("sha256").update(content).digest("hex") !== file.split(".")[0]) {
+      throw new Error(`Repository runtime asset integrity failure: ${file}; run topo scan again.`);
+    }
   }
   const files = index.nodes.filter((node) => node.kind === "file");
   const snapshot = await captureSourceSnapshot(root, files.map((node) => node.path));

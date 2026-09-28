@@ -97,6 +97,20 @@ test("bounded repository pages and source evidence survive a plain static base p
     await expect(page).toHaveURL(`${base}?scope=${src.id}&page=2`);
     await page.reload();
     await expect(page.locator("[data-repository-page]")).toHaveText("Page 2 of 2 / 5 entries");
+    const viewer = page.locator("[data-repository-viewer]").contentFrame();
+    await viewer.getByRole("button", { name: "Export diagram" }).click();
+    const svgDownload = page.waitForEvent("download");
+    await viewer.locator('button[data-format="svg"]').click();
+    const svg = await readFile((await (await svgDownload).path())!, "utf8");
+    expect(svg).toContain("store.ts");
+    expect(svg).toContain("z.ts");
+    expect(svg).toContain("JetBrains Mono");
+    expect(svg).toMatch(/@font-face[\s\S]*?src:\s*url\(["']?data:[^)]*base64,/);
+    await viewer.getByRole("button", { name: "Export diagram" }).click();
+    const pngDownload = page.waitForEvent("download");
+    await viewer.locator('button[data-format="png"]').click();
+    const png = await readFile((await (await pngDownload).path())!);
+    expect([...png.subarray(0, 8)]).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);
     await page.getByRole("navigation", { name: "Repository breadcrumbs" })
       .getByRole("link", { name: "Repository", exact: true }).click();
     await expect(page).toHaveURL(base);

@@ -1120,6 +1120,9 @@ export async function writeCatalogue(
   const links = storyLinks(stories);
   const repository = generatedRepository?.index ?? await readRepositoryIndex(root);
   if (generatedRepository !== undefined) {
+    for (const [name, file] of generatedRepository.runtimeFiles) {
+      await writeGenerated(root, `cache/site/repository-runtime/${name}`, await readFile(file));
+    }
     for (const [id, file] of generatedRepository.viewerFiles) {
       await writeGenerated(root, `cache/site/repository/${id}/viewer.html`, await readFile(file));
     }

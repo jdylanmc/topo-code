@@ -71,6 +71,12 @@ All native pages finish validation before publication. Validated output is
 staged to owned temporary files and copied one page at a time, rather than
 retaining every standalone viewer and every concurrent write buffer in memory.
 Temporary output is removed after publication or failure.
+Byte-identical classic scripts and relocatable head styles are stored once as
+content-addressed local assets. Document JSON, SVG styles, modules, ID-addressed
+elements (including the font text used by export), and relative-resource styles
+stay in place. This packaging happens after native
+validation; static-bundle checks verify the shared asset hashes, and canonical
+SVG/PNG exports retain their fonts and geometry.
 
 Generated files live under `.topo/cache/site/`:
 
@@ -78,6 +84,7 @@ Generated files live under `.topo/cache/site/`:
 | --- | --- |
 | `repository.json` | Versioned hierarchy, evidence, relationships and page index |
 | `repository/<view-id>/viewer.html` | Native Archify artifact for one bounded page |
+| `repository-runtime/<hash>.js` / `<hash>.css` | Shared, integrity-checked native viewer runtime |
 | `repository-navigation.js` | Wrapper-side navigation and evidence interaction |
 | `index.html` | Existing shell with repository exploration as its default canvas |
 

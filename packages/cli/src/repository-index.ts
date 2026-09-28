@@ -57,6 +57,7 @@ export interface RepositoryIndex {
   readonly nodes: readonly RepositoryNode[];
   readonly relationships: readonly RepositoryRelationship[];
   readonly pages: readonly RepositoryPage[];
+  readonly runtimeFiles?: readonly string[];
 }
 
 export function repositoryId(kind: string, identity: string): string {
