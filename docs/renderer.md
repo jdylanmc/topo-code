@@ -37,6 +37,10 @@ on the compatible native v1 geometry: state widths and column clearance account
 for final typography, preserving Topocode's 12px effective text requirement.
 The v3 viewer's own guided/story-view and ordinary share-card removal does not
 remove Topocode's authored-story catalogue or canonical SVG/PNG exports.
+Native v3 PNG exports add the viewer's title and canvas frame around the
+uniformly scaled canonical diagram. SVG remains the bare canonical geometry;
+the test oracle accounts for frame dimensions rather than distorting or
+cropping the diagram to preserve the previous whole-image aspect ratio.
 
 Native `deliver` provenance receipts describe the raw native artifact. Topocode
 then applies adapter typography/narrative changes and, for repository views,

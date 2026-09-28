@@ -23,6 +23,8 @@ silently reuse a neighboring state's column.
 The Archify 3.0.0 adapter retains native Lifecycle schema v1; it reserves the
 native minimum route gap and sizes states for final 14.5px typography so the
 adaptive viewer still meets Topocode's 12px effective on-screen text floor.
+Native v3 Lifecycle output omits empty bands and adds the terminal state's
+double border; neither changes authored state or transition membership.
 
 The optional `classification` is `source-grounded` or `capability-demo`;
 omission retains the source-grounded behavior. Every source-grounded section
@@ -83,8 +85,11 @@ renderer failures exit nonzero. Rendering completes in memory before the
 generated file is atomically replaced, so renderer failures do not publish a
 partial story.
 
-The viewer exports the same canonical authored geometry as SVG or a
-resolution-scaled PNG. Local serving permits blob images only for generated
+The viewer exports canonical authored geometry as SVG. Native v3 PNG exports
+place that same geometry, uniformly scaled, inside a title row and padded
+canvas card; the complete PNG therefore has a different aspect ratio than the
+bare SVG. No diagram content is cropped to force the old ratio.
+Local serving permits blob images only for generated
 story viewers so the pinned runtime can rasterize its serialized SVG without
 broadening the Content Security Policy for shell pages.
 

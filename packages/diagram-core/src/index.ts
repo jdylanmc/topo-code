@@ -1228,6 +1228,7 @@ function dataflowSpec(
 }
 
 const lifecycleFontSize = 14.5;
+const lifecycleMinimumRouteLength = 32;
 
 function lifecycleSpec(story: ResolvedStoryDocument): ArchifyLifecycle {
   const stateDrafts = story.document.sections.map((section, index) => {
@@ -1283,7 +1284,7 @@ function lifecycleSpec(story: ResolvedStoryDocument): ArchifyLifecycle {
         const overlaps = drafts.slice(0, position).some((other, otherIndex) => {
           const otherCenter = centers[cols[otherIndex]!]!;
           const otherRight = otherCenter + other.width / 2;
-          return left - otherRight < 32;
+          return left - otherRight < lifecycleMinimumRouteLength;
         });
         if (overlaps) continue;
         search(

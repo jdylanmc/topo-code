@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect } from "@playwright/test";
+import { expectCanonicalRasterFigure } from "./helpers/raster-figure.js";
 import {
   commit,
   startTopoServer,
@@ -592,10 +593,9 @@ test("actual Architecture exports preserve canonical geometry and labels", async
     const png = await readFile(pngPath!);
     expect(png.subarray(1, 4).toString("ascii")).toBe("PNG");
     const pngWidth = png.readUInt32BE(16);
-    const pngHeight = png.readUInt32BE(20);
     const svgWidth = svgDimensions!.width;
     const svgHeight = svgDimensions!.height;
-    expect(pngWidth / svgWidth).toBe(pngHeight / svgHeight);
+    expectCanonicalRasterFigure(png, { width: svgWidth, height: svgHeight });
     expect(pngWidth).toBeGreaterThanOrEqual(svgWidth);
     await expect(viewer.locator("html"))
       .toHaveAttribute("data-last-export-format", "png");

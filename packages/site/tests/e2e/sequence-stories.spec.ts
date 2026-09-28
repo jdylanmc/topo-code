@@ -417,7 +417,7 @@ test("Sequence final typography preserves wide participant titles", async ({
       const viewer = page.frameLocator("[data-story-viewer]");
       const diagram = viewer.locator('svg[role="img"]');
       for (const section of wideSequenceStory.sections) {
-        await expect(viewer.getByText(section.body, { exact: true }))
+        await expect(diagram.getByText(section.body, { exact: true }))
           .toBeVisible();
       }
       const measurement = await diagram.evaluate((svg) => {

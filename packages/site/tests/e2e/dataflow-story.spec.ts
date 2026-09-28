@@ -3,6 +3,7 @@ import type { Server } from "node:http";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect } from "@playwright/test";
+import { expectCanonicalRasterFigure } from "./helpers/raster-figure.js";
 import {
   commit,
   startStaticServer,
@@ -1060,7 +1061,7 @@ test("established long Dataflow bodies retain pinned native geometry and exports
     const pngHeight = png.readUInt32BE(20);
     expect(pngWidth).toBeGreaterThan(0);
     expect(pngHeight).toBeGreaterThan(0);
-    expect(pngWidth / pngHeight).toBeCloseTo(423 / 360, 2);
+    expectCanonicalRasterFigure(png, { width: 423, height: 360 });
     await expect(viewer.locator("html"))
       .toHaveAttribute("data-last-export-canonical", "true");
   } finally {
@@ -1265,7 +1266,7 @@ test("final pinned Dataflow labels clear endpoint nodes and retain export geomet
     const pngHeight = png.readUInt32BE(20);
     expect(pngWidth).toBeGreaterThan(0);
     expect(pngHeight).toBeGreaterThan(0);
-    expect(pngWidth / pngHeight).toBeCloseTo(423 / 360, 2);
+    expectCanonicalRasterFigure(png, { width: 423, height: 360 });
     await expect(viewer.locator("html"))
       .toHaveAttribute("data-last-export-canonical", "true");
   } finally {
@@ -1487,7 +1488,7 @@ test("small-font Dataflow labels satisfy native and final clearance", async ({
     const pngHeight = png.readUInt32BE(20);
     expect(pngWidth).toBeGreaterThan(0);
     expect(pngHeight).toBeGreaterThan(0);
-    expect(pngWidth / pngHeight).toBeCloseTo(423 / 360, 2);
+    expectCanonicalRasterFigure(png, { width: 423, height: 360 });
     await expect(viewer.locator("html"))
       .toHaveAttribute("data-last-export-canonical", "true");
   } finally {
@@ -1631,7 +1632,7 @@ test("long contained Dataflow labels retain final bounds and canonical exports",
     const pngHeight = png.readUInt32BE(20);
     expect(pngWidth).toBeGreaterThan(0);
     expect(pngHeight).toBeGreaterThan(0);
-    expect(pngWidth / pngHeight).toBeCloseTo(423 / 360, 2);
+    expectCanonicalRasterFigure(png, { width: 423, height: 360 });
     await expect(viewer.locator("html"))
       .toHaveAttribute("data-last-export-canonical", "true");
   } finally {
