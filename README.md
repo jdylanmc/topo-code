@@ -17,7 +17,7 @@ everything a human adds is recorded as such.
 
 > **Status: Local preview.** The scan-to-site workflow, deterministic reports,
 > source-grounded stories, static analysis modules, optional AI commentary, and
-> pinned Archify rendering are implemented. Topo is the storybook for
+> pinned Archify 3.0.0 rendering are implemented. Topo is the storybook for
 > architects: the generated shell inventories every diagram while preserving
 > real Archify viewers. This is not yet a published npm CLI.
 

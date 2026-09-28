@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect } from "@playwright/test";
+import { expectCanonicalRasterFigure } from "./helpers/raster-figure.js";
 import {
   commit,
   startTopoServer,
@@ -592,10 +593,9 @@ test("actual Architecture exports preserve canonical geometry and labels", async
     const png = await readFile(pngPath!);
     expect(png.subarray(1, 4).toString("ascii")).toBe("PNG");
     const pngWidth = png.readUInt32BE(16);
-    const pngHeight = png.readUInt32BE(20);
     const svgWidth = svgDimensions!.width;
     const svgHeight = svgDimensions!.height;
-    expect(pngWidth / svgWidth).toBe(pngHeight / svgHeight);
+    expectCanonicalRasterFigure(png, { width: svgWidth, height: svgHeight });
     expect(pngWidth).toBeGreaterThanOrEqual(svgWidth);
     await expect(viewer.locator("html"))
       .toHaveAttribute("data-last-export-format", "png");
@@ -743,10 +743,11 @@ test("wide adjacent Lifecycle states preserve final geometry", async ({
     await expect(diagram).toBeVisible();
     await expect(diagram.locator("g[data-node-id]")).toHaveCount(3);
     await expect(diagram.locator("g[data-edge-from]")).toHaveCount(2);
+    await diagram.evaluate(() => document.fonts.ready);
     const geometry = await diagram.evaluate((svg) => {
       const states = [...svg.querySelectorAll<SVGGraphicsElement>(
-        "g[data-node-id] > rect:not(.c-mask)",
-      )].map((element) => element.getBoundingClientRect());
+        "g[data-node-id]",
+      )].map((node) => node.querySelector("rect:not(.c-mask)")!.getBoundingClientRect());
       const labels = [...svg.querySelectorAll<SVGTextElement>(
         "g[data-edge-from] > text",
       )];
@@ -773,6 +774,28 @@ test("wide adjacent Lifecycle states preserve final geometry", async ({
       );
       return {
         stateIntersections: intersections(states, states),
+        overflowingStateLabels: [...svg.querySelectorAll<SVGGraphicsElement>(
+          "g[data-node-id]",
+        )].flatMap((node) => {
+          const box = node.querySelector("rect:not(.c-mask)")?.getBoundingClientRect();
+          if (!box) return [];
+          return [...node.querySelectorAll<SVGTextElement>("text[data-node-label]")].flatMap((label) => {
+            const text = label.getBoundingClientRect();
+            return text.left < box.left || text.right > box.right ||
+              text.top < box.top || text.bottom > box.bottom
+              ? [{
+                  label: label.textContent,
+                  font: getComputedStyle(label).fontFamily,
+                  textWidth: text.width,
+                  boxWidth: box.width,
+                  leftOverflow: box.left - text.left,
+                  rightOverflow: text.right - box.right,
+                  topOverflow: box.top - text.top,
+                  bottomOverflow: text.bottom - box.bottom,
+                }]
+              : [];
+          });
+        }),
         labelIntersections: intersections(
           labels.map((label) => label.getBoundingClientRect()),
           states,
@@ -789,6 +812,7 @@ test("wide adjacent Lifecycle states preserve final geometry", async ({
       };
     });
     expect(geometry.stateIntersections).toEqual([]);
+    expect(geometry.overflowingStateLabels).toEqual([]);
     expect(geometry.labelIntersections).toEqual([]);
     expect(geometry.minimumFontSize).toBeGreaterThanOrEqual(12);
   } finally {

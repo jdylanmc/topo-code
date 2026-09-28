@@ -269,14 +269,14 @@ describe("story preview", () => {
     expect(contents).toContain("Charge the accepted order.");
   });
 
-  it("renders a committed lifecycle story with native lifecycle bands", async () => {
+  it("renders populated lifecycle bands without inventing an empty recovery phase", async () => {
     const { root, documentPath } = await fixture(familyStory("lifecycle"));
 
     const result = await previewStory(root, documentPath);
     const contents = await readFile(result.outputPath, "utf8");
 
     expect(contents).toContain("01 / Checkout");
-    expect(contents).toContain("02 / Interruptions + recovery");
+    expect(contents).not.toContain("02 / Interruptions + recovery");
     expect(contents).toContain("03 / Outcomes");
   });
 
@@ -401,7 +401,7 @@ describe("story preview", () => {
     const secondContents = await readFile(second.outputPath, "utf8");
 
     expect(secondContents).toBe(firstContents);
-    expect(first.renderer).toEqual({ name: "archify", pin: "2.17.0-dev.1" });
+    expect(first.renderer).toEqual({ name: "archify", pin: "3.0.0" });
     expect(firstContents).toContain("<svg");
     expect(firstContents).toContain("Submit");
   });

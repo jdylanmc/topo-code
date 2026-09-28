@@ -78,8 +78,9 @@ scanning and structural validation.
 - A renderer can be replaced or added behind the adapter without changing story
   documents. Adapter tests check output and failure behavior, not internal call
   order. **AC-15**
-- The current renderer pin is Archify `2.17.0-dev.1` at exact revision
-  `d673e8300df60a5c8166abe78787fdc78f6b8000`.
+- The current renderer pin is Archify `3.0.0` at exact revision
+  `9286c3b9c2cef359e98586b420d769d87bcb163f`. The owner selected a pristine
+  checked-in copy of the official release ZIP, with no build-time download.
 - The wrapper owns catalogue navigation, deep links, and restored node focus.
   Archify owns diagram geometry, theme, presentation, zoom, evidence details,
   and canonical SVG/PNG export. **CON-08, AC-19**
@@ -136,9 +137,9 @@ for this work. These clauses are requirements, not waivers:
 | Original clause | Current state | Required end state |
 | --- | --- | --- |
 | **AC-10, NFR-02** | The shipped license gate uses scoped handling for embedded font notices. Its literal allowlist does not contain `OFL-1.1`. This is a specification reconciliation gap, not evidence of a license violation or missing notices. | Decide how the original narrow `OFL-1.1` allowlist wording maps to the scoped implementation. Do not silently broaden license policy. |
-| **AC-16** | The runtime package integrity-checks the 62 files it ships. | Also preserve and verify the exact pristine upstream inventory of 214 files at `d673e8300df60a5c8166abe78787fdc78f6b8000`. Drift must fail loudly without rewriting the historical baseline. |
+| **AC-16** | The owner-approved v3 release ZIP supplies all 104 runtime files, each integrity-checked; the former 62-file runtime manifest remains preserved unchanged. | The approved v3 distribution replaces the old pin/inventory target. Keep the exact pristine runtime and fail loudly on drift. This is not a claim that the former 214-file upstream-source requirement was retroactively delivered. |
 | **AC-17** | Topocode smoke and regression tests exercise the integrated renderer. | Run the real upstream test suite that accompanies the pristine pin in Node.js 22/Linux CI. Do not replace it with an empty gate or Topocode-only smoke tests. |
-| **AC-18, CON-07** | Required license and notice material is shipped with the runtime subset. | Retain upstream `LICENSE`, `THIRD_PARTY_NOTICES.md`, brand attribution, and trademark disclaimer verbatim. Contribute changes upstream first. If blocked, use an explicit listed patch set over the pristine copy. Each patch records whether it is still needed or has landed upstream. Never make silent in-place edits. |
+| **AC-18, CON-07** | The full official v3 runtime and required license/notice material are retained verbatim, with no vendor patches. | Retain upstream `LICENSE`, `THIRD_PARTY_NOTICES.md`, brand attribution, and trademark disclaimer verbatim. Contribute changes upstream first. If blocked, use an explicit listed patch set over the pristine copy. Each patch records whether it is still needed or has landed upstream. Never make silent in-place edits. |
 
 The vendored package is a swappable seam, not a goal to maintain a divergent
 fork. If upstream publishes a usable package, `@topo/diagram-core` may become a
@@ -169,18 +170,18 @@ This table preserves the disposition of every numbered original requirement.
 | **FR-06; AC-11** | Partly shipped: bounded catalogue configuration. Broader composition/extensibility and the required manual walkthrough remain unresolved above. |
 | **FR-07; AC-12** | Workflow shipped; the required manual agent-authoring walkthrough remains unresolved above. |
 | **FR-08; AC-02** | Shipped objective anchor failures; no heuristic staleness gate. |
-| **FR-09; AC-04** | Shipped package boundary and exact revision pin. Full-copy obligations remain below. |
+| **FR-09; AC-04** | Shipped package boundary and exact revision pin. The approved v3 release runtime is complete; upstream-suite integration remains below. |
 | **NFR-01; AC-09** | Shipped notices in generated and bundled output. |
 | **NFR-02; AC-10** | Unresolved wording-to-implementation reconciliation in #41. |
 | **NFR-03; AC-03** | Same-environment repeat-render equivalence shipped; required cross-machine reproducibility remains unverified above. |
 | **NFR-05** | Historical POC sizes remain evidence, not budgets or current performance claims. |
 | **NFR-06** | No extra accessibility, security, privacy, reliability, or operability target was agreed. Existing safeguards still apply. |
 | **CON-01** | Maintained: building Topocode and a consumer's deployment pipeline are separate systems. |
-| **CON-02** | Maintained: exact vendored pin behind `@topo/diagram-core`; full-copy work remains in #41. |
+| **CON-02** | Maintained: exact pristine v3 release ZIP behind `@topo/diagram-core`; unresolved upstream-suite/license commitments remain in #41. |
 | **CON-03; AC-14** | Shipped CI baseline; **AC-17** remains unresolved in #41. |
 | **CON-04; U-3** | Superseded: PR #71 removed the WebGL explorer. #70 supplies the bounded source-grounded Archify replacement in the same shell. |
 | **CON-05, CON-06** | Maintained platform and evidence-preservation constraints. |
-| **CON-07; AC-16, AC-18** | Unresolved pristine-copy and explicit-patch obligations in #41. |
+| **CON-07; AC-16, AC-18** | Approved v3 pristine runtime and verbatim notices shipped; historical baselines retained. Upstream-first and explicit-patch policy remains mandatory. |
 | **CON-08; AC-19** | Shipped wrapper-side links and focus restoration. |
 
 Other source clauses remain bounded as follows: dirty-tree behavior must keep

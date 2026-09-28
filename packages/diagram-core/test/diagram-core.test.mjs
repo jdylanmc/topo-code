@@ -5,6 +5,7 @@ import {
   mkdtemp,
   readFile,
   rm,
+  symlink,
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -25,11 +26,13 @@ const execute = promisify(execFile);
 test("accepts the committed integrity baseline", () => {
   const integrity = verifyVendoredArchifyIntegrity();
 
-  assert.equal(integrity.files, 62);
+  assert.equal(integrity.files, 104);
   assert.equal(
     integrity.revision,
-    "d673e8300df60a5c8166abe78787fdc78f6b8000",
+    "9286c3b9c2cef359e98586b420d769d87bcb163f",
   );
+  assert.equal(integrity.version, "3.0.0");
+  assert.equal(integrity.archiveSha256, "e30f65ddab8bbb0c467fa4be5bccf7e3853bd3ee86e8338f31e102037496be18");
 });
 
 test("renders a resolved story through the vendored Archify CLI", async (context) => {
@@ -120,12 +123,25 @@ test("renders a resolved story through the vendored Archify CLI", async (context
     assert.match(artifact.contents, /Checkout service/);
   }
   assert.equal(first.renderer.name, "archify");
-  assert.equal(first.renderer.pin, "2.17.0-dev.1");
+  assert.equal(first.renderer.pin, "3.0.0");
   assert.match(first.contents, /<svg\b/);
   assert.match(first.contents, /Checkout client/);
   assert.match(first.contents, /Checkout service/);
   assert.match(first.contents, /Export diagram/);
   assert.match(first.contents, />Present</);
+
+  const caller = path.join(repositoryRoot, "caller");
+  await mkdir(caller);
+  await symlink(path.join(repositoryRoot, "source.ts"), path.join(caller, "story.html"));
+  const isolated = await execute(process.execPath, [
+    "--input-type=module",
+    "-e",
+    `import { renderStory, renderArchitectureStories } from ${JSON.stringify(new URL("../dist/index.js", import.meta.url).href)};
+const story = JSON.parse(process.argv[1]);
+console.log(renderStory(story).renderer.pin, renderArchitectureStories([story])[0].renderer.pin);`,
+    JSON.stringify(story),
+  ], { cwd: caller });
+  assert.equal(isolated.stdout.trim(), "3.0.0 3.0.0");
 });
 
 for (const sectionCount of [5, 6, 7, 10]) {
@@ -181,6 +197,10 @@ test("rejects a tampered vendored Archify file", async (context) => {
     path.join(packageRoot, "archify-integrity.json"),
     path.join(temporaryRoot, "archify-integrity.json"),
   );
+  await cp(
+    path.join(packageRoot, "archify-pin.json"),
+    path.join(temporaryRoot, "archify-pin.json"),
+  );
   await writeFile(
     path.join(temporaryRoot, "vendor", "archify", "LICENSE"),
     `${await readFile(path.join(packageRoot, "vendor", "archify", "LICENSE"), "utf8")}\ntampered\n`,
@@ -190,4 +210,24 @@ test("rejects a tampered vendored Archify file", async (context) => {
     () => verifyVendoredArchifyIntegrity(temporaryRoot),
     /integrity failure/,
   );
+});
+
+test("rejects inventory drift and symbolic links without rewriting the pin", async (context) => {
+  const root = await mkdtemp(path.join(tmpdir(), "topo-archify-inventory-"));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await cp(path.join(packageRoot, "vendor"), path.join(root, "vendor"), { recursive: true });
+  for (const file of ["archify-pin.json", "archify-integrity.json"]) {
+    await cp(path.join(packageRoot, file), path.join(root, file));
+  }
+  const baseline = await readFile(path.join(root, "archify-integrity.json"), "utf8");
+  const extra = path.join(root, "vendor/archify/unexpected.txt");
+  await writeFile(extra, "unexpected");
+  assert.throws(() => verifyVendoredArchifyIntegrity(root), /file inventory differs/);
+  await rm(extra);
+  const license = path.join(root, "vendor/archify/LICENSE");
+  await rm(license);
+  assert.throws(() => verifyVendoredArchifyIntegrity(root), /file inventory differs/);
+  await symlink(path.join(packageRoot, "vendor/archify/LICENSE"), license);
+  assert.throws(() => verifyVendoredArchifyIntegrity(root), /unsupported file type/);
+  assert.equal(await readFile(path.join(root, "archify-integrity.json"), "utf8"), baseline);
 });

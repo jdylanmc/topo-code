@@ -5,6 +5,22 @@ does not currently publish versioned releases.
 
 ## Unreleased
 
+### Renderer upgrade
+
+- Upgrade `@topo/diagram-core` to the complete pristine Archify 3.0.0 release
+  ZIP at `9286c3b9c2cef359e98586b420d769d87bcb163f`, with all 104 runtime files
+  verified, metadata outside the vendor tree, and the previous integrity
+  baseline preserved. Builds and runtime remain download-free.
+- Supply v3 output-path metadata at the adapter boundary without rewriting
+  authored stories. Preserve compatible Lifecycle v1 inputs and the 12px
+  effective-text requirement through final-font sizing and native route gaps.
+- Preserve native v3 raster figure exports with their title and padded frame,
+  while verifying that inner diagram geometry remains uniformly scaled.
+  Lifecycle omits empty bands and visibly marks terminal states.
+- Retain upstream MIT, third-party and font notices unchanged; no vendor patch,
+  npm renderer dependency, license-policy expansion or upstream-suite completion
+  is implied. Refs #41.
+
 ### Added
 
 - Add default source-grounded Repository exploration through pinned Archify:

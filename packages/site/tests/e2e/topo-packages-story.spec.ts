@@ -2,6 +2,7 @@ import { access, cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, type Page } from "@playwright/test";
+import { expectCanonicalRasterFigure } from "./helpers/raster-figure.js";
 import {
   commit,
   startStaticServer,
@@ -760,9 +761,7 @@ async function verifyRaggedArchitectureScenario(
         const png = await readFile(pngPath!);
         expect(png.subarray(1, 4).toString("ascii")).toBe("PNG");
         const pngWidth = png.readUInt32BE(16);
-        const pngHeight = png.readUInt32BE(20);
-        expect(pngWidth / svgDimensions!.width)
-          .toBe(pngHeight / svgDimensions!.height);
+        expectCanonicalRasterFigure(png, svgDimensions!);
         expect(pngWidth).toBeGreaterThanOrEqual(svgDimensions!.width);
         await expect(frame.locator("html"))
           .toHaveAttribute("data-last-export-format", "png");
