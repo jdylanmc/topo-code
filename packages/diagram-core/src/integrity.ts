@@ -57,7 +57,7 @@ function readManifest(rootDirectory: string): IntegrityManifest {
 }
 
 function readPin(rootDirectory: string): ArchifyPin {
-  const pinPath = path.join(rootDirectory, "vendor", "archify", "PIN.json");
+  const pinPath = path.join(rootDirectory, "archify-pin.json");
   const parsed: unknown = JSON.parse(readFileSync(pinPath, "utf8"));
   if (
     typeof parsed !== "object" ||
@@ -65,12 +65,11 @@ function readPin(rootDirectory: string): ArchifyPin {
     !("repo" in parsed) ||
     parsed.repo !== "github.com/tt-a1i/archify" ||
     !("revision" in parsed) ||
-    parsed.revision !== "d673e8300df60a5c8166abe78787fdc78f6b8000" ||
+    parsed.revision !== "9286c3b9c2cef359e98586b420d769d87bcb163f" ||
     !("version" in parsed) ||
-    parsed.version !== "2.17.0-dev.1" ||
+    parsed.version !== "3.0.0" ||
     !("archiveSha256" in parsed) ||
-    typeof parsed.archiveSha256 !== "string" ||
-    !SHA256.test(parsed.archiveSha256)
+    parsed.archiveSha256 !== "e30f65ddab8bbb0c467fa4be5bccf7e3853bd3ee86e8338f31e102037496be18"
   ) {
     throw new Error(`Invalid vendored Archify pin: ${pinPath}`);
   }
@@ -87,6 +86,9 @@ function vendoredFiles(directory: string, rootDirectory: string): string[] {
     .sort((left, right) => left.name.localeCompare(right.name))
     .flatMap((entry) => {
       const candidate = path.join(directory, entry.name);
+      if (!entry.isFile() && !entry.isDirectory()) {
+        throw new Error(`Vendored Archify integrity failure: unsupported file type at ${candidate}`);
+      }
       return entry.isDirectory()
         ? vendoredFiles(candidate, rootDirectory)
         : [path.relative(rootDirectory, candidate).split(path.sep).join("/")];

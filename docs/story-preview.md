@@ -20,6 +20,9 @@ cannot satisfy the renderer's legible minimum still fails explicitly.
 Lifecycle state widths are derived from their authored titles, then all states
 are placed together within their semantic native lanes so a wide state cannot
 silently reuse a neighboring state's column.
+The Archify 3.0.0 adapter retains native Lifecycle schema v1; it reserves the
+native minimum route gap and sizes states for final 14.5px typography so the
+adaptive viewer still meets Topocode's 12px effective on-screen text floor.
 
 The optional `classification` is `source-grounded` or `capability-demo`;
 omission retains the source-grounded behavior. Every source-grounded section

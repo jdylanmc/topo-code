@@ -401,7 +401,7 @@ describe("story preview", () => {
     const secondContents = await readFile(second.outputPath, "utf8");
 
     expect(secondContents).toBe(firstContents);
-    expect(first.renderer).toEqual({ name: "archify", pin: "2.17.0-dev.1" });
+    expect(first.renderer).toEqual({ name: "archify", pin: "3.0.0" });
     expect(firstContents).toContain("<svg");
     expect(firstContents).toContain("Submit");
   });

@@ -1,7 +1,7 @@
 # Rendering boundary
 
 Topo renders committed diagram stories through the pinned, integrity-checked
-Archify runtime in `@topo/diagram-core`. Authored `.topo.json` documents remain
+Archify 3.0.0 runtime in `@topo/diagram-core`. Authored `.topo.json` documents remain
 renderer-neutral; source anchors resolve before rendering, and failures do not
 publish partial output.
 
@@ -11,6 +11,42 @@ story and embeds each unchanged Archify HTML artifact at
 theme, presentation, zoom, source/evidence details, and canonical SVG/PNG
 exports. The shell owns navigation, grouping, filtering, Git-backed sorting,
 responsive containment, and deep-link coordination around that iframe.
+
+## Pinned distribution and upgrades
+
+The checked-in `packages/diagram-core/vendor/archify/` directory is the complete,
+unmodified 104-file runtime from the official
+[v3.0.0 release ZIP](https://github.com/tt-a1i/archify/releases/tag/v3.0.0),
+at commit `9286c3b9c2cef359e98586b420d769d87bcb163f`.
+`archify-pin.json` records its source and archive SHA-256;
+`archify-integrity.json` verifies every path and file. Metadata stays outside
+the upstream tree. Build and rendering require no runtime download or npm
+package named `archify`.
+
+The prior 2.17.0-dev.1 runtime manifest is preserved unchanged under
+`packages/diagram-core/integrity/`. A future upgrade needs its own reviewed
+pin and inventory, not an integrity-baseline rewrite to bless local edits.
+Keep upstream licenses, font notices, brand attribution and trademark
+disclaimers verbatim. Proposed renderer changes go upstream first; any approved
+local patch must be separately listed with its upstream status. This pin has
+no vendor patches.
+
+The v3 adapter adds portable `meta.output` only to its generated renderer input;
+authored Topocode stories retain their identity and schema. Lifecycle remains
+on the compatible native v1 geometry: state widths and column clearance account
+for final typography, preserving Topocode's 12px effective text requirement.
+The v3 viewer's own guided/story-view and ordinary share-card removal does not
+remove Topocode's authored-story catalogue or canonical SVG/PNG exports.
+
+Native `deliver` provenance receipts describe the raw native artifact. Topocode
+then applies adapter typography/narrative changes and, for repository views,
+shared-asset packaging. Those bytes must not be presented as the original
+native artifact's hash or as a successful upstream `finalize` result.
+Topocode validates its delivered behavior through the existing CLI/browser
+regressions. The public release ZIP intentionally omits the upstream test
+suite; integrating that suite remains separate work in #41.
+
+## Generated repository views
 
 The default Repository canvas uses bounded generated Architecture views at
 `/repository/<view-id>/viewer.html` through the same package boundary. Its

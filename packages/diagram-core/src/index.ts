@@ -1227,6 +1227,8 @@ function dataflowSpec(
   };
 }
 
+const lifecycleFontSize = 14.5;
+
 function lifecycleSpec(story: ResolvedStoryDocument): ArchifyLifecycle {
   const stateDrafts = story.document.sections.map((section, index) => {
     const last = index === story.document.sections.length - 1;
@@ -1246,7 +1248,7 @@ function lifecycleSpec(story: ResolvedStoryDocument): ArchifyLifecycle {
           (total, character) =>
             total + (character.codePointAt(0)! > 0xff ? 2 : 1),
           0,
-        ) * 6.2),
+        ) * lifecycleFontSize * 0.5 + 28),
       ),
     };
   });
@@ -1281,7 +1283,7 @@ function lifecycleSpec(story: ResolvedStoryDocument): ArchifyLifecycle {
         const overlaps = drafts.slice(0, position).some((other, otherIndex) => {
           const otherCenter = centers[cols[otherIndex]!]!;
           const otherRight = otherCenter + other.width / 2;
-          return left - otherRight < 10;
+          return left - otherRight < 32;
         });
         if (overlaps) continue;
         search(
@@ -1384,6 +1386,13 @@ function commandError(error: unknown): Error {
     : new Error(`Archify rendering failed: ${String(error)}`);
 }
 
+function serializeRendererInput(spec: { readonly meta: object }): string {
+  return `${JSON.stringify({
+    ...spec,
+    meta: { ...spec.meta, output: "story.html" },
+  }, null, 2)}\n`;
+}
+
 function improveStoryReadability(
   contents: string,
   family:
@@ -1439,7 +1448,7 @@ svg text[data-node-label],
 svg text[font-size="10"][font-weight="600"],
 svg g[data-edge-from] > text {
   font-family: ui-sans-serif, system-ui, sans-serif;
-  font-size: 13px;
+  font-size: ${lifecycleFontSize}px;
 }`;
   const style = `<style data-topo-story-readability>${rules}
 </style>`;
@@ -1522,7 +1531,7 @@ export function* renderArchitectureStoryBatch(
       }
       const input = path.join(directory, `${index}.json`);
       const output = path.join(directory, `${index}.html`);
-      writeFileSync(input, JSON.stringify(archifySpec(story, options.sourceEvidence !== "wrapper")));
+      writeFileSync(input, serializeRendererInput(archifySpec(story, options.sourceEvidence !== "wrapper")));
       return { input, output, repository: story.repositoryRoot };
     });
     const manifest = path.join(directory, "batch.json");
@@ -1578,7 +1587,7 @@ export function renderStory(story: ResolvedStoryDocument): StoryArtifact {
   const inputPath = path.join(temporaryDirectory, "story.json");
   const outputPath = path.join(temporaryDirectory, "story.html");
   try {
-    writeFileSync(inputPath, `${JSON.stringify(spec, null, 2)}\n`);
+    writeFileSync(inputPath, serializeRendererInput(spec));
     const args = [
       archifyCli,
       "deliver",

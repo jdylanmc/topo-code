@@ -745,8 +745,8 @@ test("wide adjacent Lifecycle states preserve final geometry", async ({
     await expect(diagram.locator("g[data-edge-from]")).toHaveCount(2);
     const geometry = await diagram.evaluate((svg) => {
       const states = [...svg.querySelectorAll<SVGGraphicsElement>(
-        "g[data-node-id] > rect:not(.c-mask)",
-      )].map((element) => element.getBoundingClientRect());
+        "g[data-node-id]",
+      )].map((node) => node.querySelector("rect:not(.c-mask)")!.getBoundingClientRect());
       const labels = [...svg.querySelectorAll<SVGTextElement>(
         "g[data-edge-from] > text",
       )];
@@ -773,6 +773,19 @@ test("wide adjacent Lifecycle states preserve final geometry", async ({
       );
       return {
         stateIntersections: intersections(states, states),
+        overflowingStateLabels: [...svg.querySelectorAll<SVGGraphicsElement>(
+          "g[data-node-id]",
+        )].flatMap((node) => {
+          const box = node.querySelector("rect:not(.c-mask)")?.getBoundingClientRect();
+          if (!box) return [];
+          return [...node.querySelectorAll<SVGTextElement>("text[data-node-label]")].flatMap((label) => {
+            const text = label.getBoundingClientRect();
+            return text.left < box.left || text.right > box.right ||
+              text.top < box.top || text.bottom > box.bottom
+              ? [label.textContent]
+              : [];
+          });
+        }),
         labelIntersections: intersections(
           labels.map((label) => label.getBoundingClientRect()),
           states,
@@ -789,6 +802,7 @@ test("wide adjacent Lifecycle states preserve final geometry", async ({
       };
     });
     expect(geometry.stateIntersections).toEqual([]);
+    expect(geometry.overflowingStateLabels).toEqual([]);
     expect(geometry.labelIntersections).toEqual([]);
     expect(geometry.minimumFontSize).toBeGreaterThanOrEqual(12);
   } finally {
