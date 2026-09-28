@@ -7,6 +7,7 @@ import {
   commit,
   startStaticServer,
   startTopoServer,
+  stopStaticServer,
   stopTopoServer,
   stopTopoServerAfterPage,
   test,
@@ -1149,8 +1150,6 @@ test("actual package story stays readable from a plain static bundle", async ({
     }
   } finally {
     await page.goto("about:blank");
-    await new Promise<void>((done, reject) => {
-      server.close((error) => error ? reject(error) : done());
-    });
+    await stopStaticServer(server);
   }
 });

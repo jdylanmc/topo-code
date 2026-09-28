@@ -122,6 +122,8 @@ publication remains a separate release-owner action.
 
 ### Fixed
 
+- Prevent static-bundle browser fixture cleanup from waiting on unused TCP
+  connections, without changing rendering assertions or test deadlines.
 - Keep real Archify diagrams readable and fully contained at the supported
   desktop viewports by using a compact horizontal catalogue toolbar at narrow
   widths, without changing renderer geometry or text thresholds.

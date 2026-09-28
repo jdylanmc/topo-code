@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect } from "@playwright/test";
-import { commit, startStaticServer, test, topo } from "./helpers/production-cli.js";
+import { commit, startStaticServer, stopStaticServer, test, topo } from "./helpers/production-cli.js";
 
 async function fixture(root: string, wide = false): Promise<void> {
   await mkdir(join(root, "packages/api/src"), { recursive: true });
@@ -120,7 +120,7 @@ test("bounded repository pages and source evidence survive a plain static base p
     expect((await page.request.get(`${base}explorer/`)).status()).toBe(404);
   } finally {
     await page.goto("about:blank");
-    await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+    await stopStaticServer(server);
   }
 });
 
