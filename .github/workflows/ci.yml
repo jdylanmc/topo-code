@@ -16,17 +16,17 @@ jobs:
       run:
         working-directory: topocode
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           path: topocode
       - name: Check out the reviewed renderer packaging source
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: jdylanmc/topo-archify
-          ref: 3b815dc04d637dbde424a0fa3d240e8b75439627
+          ref: 8b81f395a17c6e082c675405d799a6b8a9a258cf
           path: renderer
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: topocode/.node-version
       - run: corepack enable
@@ -44,7 +44,7 @@ jobs:
         run: |
           node scripts/pack.mjs dist
           node scripts/package-smoke.mjs dist/jdylanmc-topo-code-0.1.0.tgz ../renderer/dist/jdylanmc-topo-archify-0.1.0.tgz
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: npm-candidates
           path: |

@@ -90,6 +90,8 @@ publication remains a separate release-owner action.
   integrity evidence. Add local unpublished-tarball bootstrap, package CI and
   release documentation; no registry publication or upstream 3.0.1 adoption
   is implied.
+- Pin distribution Actions to verified immutable commits and check bootstrap
+  authentication inside the secret-scoped publishing step without exposing tokens.
 
 - Remove unused WebGL renderer/application contracts and mark retired map and
   commentary instructions as historical rather than current shell features.

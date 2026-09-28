@@ -102,8 +102,16 @@ and verify those exact bytes:
   `NPM_BOOTSTRAP_TOKEN` is available only to the single `npm publish` step.
   Build, test, artifact upload and public-registry verification never receive it.
   Bootstrap is explicit, never an automatic fallback after an OIDC failure.
+  Within that same publishing step, `npm whoami` verifies authentication and
+  prints only the npm account name before upload. It does not prove creation or
+  scope/write grants; those are confirmed by the operator's token settings and
+  the real publish. A dry-run publish is not an authorization check.
 
 Neither path uses a GitHub environment; leave npm's **Environment name blank**.
+
+All introduced Actions are pinned to verified full commit SHAs. Updates to those
+pins must retain action contract validation rather than replacing them with
+mutable major-version tags.
 
 The workflows use GitHub-hosted Ubuntu, Node 24, npm's public registry and an
 explicit npm >=11.5.1 check. npm's documented trusted-publishing minimum is
