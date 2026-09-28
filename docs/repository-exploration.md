@@ -62,7 +62,7 @@ Generated output never overwrites `stories/**/*.topo.json` or authored metadata.
 
 All diagrams pass through `@topo/diagram-core` and the exact pinned Archify
 Architecture renderer. Generated views batch the unchanged native entrypoint
-and output checker in an isolated child process; schema, source-independent
+and output checker in bounded child-process batches; schema, source-independent
 geometry and output validation still run for every artifact. Authored stories
 retain their existing single-story rendering and native source-link behavior.
 No vendored file, renderer dependency, or license policy is changed.

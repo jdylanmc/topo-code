@@ -1519,11 +1519,15 @@ export function renderArchitectureStories(
       return { input, output, repository: story.repositoryRoot };
     });
     const manifest = path.join(directory, "batch.json");
-    writeFileSync(manifest, JSON.stringify(jobs));
-    execFileSync(process.execPath, [
-      fileURLToPath(new URL("./architecture-batch.js", import.meta.url)),
-      manifest,
-    ], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, stdio: ["ignore", "pipe", "pipe"] });
+    // Native entrypoints are ES modules: cache-busted evaluations retain their
+    // HTML and compiled code until process exit. Bound that lifetime per chunk.
+    for (let offset = 0; offset < jobs.length; offset += 32) {
+      writeFileSync(manifest, JSON.stringify(jobs.slice(offset, offset + 32)));
+      execFileSync(process.execPath, [
+        fileURLToPath(new URL("./architecture-batch.js", import.meta.url)),
+        manifest,
+      ], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, stdio: ["ignore", "pipe", "pipe"] });
+    }
     return jobs.map(({ output }) => ({
       kind: "html",
       mediaType: "text/html",

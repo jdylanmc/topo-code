@@ -22,7 +22,17 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../..");
 const entry = join(root, "packages/cli/dist/main.js");
 
 export function topo(repository: string, ...args: string[]) {
-  return execute(process.execPath, [entry, ...args], { cwd: repository, timeout: 30_000 });
+  const started = performance.now();
+  return execute(process.execPath, [entry, ...args], { cwd: repository, timeout: 30_000 })
+    .catch((error: unknown) => {
+      if (error instanceof Error && "killed" in error && error.killed === true) {
+        throw new Error(
+          `Topocode ${args[0]} was terminated after ${Math.round(performance.now() - started)}ms (limit 30000ms).`,
+          { cause: error },
+        );
+      }
+      throw error;
+    });
 }
 
 export async function commit(repository: string, message: string, ...paths: string[]): Promise<string> {
