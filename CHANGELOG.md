@@ -23,9 +23,9 @@ publication remains a separate release-owner action.
 
 ### Added
 
-- Add manual GitHub-hosted trusted-publishing workflows with separate protected
-  OIDC publication of verified tarballs; retain explicit first-package trust
-  and ownership prerequisites without local npm authentication.
+- Add GitHub-only publication of verified tarballs: normal OIDC and explicit
+  first-package bootstrap through version/commit-bound tags, with a UI-managed
+  token exposed only to its publish step. No local npm authentication is needed.
 
 - Package the `@jdylanmc/topo-code` CLI-plus-skills toolbelt with `topo init
   --skills`, portable authoring/operation guidance and a context-loading Archify
