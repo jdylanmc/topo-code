@@ -17,6 +17,8 @@
     "lint": "eslint . --max-warnings 0",
     "licenses:check": "node scripts/check-licenses.mjs && node scripts/dependency-notices.mjs --check",
     "licenses:write": "node scripts/dependency-notices.mjs --write",
+    "package:pack": "yarn build && node scripts/pack.mjs dist",
+    "package:smoke": "node scripts/package-smoke.mjs",
     "test": "node --test scripts/run-workspaces.test.mjs scripts/dependency-notices.test.mjs scripts/test-regression.test.mjs scripts/lint.test.mjs && node scripts/run-workspaces.mjs test",
     "test:regression": "yarn check && yarn workspace @topo/site test:browser",
     "typecheck": "node scripts/run-workspaces.mjs typecheck",

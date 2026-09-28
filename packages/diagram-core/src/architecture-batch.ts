@@ -1,16 +1,12 @@
 import { readFileSync } from "node:fs";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { pathToFileURL } from "node:url";
+import {
+  architectureRendererPath as renderer,
+  outputCheckerPath as checker,
+} from "@jdylanmc/topo-archify";
 
 const jobs: unknown = JSON.parse(readFileSync(process.argv[2]!, "utf8"));
 if (!Array.isArray(jobs)) throw new Error("Invalid Archify batch manifest");
-const renderer = fileURLToPath(new URL(
-  "../vendor/archify/renderers/architecture/render-architecture.mjs",
-  import.meta.url,
-));
-const checker = fileURLToPath(new URL(
-  "../vendor/archify/scripts/check-render-output.mjs",
-  import.meta.url,
-));
 
 // Each native CLI entrypoint gets a fresh module evaluation; its shared libraries
 // stay loaded in this isolated child instead of starting two processes per view.

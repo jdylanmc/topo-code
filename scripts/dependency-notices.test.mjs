@@ -44,10 +44,10 @@ async function createWorkspace(root, directory, manifest) {
 async function createBundledLicenseFixtures(root) {
   const archifyDirectory = path.join(
     root,
-    "packages",
-    "diagram-core",
-    "vendor",
-    "archify",
+    "node_modules",
+    "@jdylanmc",
+    "topo-archify",
+    "runtime",
   );
   await mkdir(archifyDirectory, { recursive: true });
   await writeFile(

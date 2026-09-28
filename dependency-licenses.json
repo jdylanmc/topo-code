@@ -1,5 +1,10 @@
 {
   "dependencies": {
+    "@jdylanmc/topo-archify": {
+      "range": "0.1.0",
+      "license": "MIT",
+      "source": "https://github.com/tt-a1i/archify/blob/9286c3b9c2cef359e98586b420d769d87bcb163f/archify/LICENSE"
+    },
     "ajv": {
       "range": "8.17.1",
       "license": "MIT",

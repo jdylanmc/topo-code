@@ -73,14 +73,15 @@ scanning and structural validation.
 
 - `@topo/story` owns the renderer-neutral story contract.
 - The rest of Topocode reaches Archify only through `@topo/diagram-core`. No
-  other package imports the vendored tree, and no dependency may use the
+  other product package imports the native runtime, and no dependency may use the
   unrelated registry package named `archify`. **FR-02, FR-09, AC-04**
 - A renderer can be replaced or added behind the adapter without changing story
   documents. Adapter tests check output and failure behavior, not internal call
   order. **AC-15**
 - The current renderer pin is Archify `3.0.0` at exact revision
   `9286c3b9c2cef359e98586b420d769d87bcb163f`. The owner selected a pristine
-  checked-in copy of the official release ZIP, with no build-time download.
+  copy of the official release ZIP, initially vendored and now supplied by
+  exact `@jdylanmc/topo-archify@0.1.0`, with no build-time download.
 - The wrapper owns catalogue navigation, deep links, and restored node focus.
   Archify owns diagram geometry, theme, presentation, zoom, evidence details,
   and canonical SVG/PNG export. **CON-08, AC-19**
@@ -141,10 +142,12 @@ for this work. These clauses are requirements, not waivers:
 | **AC-17** | Topocode smoke and regression tests exercise the integrated renderer. | Run the real upstream test suite that accompanies the pristine pin in Node.js 22/Linux CI. Do not replace it with an empty gate or Topocode-only smoke tests. |
 | **AC-18, CON-07** | The full official v3 runtime and required license/notice material are retained verbatim, with no vendor patches. | Retain upstream `LICENSE`, `THIRD_PARTY_NOTICES.md`, brand attribution, and trademark disclaimer verbatim. Contribute changes upstream first. If blocked, use an explicit listed patch set over the pristine copy. Each patch records whether it is still needed or has landed upstream. Never make silent in-place edits. |
 
-The vendored package is a swappable seam, not a goal to maintain a divergent
-fork. If upstream publishes a usable package, `@topo/diagram-core` may become a
-thin adapter and remove the copy. Upstream tracking cadence remains an owner
-decision. **CON-02, U-2, U-6**
+The renderer package is a swappable seam, not a goal to maintain a divergent
+runtime. #13 removes Topocode's full vendor copy in favor of a packaging-first
+downstream distribution while retaining historical integrity baselines and
+product-specific adaptation. The context-loading maintenance skill records
+update/regression commands and escalation for changed behavior. Upstream
+tracking cadence remains an owner decision. **CON-02, U-2, U-6**
 
 ## Other unresolved commitments
 
@@ -201,7 +204,10 @@ fork or font changes (**N-6**), rebuilt commodity diagramming infrastructure
 (**N-7**), heuristic coverage gates (**N-8**), or restoration of the retired
 WebGL explorer. It does not authorize publishing under the `archify` name.
 
-Public npm release remains unshipped in #13. #57 is paused Unified Modeling
+Public npm publication remains a release-owner step in #13. The 0.1.0 candidate
+CLI-plus-skills tarball, opt-in `topo init --skills`, exact renderer dependency,
+and clean installed-consumer regression are implemented; see
+[distribution](./npm-release.md). #57 is paused Unified Modeling
 Language work. #70 is the separately aligned repository exploration delivery.
 #74, #75, #76, and #77 cover
 marketing, public documentation, manual operator authoring, and library

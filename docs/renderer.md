@@ -14,22 +14,31 @@ responsive containment, and deep-link coordination around that iframe.
 
 ## Pinned distribution and upgrades
 
-The checked-in `packages/diagram-core/vendor/archify/` directory is the complete,
+The exact `@jdylanmc/topo-archify@0.1.0` dependency supplies the complete,
 unmodified 104-file runtime from the official
 [v3.0.0 release ZIP](https://github.com/tt-a1i/archify/releases/tag/v3.0.0),
 at commit `9286c3b9c2cef359e98586b420d769d87bcb163f`.
-`archify-pin.json` records its source and archive SHA-256;
-`archify-integrity.json` verifies every path and file. Metadata stays outside
-the upstream tree. Build and rendering require no runtime download or npm
-package named `archify`.
+`archify-pin.json` records the adapter's expected source and archive SHA-256;
+the renderer package verifies every path and file using `runtime-integrity.json`.
+Metadata stays outside the upstream tree. Installed rendering requires no
+runtime download or npm package named `archify`. Package acquisition is explicit
+at install/bootstrap time, not during build/rendering.
 
-The prior 2.17.0-dev.1 runtime manifest is preserved unchanged under
+The prior 2.17.0-dev.1 and 3.0.0 vendor manifests are preserved unchanged under
 `packages/diagram-core/integrity/`. A future upgrade needs its own reviewed
 pin and inventory, not an integrity-baseline rewrite to bless local edits.
 Keep upstream licenses, font notices, brand attribution and trademark
 disclaimers verbatim. Proposed renderer changes go upstream first; any approved
 local patch must be separately listed with its upstream status. This pin has
 no vendor patches.
+
+Topocode no longer maintains a full vendor runtime. The packaging-first fork
+owns the pristine distribution; product-specific adaptation remains here.
+The [maintenance skill](../.agents/skills/topo-archify-maintenance/SKILL.md)
+requires loading the integration history and executing package, consumer and
+full regression checks. See [bootstrap/release](./npm-release.md). Initial
+package 0.1.0 deliberately retains upstream 3.0.0; 3.0.1's changed network
+update-check behavior is a separate compatibility decision.
 
 The v3 adapter adds portable `meta.output` only to its generated renderer input;
 authored Topocode stories retain their identity and schema.

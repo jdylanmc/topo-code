@@ -6,6 +6,7 @@ import {
   commitAt,
   startStaticServer,
   startTopoServer,
+  stopStaticServer,
   stopTopoServer,
   test,
   topo,
@@ -138,9 +139,7 @@ test("bundled shell and stories run under a static base path without explorer as
     )).toContain("SIL OPEN FONT LICENSE Version 1.1");
   } finally {
     await page.goto("about:blank");
-    await new Promise<void>((done, reject) => {
-      server.close((error) => error ? reject(error) : done());
-    });
+    await stopStaticServer(server);
   }
 });
 

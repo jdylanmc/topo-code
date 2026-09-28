@@ -37,8 +37,10 @@ node scripts/dependency-notices.mjs --site
 
 The root build runs `--site` after building the packages. Continuous Integration
 (CI) also runs the direct inventory and installed-closure drift gates.
-Command-line packaging must include the same tracked notice file; npm
-distribution remains a separate, unconfigured milestone.
+Command-line packaging includes the composed site notice file, retaining
+the tracked dependency closure plus pristine Archify and embedded-font notices.
+The exact renderer peer is included in both direct inventory and installed
+closure checks. See [npm distribution](./npm-release.md).
 
 ## Policy
 

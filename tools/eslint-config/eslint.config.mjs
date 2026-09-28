@@ -2,7 +2,7 @@ import parser from "@typescript-eslint/parser";
 
 const maintainedFiles = [
   "*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}",
-  "{packages,scripts,benchmarks,tools}/**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}",
+  "{packages,scripts,benchmarks,tools,distribution}/**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}",
 ];
 
 export default [
@@ -62,12 +62,12 @@ export default [
   },
   {
     name: "topo/jsx-syntax",
-    files: ["*.jsx", "{packages,scripts,benchmarks,tools}/**/*.jsx"],
+    files: ["*.jsx", "{packages,scripts,benchmarks,tools,distribution}/**/*.jsx"],
     languageOptions: { parserOptions: { ecmaFeatures: { jsx: true } } },
   },
   {
     name: "topo/typescript-syntax",
-    files: ["{packages,scripts,benchmarks,tools}/**/*.{ts,mts,cts,tsx}", "*.{ts,mts,cts,tsx}"],
+    files: ["{packages,scripts,benchmarks,tools,distribution}/**/*.{ts,mts,cts,tsx}", "*.{ts,mts,cts,tsx}"],
     languageOptions: { parser },
   },
 ];

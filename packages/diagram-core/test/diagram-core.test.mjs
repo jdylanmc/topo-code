@@ -17,14 +17,15 @@ import { fileURLToPath } from "node:url";
 import {
   renderArchitectureStories,
   renderStory,
-  verifyVendoredArchifyIntegrity,
+  verifyArchifyIntegrity,
 } from "@topo/diagram-core";
+import { runtimeDirectory, verifyRuntime } from "@jdylanmc/topo-archify";
 
 const packageRoot = fileURLToPath(new URL("../", import.meta.url));
 const execute = promisify(execFile);
 
 test("accepts the committed integrity baseline", () => {
-  const integrity = verifyVendoredArchifyIntegrity();
+  const integrity = verifyArchifyIntegrity();
 
   assert.equal(integrity.files, 104);
   assert.equal(
@@ -35,7 +36,7 @@ test("accepts the committed integrity baseline", () => {
   assert.equal(integrity.archiveSha256, "e30f65ddab8bbb0c467fa4be5bccf7e3853bd3ee86e8338f31e102037496be18");
 });
 
-test("renders a resolved story through the vendored Archify CLI", async (context) => {
+test("renders a resolved story through the packaged Archify CLI", async (context) => {
   const repositoryRoot = await mkdtemp(path.join(tmpdir(), "topo-story-render-"));
   context.after(() => rm(repositoryRoot, { recursive: true, force: true }));
   await writeFile(
@@ -182,32 +183,31 @@ for (const sectionCount of [5, 6, 7, 10]) {
   });
 }
 
-test("rejects a tampered vendored Archify file", async (context) => {
+test("rejects a tampered packaged Archify file", async (context) => {
   const temporaryRoot = await mkdtemp(
     path.join(tmpdir(), "topo-diagram-core-"),
   );
   context.after(() => rm(temporaryRoot, { recursive: true, force: true }));
-  await mkdir(path.join(temporaryRoot, "vendor"), { recursive: true });
   await cp(
-    path.join(packageRoot, "vendor", "archify"),
-    path.join(temporaryRoot, "vendor", "archify"),
+    runtimeDirectory,
+    path.join(temporaryRoot, "runtime"),
     { recursive: true },
   );
   await cp(
-    path.join(packageRoot, "archify-integrity.json"),
-    path.join(temporaryRoot, "archify-integrity.json"),
+    path.join(runtimeDirectory, "../runtime-integrity.json"),
+    path.join(temporaryRoot, "runtime-integrity.json"),
   );
   await cp(
-    path.join(packageRoot, "archify-pin.json"),
-    path.join(temporaryRoot, "archify-pin.json"),
+    path.join(runtimeDirectory, "../release.json"),
+    path.join(temporaryRoot, "release.json"),
   );
   await writeFile(
-    path.join(temporaryRoot, "vendor", "archify", "LICENSE"),
-    `${await readFile(path.join(packageRoot, "vendor", "archify", "LICENSE"), "utf8")}\ntampered\n`,
+    path.join(temporaryRoot, "runtime", "LICENSE"),
+    `${await readFile(path.join(runtimeDirectory, "LICENSE"), "utf8")}\ntampered\n`,
   );
 
   assert.throws(
-    () => verifyVendoredArchifyIntegrity(temporaryRoot),
+    () => verifyRuntime(temporaryRoot),
     /integrity failure/,
   );
 });
@@ -215,19 +215,19 @@ test("rejects a tampered vendored Archify file", async (context) => {
 test("rejects inventory drift and symbolic links without rewriting the pin", async (context) => {
   const root = await mkdtemp(path.join(tmpdir(), "topo-archify-inventory-"));
   context.after(() => rm(root, { recursive: true, force: true }));
-  await cp(path.join(packageRoot, "vendor"), path.join(root, "vendor"), { recursive: true });
-  for (const file of ["archify-pin.json", "archify-integrity.json"]) {
-    await cp(path.join(packageRoot, file), path.join(root, file));
+  await cp(runtimeDirectory, path.join(root, "runtime"), { recursive: true });
+  for (const file of ["release.json", "runtime-integrity.json"]) {
+    await cp(path.join(runtimeDirectory, "..", file), path.join(root, file));
   }
-  const baseline = await readFile(path.join(root, "archify-integrity.json"), "utf8");
-  const extra = path.join(root, "vendor/archify/unexpected.txt");
+  const baseline = await readFile(path.join(root, "runtime-integrity.json"), "utf8");
+  const extra = path.join(root, "runtime/unexpected.txt");
   await writeFile(extra, "unexpected");
-  assert.throws(() => verifyVendoredArchifyIntegrity(root), /file inventory differs/);
+  assert.throws(() => verifyRuntime(root), /file inventory differs/);
   await rm(extra);
-  const license = path.join(root, "vendor/archify/LICENSE");
+  const license = path.join(root, "runtime/LICENSE");
   await rm(license);
-  assert.throws(() => verifyVendoredArchifyIntegrity(root), /file inventory differs/);
-  await symlink(path.join(packageRoot, "vendor/archify/LICENSE"), license);
-  assert.throws(() => verifyVendoredArchifyIntegrity(root), /unsupported file type/);
-  assert.equal(await readFile(path.join(root, "archify-integrity.json"), "utf8"), baseline);
+  assert.throws(() => verifyRuntime(root), /file inventory differs/);
+  await symlink(path.join(runtimeDirectory, "LICENSE"), license);
+  assert.throws(() => verifyRuntime(root), /unsupported file type/);
+  assert.equal(await readFile(path.join(root, "runtime-integrity.json"), "utf8"), baseline);
 });

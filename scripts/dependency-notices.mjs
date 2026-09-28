@@ -591,10 +591,10 @@ export async function copyThirdPartyNoticesToSite({
   }
   const archifyDirectory = path.join(
     rootDirectory,
-    "packages",
-    "diagram-core",
-    "vendor",
-    "archify",
+    "node_modules",
+    "@jdylanmc",
+    "topo-archify",
+    "runtime",
   );
   const archifyLicense = await readFile(
     path.join(archifyDirectory, "LICENSE"),

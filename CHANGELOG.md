@@ -1,7 +1,7 @@
 # Changelog
 
-Notable changes to this private, locally run project are recorded here. Topocode
-does not currently publish versioned releases.
+Notable changes are recorded here. Initial npm candidates are version 0.1.0;
+publication remains a separate release-owner action.
 
 ## Unreleased
 
@@ -22,6 +22,15 @@ does not currently publish versioned releases.
   is implied. Refs #41.
 
 ### Added
+
+- Add GitHub-only publication of verified tarballs: normal OIDC and explicit
+  first-package bootstrap through version/commit-bound tags, with a UI-managed
+  token exposed only to its publish step. No local npm authentication is needed.
+
+- Package the `@jdylanmc/topo-code` CLI-plus-skills toolbelt with `topo init
+  --skills`, portable authoring/operation guidance and a context-loading Archify
+  maintenance loop. Verify clean tarball installation, source-change repair,
+  preview/serve/bundle and authored-file preservation. See #13.
 
 - Add default source-grounded Repository exploration through pinned Archify:
   package/directory, file and compiler-declaration drill-down, bounded pages,
@@ -76,6 +85,14 @@ does not currently publish versioned releases.
 
 ### Changed
 
+- Replace Topocode's full vendor runtime with exact
+  `@jdylanmc/topo-archify@0.1.0`, preserving pristine upstream 3.0.0 and historical
+  integrity evidence. Add local unpublished-tarball bootstrap, package CI and
+  release documentation; no registry publication or upstream 3.0.1 adoption
+  is implied.
+- Pin distribution Actions to verified immutable commits and check bootstrap
+  authentication inside the secret-scoped publishing step without exposing tokens.
+
 - Remove unused WebGL renderer/application contracts and mark retired map and
   commentary instructions as historical rather than current shell features.
 
@@ -105,6 +122,10 @@ does not currently publish versioned releases.
 
 ### Fixed
 
+- Publish explicit local tarball paths so npm cannot interpret `dist/filename.tgz`
+  as GitHub shorthand; verify both release modes with offline dry-run publication.
+- Prevent static-bundle browser fixture cleanup from waiting on unused TCP
+  connections, without changing rendering assertions or test deadlines.
 - Keep real Archify diagrams readable and fully contained at the supported
   desktop viewports by using a compact horizontal catalogue toolbar at narrow
   widths, without changing renderer geometry or text thresholds.

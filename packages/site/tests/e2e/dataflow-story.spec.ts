@@ -1,5 +1,4 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import type { Server } from "node:http";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect } from "@playwright/test";
@@ -7,6 +6,7 @@ import { expectCanonicalRasterFigure } from "./helpers/raster-figure.js";
 import {
   commit,
   startStaticServer,
+  stopStaticServer,
   test,
   topo,
 } from "./helpers/production-cli.js";
@@ -58,13 +58,6 @@ const smallFontNativeDisplacementStory = {
   title: "Small font native displacement",
   connectionLabel: "records advance",
 } as const;
-
-async function stopStaticServer(server: Server): Promise<void> {
-  await new Promise<void>((done, reject) => {
-    server.close((error) => error ? reject(error) : done());
-    server.closeAllConnections();
-  });
-}
 
 async function writeActualDataflowFixture(repository: string): Promise<void> {
   await writeFile(

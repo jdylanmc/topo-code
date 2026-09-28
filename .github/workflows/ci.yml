@@ -12,14 +12,41 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: topocode
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          node-version-file: .node-version
+          path: topocode
+      - name: Check out the reviewed renderer packaging source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: jdylanmc/topo-archify
+          ref: b94790e99e2ca51fcdb74a9bd0f10f637856f92f
+          path: renderer
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: topocode/.node-version
       - run: corepack enable
       - run: yarn install --immutable
+      - name: Build and verify the pinned renderer package
+        run: |
+          node --test ../renderer/integrations/topo-npm/package.test.mjs
+          node ../renderer/integrations/topo-npm/pack.mjs ../renderer/dist
+          node scripts/bootstrap-renderer.mjs ../renderer/dist/jdylanmc-topo-archify-0.1.0.tgz
       - name: ESLint correctness baseline
         run: yarn lint
       - run: yarn workspace @topo/site exec playwright install --with-deps chromium
       - run: yarn test:regression
+      - name: Verify the installed public toolbelt
+        run: |
+          node scripts/pack.mjs dist
+          node scripts/package-smoke.mjs dist/jdylanmc-topo-code-0.1.0.tgz ../renderer/dist/jdylanmc-topo-archify-0.1.0.tgz
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: npm-candidates
+          path: |
+            topocode/dist/*.tgz
+            renderer/dist/*.tgz

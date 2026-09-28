@@ -305,6 +305,14 @@ export async function startStaticServer(
   return { server, url: `http://127.0.0.1:${address.port}` };
 }
 
+export async function stopStaticServer(server: Server): Promise<void> {
+  await new Promise<void>((done, reject) => {
+    server.close((error) => error ? reject(error) : done());
+    // Unused speculative TCP connections can otherwise keep close pending.
+    server.closeAllConnections();
+  });
+}
+
 export const test = base.extend<{
   repository: string;
   startSite: () => Promise<string>;

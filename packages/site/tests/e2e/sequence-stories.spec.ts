@@ -19,6 +19,7 @@ import {
   scanActualRepository,
   startStaticServer,
   startTopoServer,
+  stopStaticServer,
   stopTopoServer,
   test,
   topo,
@@ -637,9 +638,7 @@ test("Sequence stories remain readable in a plain-server bundle", async ({
     ).toBeVisible();
   } finally {
     await page.goto("about:blank");
-    await new Promise<void>((resolve, reject) => {
-      server.close((error) => error ? reject(error) : resolve());
-    });
+    await stopStaticServer(server);
   }
 });
 
@@ -758,9 +757,7 @@ test("public Sequence participants retain native details before explicit navigat
     } finally {
       if (!page.isClosed()) await page.goto("about:blank");
       if (server) {
-        await new Promise<void>((resolve, reject) => {
-          server!.close((error) => error ? reject(error) : resolve());
-        });
+        await stopStaticServer(server);
       }
     }
   });
@@ -953,9 +950,7 @@ test("integrated Sequence stories preserve titles, navigation, and exports", asy
     } finally {
       await page.goto("about:blank");
       if (server !== undefined) {
-        await new Promise<void>((resolve, reject) => {
-          server!.close((error) => error ? reject(error) : resolve());
-        });
+        await stopStaticServer(server);
         server = undefined;
       }
     }
