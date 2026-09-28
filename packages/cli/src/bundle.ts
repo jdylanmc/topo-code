@@ -15,6 +15,7 @@ import { parseSiteData } from "@topo/site/data";
 import { isMissing, loadConfig, workspacePath } from "@topo/workspace";
 import { assertCatalogueCurrent, buildCatalogue, writeBuiltCatalogue } from "./catalogue.js";
 import { composeSiteData } from "./server.js";
+import { assertRepositoryCurrent, readRepositoryIndex } from "./repository-generation.js";
 
 export interface BundleSiteOptions {
   readonly basePath?: string;
@@ -105,6 +106,8 @@ async function validateComposedSite(
     throw new Error("Generated site is stale relative to HEAD; run topo scan first");
   }
   await assertCatalogueCurrent(root, catalogue);
+  const repository = await readRepositoryIndex(root);
+  if (repository !== undefined) await assertRepositoryCurrent(root, repository, catalogue.source);
   const config = await loadConfig(root);
   await writeBuiltCatalogue(root, catalogue, config.catalogue);
   const [notices, archifyLicense, fontLicense] = await Promise.all([

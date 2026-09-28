@@ -14,6 +14,7 @@ import { promisify } from "node:util";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import {
+  renderArchitectureStories,
   renderStory,
   verifyVendoredArchifyIntegrity,
 } from "@topo/diagram-core";
@@ -104,6 +105,20 @@ test("renders a resolved story through the vendored Archify CLI", async (context
   const first = renderStory(story);
   const second = renderStory(story);
   assert.deepEqual(second, first);
+  assert.deepEqual(renderArchitectureStories([story, story]), [first, first]);
+  const chunked = renderArchitectureStories(Array.from({ length: 35 }, (_, index) => ({
+    ...story,
+    document: { ...story.document, title: `Checkout ${index}` },
+  })));
+  assert.equal(chunked.length, 35);
+  for (const [index, artifact] of chunked.entries()) {
+    assert.equal(
+      artifact.contents.match(/<title>([^<]+)<\/title>/)?.[1],
+      `Checkout ${index} Diagram`,
+    );
+    assert.match(artifact.contents, /Checkout client/);
+    assert.match(artifact.contents, /Checkout service/);
+  }
   assert.equal(first.renderer.name, "archify");
   assert.equal(first.renderer.pin, "2.17.0-dev.1");
   assert.match(first.contents, /<svg\b/);

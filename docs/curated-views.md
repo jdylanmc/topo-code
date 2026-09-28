@@ -2,7 +2,17 @@
 
 Curated views are named, path-based subsets of the current repository graph.
 They add human intent without changing scanned nodes, relationships, or their
-provenance. The ordinary **Repository map** remains available.
+provenance. The current [core contract](./curated-views-core.md), generated
+snapshots, validation, review baselines and local save endpoint remain supported.
+The old map-based authoring controls are retired. The new
+[Repository view](./repository-exploration.md) is read-only exploration, not
+a replacement drag-and-pin editor.
+
+<details>
+<summary>Historical explorer guide and measured evidence (retired UI)</summary>
+
+The controls below describe the removed WebGL explorer, not current
+instructions for the Archify storybook.
 
 ## Create and save a view
 
@@ -158,3 +168,5 @@ These captures belong to the retired
 [WebGL benchmark archive](./benchmark-harness.md). The original harness and
 external frozen graph inputs are no longer part of the maintained tree, so the
 measurements are preserved evidence rather than a current reproduction recipe.
+
+</details>

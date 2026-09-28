@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
-import { readdir, rm } from "node:fs/promises";
+import { readFile, readdir, rm } from "node:fs/promises";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
 import { renderStory } from "@topo/diagram-core";
@@ -20,6 +20,9 @@ import {
   captureSourceSnapshot,
   type SourceSnapshot,
 } from "./source-snapshot.js";
+import { readRepositoryIndex, type GeneratedRepository } from "./repository-generation.js";
+import type { RepositoryIndex, RepositorySource } from "./repository-index.js";
+import { repositoryMarkup, REPOSITORY_SCRIPT } from "./repository-ui.js";
 
 const execute = promisify(execFile);
 
@@ -811,6 +814,7 @@ function renderShellPage(
   historyIncomplete: boolean,
   selected: CatalogueStory | undefined,
   content: string,
+  repository?: RepositoryIndex,
 ): string {
   const entries = catalogueEntries(stories, config, selected !== undefined);
   const title = config?.title ?? "Topocode";
@@ -885,6 +889,25 @@ function renderShellPage(
       .empty-main div { max-width: 38rem; }
       .empty-main h1 { margin: 0 0 0.75rem; font-size: clamp(2rem, 5vw, 4rem); }
       .empty-main p { margin: 0; color: #a9b7ca; font-size: 1.05rem; line-height: 1.6; }
+      .repository-home { flex: 0 0 auto; font-size: 0.8rem; display: inline-flex; align-items: center; }
+      .repository-main { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-width: 0; min-height: 0; background: #f8fafc; }
+      .repository-toolbar { padding: 0.6rem 1rem; background: #0b1524; border-bottom: 1px solid #29364a; }
+      .repository-toolbar nav { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+      .repository-toolbar nav strong { overflow-wrap: anywhere; }
+      .repository-paging { display: flex; align-items: center; gap: 0.6rem; }
+      .repository-paging button { border: 1px solid #3a4a61; border-radius: 0.35rem; padding: 0.3rem 0.6rem; background: #101d30; color: white; cursor: pointer; }
+      .repository-paging button:disabled { opacity: 0.45; cursor: default; }
+      [data-repository-status], [data-repository-page] { color: #a9b7ca; font-size: 0.8rem; line-height: 1.4; }
+      [data-repository-status] { margin: 0.35rem 0 0; }
+      [data-repository-status][data-incomplete="true"], [data-repository-error] { color: #fcd34d; }
+      [data-repository-evidence] { padding: 0 1rem 1rem; overflow-wrap: anywhere; }
+      [data-repository-evidence] h2 { font-size: 1.1rem; }
+      [data-repository-evidence] h3 { font-size: 1rem; }
+      [data-repository-evidence] p, [data-repository-evidence] li { font-size: 0.85rem; line-height: 1.5; }
+      [data-repository-evidence] pre { white-space: pre-wrap; }
+      [data-repository-evidence] ul, [data-repository-evidence] ol { display: block; padding-left: 1.25rem; }
+      [data-repository-evidence] li { display: list-item; background: transparent; padding: 0.15rem; }
+      .repository-evidence.story-details { position: static; width: auto; max-height: 35vh; }
       @media (max-width: 1099px) {
         [data-topo-shell],
         [data-navigation-collapsed="true"] { grid-template-columns: 1px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
@@ -905,7 +928,8 @@ function renderShellPage(
         .story-links a { padding: 0.4rem 0.55rem 0.4rem 1.35rem; white-space: normal; }
         .catalogue-footer { display: block; }
         [data-navigation-collapsed="true"] .brand-row { width: 3.5rem; border-right: 0; background: #0b1524; }
-        .story-main, .empty-main { grid-column: 2; grid-row: 1; }
+        .story-main, .empty-main, .repository-main { grid-column: 2; grid-row: 1; }
+        .repository-toolbar { padding-left: 3.75rem; }
         .story-main { grid-template-rows: minmax(0, 1fr); }
         .story-details { position: fixed; z-index: 4; top: auto; right: auto; bottom: 0; left: 0; width: 14rem; max-height: min(70vh, 36rem); border: 1px solid #29364a; border-radius: 0 0.5rem 0 0; box-shadow: 0 0.4rem 1.2rem rgb(0 0 0 / 35%); }
         .story-details summary { padding: 0.35rem 0.65rem; }
@@ -934,7 +958,7 @@ function renderShellPage(
         .story-links a { padding: 0.4rem 0.55rem 0.4rem 1.35rem; white-space: normal; }
         .catalogue-footer { display: block; }
         [data-navigation-collapsed="true"] .brand-row { flex-basis: auto; border-right: 0; }
-        .story-main, .empty-main { grid-column: 2; grid-row: 1; }
+        .story-main, .empty-main, .repository-main { grid-column: 2; grid-row: 1; }
         .story-main { grid-template-rows: minmax(0, 1fr); }
         .story-details { position: fixed; z-index: 4; top: auto; right: auto; bottom: 0; left: 0; width: 14rem; max-height: min(70vh, 36rem); border: 1px solid #29364a; border-radius: 0 0.5rem 0 0; box-shadow: 0 0.4rem 1.2rem rgb(0 0 0 / 35%); }
         .story-details summary { padding: 0.35rem 0.65rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -953,6 +977,7 @@ function renderShellPage(
           ${selected === undefined
             ? `<strong>${escapeHtml(title)}</strong>`
             : `<h1 title="${escapeHtml(selected.document.title)}">${escapeHtml(selected.document.title)}</h1>`}
+          <a class="repository-home" data-repository-home href="${selected === undefined ? "./" : "../../"}">Repository</a>
           <button type="button" data-collapse aria-label="Collapse diagram navigation" title="Collapse diagram navigation">‹</button>
         </div>
         <div class="catalogue-controls">
@@ -985,10 +1010,11 @@ function renderShellPage(
         <div data-story-list><p class="catalogue-empty">${entries.length === 0 ? "No diagrams are available." : "Loading diagrams..."}</p></div>
         <div class="catalogue-footer">Topo is the storybook for architects.</div>
       </nav>
-      <main class="${selected === undefined ? "empty-main" : "story-main"}">${content}</main>
+      <main class="${repository !== undefined && selected === undefined ? "repository-main" : selected === undefined ? "empty-main" : "story-main"}">${content}</main>
     </div>
     <template data-catalogue-data>${template}</template>
     <script src="${selected === undefined ? "./" : "../../"}shell.js"></script>
+    ${repository === undefined ? "" : '<script src="./repository-navigation.js"></script>'}
     ${selected === undefined ? "" : '<script src="../../story-navigation.js"></script>'}
   </body>
 </html>
@@ -999,6 +1025,8 @@ export function renderCataloguePage(
   stories: readonly CatalogueStory[],
   config: WorkspaceCatalogueConfig | undefined,
   historyIncomplete = false,
+  repository?: RepositoryIndex,
+  currentSource?: RepositorySource,
 ): string {
   const title = config?.title ?? "Topocode";
   const description =
@@ -1009,7 +1037,10 @@ export function renderCataloguePage(
     config,
     historyIncomplete,
     undefined,
-    `<div><h1>${escapeHtml(title)}</h1><p>${escapeHtml(description)}</p></div>`,
+    repository === undefined
+      ? `<div><h1>${escapeHtml(title)}</h1><p>${escapeHtml(description)}</p></div>`
+      : repositoryMarkup(repository, currentSource),
+    repository,
   );
 }
 
@@ -1044,6 +1075,7 @@ export async function writeComposedSite(
   _retiredExplorerIndex: string,
   catalogue: BuiltCatalogue | undefined,
   config: WorkspaceCatalogueConfig | undefined,
+  repository?: GeneratedRepository,
 ): Promise<void> {
   if (catalogue !== undefined) {
     await assertCatalogueCurrent(root, catalogue);
@@ -1053,6 +1085,9 @@ export async function writeComposedSite(
     catalogue?.stories ?? [],
     config,
     catalogue?.historyIncomplete ?? false,
+    false,
+    repository,
+    catalogue?.source,
   );
 }
 
@@ -1068,6 +1103,8 @@ export async function writeBuiltCatalogue(
     config,
     catalogue.historyIncomplete,
     true,
+    undefined,
+    catalogue.source,
   );
 }
 
@@ -1077,14 +1114,31 @@ export async function writeCatalogue(
   config: WorkspaceCatalogueConfig | undefined,
   historyIncomplete = false,
   retireLegacyAssets = false,
+  generatedRepository?: GeneratedRepository,
+  currentSource?: RepositorySource,
 ): Promise<void> {
   const links = storyLinks(stories);
+  const repository = generatedRepository?.index ?? await readRepositoryIndex(root);
+  if (generatedRepository !== undefined) {
+    for (const [name, file] of generatedRepository.runtimeFiles) {
+      await writeGenerated(root, `cache/site/repository-runtime/${name}`, await readFile(file));
+    }
+    for (const [id, file] of generatedRepository.viewerFiles) {
+      await writeGenerated(root, `cache/site/repository/${id}/viewer.html`, await readFile(file));
+    }
+  }
   await Promise.all([
     writeGenerated(
       root,
       "cache/site/index.html",
-      renderCataloguePage(stories, config, historyIncomplete),
+      renderCataloguePage(stories, config, historyIncomplete, repository, currentSource),
     ),
+    ...(repository === undefined ? [] : [
+      writeGenerated(root, "cache/site/repository-navigation.js", REPOSITORY_SCRIPT),
+    ]),
+    ...(generatedRepository === undefined ? [] : [
+      writeGenerated(root, "cache/site/repository.json", `${JSON.stringify(generatedRepository.index)}\n`),
+    ]),
     writeGenerated(root, "cache/site/shell.js", SHELL_SCRIPT),
     writeGenerated(
       root,

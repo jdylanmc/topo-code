@@ -487,7 +487,22 @@ function repositoryMetadata(repositoryRoot: string): {
   };
 }
 
-function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
+export function architectureComponentWidth(
+  title: string,
+  sublabel = "",
+  finalTypography = false,
+): number {
+  const units = Array.from(title).reduce(
+    (total, character) => total + (character.codePointAt(0)! > 127 ? 2 : 1), 0,
+  );
+  const titleWidth = finalTypography ? units * 24 * 0.6 : title.length * 11;
+  return Math.max(280, titleWidth + 80, sublabel.length * 9 + 80);
+}
+
+function archifySpec(
+  story: ResolvedStoryDocument,
+  nativeSourceEvidence = true,
+): ArchifyArchitecture {
   const anchors = new Map(story.anchors.map((anchor) => [anchor.id, anchor]));
   const componentIds = new Map(
     story.document.sections.map((section) => [
@@ -503,14 +518,10 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
     const primary = sectionAnchors[0];
     // Short, legible sublabel (a code reference), never the full narrative body:
     // Archify enforces a per-component minimum-legibility width.
-    const sublabel = primary === undefined
+    const sublabel = primary === undefined || !nativeSourceEvidence
       ? ""
       : primary.symbol ?? primary.path.split("/").pop() ?? primary.path;
-    const width = Math.max(
-      280,
-      section.title.length * 11 + 80,
-      sublabel.length * 9 + 80,
-    );
+    const width = architectureComponentWidth(section.title, sublabel, !nativeSourceEvidence);
     return { section, sectionAnchors, sublabel, width };
   });
   // Balance components across rows of at most four, then snake each row so
@@ -638,7 +649,7 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
     const { row, column } = cellOf(index);
     return {
       id: componentIds.get(section.id)!,
-      type: index === sections.length - 1
+      type: nativeSourceEvidence && index === sections.length - 1
         ? "frontend" as const
         : "backend" as const,
       label: section.title,
@@ -648,7 +659,7 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
         margin + row * (boxHeight + rowGap),
       ] as const,
       size: [boxWidth, boxHeight] as const,
-      ...(sectionAnchors.length === 0
+      ...(sectionAnchors.length === 0 || !nativeSourceEvidence
         ? {}
         : {
             sources: sectionAnchors.map((anchor) => ({
@@ -744,7 +755,7 @@ function archifySpec(story: ResolvedStoryDocument): ArchifyArchitecture {
       locale: "en",
       viewBox: [viewBoxWidth, viewBoxHeight],
       legend: { mode: "hidden" },
-      ...(story.document.classification === "capability-demo"
+      ...(story.document.classification === "capability-demo" || !nativeSourceEvidence
         ? {}
         : {
             repository: {
@@ -1488,6 +1499,59 @@ svg g[data-edge-from] > text {
       }, contents)
     : contents;
   return adjustedContents.replace(headEnd, `${style}\n${headEnd}`);
+}
+
+export function renderArchitectureStories(
+  stories: readonly ResolvedStoryDocument[],
+  options: { readonly sourceEvidence?: "native" | "wrapper" } = {},
+): StoryArtifact[] {
+  return [...renderArchitectureStoryBatch(stories, options)];
+}
+
+export function* renderArchitectureStoryBatch(
+  stories: readonly ResolvedStoryDocument[],
+  options: { readonly sourceEvidence?: "native" | "wrapper" } = {},
+): Generator<StoryArtifact> {
+  const integrity = verifyVendoredArchifyIntegrity();
+  if (stories.length === 0) return;
+  const directory = mkdtempSync(path.join(tmpdir(), "topo-architecture-batch-"));
+  try {
+    const jobs = stories.map((story, index) => {
+      if ((story.document.diagramFamily ?? "architecture") !== "architecture") {
+        throw new Error("Architecture batch only accepts Architecture stories");
+      }
+      const input = path.join(directory, `${index}.json`);
+      const output = path.join(directory, `${index}.html`);
+      writeFileSync(input, JSON.stringify(archifySpec(story, options.sourceEvidence !== "wrapper")));
+      return { input, output, repository: story.repositoryRoot };
+    });
+    const manifest = path.join(directory, "batch.json");
+    // Native entrypoints are ES modules: cache-busted evaluations retain their
+    // HTML and compiled code until process exit. Bound that lifetime per chunk.
+    for (let offset = 0; offset < jobs.length; offset += 32) {
+      writeFileSync(manifest, JSON.stringify(jobs.slice(offset, offset + 32)));
+      execFileSync(process.execPath, [
+        fileURLToPath(new URL("./architecture-batch.js", import.meta.url)),
+        manifest,
+      ], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, stdio: ["ignore", "pipe", "pipe"] });
+    }
+    for (const { output } of jobs) {
+      yield {
+        kind: "html",
+        mediaType: "text/html",
+        contents: improveStoryReadability(readFileSync(output, "utf8"), "architecture"),
+        renderer: {
+          name: "archify",
+          pin: integrity.version,
+          sha256: integrity.archiveSha256,
+        },
+      };
+    }
+  } catch (error) {
+    throw commandError(error);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 }
 
 export function renderStory(story: ResolvedStoryDocument): StoryArtifact {

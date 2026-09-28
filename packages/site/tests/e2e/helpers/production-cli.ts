@@ -21,8 +21,29 @@ const execute = promisify(execFile);
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../..");
 const entry = join(root, "packages/cli/dist/main.js");
 
+function runTopo(repository: string, args: readonly string[], timeoutMs: number) {
+  const started = performance.now();
+  return execute(process.execPath, [entry, ...args], { cwd: repository, timeout: timeoutMs })
+    .catch((error: unknown) => {
+      if (error instanceof Error && "killed" in error && error.killed === true) {
+        throw new Error(
+          `Topocode ${args[0]} was terminated after ${Math.round(performance.now() - started)}ms (limit ${timeoutMs}ms).`,
+          { cause: error },
+        );
+      }
+      throw error;
+    });
+}
+
 export function topo(repository: string, ...args: string[]) {
-  return execute(process.execPath, [entry, ...args], { cwd: repository, timeout: 30_000 });
+  return runTopo(repository, args, 30_000);
+}
+
+export async function scanActualRepository(repository: string) {
+  const started = performance.now();
+  const result = await runTopo(repository, ["scan"], 120_000);
+  console.log(`Full-repository scan completed in ${Math.round(performance.now() - started)}ms (limit 120000ms).`);
+  return result;
 }
 
 export async function commit(repository: string, message: string, ...paths: string[]): Promise<string> {

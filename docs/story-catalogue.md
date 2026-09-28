@@ -2,8 +2,9 @@
 
 `topo scan` discovers every committed `stories/**/*.topo.json` document,
 validates and renders it through `@topo/story` and `@topo/diagram-core`, and
-generates one Storybook-like application shell. The shell is available at `/`
-and remains present on every `/stories/<story-id>/` page while the selected
+generates one Storybook-like application shell. Its default `/` canvas is
+[generated repository exploration](./repository-exploration.md). The same
+shell remains present on every `/stories/<story-id>/` page while the selected
 diagram renders through the pinned Archify viewer in the main iframe.
 
 The inventory supports text filtering, collapsible groups, and four organization
@@ -40,9 +41,10 @@ reducing the viewer width. Collapsing the drawer or selecting a story exposes
 the readable viewer while retaining keyboard access and the saved preference.
 
 The retired WebGL repository explorer is not generated, served, or bundled.
-Repositories with no stories show an explicit empty diagram inventory. Scanner,
-graph, layout, evidence, module, view, and enrichment artifacts remain available
-to command-line generation and future source-grounded capabilities.
+Repositories with no stories show an explicit empty authored-diagram inventory
+while retaining generated repository exploration. Scanner and compiler evidence
+drive that read-only view; layout, module, curated-view and enrichment artifacts
+retain their independent data contracts.
 
 ## Configuration
 

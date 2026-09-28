@@ -46,23 +46,21 @@ Hashing uses Web Crypto, available in Node.js 22+ and browser secure contexts
 such as localhost or HTTPS. A browser without it can still display core data;
 it reports unavailable commentary validation instead of displaying unchecked AI.
 
-## Display
+## Display boundary
 
-The sidebar labels commentary as inferred and secondary to source facts.
-Before selection it shows repository commentary. Selection filters it by
-referenced source nodes or evidence. Directory/tangle
-selection uses its current member nodes; references are deduplicated without
-duplicating comments. Nothing changes entity labels or relationship geometry.
-
-The list renders 50 comments per page with keyboard-accessible previous/next
-controls. Reference previews are bounded; complete references remain in the
-data document. Commentary rendering and lookup are graph-scoped, not performed
-on every camera frame.
+The former commentary sidebar belonged to the retired WebGL explorer. It is
+not present in the current Archify shell or generated Repository view.
+Enrichment remains an explicit command and versioned inferred-data contract;
+the new exploration does not relabel its commentary as observed facts or
+introduce a model invocation while scanning.
 
 See the [runner guide](./enrichment.md) for explicit repository configuration,
 prompt customization, staged output, failure behavior, and regeneration.
 
 ## Source-bound acceptance
+
+The following measurements describe the retired explorer, not current Archify
+performance or a current commentary user interface.
 
 The [acceptance manifest](../benchmarks/results/enrichment-authoring-acceptance.json)
 binds all six captures and their raw frame observations to implementation commit

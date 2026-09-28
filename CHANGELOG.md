@@ -7,6 +7,14 @@ does not currently publish versioned releases.
 
 ### Added
 
+- Add default source-grounded Repository exploration through pinned Archify:
+  package/directory, file and compiler-declaration drill-down, bounded pages,
+  source evidence, static relationships, breadcrumbs and durable URLs in the
+  existing shell and static bundles. Preserve explicit dirty/partial/stale
+  states without modifying authored stories. See #70.
+- Batch generated Architecture views through the unchanged native renderer
+  and output checker while retaining authored-story behavior.
+
 - Add a persistent Storybook-like diagram shell with complete inventory,
   filtering, collapsible type/category/folder/flat grouping, Git-backed
   creation/update sorting, locally persisted preferences, responsive Archify
@@ -51,6 +59,9 @@ does not currently publish versioned releases.
   and [follow-up planning](https://github.com/jdylanmc/topo-code/issues/35).
 
 ### Changed
+
+- Remove unused WebGL renderer/application contracts and mark retired map and
+  commentary instructions as historical rather than current shell features.
 
 - Track the repository's Topocode configuration while keeping generated graph
   snapshots, local layout state, and output reports local.

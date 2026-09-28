@@ -37,7 +37,13 @@ corepack yarn topo scan /absolute/path/to/a/typescript-repository
 corepack yarn topo serve /absolute/path/to/a/typescript-repository
 ```
 
-Open the printed address. The persistent left navigation inventories every
+Open the printed address. The default **Repository** view drills from packages
+and directories into files, classes, functions, and other compiler declarations.
+Each scope is a bounded, source-backed Archify diagram; breadcrumbs, pagination,
+source evidence, and deep links work without a server-side query service.
+See [repository exploration](./docs/repository-exploration.md).
+
+The persistent left navigation also inventories every
 committed `stories/**/*.topo.json` document by diagram family, authored
 category, source folder, or flat list. Selecting a story keeps navigation
 available while its real Archify artifact occupies the main canvas. Search,
@@ -82,9 +88,9 @@ corepack yarn topo scan /absolute/path/to/repository \
 
 Topocode never invokes a model while scanning. Invalid or stale anchors fail
 loudly, and unassigned entities remain explicit in the generated artifacts.
-The retired explorer no longer presents these artifacts as an interactive map;
-they remain validated inputs for reports, authored stories, and future Archify
-capabilities. See [logical architecture](./docs/logical-architecture.md),
+Repository exploration uses compiler declarations and static relationships from
+these artifacts. Proposed responsibility groupings remain data, not a second
+visual explorer. See [logical architecture](./docs/logical-architecture.md),
 [human-authored views](./docs/curated-views.md), and
 [static module composition](./docs/modules.md).
 
@@ -209,6 +215,12 @@ committed source change, checking stale-evidence rejection and preserved authore
 views and layout positions.
 
 Successful runs show the Node/Vitest and Playwright results and exit **0**.
+Ordinary browser-test CLI commands have a 30-second timeout. The three
+complete-repository Sequence integration cases explicitly allow 120 seconds
+for scanning and pre-rendering the repository's Archify views, log the actual
+duration, and use Playwright's bounded slow-test budget (180 seconds). These
+are integration-runner limits, not product performance guarantees; assertions,
+retry policy, and concurrency are unchanged.
 Missing tools/scripts/browser binaries, failed builds, assertions, or licence
 checks exit **nonzero**; the first failed gate stops later gates. Browser startup
 or port conflicts are failures, not skips. Fix the reported cause and rerun the

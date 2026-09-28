@@ -53,6 +53,11 @@ import {
   writeComposedSite,
   type BuiltCatalogue,
 } from "./catalogue.js";
+import {
+  generateRepository,
+  readRepositoryIndex,
+  type GeneratedRepository,
+} from "./repository-generation.js";
 
 async function storedReports(root: string): Promise<unknown[]> {
   const directory = await workspacePath(root, "reports/inputs");
@@ -72,8 +77,10 @@ async function copySite(
   assets: string,
   catalogue: BuiltCatalogue | undefined,
   config: Awaited<ReturnType<typeof loadConfig>>,
+  generatedRepository?: GeneratedRepository,
 ): Promise<void> {
   const stories = catalogue?.stories ?? [];
+  const repository = generatedRepository?.index ?? await readRepositoryIndex(root);
   const expected = new Set([
     "data.json",
     "index.html",
@@ -81,6 +88,11 @@ async function copySite(
     "story-navigation.js",
     ...stories.map(({ document }) => `stories/${document.id}/index.html`),
     ...stories.map(({ document }) => `stories/${document.id}/viewer.html`),
+    ...(repository === undefined ? [] : [
+      "repository.json", "repository-navigation.js",
+      ...(repository.runtimeFiles ?? []).map((name) => `repository-runtime/${name}`),
+      ...repository.pages.map((page) => `repository/${page.id}/viewer.html`),
+    ]),
   ]);
   async function copy(relative: string) {
     const entries = await readdir(join(assets, relative), {
@@ -117,7 +129,7 @@ async function copySite(
     }
   }
   await copy("");
-  await writeComposedSite(root, "", catalogue, config.catalogue);
+  await writeComposedSite(root, "", catalogue, config.catalogue, generatedRepository);
   await prune("");
 }
 
@@ -190,7 +202,14 @@ export async function generateArtifacts(
       ...(logicalArchitecture ? { logicalArchitecture } : {}),
       ...(enrichment.enrichment === undefined ? {} : { enrichment: enrichment.enrichment }),
     });
-    await copySite(root, siteAssets, catalogue, config);
+    const repository = catalogue === undefined ? undefined : await generateRepository(
+      root, composedGraph, logicalArchitecture, catalogue.source,
+    );
+    try {
+      await copySite(root, siteAssets, catalogue, config, repository);
+    } finally {
+      await repository?.dispose();
+    }
     await writeGenerated(root, "graph/graph.json", serializeGraphDocument(composedGraph));
     await writeGenerated(root, "graph/layout.json", serializeLayoutDeterministic(layout.layout));
     await writeGenerated(root, "graph/architecture.json", serializeArchitecture(architecture));
