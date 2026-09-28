@@ -4,6 +4,7 @@ node_modules/
 dist/
 build/
 *.tsbuildinfo
+/packages/cli/skills/
 
 # Keep the root policy cache-only. This repository's checked-in workspace policy
 # separately keeps generated maps and report outputs local while preserving

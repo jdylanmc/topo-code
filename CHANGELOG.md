@@ -1,7 +1,7 @@
 # Changelog
 
-Notable changes to this private, locally run project are recorded here. Topocode
-does not currently publish versioned releases.
+Notable changes are recorded here. Initial npm candidates are version 0.1.0;
+publication remains a separate release-owner action.
 
 ## Unreleased
 
@@ -22,6 +22,11 @@ does not currently publish versioned releases.
   is implied. Refs #41.
 
 ### Added
+
+- Package the `@jdylanmc/topo-code` CLI-plus-skills toolbelt with `topo init
+  --skills`, portable authoring/operation guidance and a context-loading Archify
+  maintenance loop. Verify clean tarball installation, source-change repair,
+  preview/serve/bundle and authored-file preservation. See #13.
 
 - Add default source-grounded Repository exploration through pinned Archify:
   package/directory, file and compiler-declaration drill-down, bounded pages,
@@ -75,6 +80,12 @@ does not currently publish versioned releases.
   and [follow-up planning](https://github.com/jdylanmc/topo-code/issues/35).
 
 ### Changed
+
+- Replace Topocode's full vendor runtime with exact
+  `@jdylanmc/topo-archify@0.1.0`, preserving pristine upstream 3.0.0 and historical
+  integrity evidence. Add local unpublished-tarball bootstrap, package CI and
+  release documentation; no registry publication or upstream 3.0.1 adoption
+  is implied.
 
 - Remove unused WebGL renderer/application contracts and mark retired map and
   commentary instructions as historical rather than current shell features.

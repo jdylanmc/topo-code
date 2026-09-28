@@ -16,10 +16,11 @@ import {
   writeBuiltCatalogue,
 } from "./catalogue.js";
 import { validateStory } from "./story-validation.js";
+import { prepareProjectSkills } from "./skills.js";
 
 const HELP = `Topocode: local, deterministic repository maps
 
-  topo init [repository]
+  topo init [repository] [--skills]
   topo scan [repository] [--allow-partial] [--responsibilities path]
   topo ingest <repository> <report.json> [more.json ...]
   topo enrich [repository]
@@ -41,7 +42,7 @@ async function siteAssets(): Promise<string> {
     await Promise.all(["LICENSE.txt", "THIRD_PARTY_NOTICES.txt"].map((name) => readFile(resolve(assets, name))));
   } catch (error) {
     if (!isMissing(error)) throw error;
-    throw new Error("Built site license notices are missing; run corepack yarn build in the Topocode checkout.");
+    throw new Error("Built site license notices are missing; rebuild the Topocode checkout or reinstall @jdylanmc/topo-code.");
   }
   return assets;
 }
@@ -63,6 +64,7 @@ export async function runCli(args: string[]): Promise<number> {
     allowPositionals: true,
     options: {
       help: { type: "boolean", short: "h" },
+      skills: { type: "boolean" },
       port: { type: "string" },
       "allow-partial": { type: "boolean" },
       responsibilities: { type: "string" },
@@ -92,6 +94,7 @@ export async function runCli(args: string[]): Promise<number> {
     throw new Error(`Unknown command: ${positionals.slice(0, 2).join(" ")}`);
   }
   if (values.port !== undefined && command !== "serve") throw new Error("--port is only valid with serve");
+  if (values.skills !== undefined && command !== "init") throw new Error("--skills is only valid with init");
   if (values.output !== undefined && command !== "bundle") throw new Error("--output is only valid with bundle");
   if (values["base-path"] !== undefined && command !== "bundle") throw new Error("--base-path is only valid with bundle");
   if (values["allow-partial"] !== undefined && command !== "scan") throw new Error("--allow-partial is only valid with scan");
@@ -105,7 +108,9 @@ export async function runCli(args: string[]): Promise<number> {
   }
   const root = resolve(positionals[storyCommand ? 2 : 1] ?? ".");
   if (command === "init") {
+    const installSkills = values.skills ? await prepareProjectSkills(root) : undefined;
     const result = await initializeWorkspace(root);
+    if (installSkills) console.log(`Installed ${await installSkills()} project skill/instruction files (identical files preserved).`);
     console.log(`${result.created ? "Initialized" : "Preserved"} ${root}/.topo`);
     return 0;
   }

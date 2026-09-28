@@ -14,11 +14,12 @@ import type {
   StoryArtifact,
   StoryConnection,
 } from "@topo/story";
-import { verifyVendoredArchifyIntegrity } from "./integrity.js";
+import { cliPath as archifyCli } from "@jdylanmc/topo-archify";
+import { verifyArchifyIntegrity } from "./integrity.js";
 
 export {
-  verifyVendoredArchifyIntegrity,
-  type VendoredArchifyIntegrity,
+  verifyArchifyIntegrity,
+  type ArchifyIntegrity,
 } from "./integrity.js";
 
 interface ArchifySource {
@@ -192,14 +193,6 @@ interface ArchifyLifecycle {
   }[];
 }
 
-const packageRoot = fileURLToPath(new URL("../", import.meta.url));
-const archifyCli = path.join(
-  packageRoot,
-  "vendor",
-  "archify",
-  "bin",
-  "archify.mjs",
-);
 const architectureFontSize = 24;
 // The pinned renderer measures 8px monospace labels at 0.6em per text unit;
 // authored Architecture CSS scales the same glyphs to 24px.
@@ -1522,7 +1515,7 @@ export function* renderArchitectureStoryBatch(
   stories: readonly ResolvedStoryDocument[],
   options: { readonly sourceEvidence?: "native" | "wrapper" } = {},
 ): Generator<StoryArtifact> {
-  const integrity = verifyVendoredArchifyIntegrity();
+  const integrity = verifyArchifyIntegrity();
   if (stories.length === 0) return;
   const directory = mkdtempSync(path.join(tmpdir(), "topo-architecture-batch-"));
   try {
@@ -1565,7 +1558,7 @@ export function* renderArchitectureStoryBatch(
 }
 
 export function renderStory(story: ResolvedStoryDocument): StoryArtifact {
-  const integrity = verifyVendoredArchifyIntegrity();
+  const integrity = verifyArchifyIntegrity();
   const family = story.document.diagramFamily ?? "architecture";
   const adaptiveSequenceLayout = family === "sequence"
     ? sequenceLayout(story)

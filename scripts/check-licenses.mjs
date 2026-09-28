@@ -35,7 +35,7 @@ for (const directory of packageDirectories.filter((entry) => entry.isDirectory()
   }
 
   workspaceNames.add(manifest.name);
-  for (const [name, range] of Object.entries(manifest.dependencies ?? {})) {
+  for (const [name, range] of Object.entries({ ...manifest.dependencies, ...manifest.peerDependencies })) {
     const existingRange = declaredDependencies.get(name);
 
     if (existingRange && existingRange !== range) {

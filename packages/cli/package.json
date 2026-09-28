@@ -13,7 +13,7 @@
     }
   },
   "scripts": {
-    "build": "tsc -b",
+    "build": "tsc -b && node ../../scripts/package-skills.mjs",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run --no-file-parallelism"
   },

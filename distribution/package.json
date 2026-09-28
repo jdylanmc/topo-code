@@ -1,0 +1,18 @@
+{
+  "name": "@jdylanmc/topo-code",
+  "version": "0.1.0",
+  "description": "Local-first repository architecture storybook: topo CLI and portable agent skills.",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=22" },
+  "bin": { "topo": "./bin/topo.js" },
+  "exports": {
+    "./package.json": "./package.json",
+    "./story.schema.json": "./story.schema.json",
+    "./graph.schema.json": "./graph.schema.json"
+  },
+  "files": ["bin", "skills", "examples", "*.schema.json", "LICENSE", "THIRD_PARTY_NOTICES.txt", "README.md"],
+  "dependencies": { "@jdylanmc/topo-archify": "0.1.0" },
+  "repository": { "type": "git", "url": "git+https://github.com/jdylanmc/topo-code.git" },
+  "publishConfig": { "access": "public" }
+}

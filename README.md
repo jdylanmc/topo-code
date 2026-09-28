@@ -19,7 +19,26 @@ everything a human adds is recorded as such.
 > source-grounded stories, static analysis modules, optional AI commentary, and
 > pinned Archify 3.0.0 rendering are implemented. Topo is the storybook for
 > architects: the generated shell inventories every diagram while preserving
-> real Archify viewers. This is not yet a published npm CLI.
+> real Archify viewers. npm candidate packages and portable project skills are
+> available; registry publication remains a separate release-owner step.
+
+## Install the toolbelt
+
+After publication, install `@jdylanmc/topo-code@0.1.0` in your project, then run
+`npm exec --no -- topo init . --skills`. This adds project-local Topocode skills
+and instructions without replacing existing files. Read
+`.agents/skills/topo/SKILL.md`, scan, author/validate stories, preview and bundle
+using the installed CLI. Plain `topo init` keeps workspace-only behavior.
+Before publication, install both candidate tarballs in one npm command:
+
+```sh
+npm install --save-dev /path/to/jdylanmc-topo-archify-0.1.0.tgz /path/to/jdylanmc-topo-code-0.1.0.tgz
+npm exec --no -- topo init . --skills
+npm exec --no -- topo scan .
+npm exec --no -- topo serve .
+```
+
+See [package bootstrap, consumer proof and release procedure](./docs/npm-release.md).
 
 ## Run locally
 
@@ -32,6 +51,7 @@ From this checkout, with Node.js 22+ and Corepack:
 
 ```sh
 corepack yarn install --immutable
+node scripts/bootstrap-renderer.mjs /path/to/jdylanmc-topo-archify-0.1.0.tgz
 corepack yarn build
 corepack yarn topo scan /absolute/path/to/a/typescript-repository
 corepack yarn topo serve /absolute/path/to/a/typescript-repository
@@ -150,8 +170,11 @@ MIT. See [LICENSE](./LICENSE).
 ## Development
 
 Topocode remains a private Yarn workspace. Packages live at
-`packages/<name>` and use the local `@topo/<name>` convention. Public npm
-publication is deferred; local package names do not establish namespace ownership.
+`packages/<name>` and use the local `@topo/<name>` convention. The public
+`@jdylanmc/topo-code` package bundles these as private implementation details.
+See [release development](./docs/npm-release.md) for the exact renderer peer
+bootstrap required before first registry publication; no local paths or
+resolution overrides are committed.
 
 Requirements:
 
@@ -168,6 +191,7 @@ From a fresh checkout:
 
 ```sh
 corepack yarn install --immutable
+node scripts/bootstrap-renderer.mjs /path/to/jdylanmc-topo-archify-0.1.0.tgz
 corepack yarn workspace @topo/site exec playwright install --with-deps chromium
 corepack yarn test:regression
 ```

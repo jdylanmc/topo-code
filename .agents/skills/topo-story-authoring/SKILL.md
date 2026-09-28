@@ -15,7 +15,9 @@ invoke a hosted model service, and do not add model execution to `topo scan`.
 ## Create or update the authored story
 
 Write the durable document under `stories/**/*.topo.json` using
-`@topo/story/story.schema.json`. Keep authored documents outside `.topo/cache/`;
+`node_modules/@jdylanmc/topo-code/story.schema.json` (or the same exported
+`@jdylanmc/topo-code/story.schema.json` from a global installation).
+Keep authored documents outside `.topo/cache/`;
 that directory contains generated output and is never the editing surface.
 
 For a new story, choose one stable lowercase `id`, a focused title and summary,
@@ -30,8 +32,7 @@ authored document.
 Validate the uncommitted draft against the current working tree:
 
 ```sh
-corepack yarn topo story validate /absolute/path/to/repository \
-  /absolute/path/to/repository/stories/example.topo.json
+npm exec --no -- topo story validate . stories/example.topo.json
 ```
 
 Repair each reported `invalid-document`, `missing-file`, `missing-symbol`, or
@@ -45,10 +46,9 @@ Commit the source and authored story together. Build or refresh the generated
 site, preview the committed story, and inspect it locally:
 
 ```sh
-corepack yarn topo scan /absolute/path/to/repository
-corepack yarn topo story preview /absolute/path/to/repository \
-  /absolute/path/to/repository/stories/example.topo.json
-corepack yarn topo serve /absolute/path/to/repository
+npm exec --no -- topo scan .
+npm exec --no -- topo story preview . stories/example.topo.json
+npm exec --no -- topo serve .
 ```
 
 Open `/stories/<story-id>/`. If source changes later, rerun validation before
@@ -56,5 +56,32 @@ previewing and preserve identity plus unrelated authored intent during repairs.
 Humans review the authored explanation and generated view; they do not edit the
 renderer output in `.topo/cache/site`.
 
-The executable before/after example and expected evidence are documented in
-[`docs/story-authoring.md`](../../../docs/story-authoring.md).
+Commit only when authorized by the repository owner. For a globally installed
+CLI, use `topo` directly instead of `npm exec --no -- topo`.
+
+## Minimal source-grounded document
+
+Read the actual source before adapting this example. `symbol` names a compiler
+declaration; `pattern` is an exact text match within the file. Anchors store
+neither derived line numbers nor renderer-specific data.
+
+```json
+{
+  "schemaVersion": "1.0",
+  "id": "request",
+  "title": "Request handling",
+  "summary": "A focused explanation verified against the source.",
+  "anchors": [{"id": "handler", "path": "src/handler.ts", "symbol": "handle"}],
+  "sections": [{"id": "handle", "title": "Handle request", "body": "Describe the observed behavior.", "anchorIds": ["handler"]}],
+  "connections": []
+}
+```
+
+Architecture is the default; `diagramFamily` also accepts `workflow`, `sequence`,
+`dataflow` and `lifecycle`. Every source-grounded section needs evidence. Use
+`classification: "capability-demo"` only for explicitly conceptual, anchor-free
+renderer demonstrations, never to bypass missing factual evidence. Prefer
+small focused stories and short labels. For source moves, reread both sides,
+repair only affected anchors and explanation, and retain IDs/unrelated intent.
+The package includes executable before/after fixtures under
+`node_modules/@jdylanmc/topo-code/examples/story-authoring/`.

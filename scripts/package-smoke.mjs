@@ -1,0 +1,162 @@
+import assert from "node:assert/strict";
+import { execFileSync, spawn } from "node:child_process";
+import { cp, lstat, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { once } from "node:events";
+import { fileURLToPath } from "node:url";
+
+const [topoTarball, rendererTarball, retainedDirectory] = process.argv.slice(2);
+if (!topoTarball || !rendererTarball) throw new Error("Usage: node scripts/package-smoke.mjs topo.tgz renderer.tgz [new-evidence-directory]");
+const root = retainedDirectory
+  ? path.resolve(retainedDirectory)
+  : await mkdtemp(path.join(tmpdir(), "topo-installed-consumer-"));
+if (retainedDirectory) await mkdir(root);
+const run = (command, args) => execFileSync(command, args, {
+  cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 16 * 1024 * 1024,
+  env: { ...process.env, NODE_PATH: "", GIT_CONFIG_NOSYSTEM: "1" },
+  shell: process.platform === "win32" && command.endsWith(".cmd"),
+});
+const git = (...args) => run("git", args);
+const commit = (message) => {
+  git("add", ".");
+  git("-c", "user.name=Topo Package Test", "-c", "user.email=topo@example.invalid", "-c", "commit.gpgsign=false", "commit", "--quiet", "-m", message);
+};
+const executable = path.join(root, "node_modules/.bin/topo");
+const cli = (...args) => run(process.execPath, [executable, ...args]);
+let server;
+try {
+  await writeFile(path.join(root, "package.json"), '{"name":"unrelated-consumer","private":true,"type":"module"}\n');
+  run(process.platform === "win32" ? "npm.cmd" : "npm", [
+    "install", "--ignore-scripts", "--no-audit", "--no-fund",
+    path.resolve(rendererTarball), path.resolve(topoTarball),
+  ]);
+  const installed = path.join(root, "node_modules/@jdylanmc/topo-code");
+  const manifest = JSON.parse(await readFile(path.join(installed, "package.json"), "utf8"));
+  assert.equal(manifest.name, "@jdylanmc/topo-code");
+  assert.equal(manifest.version, "0.1.0");
+  assert.equal(manifest.dependencies["@jdylanmc/topo-archify"], "0.1.0");
+  assert.equal(manifest.scripts, undefined);
+  assert.equal((await lstat(installed)).isSymbolicLink(), false);
+  assert.equal((await lstat(path.join(root, "node_modules/@jdylanmc/topo-archify"))).isSymbolicLink(), false);
+  assert.equal(manifest.bundleDependencies.length, 12);
+  async function inspect(directory) {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const file = path.join(directory, entry.name);
+      assert.equal(entry.isSymbolicLink(), false, file);
+      if (entry.isDirectory()) await inspect(file);
+      else if (/\.(?:js|mjs|json|md|txt)$/.test(entry.name)) {
+        const text = await readFile(file, "utf8");
+        assert.ok(!text.includes("workspace:*"), file);
+        assert.ok(!text.includes(fileURLToPath(new URL("../", import.meta.url))), file);
+        if (entry.name === "package.json") {
+          const packedManifest = JSON.parse(text);
+          assert.ok(Object.values(packedManifest.dependencies ?? {}).every((spec) => !spec.startsWith("file:")), file);
+        }
+        assert.ok(!/^\/\/# sourceMappingURL=/m.test(text), file);
+      }
+    }
+  }
+  await inspect(installed);
+  run(process.execPath, ["--input-type=module", "-e", `
+    import { readFileSync } from 'node:fs';
+    for (const name of ['package.json', 'story.schema.json', 'graph.schema.json']) {
+      JSON.parse(readFileSync(new URL(import.meta.resolve('@jdylanmc/topo-code/' + name)), 'utf8'));
+    }
+  `]);
+  assert.match(cli("--help"), /init \[repository\] \[--skills\]/);
+  git("init", "--quiet");
+  git("remote", "add", "origin", "https://github.com/example/installed-consumer.git");
+  await writeFile(path.join(root, ".gitignore"), "node_modules/\n.topo/cache/\nsite-output/\n");
+  await writeFile(path.join(root, "AGENTS.md"), "# Existing owner instructions\nDo not replace.\n");
+  await mkdir(path.join(root, ".github"), { recursive: true });
+  await writeFile(path.join(root, ".github/copilot-instructions.md"), "Existing instructions.\n");
+  await mkdir(path.join(root, ".agents/skills/unrelated"), { recursive: true });
+  await writeFile(path.join(root, ".agents/skills/unrelated/SKILL.md"), "Existing skill.\n");
+  cli("init", ".");
+  await assert.rejects(lstat(path.join(root, ".agents/skills/topo")), { code: "ENOENT" });
+  const config = await readFile(path.join(root, ".topo/config.json"), "utf8");
+  cli("init", ".", "--skills");
+  assert.match(cli("init", ".", "--skills"), /Installed 0/);
+  assert.equal(await readFile(path.join(root, ".topo/config.json"), "utf8"), config);
+  assert.equal(await readFile(path.join(root, "AGENTS.md"), "utf8"), "# Existing owner instructions\nDo not replace.\n");
+  assert.equal(await readFile(path.join(root, ".github/copilot-instructions.md"), "utf8"), "Existing instructions.\n");
+  assert.equal(await readFile(path.join(root, ".agents/skills/unrelated/SKILL.md"), "utf8"), "Existing skill.\n");
+  for (const name of ["topo", "topo-story-authoring", "topo-archify-maintenance"]) {
+    assert.match(await readFile(path.join(root, ".agents/skills", name, "SKILL.md"), "utf8"), /^---\nname:/);
+  }
+  const contextPath = path.join(root, ".agents/skills/topo/SKILL.md");
+  const context = await readFile(contextPath);
+  await writeFile(contextPath, "User customization\n");
+  assert.throws(() => cli("init", ".", "--skills"), /destination conflict/);
+  assert.equal(await readFile(contextPath, "utf8"), "User customization\n");
+  await writeFile(contextPath, context);
+
+  const fixture = path.join(installed, "examples/story-authoring");
+  await cp(path.join(fixture, "initial/src"), path.join(root, "src"), { recursive: true });
+  commit("Initial unrelated project");
+  await cp(path.join(fixture, "initial/stories"), path.join(root, "stories"), { recursive: true });
+  const storyPath = path.join(root, "stories/checkout.topo.json");
+  const before = JSON.parse(await readFile(storyPath, "utf8"));
+  assert.match(cli("story", "validate", ".", "stories/checkout.topo.json"), /charge-order: src\/checkout.ts:10-12/);
+  commit("Author source-grounded story");
+  assert.match(cli("scan", "."), /Scanned/);
+  cli("story", "preview", ".", "stories/checkout.topo.json");
+
+  await cp(path.join(fixture, "changed/src"), path.join(root, "src"), { recursive: true });
+  assert.throws(() => cli("story", "validate", ".", "stories/checkout.topo.json"), /missing-pattern/);
+  await cp(path.join(fixture, "changed/stories/checkout.topo.json"), storyPath);
+  const after = JSON.parse(await readFile(storyPath, "utf8"));
+  assert.equal(after.id, before.id);
+  assert.equal(after.summary, before.summary);
+  assert.deepEqual(after.anchors[2], before.anchors[2]);
+  assert.deepEqual(after.sections[2], before.sections[2]);
+  assert.deepEqual(after.connections, before.connections);
+  assert.match(cli("story", "validate", ".", "stories/checkout.topo.json"), /charge-order: src\/payment.ts:3-5/);
+  commit("Repair story after moving payment boundary");
+  cli("scan", ".");
+  cli("story", "preview", ".", "stories/checkout.topo.json");
+  const viewer = await readFile(path.join(root, ".topo/cache/site/stories/checkout/viewer.html"), "utf8");
+  assert.match(viewer, /Charge payment/);
+  server = spawn(process.execPath, [executable, "serve", ".", "--port", "0"], { cwd: root, stdio: ["ignore", "pipe", "pipe"] });
+  const url = await new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("Installed server did not become ready")), 10000);
+    let output = "";
+    server.stdout.on("data", (chunk) => {
+      output += chunk;
+      const match = /Topocode: (http:\/\/127\.0\.0\.1:\d+)/.exec(output);
+      if (match) { clearTimeout(timer); resolve(match[1]); }
+    });
+    server.on("error", (error) => { clearTimeout(timer); reject(error); });
+    server.on("exit", (code) => { clearTimeout(timer); reject(new Error(`Installed server exited ${code}: ${output}`)); });
+    server.stderr.on("data", (chunk) => { output += chunk; });
+  });
+  for (const resource of ["/", "/stories/checkout/", "/stories/checkout/viewer.html", "/LICENSE.txt", "/THIRD_PARTY_NOTICES.txt"]) {
+    const response = await fetch(`${url}${resource}`);
+    assert.equal(response.status, 200, resource);
+    assert.ok((await response.text()).length > 10, resource);
+  }
+  const stopped = once(server, "exit");
+  server.kill("SIGTERM");
+  await stopped;
+  server = undefined;
+  cli("bundle", ".", "--output", "site-output", "--base-path", "/architecture/");
+  const bundle = path.join(root, "site-output/architecture");
+  assert.match(await readFile(path.join(bundle, "stories/checkout/viewer.html"), "utf8"), /Charge payment/);
+  const notices = await readFile(path.join(bundle, "THIRD_PARTY_NOTICES.txt"), "utf8");
+  assert.match(notices, /@jdylanmc\/topo-archify@0\.1\.0/);
+  assert.match(notices, /SIL OPEN FONT LICENSE/i);
+  assert.match(await readFile(path.join(bundle, "index.html"), "utf8"), /repository/i);
+  console.log(JSON.stringify({
+    status: "passed", consumer: root, node: process.version,
+    packages: { topocode: manifest.version, renderer: manifest.dependencies["@jdylanmc/topo-archify"] },
+    evidence: ["clean npm install", "bundled private modules", "portable skills and conflict preservation", "draft validate", "source move failure and identity-preserving repair", "scan", "preview", "live serve", "static bundle and notices"],
+  }, null, 2));
+} finally {
+  if (server && server.exitCode === null) {
+    const stopped = once(server, "exit");
+    server.kill("SIGTERM");
+    await stopped;
+  }
+  if (!retainedDirectory) await rm(root, { recursive: true, force: true });
+}
