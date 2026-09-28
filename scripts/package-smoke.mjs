@@ -4,7 +4,7 @@ import { cp, lstat, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "nod
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { once } from "node:events";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const [topoTarball, rendererTarball, retainedDirectory] = process.argv.slice(2);
 if (!topoTarball || !rendererTarball) throw new Error("Usage: node scripts/package-smoke.mjs topo.tgz renderer.tgz [new-evidence-directory]");
@@ -12,9 +12,9 @@ const root = retainedDirectory
   ? path.resolve(retainedDirectory)
   : await mkdtemp(path.join(tmpdir(), "topo-installed-consumer-"));
 if (retainedDirectory) await mkdir(root);
-const run = (command, args) => execFileSync(command, args, {
+const run = (command, args, extraEnv = {}) => execFileSync(command, args, {
   cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 16 * 1024 * 1024,
-  env: { ...process.env, NODE_PATH: "", GIT_CONFIG_NOSYSTEM: "1" },
+  env: { ...process.env, NODE_PATH: "", GIT_CONFIG_NOSYSTEM: "1", ...extraEnv },
   shell: process.platform === "win32" && command.endsWith(".cmd"),
 });
 const git = (...args) => run("git", args);
@@ -22,8 +22,11 @@ const commit = (message) => {
   git("add", ".");
   git("-c", "user.name=Topo Package Test", "-c", "user.email=topo@example.invalid", "-c", "commit.gpgsign=false", "commit", "--quiet", "-m", message);
 };
-const executable = path.join(root, "node_modules/.bin/topo");
-const cli = (...args) => run(process.execPath, [executable, ...args]);
+const executable = path.join(root, "node_modules/@jdylanmc/topo-code/bin/topo.js");
+const networkGuard = path.join(root, "node_modules/.topo-no-network.mjs");
+const cli = (...args) => run(process.execPath, [executable, ...args], {
+  NODE_OPTIONS: `--import=${pathToFileURL(networkGuard).href}`,
+});
 let server;
 try {
   await writeFile(path.join(root, "package.json"), '{"name":"unrelated-consumer","private":true,"type":"module"}\n');
@@ -32,6 +35,10 @@ try {
     path.resolve(rendererTarball), path.resolve(topoTarball),
   ]);
   const installed = path.join(root, "node_modules/@jdylanmc/topo-code");
+  await writeFile(networkGuard, `import http from "node:http"; import https from "node:https"; import net from "node:net";
+const denied = () => { throw new Error("Unexpected network access in installed Topocode"); };
+globalThis.fetch = denied; http.request = denied; http.get = denied; https.request = denied; https.get = denied; net.connect = denied;
+`);
   const manifest = JSON.parse(await readFile(path.join(installed, "package.json"), "utf8"));
   assert.equal(manifest.name, "@jdylanmc/topo-code");
   assert.equal(manifest.version, "0.1.0");
@@ -52,6 +59,15 @@ try {
         if (entry.name === "package.json") {
           const packedManifest = JSON.parse(text);
           assert.ok(Object.values(packedManifest.dependencies ?? {}).every((spec) => !spec.startsWith("file:")), file);
+          async function checkTargets(value) {
+            if (typeof value === "string") {
+              assert.ok(value.startsWith("./"), `${file}: ${value}`);
+              assert.ok((await lstat(path.join(directory, value))).isFile(), `${file}: ${value}`);
+            } else {
+              for (const nested of Object.values(value ?? {})) await checkTargets(nested);
+            }
+          }
+          await checkTargets(packedManifest.exports);
         }
         assert.ok(!/^\/\/# sourceMappingURL=/m.test(text), file);
       }
@@ -65,6 +81,7 @@ try {
     }
   `]);
   assert.match(cli("--help"), /init \[repository\] \[--skills\]/);
+  assert.match(run(process.platform === "win32" ? "npm.cmd" : "npm", ["exec", "--no", "--", "topo", "--help"]), /Topocode:/);
   git("init", "--quiet");
   git("remote", "add", "origin", "https://github.com/example/installed-consumer.git");
   await writeFile(path.join(root, ".gitignore"), "node_modules/\n.topo/cache/\nsite-output/\n");
@@ -150,7 +167,7 @@ try {
   console.log(JSON.stringify({
     status: "passed", consumer: root, node: process.version,
     packages: { topocode: manifest.version, renderer: manifest.dependencies["@jdylanmc/topo-archify"] },
-    evidence: ["clean npm install", "bundled private modules", "portable skills and conflict preservation", "draft validate", "source move failure and identity-preserving repair", "scan", "preview", "live serve", "static bundle and notices"],
+    evidence: ["clean npm install", "bundled private modules and export targets", "portable skills and conflict preservation", "draft validate", "source move failure and identity-preserving repair", "scan and preview with network forbidden", "live serve", "static bundle and notices"],
   }, null, 2));
 } finally {
   if (server && server.exitCode === null) {

@@ -37,6 +37,7 @@ try {
       : entry.name === "diagram-core" ? ["archify-pin.json", "LICENSE", "THIRD_PARTY_NOTICES.md"] : []) {
       await copy(path.join(source, extra), path.join(destination, extra));
     }
+    if (entry.name === "site") internal.exports["./data"].types = "./dist/data-contract/data.d.ts";
     bundled.push(internal.name);
     const dependencies = {};
     for (const [name, spec] of Object.entries({ ...internal.dependencies, ...internal.peerDependencies })) {

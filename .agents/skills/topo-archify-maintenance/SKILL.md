@@ -20,10 +20,11 @@ If context is missing, stop the update rather than infer a pin or prior decision
    reminder behavior in deliver/finalize. Do not silently promote it.
 2. Use owned isolated worktrees in `jdylanmc/topo-archify` and
    `jdylanmc/topo-code`. Keep runtime bytes pristine. Inspect the fork's
-   `integrations/topo-npm/README.md` and `pack.mjs`. Update the exact commit,
-   upstream version and official archive hash in `release.json`; regenerate
-   the complete `upstream-integrity.json` only from the verified official archive,
-   never from edited local runtime bytes. Package versions are independent:
+   `integrations/topo-npm/README.md` and `pack.mjs`. Preview the candidate with
+   `node integrations/topo-npm/update-pin.mjs <approved-full-commit>`.
+   After any required human approval, repeat with `--write`, then inspect the
+   `release.json` and `upstream-integrity.json` diff. This hashes the commit's
+   official ZIP entries, never edited local runtime bytes. Package versions are independent:
    initially both public packages are 0.1.0, upstreamVersion is 3.0.0.
 3. In the fork run:
    `node integrations/topo-npm/pack.mjs dist` and
