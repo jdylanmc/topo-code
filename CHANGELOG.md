@@ -23,6 +23,10 @@ publication remains a separate release-owner action.
 
 ### Added
 
+- Add manual GitHub-hosted trusted-publishing workflows with separate protected
+  OIDC publication of verified tarballs; retain explicit first-package trust
+  and ownership prerequisites without local npm authentication.
+
 - Package the `@jdylanmc/topo-code` CLI-plus-skills toolbelt with `topo init
   --skills`, portable authoring/operation guidance and a context-loading Archify
   maintenance loop. Verify clean tarball installation, source-change repair,

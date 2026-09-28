@@ -1,0 +1,139 @@
+name: Publish Topocode to npm
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact version already committed in distribution/package.json
+        required: true
+        type: string
+      publish:
+        description: Publish after verification and environment approval; npm trust must already exist
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-release
+  cancel-in-progress: false
+
+env:
+  NPM_CONFIG_REGISTRY: https://registry.npmjs.org
+  YARN_NPM_REGISTRY_SERVER: https://registry.npmjs.org
+
+jobs:
+  verify:
+    if: github.repository == 'jdylanmc/topo-code' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      filename: ${{ steps.package.outputs.filename }}
+      version: ${{ steps.package.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - name: Check the requested package and renderer identity
+        id: package
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync, appendFileSync } from 'node:fs';
+          const pkg = JSON.parse(readFileSync('distribution/package.json'));
+          const renderer = pkg.dependencies['@jdylanmc/topo-archify'];
+          const exact = /^\d+\.\d+\.\d+(?:-[a-zA-Z0-9.-]+)?$/;
+          if (pkg.name !== '@jdylanmc/topo-code' || pkg.version !== process.env.REQUESTED_VERSION ||
+              !exact.test(pkg.version) || !exact.test(renderer)) {
+            throw new Error('Requested version and exact renderer dependency must match the committed package.');
+          }
+          appendFileSync(process.env.GITHUB_OUTPUT, `version=${pkg.version}\nfilename=jdylanmc-topo-code-${pkg.version}.tgz\nrenderer=${renderer}\nrendererFile=jdylanmc-topo-archify-${renderer}.tgz\n`);
+          NODE
+      - run: corepack enable
+      - run: corepack yarn install --immutable
+      - name: Fetch the already-published exact renderer
+        env:
+          RENDERER_VERSION: ${{ steps.package.outputs.renderer }}
+          RENDERER_FILE: ${{ steps.package.outputs.rendererFile }}
+        run: |
+          mkdir "$RUNNER_TEMP/renderer-package"
+          npm pack "@jdylanmc/topo-archify@$RENDERER_VERSION" --ignore-scripts --pack-destination "$RUNNER_TEMP/renderer-package" --registry https://registry.npmjs.org
+          node scripts/bootstrap-renderer.mjs "$RUNNER_TEMP/renderer-package/$RENDERER_FILE"
+      - run: corepack yarn workspace @topo/site exec playwright install --with-deps chromium
+      - run: corepack yarn test:regression
+      - name: Pack and exercise the installed consumer
+        env:
+          PACKAGE_FILE: ${{ steps.package.outputs.filename }}
+          RENDERER_FILE: ${{ steps.package.outputs.rendererFile }}
+        run: |
+          node scripts/pack.mjs dist
+          node scripts/package-smoke.mjs "dist/$PACKAGE_FILE" "$RUNNER_TEMP/renderer-package/$RENDERER_FILE"
+          sha256sum dist/*.tgz > dist/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: npm-candidate-${{ github.sha }}
+          path: |
+            dist/*.tgz
+            dist/SHA256SUMS
+          if-no-files-found: error
+
+  publish:
+    needs: verify
+    if: inputs.publish && github.repository == 'jdylanmc/topo-code' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - name: Require an OIDC-capable npm CLI
+        run: |
+          node --input-type=module <<'NODE'
+          import { execFileSync } from 'node:child_process';
+          const version = execFileSync('npm', ['--version'], { encoding: 'utf8' }).trim();
+          const [major, minor, patch] = version.split('.').map(Number);
+          if (!(major > 11 || (major === 11 && (minor > 5 || (minor === 5 && patch >= 1))))) {
+            throw new Error(`npm >=11.5.1 is required for trusted publishing; received ${version}`);
+          }
+          NODE
+      - uses: actions/download-artifact@v4
+        with:
+          name: npm-candidate-${{ github.sha }}
+          path: dist
+      - run: sha256sum --check dist/SHA256SUMS
+      - name: Publish the tested tarball using npm trusted publishing
+        env:
+          PACKAGE_FILE: ${{ needs.verify.outputs.filename }}
+        run: npm publish "dist/$PACKAGE_FILE" --access public --provenance --registry https://registry.npmjs.org
+      - name: Verify the public registry version
+        env:
+          PACKAGE_VERSION: ${{ needs.verify.outputs.version }}
+          PACKAGE_FILE: ${{ needs.verify.outputs.filename }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { execFileSync } from 'node:child_process';
+          import { createHash } from 'node:crypto';
+          import { readFileSync } from 'node:fs';
+          const identity = `@jdylanmc/topo-code@${process.env.PACKAGE_VERSION}`;
+          const integrity = JSON.parse(execFileSync('npm', ['view', identity, 'dist.integrity', '--json', '--registry', 'https://registry.npmjs.org'], { encoding: 'utf8' }));
+          const expected = `sha512-${createHash('sha512').update(readFileSync(`dist/${process.env.PACKAGE_FILE}`)).digest('base64')}`;
+          if (integrity !== expected) throw new Error('Published tarball integrity does not match the verified artifact.');
+          console.log(`Verified public registry bytes for ${identity}`);
+          NODE
+      - name: Verify registry-only CLI installation
+        env:
+          PACKAGE_VERSION: ${{ needs.verify.outputs.version }}
+        run: npm exec --yes --package="@jdylanmc/topo-code@$PACKAGE_VERSION" -- topo --help

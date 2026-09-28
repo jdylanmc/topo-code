@@ -54,6 +54,13 @@ If context is missing, stop the update rather than infer a pin or prior decision
    patch and its upstream status explicitly.
 
 No schedule, global skill install, credentials or first publication is implied.
-The release owner verifies npm ownership/access (GitHub identity is insufficient),
-publishes the tested renderer tarball first, then tests and publishes Topocode.
+The release owner verifies npm ownership and configured trusted-publisher access
+(GitHub identity is insufficient). Publication is GitHub Actions only, through
+each repository's `npm-release.yml`, not local npm login/publish. Its `publish`
+input defaults to false and the OIDC publish job uses environment `npm`.
+Load the source checkout's `docs/npm-release.md` walkthrough before enabling it.
+An absent package or unconfigured npm trust is an explicit bootstrap blocker;
+never invent tokenless first-package readiness or add a credential fallback.
+Publish the tested renderer first, then verify the public renderer dependency
+and publish Topocode from its hosted workflow.
 Never claim a package is published merely because packing or installation passed.

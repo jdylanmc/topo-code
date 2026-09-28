@@ -78,25 +78,85 @@ patches may be released by agents after independent review and passing gates.
 Minor/major upgrades, runtime patches, or changed behavior/contracts require
 human approval. No schedule or automatic first publication is configured.
 
-CI packs and tests; it neither handles npm secrets nor publishes. The Topocode
-workflow pins the renderer packaging commit, not a floating branch. For this
+Ordinary CI packs and tests; it neither handles npm secrets nor publishes. The
+Topocode CI workflow pins the renderer packaging commit, not a floating branch. For this
 coordinated first release that commit must be pushed before remote CI can fetch
 it. Update that ref deliberately for later renderer releases.
 
-The release owner verifies actual npm login, scope ownership and access; GitHub
-identity does not prove them. Publish **the reviewed tarballs**, renderer first:
+## GitHub-hosted trusted publishing
 
-```sh
-npm publish /path/to/jdylanmc-topo-archify-0.1.0.tgz --access public
-# Verify a clean registry install resolves the published exact renderer.
-npm publish /path/to/jdylanmc-topo-code-0.1.0.tgz --access public
-```
+Publication runs **only in GitHub Actions**, never through local npm login or
+local publish. Both repositories provide `.github/workflows/npm-release.yml`.
+It is manual, main-only and defaults to **publish=false**. The verification job
+builds/tests a candidate and uploads its tarball plus SHA-256. A separate
+`npm`-environment job downloads and verifies that exact artifact before
+publishing with OpenID Connect (OIDC); only that job has `id-token: write`.
+No npm token secret or automatic credential fallback is configured.
 
-After publication, verify a fresh `npm install --save-dev @jdylanmc/topo-code@0.1.0`
-and the consumer journey without supplying the renderer tarball. Local-tarball
-evidence does not prove registry availability. Published versions are immutable;
-keep tested tarball digests and exact source commits with release evidence.
-Version/tag publication and GitHub pull requests belong to the release owner.
+The workflows use GitHub-hosted Ubuntu, Node 24, npm's public registry and an
+explicit npm >=11.5.1 check. npm's documented trusted-publishing minimum is
+Node >=22.14.0 with npm >=11.5.1. No release cache is enabled. npm automatically
+generates provenance for public packages from public repositories; the workflow
+also requests it explicitly. The package repository URLs identify their actual
+downstream repositories, not upstream Archify.
+
+### Owner setup
+
+1. Push/review/merge the workflows into each repository's `main`. In each
+   GitHub repository create environment **`npm`**, restrict deployments to
+   `main`, and configure initial-release approval protection. The owner controls
+   future approval settings under the agreed patch-release policy.
+2. Resolve first-package bootstrap and npm ownership/access **before enabling
+   publication**. The documented npm trust setup starts in an existing package's
+   settings. A workflow file and GitHub ownership do not establish npm ownership,
+   create that trust, or prove tokenless publication of a nonexistent package.
+   The release owner is handling the Actions-only bootstrap separately; no
+   local-login/token workaround is included here.
+3. Once the package settings are available, configure the exact trusted publisher
+   values below. This npm-side action needs an authorized way to access those
+   settings; GitHub OIDC permissions alone cannot perform it. If npm is
+   inaccessible from the operator's machine, that remains an external setup
+   blocker, not a reason to claim trust is configured.
+
+| npm package | GitHub user | Repository | Workflow filename | Environment |
+| --- | --- | --- | --- | --- |
+| `@jdylanmc/topo-archify` | `jdylanmc` | `topo-archify` | `npm-release.yml` | `npm` |
+| `@jdylanmc/topo-code` | `jdylanmc` | `topo-code` | `npm-release.yml` | `npm` |
+
+Enter only the workflow **filename**, not `.github/workflows/`. Values are
+case-sensitive. For new npm trusted-publisher configurations, explicitly allow
+**direct `npm publish`**: current npm defaults new connections to staged
+publishing, whereas these workflows perform direct publication after GitHub's
+approval gate. Do not replace this with `npm stage publish` without agreeing
+the separate npm-side approval flow.
+
+### Run entirely through GitHub
+
+In **Actions**, select **Publish renderer to npm** in `topo-archify`, choose
+**Run workflow**, branch `main`, and the exact committed version (initially
+`0.1.0`). Leave `publish` false for a verification-only run; inspect its results
+and artifact. After independent review and established npm trust, run with
+`publish=true` and complete the configured environment approval.
+
+Then use **Publish Topocode to npm** in `topo-code` in the same way. Its
+verification job deliberately fetches the exact renderer from **the public npm
+registry**, runs the full regression and installed consumer journey, and only
+then offers the Topocode artifact for publication. A missing renderer version
+blocks this job explicitly; it never substitutes an unpublished local package.
+
+The publish jobs compare public registry integrity with the exact tested artifact
+afterward. Topocode also exercises a registry-only CLI installation on the hosted
+runner, without supplying a renderer tarball. The release owner should retain
+these results alongside the full prepublication consumer journey. Local-tarball
+evidence alone is not registry availability.
+Published versions are immutable; never rerun an already-published version as
+an overwrite attempt. Retain the workflow run, source commit and artifact digest
+as release evidence. First-package bootstrap instructions remain pending the
+owner's decision; no workflow has been dispatched or package published here.
+
+Sources: [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/),
+[official source and current allowed-action requirements](https://github.com/npm/documentation/blob/main/content/packages-and-modules/securing-your-code/trusted-publishers.mdx),
+[GitHub OIDC permissions](https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-cloud-providers).
 
 The selected-runtime package smoke does not claim the complete upstream suite.
 The matching upstream development/browser suite and cross-machine reproducibility
