@@ -1,8 +1,10 @@
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { posix } from "node:path";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, posix } from "node:path";
 import { promisify } from "node:util";
-import { renderArchitectureStories } from "@topo/diagram-core";
+import { renderArchitectureStoryBatch } from "@topo/diagram-core";
 import type { GraphDocument, LogicalArchitectureDocument } from "@topo/schema";
 import type { ResolvedStoryDocument, StoryConnection } from "@topo/story";
 import { readOptionalArtifact } from "@topo/workspace";
@@ -24,7 +26,8 @@ const execute = promisify(execFile);
 
 export interface GeneratedRepository {
   readonly index: RepositoryIndex;
-  readonly viewers: ReadonlyMap<string, string>;
+  readonly viewerFiles: ReadonlyMap<string, string>;
+  dispose(): Promise<void>;
 }
 
 function sourceHash(contents: string): string {
@@ -159,15 +162,27 @@ export async function generateRepository(
   const nodes = new Map(index.nodes.map((node) => [node.id, node]));
   const renderable = index.pages.filter((page) =>
     page.nodeIds.length > 0 || nodes.get(page.scopeId)!.locations.length > 0);
-  const artifacts = renderArchitectureStories(
-    renderable.map((page) => pageStory(root, index, page, snapshot, nodes)),
-    { sourceEvidence: "wrapper" },
-  );
-  await assertSourceSnapshot(root, snapshot);
-  return {
-    index,
-    viewers: new Map(renderable.map((page, offset) => [page.id, artifacts[offset]!.contents])),
-  };
+  const directory = await mkdtemp(join(tmpdir(), "topo-repository-output-"));
+  const dispose = () => rm(directory, { recursive: true, force: true });
+  try {
+    const viewerFiles = new Map<string, string>();
+    const artifacts = renderArchitectureStoryBatch(
+      renderable.map((page) => pageStory(root, index, page, snapshot, nodes)),
+      { sourceEvidence: "wrapper" },
+    );
+    let offset = 0;
+    for (const artifact of artifacts) {
+      const page = renderable[offset++]!;
+      const file = join(directory, `${page.id}.html`);
+      await writeFile(file, artifact.contents);
+      viewerFiles.set(page.id, file);
+    }
+    await assertSourceSnapshot(root, snapshot);
+    return { index, viewerFiles, dispose };
+  } catch (error) {
+    await dispose();
+    throw error;
+  }
 }
 
 export async function readRepositoryIndex(root: string): Promise<RepositoryIndex | undefined> {

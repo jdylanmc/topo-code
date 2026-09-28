@@ -67,6 +67,11 @@ geometry and output validation still run for every artifact. Authored stories
 retain their existing single-story rendering and native source-link behavior.
 No vendored file, renderer dependency, or license policy is changed.
 
+All native pages finish validation before publication. Validated output is
+staged to owned temporary files and copied one page at a time, rather than
+retaining every standalone viewer and every concurrent write buffer in memory.
+Temporary output is removed after publication or failure.
+
 Generated files live under `.topo/cache/site/`:
 
 | Path | Purpose |

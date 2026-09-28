@@ -1505,8 +1505,15 @@ export function renderArchitectureStories(
   stories: readonly ResolvedStoryDocument[],
   options: { readonly sourceEvidence?: "native" | "wrapper" } = {},
 ): StoryArtifact[] {
+  return [...renderArchitectureStoryBatch(stories, options)];
+}
+
+export function* renderArchitectureStoryBatch(
+  stories: readonly ResolvedStoryDocument[],
+  options: { readonly sourceEvidence?: "native" | "wrapper" } = {},
+): Generator<StoryArtifact> {
   const integrity = verifyVendoredArchifyIntegrity();
-  if (stories.length === 0) return [];
+  if (stories.length === 0) return;
   const directory = mkdtempSync(path.join(tmpdir(), "topo-architecture-batch-"));
   try {
     const jobs = stories.map((story, index) => {
@@ -1528,16 +1535,18 @@ export function renderArchitectureStories(
         manifest,
       ], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, stdio: ["ignore", "pipe", "pipe"] });
     }
-    return jobs.map(({ output }) => ({
-      kind: "html",
-      mediaType: "text/html",
-      contents: improveStoryReadability(readFileSync(output, "utf8"), "architecture"),
-      renderer: {
-        name: "archify",
-        pin: integrity.version,
-        sha256: integrity.archiveSha256,
-      },
-    }));
+    for (const { output } of jobs) {
+      yield {
+        kind: "html",
+        mediaType: "text/html",
+        contents: improveStoryReadability(readFileSync(output, "utf8"), "architecture"),
+        renderer: {
+          name: "archify",
+          pin: integrity.version,
+          sha256: integrity.archiveSha256,
+        },
+      };
+    }
   } catch (error) {
     throw commandError(error);
   } finally {

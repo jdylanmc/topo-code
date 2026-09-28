@@ -204,7 +204,11 @@ export async function generateArtifacts(
     const repository = catalogue === undefined ? undefined : await generateRepository(
       root, composedGraph, logicalArchitecture, catalogue.source,
     );
-    await copySite(root, siteAssets, catalogue, config, repository);
+    try {
+      await copySite(root, siteAssets, catalogue, config, repository);
+    } finally {
+      await repository?.dispose();
+    }
     await writeGenerated(root, "graph/graph.json", serializeGraphDocument(composedGraph));
     await writeGenerated(root, "graph/layout.json", serializeLayoutDeterministic(layout.layout));
     await writeGenerated(root, "graph/architecture.json", serializeArchitecture(architecture));

@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
-import { readdir, rm } from "node:fs/promises";
+import { readFile, readdir, rm } from "node:fs/promises";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
 import { renderStory } from "@topo/diagram-core";
@@ -1119,6 +1119,11 @@ export async function writeCatalogue(
 ): Promise<void> {
   const links = storyLinks(stories);
   const repository = generatedRepository?.index ?? await readRepositoryIndex(root);
+  if (generatedRepository !== undefined) {
+    for (const [id, file] of generatedRepository.viewerFiles) {
+      await writeGenerated(root, `cache/site/repository/${id}/viewer.html`, await readFile(file));
+    }
+  }
   await Promise.all([
     writeGenerated(
       root,
@@ -1130,8 +1135,6 @@ export async function writeCatalogue(
     ]),
     ...(generatedRepository === undefined ? [] : [
       writeGenerated(root, "cache/site/repository.json", `${JSON.stringify(generatedRepository.index)}\n`),
-      ...[...generatedRepository.viewers].map(([id, contents]) =>
-        writeGenerated(root, `cache/site/repository/${id}/viewer.html`, contents)),
     ]),
     writeGenerated(root, "cache/site/shell.js", SHELL_SCRIPT),
     writeGenerated(
