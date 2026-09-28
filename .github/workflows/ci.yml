@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: jdylanmc/topo-archify
-          ref: 8b81f395a17c6e082c675405d799a6b8a9a258cf
+          ref: b94790e99e2ca51fcdb74a9bd0f10f637856f92f
           path: renderer
           fetch-depth: 0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4

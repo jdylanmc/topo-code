@@ -109,6 +109,13 @@ and verify those exact bytes:
 
 Neither path uses a GitHub environment; leave npm's **Environment name blank**.
 
+The publish argument must be an explicit local path, such as
+`./dist/jdylanmc-topo-code-0.1.0.tgz`. npm can classify the bare
+`dist/filename.tgz` form as GitHub shorthand rather than a local file. Package
+regressions run the actual workflow arguments through credential-free,
+offline `npm publish --dry-run` and compare the consumed tarball's integrity.
+This proves local artifact selection, not registry write permission.
+
 All introduced Actions are pinned to verified full commit SHAs. Updates to those
 pins must retain action contract validation rather than replacing them with
 mutable major-version tags.

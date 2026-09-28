@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { once } from "node:events";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { createHash } from "node:crypto";
 
 const [topoTarball, rendererTarball, retainedDirectory] = process.argv.slice(2);
 if (!topoTarball || !rendererTarball) throw new Error("Usage: node scripts/package-smoke.mjs topo.tgz renderer.tgz [new-evidence-directory]");
@@ -47,6 +48,42 @@ globalThis.fetch = denied; http.request = denied; http.get = denied; https.reque
   assert.equal((await lstat(installed)).isSymbolicLink(), false);
   assert.equal((await lstat(path.join(root, "node_modules/@jdylanmc/topo-archify"))).isSymbolicLink(), false);
   assert.equal(manifest.bundleDependencies.length, 12);
+  const publishFixture = path.join(root, "node_modules/.publish-check");
+  const packageFile = `jdylanmc-topo-code-${manifest.version}.tgz`;
+  await mkdir(path.join(publishFixture, "dist"), { recursive: true });
+  await cp(path.resolve(topoTarball), path.join(publishFixture, "dist", packageFile));
+  await writeFile(path.join(publishFixture, "package.json"), '{"private":true}\n');
+  for (const file of [".npmrc", "user.npmrc", "global.npmrc"]) await writeFile(path.join(publishFixture, file), "");
+  const publishEnv = Object.fromEntries(
+    ["PATH", "Path", "PATHEXT", "SystemRoot", "SYSTEMROOT", "ComSpec", "COMSPEC", "TEMP", "TMP", "TMPDIR"]
+      .filter((name) => process.env[name] !== undefined).map((name) => [name, process.env[name]]),
+  );
+  Object.assign(publishEnv, {
+    HOME: publishFixture, USERPROFILE: publishFixture, APPDATA: publishFixture, LOCALAPPDATA: publishFixture,
+    npm_config_userconfig: path.join(publishFixture, "user.npmrc"),
+    npm_config_globalconfig: path.join(publishFixture, "global.npmrc"),
+    npm_config_cache: path.join(publishFixture, "cache"),
+    npm_config_git: path.join(publishFixture, "git-disabled"),
+  });
+  const workflow = await readFile(new URL("../.github/workflows/publish-npm.yml", import.meta.url), "utf8");
+  const publishArguments = [...workflow.matchAll(/npm publish "([^"]+)"/g)].map((match) =>
+    match[1].replace("$PACKAGE_FILE", packageFile));
+  assert.equal(publishArguments.length, 2);
+  const integrity = `sha512-${createHash("sha512").update(await readFile(path.resolve(topoTarball))).digest("base64")}`;
+  for (const argument of publishArguments) {
+    const output = JSON.parse(execFileSync(process.platform === "win32" ? "npm.cmd" : "npm", [
+      "publish", argument, "--dry-run", "--json", "--ignore-scripts", "--provenance=false",
+      "--offline", "--registry=http://127.0.0.1:9",
+    ], {
+      cwd: publishFixture, env: publishEnv, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"],
+      maxBuffer: 16 * 1024 * 1024, shell: process.platform === "win32",
+    }));
+    const published = Object.hasOwn(output, "name") ? output : output[manifest.name];
+    assert.ok(published, "npm publish --dry-run must report the consumed package");
+    assert.equal(published.name, manifest.name);
+    assert.equal(published.version, manifest.version);
+    assert.equal(published.integrity, integrity);
+  }
   async function inspect(directory) {
     for (const entry of await readdir(directory, { withFileTypes: true })) {
       const file = path.join(directory, entry.name);
@@ -167,7 +204,7 @@ globalThis.fetch = denied; http.request = denied; http.get = denied; https.reque
   console.log(JSON.stringify({
     status: "passed", consumer: root, node: process.version,
     packages: { topocode: manifest.version, renderer: manifest.dependencies["@jdylanmc/topo-archify"] },
-    evidence: ["clean npm install", "bundled private modules and export targets", "portable skills and conflict preservation", "draft validate", "source move failure and identity-preserving repair", "scan and preview with network forbidden", "live serve", "static bundle and notices"],
+    evidence: ["clean npm install", "credential-free npm publish dry-run of both workflow file arguments", "bundled private modules and export targets", "portable skills and conflict preservation", "draft validate", "source move failure and identity-preserving repair", "scan and preview with network forbidden", "live serve", "static bundle and notices"],
   }, null, 2));
 } finally {
   if (server && server.exitCode === null) {

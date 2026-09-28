@@ -151,7 +151,7 @@ jobs:
       - name: Publish the tested tarball using npm trusted publishing
         env:
           PACKAGE_FILE: ${{ needs.verify.outputs.filename }}
-        run: npm publish "dist/$PACKAGE_FILE" --access public --ignore-scripts --provenance --registry https://registry.npmjs.org
+        run: npm publish "./dist/$PACKAGE_FILE" --access public --ignore-scripts --provenance --registry https://registry.npmjs.org
 
   publish-bootstrap:
     needs: verify
@@ -180,7 +180,7 @@ jobs:
           fi
           npm whoami --registry https://registry.npmjs.org
           echo "::notice::Authenticated npm identity only; package creation rights are checked by the real publish."
-          npm publish "dist/$PACKAGE_FILE" --access public --ignore-scripts --provenance=false --registry https://registry.npmjs.org
+          npm publish "./dist/$PACKAGE_FILE" --access public --ignore-scripts --provenance=false --registry https://registry.npmjs.org
 
   verify-publication:
     needs: [verify, publish-oidc, publish-bootstrap]

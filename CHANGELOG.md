@@ -122,6 +122,8 @@ publication remains a separate release-owner action.
 
 ### Fixed
 
+- Publish explicit local tarball paths so npm cannot interpret `dist/filename.tgz`
+  as GitHub shorthand; verify both release modes with offline dry-run publication.
 - Prevent static-bundle browser fixture cleanup from waiting on unused TCP
   connections, without changing rendering assertions or test deadlines.
 - Keep real Archify diagrams readable and fully contained at the supported
