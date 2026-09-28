@@ -1448,7 +1448,7 @@ svg g[data-edge-from] > text {
 svg text[data-node-label],
 svg text[font-size="10"][font-weight="600"],
 svg g[data-edge-from] > text {
-  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-family: Arial, Helvetica, sans-serif;
   font-size: ${lifecycleFontSize}px;
 }`;
   const style = `<style data-topo-story-readability>${rules}
@@ -1543,7 +1543,7 @@ export function* renderArchitectureStoryBatch(
       execFileSync(process.execPath, [
         fileURLToPath(new URL("./architecture-batch.js", import.meta.url)),
         manifest,
-      ], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, stdio: ["ignore", "pipe", "pipe"] });
+      ], { cwd: directory, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, stdio: ["ignore", "pipe", "pipe"] });
     }
     for (const { output } of jobs) {
       yield {
@@ -1606,6 +1606,7 @@ export function renderStory(story: ResolvedStoryDocument): StoryArtifact {
       args.splice(5, 0, "--repo-root", story.repositoryRoot);
     }
     execFileSync(process.execPath, args, {
+      cwd: temporaryDirectory,
       encoding: "utf8",
       maxBuffer: 32 * 1024 * 1024,
       stdio: ["ignore", "pipe", "pipe"],

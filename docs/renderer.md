@@ -32,7 +32,11 @@ local patch must be separately listed with its upstream status. This pin has
 no vendor patches.
 
 The v3 adapter adds portable `meta.output` only to its generated renderer input;
-authored Topocode stories retain their identity and schema. Lifecycle remains
+authored Topocode stories retain their identity and schema.
+Rendering runs in an owned temporary working directory, so resolving that
+generated output field cannot depend on an unrelated `story.html` in the
+caller's directory.
+Lifecycle remains
 on the compatible native v1 geometry: state widths and column clearance account
 for final typography, preserving Topocode's 12px effective text requirement.
 The v3 viewer's own guided/story-view and ordinary share-card removal does not

@@ -23,6 +23,9 @@ silently reuse a neighboring state's column.
 The Archify 3.0.0 adapter retains native Lifecycle schema v1; it reserves the
 native minimum route gap and sizes states for final 14.5px typography so the
 adaptive viewer still meets Topocode's 12px effective on-screen text floor.
+Lifecycle uses an explicit Arial/Helvetica sans-serif stack rather than the
+host's `system-ui` face, keeping wide-label fitting stable across the supported
+macOS and Linux browser environments.
 Native v3 Lifecycle output omits empty bands and adds the terminal state's
 double border; neither changes authored state or transition membership.
 

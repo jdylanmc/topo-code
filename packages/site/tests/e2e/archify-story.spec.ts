@@ -743,6 +743,7 @@ test("wide adjacent Lifecycle states preserve final geometry", async ({
     await expect(diagram).toBeVisible();
     await expect(diagram.locator("g[data-node-id]")).toHaveCount(3);
     await expect(diagram.locator("g[data-edge-from]")).toHaveCount(2);
+    await diagram.evaluate(() => document.fonts.ready);
     const geometry = await diagram.evaluate((svg) => {
       const states = [...svg.querySelectorAll<SVGGraphicsElement>(
         "g[data-node-id]",
@@ -782,7 +783,16 @@ test("wide adjacent Lifecycle states preserve final geometry", async ({
             const text = label.getBoundingClientRect();
             return text.left < box.left || text.right > box.right ||
               text.top < box.top || text.bottom > box.bottom
-              ? [label.textContent]
+              ? [{
+                  label: label.textContent,
+                  font: getComputedStyle(label).fontFamily,
+                  textWidth: text.width,
+                  boxWidth: box.width,
+                  leftOverflow: box.left - text.left,
+                  rightOverflow: text.right - box.right,
+                  topOverflow: box.top - text.top,
+                  bottomOverflow: text.bottom - box.bottom,
+                }]
               : [];
           });
         }),

@@ -129,6 +129,19 @@ test("renders a resolved story through the vendored Archify CLI", async (context
   assert.match(first.contents, /Checkout service/);
   assert.match(first.contents, /Export diagram/);
   assert.match(first.contents, />Present</);
+
+  const caller = path.join(repositoryRoot, "caller");
+  await mkdir(caller);
+  await symlink(path.join(repositoryRoot, "source.ts"), path.join(caller, "story.html"));
+  const isolated = await execute(process.execPath, [
+    "--input-type=module",
+    "-e",
+    `import { renderStory, renderArchitectureStories } from ${JSON.stringify(new URL("../dist/index.js", import.meta.url).href)};
+const story = JSON.parse(process.argv[1]);
+console.log(renderStory(story).renderer.pin, renderArchitectureStories([story])[0].renderer.pin);`,
+    JSON.stringify(story),
+  ], { cwd: caller });
+  assert.equal(isolated.stdout.trim(), "3.0.0 3.0.0");
 });
 
 for (const sectionCount of [5, 6, 7, 10]) {
