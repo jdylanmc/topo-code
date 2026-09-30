@@ -40,6 +40,12 @@ try {
     if (entry.name === "site") internal.exports["./data"].types = "./dist/data-contract/data.d.ts";
     bundled.push(internal.name);
     const dependencies = {};
+    const optionalDependencies = { ...internal.optionalDependencies };
+    for (const [name, spec] of Object.entries(optionalDependencies)) {
+      manifest.optionalDependencies ??= {};
+      if (manifest.optionalDependencies[name] && manifest.optionalDependencies[name] !== spec) throw new Error(`Conflicting optional packaged dependency: ${name}`);
+      manifest.optionalDependencies[name] = spec;
+    }
     for (const [name, spec] of Object.entries({ ...internal.dependencies, ...internal.peerDependencies })) {
       if (spec.startsWith("workspace:")) {
         dependencies[name] = "0.0.0";
@@ -52,7 +58,7 @@ try {
     // Compiled private module boundaries remain intact; no workspace resolver ships.
     await writeJson(path.join(destination, "package.json"), {
       name: internal.name, version: "0.0.0", private: true, type: "module",
-      exports: internal.exports, dependencies,
+      exports: internal.exports, dependencies, optionalDependencies,
     });
     manifest.dependencies[internal.name] = "0.0.0";
   }

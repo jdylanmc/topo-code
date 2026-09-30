@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { posix } from "node:path";
 import { architectureComponentWidth } from "@topo/diagram-core";
+import { graphLocation, readLanguageFacts, sourceFileFactId } from "@topo/languages";
 import type {
   GraphDocument,
   LogicalArchitectureDocument,
@@ -215,6 +216,36 @@ export function buildRepositoryIndex(
     const to = semanticIds.get(edge.targetId);
     if (from === undefined || to === undefined) {
       throw new Error(`Semantic relationship ${edge.id} has an unknown endpoint.`);
+    }
+    const facts = readLanguageFacts(graph);
+    const factIds = new Map(semanticIds);
+    for (const [path, node] of byPath) {
+      if (node.kind === "file") factIds.set(sourceFileFactId(path), node.id);
+    }
+    for (const entity of facts.entities) {
+      if (factIds.has(entity.id)) continue;
+      const file = byPath.get(entity.location.path);
+      if (!file || file.kind !== "file") throw new Error(`Language declaration lacks a scanned file: ${entity.id}`);
+      const id = repositoryId("symbol", entity.id);
+      factIds.set(entity.id, id);
+      nodes.set(id, { id, name: entity.name, kind: entity.kind, path: file.path, parentId: file.id,
+        locations: [graphLocation(entity.location)], signatures: entity.signatures, members: [], childIds: [] });
+    }
+    for (const entity of facts.entities) {
+      if (semanticIds.has(entity.id)) continue;
+      const node = nodes.get(factIds.get(entity.id)!)!;
+      const parent = entity.ownerId ? nodes.get(factIds.get(entity.ownerId) ?? "") : byPath.get(entity.location.path);
+      if (!parent) throw new Error(`Language declaration has unknown owner: ${entity.id}`);
+      nodes.set(node.id, { ...node, parentId: parent.id });
+      parent.childIds.push(node.id);
+    }
+    const knownRelationships = new Set(relationships.map((edge) => edge.id));
+    for (const edge of facts.relationships) {
+      const id = repositoryId("relationship", edge.id);
+      if (knownRelationships.has(id)) continue;
+      const from = factIds.get(edge.from), to = factIds.get(edge.to);
+      if (!from || !to) throw new Error(`Language relationship has an unknown endpoint: ${edge.id}`);
+      relationships.push({ id, from, to, kind: edge.kind, locations: edge.evidence.map(graphLocation) });
     }
     relationships.push({
       id: repositoryId("relationship", edge.id),

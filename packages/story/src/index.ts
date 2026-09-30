@@ -2,12 +2,16 @@ import { constants } from "node:fs";
 import { open, realpath, stat } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import ts from "typescript-compiler-api";
+import { createHash } from "node:crypto";
+import { resolveRustSymbol } from "@topo/languages";
 
 export interface SourceAnchor {
   readonly id: string;
   readonly path: string;
   readonly symbol?: string;
   readonly pattern?: string;
+  readonly language?: "typescript" | "javascript" | "rust" | "text";
+  readonly sha256?: string;
 }
 
 export interface StorySection {
@@ -15,6 +19,7 @@ export interface StorySection {
   readonly title: string;
   readonly body: string;
   readonly anchorIds: readonly string[];
+  readonly kind?: "step" | "decision" | "data";
 }
 
 export interface StoryConnection {
@@ -22,6 +27,9 @@ export interface StoryConnection {
   readonly to: string;
   readonly label?: string;
   readonly variant?: "return";
+  readonly classification?: "source-traced" | "inferred";
+  readonly anchorIds?: readonly string[];
+  readonly rationale?: string;
 }
 
 export type DiagramFamily =
@@ -37,6 +45,7 @@ export interface StoryDocument {
   readonly schemaVersion: "1.0";
   readonly diagramFamily?: DiagramFamily;
   readonly classification?: StoryClassification;
+  readonly renderer?: "archify" | "graphviz";
   readonly id: string;
   readonly title: string;
   readonly summary: string;
@@ -69,10 +78,14 @@ export interface StoryArtifact {
   readonly kind: "html";
   readonly mediaType: "text/html";
   readonly contents: string;
+  readonly assets?: Readonly<Record<string, string>>;
   readonly renderer: {
     readonly name: string;
     readonly pin: string;
     readonly sha256?: string;
+    readonly sourceOutputSha256?: string;
+    readonly outputSha256?: string;
+    readonly adaptation?: string;
   };
 }
 
@@ -141,7 +154,7 @@ export async function resolveStoryDocument(
         `source file "${anchor.path}" does not exist`,
       );
     }
-    anchors.push(resolveAnchor(documentPath, anchor, contents));
+    anchors.push(await resolveAnchor(documentPath, anchor, contents));
   }
   return { document, documentPath, repositoryRoot, source, anchors };
 }
@@ -196,10 +209,12 @@ function validateStoryDocument(value: unknown): string | undefined {
   const rootKeys = exactKeys(
     value,
     ["schemaVersion", "id", "title", "summary", "anchors", "sections", "connections"],
-    ["category", "diagramFamily", "classification"],
+    ["category", "diagramFamily", "classification", "renderer"],
   );
   if (rootKeys) return rootKeys;
   if (value.schemaVersion !== "1.0") return 'schemaVersion must be "1.0"';
+  if (value.renderer !== undefined && value.renderer !== "archify" && value.renderer !== "graphviz") return "renderer must be archify or graphviz";
+  if (value.renderer === "graphviz" && value.diagramFamily !== "workflow") return "graphviz requires diagramFamily workflow";
   if (
     value.diagramFamily !== undefined &&
     !["architecture", "workflow", "sequence", "dataflow", "lifecycle"]
@@ -239,12 +254,15 @@ function validateStoryDocument(value: unknown): string | undefined {
   const anchorIds = new Set<string>();
   for (const [index, anchorValue] of value.anchors.entries()) {
     if (!isRecord(anchorValue)) return `anchors[${index}] must be an object`;
-    const keys = exactKeys(anchorValue, ["id", "path"], ["symbol", "pattern"]);
+    const keys = exactKeys(anchorValue, ["id", "path"], ["symbol", "pattern", "language", "sha256"]);
     if (keys) return `anchors[${index}] ${keys}`;
     if (!nonemptyString(anchorValue.id)) return `anchors[${index}].id must be nonempty`;
     if (anchorIds.has(anchorValue.id)) return `duplicate anchor id "${anchorValue.id}"`;
     anchorIds.add(anchorValue.id);
     if (!nonemptyString(anchorValue.path)) return `anchors[${index}].path must be nonempty`;
+    if (anchorValue.language !== undefined && !["typescript", "javascript", "rust", "text"].includes(String(anchorValue.language))) return `anchors[${index}].language is unsupported`;
+    if (anchorValue.sha256 !== undefined && (typeof anchorValue.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(anchorValue.sha256))) return `anchors[${index}].sha256 must be a SHA-256 file digest`;
+    if (value.renderer === "graphviz" && anchorValue.sha256 === undefined) return `technical anchors[${index}] require sha256 for stale-source rejection`;
     if (anchorValue.symbol !== undefined && !nonemptyString(anchorValue.symbol)) {
       return `anchors[${index}].symbol must be nonempty`;
     }
@@ -258,8 +276,9 @@ function validateStoryDocument(value: unknown): string | undefined {
   const sectionIds = new Set<string>();
   for (const [index, sectionValue] of value.sections.entries()) {
     if (!isRecord(sectionValue)) return `sections[${index}] must be an object`;
-    const keys = exactKeys(sectionValue, ["id", "title", "body", "anchorIds"]);
+    const keys = exactKeys(sectionValue, ["id", "title", "body", "anchorIds"], ["kind"]);
     if (keys) return `sections[${index}] ${keys}`;
+    if (sectionValue.kind !== undefined && (!["step", "decision", "data"].includes(String(sectionValue.kind)) || value.renderer !== "graphviz")) return `sections[${index}].kind requires the explicit graphviz backend`;
     if (!nonemptyString(sectionValue.id)) return `sections[${index}].id must be nonempty`;
     if (sectionIds.has(sectionValue.id)) return `duplicate section id "${sectionValue.id}"`;
     sectionIds.add(sectionValue.id);
@@ -277,7 +296,7 @@ function validateStoryDocument(value: unknown): string | undefined {
 
   for (const [index, connectionValue] of value.connections.entries()) {
     if (!isRecord(connectionValue)) return `connections[${index}] must be an object`;
-    const keys = exactKeys(connectionValue, ["from", "to"], ["label", "variant"]);
+    const keys = exactKeys(connectionValue, ["from", "to"], ["label", "variant", "classification", "anchorIds", "rationale"]);
     if (keys) return `connections[${index}] ${keys}`;
     if (!nonemptyString(connectionValue.from) || !sectionIds.has(connectionValue.from)) {
       return `connections[${index}].from must reference a section`;
@@ -287,6 +306,18 @@ function validateStoryDocument(value: unknown): string | undefined {
     }
     if (connectionValue.label !== undefined && !nonemptyString(connectionValue.label)) {
       return `connections[${index}].label must be nonempty`;
+    }
+    if (value.renderer === "graphviz" && connectionValue.classification === undefined) return `technical connections[${index}] require an explicit classification`;
+    if (connectionValue.classification !== undefined) {
+      if (!["source-traced", "inferred"].includes(String(connectionValue.classification))) return `connections[${index}].classification must be source-traced or inferred; authored traces are not scanner-derived facts`;
+      if (!nonemptyString(connectionValue.rationale)) return `connections[${index}] require a rationale`;
+      if (!uniqueStrings(connectionValue.anchorIds) || connectionValue.anchorIds.some((id) => !anchorIds.has(id))) return `connections[${index}] require valid anchorIds`;
+      if (connectionValue.classification === "source-traced" && connectionValue.anchorIds.length === 0) return `source-traced connections[${index}] require exact source evidence`;
+      for (const anchorId of connectionValue.anchorIds) {
+        if (!value.anchors.some((anchor) => isRecord(anchor) && anchor.id === anchorId && typeof anchor.sha256 === "string")) return `connections[${index}] require snapshot-bound anchors`;
+      }
+    } else if (connectionValue.anchorIds !== undefined || connectionValue.rationale !== undefined) {
+      return `connections[${index}] evidence requires classification`;
     }
     if (
       connectionValue.variant !== undefined &&
@@ -449,11 +480,14 @@ function findSymbolRange(
     };
 }
 
-function resolveAnchor(
+async function resolveAnchor(
   documentPath: string,
   anchor: SourceAnchor,
   contents: string,
-): ResolvedSourceAnchor {
+): Promise<ResolvedSourceAnchor> {
+  if (anchor.sha256 !== undefined && createHash("sha256").update(contents).digest("hex") !== anchor.sha256) {
+    throw anchorError(documentPath, anchor.id, "stale-source", `source "${anchor.path}" changed; inspect the change and deliberately update its digest, preserving anchor identity`);
+  }
   const sourceFile = ts.createSourceFile(
     anchor.path,
     contents,
@@ -463,7 +497,13 @@ function resolveAnchor(
   let start = 0;
   let end = contents.length;
   if (anchor.symbol !== undefined) {
-    const symbol = findSymbolRange(sourceFile, anchor.symbol);
+    const language = anchor.language ?? (anchor.path.endsWith(".rs") ? "rust" : "typescript");
+    if (language === "text") throw anchorError(documentPath, anchor.id, "unsupported-symbol", "text anchors support exact patterns, not compiler symbols");
+    const rust = language === "rust" ? await resolveRustSymbol(anchor.path, contents, anchor.symbol) : undefined;
+    const symbol = rust === undefined ? findSymbolRange(sourceFile, anchor.symbol) : {
+      start: sourceFile.getPositionOfLineAndCharacter(rust.startLine - 1, rust.startColumn - 1),
+      end: sourceFile.getPositionOfLineAndCharacter(rust.endLine - 1, rust.endColumn - 1),
+    };
     if (symbol === undefined) {
       throw anchorError(
         documentPath,

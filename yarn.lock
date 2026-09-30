@@ -5,6 +5,126 @@ __metadata:
   version: 10
   cacheKey: 10c0
 
+"@ast-grep/lang-rust@npm:0.0.7":
+  version: 0.0.7
+  resolution: "@ast-grep/lang-rust@npm:0.0.7::__archiveUrl=https%3A%2F%2Fms-feed-25.pkgs.visualstudio.com%2F1es-public%2F_packaging%2Fnpm-public%2Fnpm%2Fregistry%2F%40ast-grep%2Flang-rust%2F-%2Flang-rust-0.0.7.tgz"
+  dependencies:
+    "@ast-grep/setup-lang": "npm:0.0.6"
+  peerDependencies:
+    tree-sitter-cli: 0.25.8
+  peerDependenciesMeta:
+    tree-sitter-cli:
+      optional: true
+  checksum: 10c0/167a10898478cb2515eaa3b94f0356f520132fb782ae4e560483e45d6fab3004acfd652999e9446807b463a7ca900319c1361ce49e2fe80ea9ad5fceeebfa5d5
+  languageName: node
+  linkType: hard
+
+"@ast-grep/napi-darwin-arm64@npm:0.45.3":
+  version: 0.45.3
+  resolution: "@ast-grep/napi-darwin-arm64@npm:0.45.3::__archiveUrl=https%3A%2F%2Fms-feed-25.pkgs.visualstudio.com%2F1es-public%2F_packaging%2Fnpm-public%2Fnpm%2Fregistry%2F%40ast-grep%2Fnapi-darwin-arm64%2F-%2Fnapi-darwin-arm64-0.45.3.tgz"
+  conditions: os=darwin & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@ast-grep/napi-darwin-x64@npm:0.45.3":
+  version: 0.45.3
+  resolution: "@ast-grep/napi-darwin-x64@npm:0.45.3::__archiveUrl=https%3A%2F%2Fms-feed-25.pkgs.visualstudio.com%2F1es-public%2F_packaging%2Fnpm-public%2Fnpm%2Fregistry%2F%40ast-grep%2Fnapi-darwin-x64%2F-%2Fnapi-darwin-x64-0.45.3.tgz"
+  conditions: os=darwin & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@ast-grep/napi-linux-arm64-gnu@npm:0.45.3":
+  version: 0.45.3
+  resolution: "@ast-grep/napi-linux-arm64-gnu@npm:0.45.3::__archiveUrl=https%3A%2F%2Fms-feed-25.pkgs.visualstudio.com%2F1es-public%2F_packaging%2Fnpm-public%2Fnpm%2Fregistry%2F%40ast-grep%2Fnapi-linux-arm64-gnu%2F-%2Fnapi-linux-arm64-gnu-0.45.3.tgz"
+  conditions: os=linux & cpu=arm64 & libc=glibc
+  languageName: node
+  linkType: hard
+
+"@ast-grep/napi-linux-arm64-musl@npm:0.45.3":
+  version: 0.45.3
+  resolution: "@ast-grep/napi-linux-arm64-musl@npm:0.45.3::__archiveUrl=https%3A%2F%2Fms-feed-25.pkgs.visualstudio.com%2F1es-public%2F_packaging%2Fnpm-public%2Fnpm%2Fregistry%2F%40ast-grep%2Fnapi-linux-arm64-musl%2F-%2Fnapi-linux-arm64-musl-0.45.3.tgz"
+  conditions: os=linux & cpu=arm64 & libc=musl
+  languageName: node
+  linkType: hard
+
+"@ast-grep/napi-linux-x64-gnu@npm:0.45.3":
+  version: 0.45.3
+  resolution: "@ast-grep/napi-linux-x64-gnu@npm:0.45.3::__archiveUrl=https%3A%2F%2Fms-feed-25.pkgs.visualstudio.com%2F1es-public%2F_packaging%2Fnpm-public%2Fnpm%2Fregistry%2F%40ast-grep%2Fnapi-linux-x64-gnu%2F-%2Fnapi-linux-x64-gnu-0.45.3.tgz"
+  conditions: os=linux & cpu=x64 & libc=glibc
+  languageName: node
+  linkType: hard
+
+"@ast-grep/napi-linux-x64-musl@npm:0.45.3":
+  version: 0.45.3
+  resolution: "@ast-grep/napi-linux-x64-musl@npm:0.45.3::__archiveUrl=https%3A%2F%2Fms-feed-25.pkgs.visualstudio.com%2F1es-public%2F_packaging%2Fnpm-public%2Fnpm%2Fregistry%2F%40ast-grep%2Fnapi-linux-x64-musl%2F-%2Fnapi-linux-x64-musl-0.45.3.tgz"
+  conditions: os=linux & cpu=x64 & libc=musl
+  languageName: node
+  linkType: hard
+
+"@ast-grep/napi-win32-arm64-msvc@npm:0.45.3":
+  version: 0.45.3
+  resolution: "@ast-grep/napi-win32-arm64-msvc@npm:0.45.3::__archiveUrl=https%3A%2F%2Fms-feed-25.pkgs.visualstudio.com%2F1es-public%2F_packaging%2Fnpm-public%2Fnpm%2Fregistry%2F%40ast-grep%2Fnapi-win32-arm64-msvc%2F-%2Fnapi-win32-arm64-msvc-0.45.3.tgz"
+  conditions: os=win32 & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@ast-grep/napi-win32-ia32-msvc@npm:0.45.3":
+  version: 0.45.3
+  resolution: "@ast-grep/napi-win32-ia32-msvc@npm:0.45.3::__archiveUrl=https%3A%2F%2Fms-feed-25.pkgs.visualstudio.com%2F1es-public%2F_packaging%2Fnpm-public%2Fnpm%2Fregistry%2F%40ast-grep%2Fnapi-win32-ia32-msvc%2F-%2Fnapi-win32-ia32-msvc-0.45.3.tgz"
+  conditions: os=win32 & cpu=ia32
+  languageName: node
+  linkType: hard
+
+"@ast-grep/napi-win32-x64-msvc@npm:0.45.3":
+  version: 0.45.3
+  resolution: "@ast-grep/napi-win32-x64-msvc@npm:0.45.3::__archiveUrl=https%3A%2F%2Fms-feed-25.pkgs.visualstudio.com%2F1es-public%2F_packaging%2Fnpm-public%2Fnpm%2Fregistry%2F%40ast-grep%2Fnapi-win32-x64-msvc%2F-%2Fnapi-win32-x64-msvc-0.45.3.tgz"
+  conditions: os=win32 & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@ast-grep/napi@npm:0.45.3":
+  version: 0.45.3
+  resolution: "@ast-grep/napi@npm:0.45.3::__archiveUrl=https%3A%2F%2Fms-feed-25.pkgs.visualstudio.com%2F1es-public%2F_packaging%2Fnpm-public%2Fnpm%2Fregistry%2F%40ast-grep%2Fnapi%2F-%2Fnapi-0.45.3.tgz"
+  dependencies:
+    "@ast-grep/napi-darwin-arm64": "npm:0.45.3"
+    "@ast-grep/napi-darwin-x64": "npm:0.45.3"
+    "@ast-grep/napi-linux-arm64-gnu": "npm:0.45.3"
+    "@ast-grep/napi-linux-arm64-musl": "npm:0.45.3"
+    "@ast-grep/napi-linux-x64-gnu": "npm:0.45.3"
+    "@ast-grep/napi-linux-x64-musl": "npm:0.45.3"
+    "@ast-grep/napi-win32-arm64-msvc": "npm:0.45.3"
+    "@ast-grep/napi-win32-ia32-msvc": "npm:0.45.3"
+    "@ast-grep/napi-win32-x64-msvc": "npm:0.45.3"
+  dependenciesMeta:
+    "@ast-grep/napi-darwin-arm64":
+      optional: true
+    "@ast-grep/napi-darwin-x64":
+      optional: true
+    "@ast-grep/napi-linux-arm64-gnu":
+      optional: true
+    "@ast-grep/napi-linux-arm64-musl":
+      optional: true
+    "@ast-grep/napi-linux-x64-gnu":
+      optional: true
+    "@ast-grep/napi-linux-x64-musl":
+      optional: true
+    "@ast-grep/napi-win32-arm64-msvc":
+      optional: true
+    "@ast-grep/napi-win32-ia32-msvc":
+      optional: true
+    "@ast-grep/napi-win32-x64-msvc":
+      optional: true
+  checksum: 10c0/1c5d8ffb885ed3e616993aeb23b28708df40bffb89c2c118e0235bf1ef2abfb5c67440c09538b600a57ace3a6da9c2eacbe765a08e4e634ae5bedc2ef8965ae1
+  languageName: node
+  linkType: hard
+
+"@ast-grep/setup-lang@npm:0.0.6":
+  version: 0.0.6
+  resolution: "@ast-grep/setup-lang@npm:0.0.6::__archiveUrl=https%3A%2F%2Fms-feed-25.pkgs.visualstudio.com%2F1es-public%2F_packaging%2Fnpm-public%2Fnpm%2Fregistry%2F%40ast-grep%2Fsetup-lang%2F-%2Fsetup-lang-0.0.6.tgz"
+  checksum: 10c0/3c98ab73a5dc5b67cf4c51cf451401cc120b272cbe36847dd9bc522ccda175e8e230b32d9b417ed7ea3eb866e714151013a1865283c9353f5393494cabddc9ce
+  languageName: node
+  linkType: hard
+
 "@eslint-community/eslint-utils@npm:^4.8.0":
   version: 4.10.1
   resolution: "@eslint-community/eslint-utils@npm:4.10.1::__archiveUrl=https%3A%2F%2Fms-feed-25.pkgs.visualstudio.com%2F1es-public%2F_packaging%2Fnpm-public%2Fnpm%2Fregistry%2F%40eslint-community%2Feslint-utils%2F-%2Feslint-utils-4.10.1.tgz"
@@ -131,6 +251,13 @@ __metadata:
   version: 0.4.3
   resolution: "@humanwhocodes/retry@npm:0.4.3::__archiveUrl=https%3A%2F%2Fms-feed-25.pkgs.visualstudio.com%2F1es-public%2F_packaging%2Fnpm-public%2Fnpm%2Fregistry%2F%40humanwhocodes%2Fretry%2F-%2Fretry-0.4.3.tgz"
   checksum: 10c0/3775bb30087d4440b3f7406d5a057777d90e4b9f435af488a4923ef249e93615fb78565a85f173a186a076c7706a81d0d57d563a2624e4de2c5c9c66c486ce42
+  languageName: node
+  linkType: hard
+
+"@iarna/toml@npm:2.2.5":
+  version: 2.2.5
+  resolution: "@iarna/toml@npm:2.2.5::__archiveUrl=https%3A%2F%2Fms-feed-25.pkgs.visualstudio.com%2F1es-public%2F_packaging%2Fnpm-public%2Fnpm%2Fregistry%2F%40iarna%2Ftoml%2F-%2Ftoml-2.2.5.tgz"
+  checksum: 10c0/d095381ad4554aca233b7cf5a91f243ef619e5e15efd3157bc640feac320545450d14b394aebbf6f02a2047437ced778ae598d5879a995441ab7b6c0b2c2f201
   languageName: node
   linkType: hard
 
@@ -304,6 +431,7 @@ __metadata:
     "@topo/diagram-core": "workspace:*"
     "@topo/enrichment": "workspace:*"
     "@topo/graph": "workspace:*"
+    "@topo/languages": "workspace:*"
     "@topo/modules": "workspace:*"
     "@topo/reports": "workspace:*"
     "@topo/scanner": "workspace:*"
@@ -327,6 +455,7 @@ __metadata:
   dependencies:
     "@topo/story": "workspace:*"
     "@types/node": "npm:^22"
+    "@viz-js/viz": "npm:3.30.0"
     typescript: "npm:^7.0.2"
   peerDependencies:
     "@jdylanmc/topo-archify": 0.1.0
@@ -365,6 +494,28 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@topo/languages@workspace:*, @topo/languages@workspace:packages/languages":
+  version: 0.0.0-use.local
+  resolution: "@topo/languages@workspace:packages/languages"
+  dependencies:
+    "@ast-grep/lang-rust": "npm:0.0.7"
+    "@ast-grep/napi": "npm:0.45.3"
+    "@iarna/toml": "npm:2.2.5"
+    "@topo/scanner": "workspace:*"
+    "@topo/schema": "workspace:*"
+    "@types/node": "npm:^22"
+    typescript: "npm:^7.0.2"
+    typescript-compiler-api: "npm:typescript@6.0.3"
+  dependenciesMeta:
+    "@ast-grep/lang-rust":
+      optional: true
+    "@ast-grep/napi":
+      optional: true
+    "@iarna/toml":
+      optional: true
+  languageName: unknown
+  linkType: soft
+
 "@topo/modules@workspace:*, @topo/modules@workspace:packages/modules":
   version: 0.0.0-use.local
   resolution: "@topo/modules@workspace:packages/modules"
@@ -397,7 +548,7 @@ __metadata:
     "@types/node": "npm:^22.0.0"
     ignore: "npm:^7.0.0"
     typescript: "npm:^7.0.2"
-    typescript-compiler-api: "npm:typescript@^6.0.0"
+    typescript-compiler-api: "npm:typescript@6.0.3"
     vite: "npm:8.2.2"
     vitest: "npm:^5.0.0"
   languageName: unknown
@@ -421,6 +572,7 @@ __metadata:
   resolution: "@topo/site@workspace:packages/site"
   dependencies:
     "@playwright/test": "npm:^1.55.0"
+    "@topo/diagram-core": "workspace:*"
     "@topo/enrichment": "workspace:*"
     "@topo/graph": "workspace:*"
     "@topo/modules": "workspace:*"
@@ -437,10 +589,11 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@topo/story@workspace:packages/story"
   dependencies:
+    "@topo/languages": "workspace:*"
     "@types/node": "npm:^22"
     ajv: "npm:8.17.1"
     typescript: "npm:^7.0.2"
-    typescript-compiler-api: "npm:typescript@^6.0.0"
+    typescript-compiler-api: "npm:typescript@6.0.3"
     vite: "npm:8.2.2"
     vitest: "npm:^5.0.0"
   languageName: unknown
@@ -759,6 +912,13 @@ __metadata:
   version: 5.0.0
   resolution: "@vitest/spy@npm:5.0.0::__archiveUrl=https%3A%2F%2Fms-feed-25.pkgs.visualstudio.com%2F1es-public%2F_packaging%2Fnpm-public%2Fnpm%2Fregistry%2F%40vitest%2Fspy%2F-%2Fspy-5.0.0.tgz"
   checksum: 10c0/7521b4ef803bc89974a738cead7d3fcd789af805f3ea3f496108fc802b2bc09b22fe8e7a3cc0be3f92b647427aea528657e3e87dd0201e432f56e62f84f25ba8
+  languageName: node
+  linkType: hard
+
+"@viz-js/viz@npm:3.30.0":
+  version: 3.30.0
+  resolution: "@viz-js/viz@npm:3.30.0::__archiveUrl=https%3A%2F%2Fms-feed-25.pkgs.visualstudio.com%2F1es-public%2F_packaging%2Fnpm-public%2Fnpm%2Fregistry%2F%40viz-js%2Fviz%2F-%2Fviz-3.30.0.tgz"
+  checksum: 10c0/70627faea1ad77052f39c56fc778d32e5b0ee68060f32b9e29c8c83bc5148ebe0c1d94eaef10dbd21857ee361fefce3a1bd60503c6301ad4449f4d9ff1aad6f9
   languageName: node
   linkType: hard
 
@@ -1965,7 +2125,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript-compiler-api@npm:typescript@^6.0.0, typescript@npm:6.0.3":
+"typescript-compiler-api@npm:typescript@6.0.3, typescript@npm:6.0.3":
   version: 6.0.3
   resolution: "typescript@npm:6.0.3::__archiveUrl=https%3A%2F%2Fms-feed-25.pkgs.visualstudio.com%2F1es-public%2F_packaging%2Fnpm-public%2Fnpm%2Fregistry%2Ftypescript%2F-%2Ftypescript-6.0.3.tgz"
   bin:

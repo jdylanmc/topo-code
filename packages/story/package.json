@@ -20,7 +20,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "typescript-compiler-api": "npm:typescript@^6.0.0"
+    "@topo/languages": "workspace:*",
+    "typescript-compiler-api": "npm:typescript@6.0.3"
   },
   "devDependencies": {
     "@types/node": "^22",

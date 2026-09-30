@@ -21,7 +21,8 @@
     "test": "tsc -b && node --test test/*.test.mjs"
   },
   "dependencies": {
-    "@topo/story": "workspace:*"
+    "@topo/story": "workspace:*",
+    "@viz-js/viz": "3.30.0"
   },
   "peerDependencies": {
     "@jdylanmc/topo-archify": "0.1.0"

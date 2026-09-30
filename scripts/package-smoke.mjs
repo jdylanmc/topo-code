@@ -92,7 +92,7 @@ syncBuiltinESMExports();
   assert.equal(manifest.scripts, undefined);
   assert.equal((await lstat(installed)).isSymbolicLink(), false);
   assert.equal((await lstat(path.join(root, "node_modules/@jdylanmc/topo-archify"))).isSymbolicLink(), false);
-  assert.equal(manifest.bundleDependencies.length, 12);
+  assert.equal(manifest.bundleDependencies.length, 13);
   const publishFixture = path.join(root, "node_modules/.publish-check");
   const packageFile = `jdylanmc-topo-code-${manifest.version}.tgz`;
   await mkdir(path.join(publishFixture, "dist"), { recursive: true });

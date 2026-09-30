@@ -7,6 +7,7 @@
   "required": ["schemaVersion", "id", "title", "summary", "anchors", "sections", "connections"],
   "properties": {
     "schemaVersion": { "const": "1.0" },
+    "renderer": { "enum": ["archify", "graphviz"] },
     "diagramFamily": {
       "enum": ["architecture", "workflow", "sequence", "dataflow", "lifecycle"]
     },
@@ -27,7 +28,9 @@
           "id": { "type": "string", "minLength": 1 },
           "path": { "type": "string", "minLength": 1 },
           "symbol": { "type": "string", "minLength": 1 },
-          "pattern": { "type": "string", "minLength": 1 }
+          "pattern": { "type": "string", "minLength": 1 },
+          "language": { "enum": ["typescript", "javascript", "rust", "text"] },
+          "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
         }
       }
     },
@@ -42,6 +45,7 @@
           "id": { "type": "string", "minLength": 1 },
           "title": { "type": "string", "minLength": 1 },
           "body": { "type": "string", "minLength": 1 },
+          "kind": { "enum": ["step", "decision", "data"] },
           "anchorIds": {
             "type": "array",
             "items": { "type": "string", "minLength": 1 },
@@ -60,12 +64,38 @@
           "from": { "type": "string", "minLength": 1 },
           "to": { "type": "string", "minLength": 1 },
           "label": { "type": "string", "minLength": 1 },
-          "variant": { "const": "return" }
-        }
+          "variant": { "const": "return" },
+          "classification": { "enum": ["source-traced", "inferred"] },
+          "rationale": { "type": "string", "minLength": 1 },
+          "anchorIds": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
+        },
+        "allOf": [
+          {
+            "if": { "required": ["classification"] },
+            "then": { "required": ["anchorIds", "rationale"] },
+            "else": { "not": { "anyOf": [{ "required": ["anchorIds"] }, { "required": ["rationale"] }] } }
+          },
+          {
+            "if": { "properties": { "classification": { "const": "source-traced" } }, "required": ["classification"] },
+            "then": { "properties": { "anchorIds": { "type": "array", "minItems": 1 } } }
+          }
+        ]
       }
     }
   },
   "allOf": [
+      {
+        "if": { "properties": { "renderer": { "const": "graphviz" } }, "required": ["renderer"] },
+        "then": {
+          "required": ["diagramFamily"],
+          "properties": {
+            "diagramFamily": { "const": "workflow" },
+            "anchors": { "type": "array", "items": { "type": "object", "required": ["sha256"] } },
+            "connections": { "type": "array", "items": { "type": "object", "required": ["classification"] } }
+          }
+        },
+        "else": { "properties": { "sections": { "type": "array", "items": { "type": "object", "not": { "required": ["kind"] } } } } }
+      },
       {
         "if": {
           "not": {

@@ -1,11 +1,8 @@
 {
-  "name": "@topo/scanner",
+  "name": "@topo/languages",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "files": [
-    "dist"
-  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -14,19 +11,21 @@
   },
   "scripts": {
     "build": "tsc -b",
-    "fixture": "node dist/fixture.js",
     "typecheck": "tsc -b --pretty false",
-    "test": "vitest run src"
+    "test": "node --test test/*.test.mjs"
   },
   "dependencies": {
+    "@topo/scanner": "workspace:*",
     "@topo/schema": "workspace:*",
-    "ignore": "^7.0.0",
     "typescript-compiler-api": "npm:typescript@6.0.3"
   },
+  "optionalDependencies": {
+    "@ast-grep/lang-rust": "0.0.7",
+    "@ast-grep/napi": "0.45.3",
+    "@iarna/toml": "2.2.5"
+  },
   "devDependencies": {
-    "@types/node": "^22.0.0",
-    "typescript": "^7.0.2",
-    "vite": "8.2.2",
-    "vitest": "^5.0.0"
+    "@types/node": "^22",
+    "typescript": "^7.0.2"
   }
 }

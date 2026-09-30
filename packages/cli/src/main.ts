@@ -252,12 +252,12 @@ export async function runCli(args: string[]): Promise<number> {
     }
   }
   const start = performance.now();
-  const { scanRepository } = await import("@topo/scanner");
-  const result = await scanRepository({
+  const { scanProject } = await import("@topo/languages");
+  const result = await scanProject({
     root, repositoryId: config.repositoryId, revision: state.revision,
     quality: { allowPartial: values["allow-partial"] ?? false },
     ...(values.responsibilities ? { responsibilityFile: resolve(values.responsibilities) } : {}),
-  });
+  }, config.analysis);
   await assertCatalogueCurrent(root, catalogue);
   const artifacts = await generateArtifacts(
     root,
