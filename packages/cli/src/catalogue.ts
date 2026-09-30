@@ -867,7 +867,7 @@ export function renderStoryWrapper(
       `<a data-cross-story data-source-node="${escapeHtml(section.id)}" href="../${encodeURIComponent(link.targetStoryId)}/?focus=${encodeURIComponent(link.targetNodeId)}&amp;from=${encodeURIComponent(story.document.id)}&amp;fromFocus=${encodeURIComponent(section.id)}">Open ${escapeHtml(link.targetStoryTitle)}: ${escapeHtml(link.targetNodeTitle)}</a>`,
     ).join("");
     const evidence = (story.anchors ?? []).filter((anchor) => section.anchorIds.includes(anchor.id)).map((anchor) =>
-      `<details><summary>${escapeHtml(anchor.path)}:${anchor.location.startLine}-${anchor.location.endLine}</summary><pre>${escapeHtml(anchor.excerpt)}</pre></details>`).join("");
+      `<figure><figcaption>${escapeHtml(anchor.path)}:${anchor.location.startLine}-${anchor.location.endLine}</figcaption><pre>${escapeHtml(anchor.excerpt)}</pre></figure>`).join("");
     return `<li>
       <a data-node-id="${escapeHtml(section.id)}" href="?focus=${encodeURIComponent(section.id)}">${escapeHtml(section.title)}</a>
       ${crossLinks}
@@ -877,7 +877,7 @@ export function renderStoryWrapper(
   const edges = story.document.connections.map((edge, index) => {
     if (!edge.classification) return "";
     const excerpts = (story.anchors ?? []).filter((anchor) => edge.anchorIds?.includes(anchor.id)).map((anchor) =>
-      `<details open><summary>${escapeHtml(anchor.path)}:${anchor.location.startLine}-${anchor.location.endLine}</summary><pre>${escapeHtml(anchor.excerpt)}</pre></details>`).join("");
+      `<figure><figcaption>${escapeHtml(anchor.path)}:${anchor.location.startLine}-${anchor.location.endLine}</figcaption><pre>${escapeHtml(anchor.excerpt)}</pre></figure>`).join("");
     return `<div data-edge-evidence="${index}" data-edge-from="${escapeHtml(edge.from)}" data-edge-to="${escapeHtml(edge.to)}"><p><a href="?edge=${index}">${escapeHtml(edge.classification)}: ${escapeHtml(edge.label ?? `${edge.from} to ${edge.to}`)}</a></p><p>${escapeHtml(edge.rationale!)}</p>${excerpts}</div>`;
   }).join("");
   return renderShellPage(stories, config, historyIncomplete, story, `\
@@ -1135,7 +1135,8 @@ function renderShellPage(
       :root[data-theme="light"] [data-repository-page],
       :root[data-theme="light"] [data-repository-status] { color: #37536c; }
       [data-section-evidence] { font-size: 0.875rem; line-height: 1.5; }
-      [data-section-evidence] pre { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 78ch; }
+      .story-details figure { margin: 0.5rem 0; overflow-wrap: anywhere; }
+      .story-details pre { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 78ch; font-size: 12px; }
     </style>
   </head>
   <body${selected === undefined ? "" : ` data-story-id="${escapeHtml(selected.document.id)}" data-story-classification="${selectedClassification}" data-diagram-family="${selected.document.diagramFamily ?? "architecture"}"`}>

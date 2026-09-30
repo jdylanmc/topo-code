@@ -17,6 +17,7 @@
       "name": "@topo/cli",
       "dependencies": [
         "@topo/diagram-core",
+        "@topo/languages",
         "@topo/scanner",
         "@topo/site",
         "@topo/story",
@@ -33,7 +34,7 @@
     {
       "path": "packages/story",
       "name": "@topo/story",
-      "dependencies": []
+      "dependencies": ["@topo/languages"]
     },
     {
       "path": "tools/eslint-config",
@@ -53,6 +54,11 @@
       "dependencies": [
         "@topo/schema"
       ]
+    },
+    {
+      "path": "packages/languages",
+      "name": "@topo/languages",
+      "dependencies": ["@topo/scanner", "@topo/schema"]
     },
     {
       "path": "packages/workspace",
