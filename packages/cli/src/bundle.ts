@@ -6,6 +6,7 @@ import {
   mkdir,
   mkdtemp,
   readFile,
+  readdir,
   rename,
   rm,
   stat,
@@ -15,7 +16,7 @@ import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { BUILTIN_MODULE_MANIFESTS } from "@topo/modules";
 import { parseSiteData } from "@topo/site/data";
 import { isMissing, loadConfig, workspacePath } from "@topo/workspace";
-import { assertCatalogueCurrent, buildCatalogue, writeBuiltCatalogue } from "./catalogue.js";
+import { assertCatalogueCurrent, buildCatalogue, renderCataloguePage, writeBuiltCatalogue } from "./catalogue.js";
 import { composeSiteData } from "./server.js";
 import { assertRepositoryCurrent, readRepositoryIndex } from "./repository-generation.js";
 
@@ -144,11 +145,23 @@ async function validateUnscannedSite(root: string): Promise<void> {
       throw new Error(`Missing initialized site asset: ${name}`);
     }
   }
-  // An unborn repository has no committed stories and needs no source snapshot.
+  // Without HEAD, cached stories cannot be revalidated against their source.
   try {
     await promisify(execFile)("git", ["-C", root, "rev-parse", "--verify", "--quiet", "HEAD"]);
   } catch (error) {
-    if (error instanceof Error && "code" in error && error.code === 1) return;
+    if (error instanceof Error && "code" in error && error.code === 1) {
+      const initializedHome = renderCataloguePage([], {
+        title: config.repositoryId, ...config.catalogue, storyCategories: {},
+      });
+      const stories = await workspacePath(root, "cache/site/stories");
+      if (
+        await readFile(await workspacePath(root, "cache/site/index.html"), "utf8") !== initializedHome ||
+        (await exists(stories) && (await readdir(stories)).length > 0)
+      ) {
+        throw new Error("Cannot bundle an unborn repository with a nonempty or unverified site cache; restore the committed source and regenerate before bundling.");
+      }
+      return;
+    }
     throw error;
   }
   await writeBuiltCatalogue(root, await buildCatalogue(root), { title: config.repositoryId, ...config.catalogue });

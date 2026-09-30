@@ -79,6 +79,10 @@ After story preview, it remains unscanned while carrying the full authored
 inventory. Bundling refreshes committed stories when HEAD exists. Missing
 scanned data cannot be bypassed with an unscanned marker; scanned bundles still
 validate graph identity, revision, repository fingerprints and runtime assets.
+Without HEAD, bundling requires the cached Home to match the current empty
+initialized Home and no rendered stories to remain. A preview retained across
+an orphan-branch switch is rejected without changing the cache or existing
+bundle; restore the intended committed source before bundling.
 
 ## Layout and authored pins
 

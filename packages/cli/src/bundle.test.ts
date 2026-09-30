@@ -5,6 +5,7 @@ import {
   readFile,
   readdir,
   rm,
+  stat,
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -51,6 +52,13 @@ async function repository(): Promise<string> {
     "commit", "--quiet", "-m", "Fixture",
   ], { cwd: root });
   return root;
+}
+
+async function snapshotDirectory(root: string) {
+  return Promise.all((await readdir(root, { recursive: true })).sort().map(async (name) => {
+    const file = join(root, name);
+    return [name, (await stat(file)).isFile() ? await readFile(file) : null];
+  }));
 }
 
 async function writeCachedSite(root: string): Promise<void> {
@@ -111,6 +119,61 @@ describe("static site bundle", () => {
     await rm(join(root, ".topo/cache/site/ARCHIFY_LICENSE.txt"));
     await expect(bundleSite(root, result.outputDirectory)).rejects.toThrow("license notices are missing");
   });
+
+  it.each(["complete preview", "inventory only", "rendered files only"])(
+    "rejects an orphan branch's cached %s without changing the existing bundle",
+    async (retained) => {
+      const root = await repository();
+      await execute(process.execPath, [entry, "init", root]);
+      const site = join(root, ".topo/cache/site");
+      const initializedHome = await readFile(join(site, "index.html"));
+      await mkdir(join(root, "stories"));
+      await writeFile(join(root, "stories/value.topo.json"), JSON.stringify({
+        schemaVersion: "1.0",
+        id: "value",
+        title: "Source value",
+        summary: "Explain the committed source value.",
+        anchors: [{ id: "value", path: "source.ts", symbol: "value" }],
+        sections: [{
+          id: "value", title: "Value", body: "The source exports the value.",
+          anchorIds: ["value"],
+        }],
+        connections: [],
+      }));
+      await execute("git", ["add", "stories"], { cwd: root });
+      await execute("git", [
+        "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
+        "-c", "commit.gpgsign=false", "commit", "--quiet", "-m", "Source story",
+      ], { cwd: root });
+      await execute(process.execPath, [
+        entry, "story", "preview", root, join(root, "stories/value.topo.json"),
+      ]);
+      expect(await readFile(join(site, "index.html"), "utf8")).toContain('data-id="value"');
+      expect(await readFile(join(site, "stories/value/viewer.html"), "utf8")).toContain("<svg");
+      expect(JSON.parse(await readFile(join(site, "site-state.json"), "utf8")).kind).toBe("unscanned");
+      await expect(readFile(join(site, "data.json"))).rejects.toMatchObject({ code: "ENOENT" });
+      const output = join(await temp("topo-orphan-bundle-"), "site");
+      await bundleSite(root, output);
+      const existingBundle = await snapshotDirectory(output);
+
+      await execute("git", ["switch", "--orphan", "empty"], { cwd: root });
+      await expect(execute("git", ["rev-parse", "--verify", "--quiet", "HEAD"], { cwd: root }))
+        .rejects.toMatchObject({ code: 1 });
+      await expect(readFile(join(root, "source.ts"))).rejects.toMatchObject({ code: "ENOENT" });
+      await expect(readFile(join(root, "stories/value.topo.json"))).rejects.toMatchObject({ code: "ENOENT" });
+      if (retained === "inventory only") await rm(join(site, "stories"), { recursive: true });
+      if (retained === "rendered files only") await writeFile(join(site, "index.html"), initializedHome);
+      const cachedSite = await snapshotDirectory(site);
+
+      await expect(execute(process.execPath, [entry, "bundle", root, "--output", output]))
+        .rejects.toMatchObject({
+          code: 1,
+          stderr: expect.stringContaining("Cannot bundle an unborn repository"),
+        });
+      expect(await snapshotDirectory(output)).toEqual(existingBundle);
+      expect(await snapshotDirectory(site)).toEqual(cachedSite);
+    },
+  );
 
   it("does not let an unscanned marker bypass missing scanned data", async () => {
     const root = await repository();
