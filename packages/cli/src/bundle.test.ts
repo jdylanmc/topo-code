@@ -1,5 +1,7 @@
+import { deepStrictEqual } from "node:assert";
 import { execFile } from "node:child_process";
 import {
+  cp,
   mkdir,
   mkdtemp,
   readFile,
@@ -12,7 +14,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { createGraphDocument, createPathNodeId } from "@topo/schema";
 import { initializeWorkspace } from "@topo/workspace";
 import { bundleSite } from "./bundle.js";
@@ -34,8 +36,8 @@ async function temp(prefix: string): Promise<string> {
   return directory;
 }
 
-async function repository(): Promise<string> {
-  const root = await temp("topo-bundle-test-");
+async function repository(directory?: string): Promise<string> {
+  const root = directory ?? await temp("topo-bundle-test-");
   await writeFile(join(root, "package.json"), '{"name":"fixture","type":"module"}\n');
   await writeFile(join(root, "source.ts"), "export const value = 42;\n");
   await execute("git", ["init", "--quiet"], { cwd: root });
@@ -120,13 +122,16 @@ describe("static site bundle", () => {
     await expect(bundleSite(root, result.outputDirectory)).rejects.toThrow("license notices are missing");
   });
 
-  it.each(["complete preview", "inventory only", "rendered files only"])(
-    "rejects an orphan branch's cached %s without changing the existing bundle",
-    async (retained) => {
-      const root = await repository();
+  describe("orphaned preview caches", () => {
+    let prepared: string | undefined;
+    let initializedHome: Buffer;
+
+    beforeAll(async () => {
+      prepared = await mkdtemp(join(tmpdir(), "topo-orphan-preview-"));
+      const root = await repository(prepared);
       await execute(process.execPath, [entry, "init", root]);
       const site = join(root, ".topo/cache/site");
-      const initializedHome = await readFile(join(site, "index.html"));
+      initializedHome = await readFile(join(site, "index.html"));
       await mkdir(join(root, "stories"));
       await writeFile(join(root, "stories/value.topo.json"), JSON.stringify({
         schemaVersion: "1.0",
@@ -148,32 +153,48 @@ describe("static site bundle", () => {
       await execute(process.execPath, [
         entry, "story", "preview", root, join(root, "stories/value.topo.json"),
       ]);
-      expect(await readFile(join(site, "index.html"), "utf8")).toContain('data-id="value"');
-      expect(await readFile(join(site, "stories/value/viewer.html"), "utf8")).toContain("<svg");
-      expect(JSON.parse(await readFile(join(site, "site-state.json"), "utf8")).kind).toBe("unscanned");
-      await expect(readFile(join(site, "data.json"))).rejects.toMatchObject({ code: "ENOENT" });
-      const output = join(await temp("topo-orphan-bundle-"), "site");
-      await bundleSite(root, output);
-      const existingBundle = await snapshotDirectory(output);
+    });
 
-      await execute("git", ["switch", "--orphan", "empty"], { cwd: root });
-      await expect(execute("git", ["rev-parse", "--verify", "--quiet", "HEAD"], { cwd: root }))
-        .rejects.toMatchObject({ code: 1 });
-      await expect(readFile(join(root, "source.ts"))).rejects.toMatchObject({ code: "ENOENT" });
-      await expect(readFile(join(root, "stories/value.topo.json"))).rejects.toMatchObject({ code: "ENOENT" });
-      if (retained === "inventory only") await rm(join(site, "stories"), { recursive: true });
-      if (retained === "rendered files only") await writeFile(join(site, "index.html"), initializedHome);
-      const cachedSite = await snapshotDirectory(site);
+    afterAll(async () => {
+      if (prepared !== undefined) await rm(prepared, { recursive: true, force: true });
+    });
 
-      await expect(execute(process.execPath, [entry, "bundle", root, "--output", output]))
-        .rejects.toMatchObject({
-          code: 1,
-          stderr: expect.stringContaining("Cannot bundle an unborn repository"),
-        });
-      expect(await snapshotDirectory(output)).toEqual(existingBundle);
-      expect(await snapshotDirectory(site)).toEqual(cachedSite);
-    },
-  );
+    it.each(["complete preview", "inventory only", "rendered files only"])(
+      "rejects an orphan branch's cached %s without changing the existing bundle",
+      async (retained) => {
+        if (prepared === undefined) throw new Error("Native preview fixture was not prepared");
+        const root = await temp("topo-orphan-case-");
+        await cp(prepared, root, { recursive: true });
+        const site = join(root, ".topo/cache/site");
+        expect(await readFile(join(site, "index.html"), "utf8")).toContain('data-id="value"');
+        expect(await readFile(join(site, "stories/value/viewer.html"), "utf8")).toContain("<svg");
+        expect(JSON.parse(await readFile(join(site, "site-state.json"), "utf8")).kind).toBe("unscanned");
+        await expect(readFile(join(site, "data.json"))).rejects.toMatchObject({ code: "ENOENT" });
+        const output = join(await temp("topo-orphan-bundle-"), "site");
+        // Seed prior output from the real preview without rendering it a second time.
+        await cp(site, output, { recursive: true });
+        await writeFile(join(output, "deployment-note.txt"), "Keep the previous deployment.\n");
+        const existingBundle = await snapshotDirectory(output);
+
+        await execute("git", ["switch", "--orphan", "empty"], { cwd: root });
+        await expect(execute("git", ["rev-parse", "--verify", "--quiet", "HEAD"], { cwd: root }))
+          .rejects.toMatchObject({ code: 1 });
+        await expect(readFile(join(root, "source.ts"))).rejects.toMatchObject({ code: "ENOENT" });
+        await expect(readFile(join(root, "stories/value.topo.json"))).rejects.toMatchObject({ code: "ENOENT" });
+        if (retained === "inventory only") await rm(join(site, "stories"), { recursive: true });
+        if (retained === "rendered files only") await writeFile(join(site, "index.html"), initializedHome);
+        const cachedSite = await snapshotDirectory(site);
+
+        await expect(execute(process.execPath, [entry, "bundle", root, "--output", output]))
+          .rejects.toMatchObject({
+            code: 1,
+            stderr: expect.stringContaining("Cannot bundle an unborn repository"),
+          });
+        deepStrictEqual(await snapshotDirectory(output), existingBundle);
+        deepStrictEqual(await snapshotDirectory(site), cachedSite);
+      },
+    );
+  });
 
   it("does not let an unscanned marker bypass missing scanned data", async () => {
     const root = await repository();
