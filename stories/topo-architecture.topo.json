@@ -2,7 +2,7 @@
   "schemaVersion": "1.0",
   "id": "topo-architecture",
   "title": "How Topocode turns source into an architecture storybook",
-  "summary": "Topo scans a Git repository into deterministic evidence, renders committed source-grounded stories through pinned Archify, and publishes them inside one navigable static application shell.",
+  "summary": "Topocode initializes a static diagram home before analysis. Scanning and committed source-grounded stories add evidence and native diagrams to that same navigable shell.",
   "category": "Topocode internals",
   "anchors": [
     { "id": "scan", "path": "packages/scanner/src/typescript-scanner.ts", "symbol": "scanRepository" },
@@ -13,13 +13,15 @@
     { "id": "resolve-story", "path": "packages/story/src/index.ts", "symbol": "resolveStoryDocument" },
     { "id": "render", "path": "packages/diagram-core/src/index.ts", "symbol": "renderStory" },
     { "id": "catalogue", "path": "packages/cli/src/catalogue.ts", "symbol": "buildCatalogue" },
+    { "id": "initialize", "path": "packages/cli/src/catalogue.ts", "symbol": "initializeSite" },
+    { "id": "home", "path": "packages/cli/src/catalogue.ts", "symbol": "renderCataloguePage" },
     { "id": "bundle", "path": "packages/cli/src/bundle.ts", "symbol": "bundleSite" }
   ],
   "sections": [
     {
       "id": "scan",
       "title": "1. Scan source into a graph",
-      "body": "The TypeScript scanner walks a Git repository and produces a deterministic graph of files, modules, and relationships \u2014 the raw evidence every later stage builds on.",
+      "body": "Optional scanning walks supported TypeScript/JavaScript source and produces a deterministic graph of files, modules, and relationships. Initialization and authored stories do not require this graph.",
       "anchorIds": ["scan"]
     },
     {
@@ -49,8 +51,8 @@
     {
       "id": "catalogue",
       "title": "6. Browse the storybook",
-      "body": "Every committed story is gathered into one persistent shell with filtering, grouping, Git-backed sorting, deep links, and a selected real Archify viewer \u2014 generated, never hand-maintained.",
-      "anchorIds": ["catalogue"]
+      "body": "Init creates a truthful unscanned Home without analysis or rendering. Every supported committed story is later gathered into one persistent shell with filtering, grouping, Git-backed sorting, deep links, and a selected real Archify viewer. Home is the inventory; generated Repository exploration is a separate selection in that shell.",
+      "anchorIds": ["catalogue", "initialize", "home"]
     },
     {
       "id": "bundle",

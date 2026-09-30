@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { createGraphDocument, createPathNodeId } from "@topo/schema";
 import { initializeWorkspace } from "@topo/workspace";
 import { generateArtifacts } from "./pipeline.js";
+import { serveSite } from "./server.js";
 
 const execute = promisify(execFile);
 const entry = fileURLToPath(new URL("../dist/main.js", import.meta.url));
@@ -53,6 +54,83 @@ async function setModules(root: string, modules: readonly string[]) {
 afterEach(async () => { for (const root of directories.splice(0)) await rm(root, { recursive: true }); });
 
 describe("documented CLI workflow", () => {
+  it.each([{ options: [] }, { options: ["--skills"] }])("initializes an unborn empty Git repository for immediate serving $options", async ({ options }) => {
+    const root = await temp();
+    await execute("git", ["init", "--quiet", root]);
+    await writeFile(join(root, "AGENTS.md"), "Keep owner guidance\n");
+    await cli("init", root, ...options);
+    const site = join(root, ".topo/cache/site");
+    expect(JSON.parse(await readFile(join(site, "site-state.json"), "utf8"))).toMatchObject({
+      schemaVersion: "1.0", kind: "unscanned", repositoryId: basename(root),
+    });
+    expect(await readdir(join(root, ".topo/graph"))).toEqual([]);
+    await expect(readFile(join(site, "data.json"))).rejects.toMatchObject({ code: "ENOENT" });
+    const { server, url } = await serveSite(root, 0);
+    try {
+      for (const name of ["", "shell.js", "LICENSE.txt", "THIRD_PARTY_NOTICES.txt", "ARCHIFY_LICENSE.txt", "JETBRAINS_MONO_LICENSE.txt"]) {
+        expect((await fetch(`${url}/${name}`)).status).toBe(200);
+      }
+      const html = await (await fetch(url)).text();
+      expect(html).toContain("Topocode home");
+      expect(html).toContain("No diagrams yet");
+      expect(html).toContain("Repository not scanned");
+      expect(html).not.toContain("data-repository-viewer");
+    } finally {
+      await new Promise<void>((done, reject) => server.close((error) => error ? reject(error) : done()));
+    }
+    const config = await readFile(join(root, ".topo/config.json"));
+    const index = await readFile(join(site, "index.html"));
+    await writeFile(join(root, ".topo/metadata/notes.json"), '{"keep":true}\n');
+    await cli("init", root, ...options);
+    expect(await readFile(join(site, "index.html"))).toEqual(index);
+    expect(await readFile(join(root, ".topo/config.json"))).toEqual(config);
+    expect(await readFile(join(root, ".topo/metadata/notes.json"), "utf8")).toBe('{"keep":true}\n');
+    expect(await readFile(join(root, "AGENTS.md"), "utf8")).toBe("Keep owner guidance\n");
+  });
+
+  it("does not analyze unsupported source, render invalid stories, or invoke configured enrichment on init", async () => {
+    const root = await temp();
+    await execute("git", ["init", "--quiet", root]);
+    await writeFile(join(root, "unknown.language"), "not scannable");
+    await mkdir(join(root, "stories"));
+    await writeFile(join(root, "stories/invalid.topo.json"), "{}");
+    await commit(root, "Unrenderable input", ".");
+    const { config } = await initializeWorkspace(root);
+    await writeFile(join(root, ".topo/config.json"), JSON.stringify({
+      ...config, enrichment: { command: ["this-command-must-never-run"] },
+    }));
+    await cli("init", root);
+    expect(await readFile(join(root, ".topo/cache/site/index.html"), "utf8")).toContain("No diagrams yet");
+    expect(await readdir(join(root, ".topo/graph"))).toEqual([]);
+    expect(await readdir(join(root, ".topo/reports/outputs"))).toEqual([]);
+    expect(await readFile(join(root, "stories/invalid.topo.json"), "utf8")).toBe("{}");
+  });
+
+  it("preflights shell symlinks and skills conflicts before publishing an index", async () => {
+    const root = await fixture();
+    const outside = await temp();
+    await initializeWorkspace(root);
+    await mkdir(join(root, ".topo/cache/site"));
+    await writeFile(join(outside, "shell.js"), "owned\n");
+    await symlink(join(outside, "shell.js"), join(root, ".topo/cache/site/shell.js"));
+    await expect(cli("init", root)).rejects.toMatchObject({ stderr: expect.stringContaining("symlink") });
+    await expect(readFile(join(root, ".topo/cache/site/index.html"))).rejects.toMatchObject({ code: "ENOENT" });
+    expect(await readFile(join(outside, "shell.js"), "utf8")).toBe("owned\n");
+    await mkdir(join(root, ".agents/skills/topo"), { recursive: true });
+    await writeFile(join(root, ".agents/skills/topo/SKILL.md"), "custom\n");
+    await expect(cli("init", root, "--skills")).rejects.toMatchObject({ stderr: expect.stringContaining("destination conflict") });
+  });
+
+  it("preserves an existing scanned site byte-for-byte on repeated init", async () => {
+    const root = await fixture();
+    await cli("scan", root);
+    const files = ["index.html", "data.json", "repository.json", "shell.js"];
+    const before = await Promise.all(files.map((name) => readFile(join(root, ".topo/cache/site", name))));
+    await cli("init", root);
+    expect(await Promise.all(files.map((name) => readFile(join(root, ".topo/cache/site", name))))).toEqual(before);
+    await expect(readFile(join(root, ".topo/cache/site/site-state.json"))).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
   it("scans real TypeScript sources repeatedly without layout churn", async () => {
     const root = await fixture();
     const first = await cli("scan", root);
@@ -212,7 +290,7 @@ describe("documented CLI workflow", () => {
     const graph = '{"sentinel":"graph"}\n';
     const data = '{"sentinel":"data"}\n';
     await writeFile(join(root, ".topo/graph/graph.json"), graph);
-    await mkdir(join(root, ".topo/cache/site"));
+    await mkdir(join(root, ".topo/cache/site"), { recursive: true });
     await writeFile(join(root, ".topo/cache/site/data.json"), data);
     await setModules(root, modules);
     await writeFile(join(root, "main.ts"), 'import "./missing.js";\n');

@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
-import { readFile, readdir, rm } from "node:fs/promises";
+import { readFile, readdir, rm, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
 import { renderStory } from "@topo/diagram-core";
@@ -13,6 +13,9 @@ import {
 import {
   writeGenerated,
   workspacePath,
+  isMissing,
+  loadConfig,
+  withWorkspaceLock,
   type WorkspaceCatalogueConfig,
 } from "@topo/workspace";
 import {
@@ -54,6 +57,54 @@ export interface RepositoryState {
 }
 
 const defaultRenderer: StoryRenderer = { render: renderStory };
+
+export const SITE_NOTICES = [
+  "LICENSE.txt", "THIRD_PARTY_NOTICES.txt", "ARCHIFY_LICENSE.txt",
+  "JETBRAINS_MONO_LICENSE.txt",
+] as const;
+
+/** Initialization publishes chrome only; source evidence is never synthesized. */
+export async function initializeSite(root: string, assets: string): Promise<void> {
+  await withWorkspaceLock(root, async () => {
+    const index = await workspacePath(root, "cache/site/index.html");
+    try {
+      if (!(await stat(index)).isFile()) throw new Error("Site index is not a file");
+      return;
+    } catch (error) {
+      if (!isMissing(error)) throw error;
+    }
+    for (const name of ["graph/graph.json", "cache/site/data.json", "cache/site/repository.json"]) {
+      try {
+        await stat(await workspacePath(root, name));
+      } catch (error) {
+        if (isMissing(error)) continue;
+        throw error;
+      }
+      throw new Error("Generated evidence exists without a site index; run topo scan to rebuild it.");
+    }
+    const config = await loadConfig(root);
+    // Category overrides are checked against the discovered inventory on preview/scan.
+    const presentation = { title: config.repositoryId, ...config.catalogue, storyCategories: {} };
+    const files: [string, string | Buffer][] = [
+      ...await Promise.all(SITE_NOTICES.map(async (name): Promise<[string, Buffer]> =>
+        [name, await readFile(resolve(assets, name))])),
+      ["shell.js", SHELL_SCRIPT],
+      ["site-state.json", `${JSON.stringify({
+        schemaVersion: "1.0", kind: "unscanned", repositoryId: config.repositoryId,
+      })}\n`],
+      ["index.html", renderCataloguePage([], presentation)],
+    ];
+    for (const [name] of files) {
+      const destination = await workspacePath(root, `cache/site/${name}`);
+      try {
+        if (!(await stat(destination)).isFile()) throw new Error(`Site asset is not a file: ${name}`);
+      } catch (error) {
+        if (!isMissing(error)) throw error;
+      }
+    }
+    for (const [name, content] of files) await writeGenerated(root, `cache/site/${name}`, content);
+  });
+}
 
 function escapeHtml(value: string): string {
   return value
@@ -288,6 +339,7 @@ interface CatalogueEntry {
   readonly created: number | null;
   readonly modified: number | null;
   readonly href: string;
+  readonly classification: string;
 }
 
 interface StoryLink {
@@ -450,6 +502,7 @@ const SHELL_SCRIPT = `(() => {
     modified: link.dataset.modified ? Number(link.dataset.modified) : null,
     href: link.getAttribute("href") || "",
     active: link.dataset.active === "true",
+    classification: link.dataset.classification || "Source-grounded",
   }));
 
   const status = document.querySelector("[data-shell-status]");
@@ -489,7 +542,17 @@ const SHELL_SCRIPT = `(() => {
   for (const key of ["group", "sort", "direction"]) {
     if (allowed[key].includes(saved[key])) controls[key].value = saved[key];
   }
-  root.dataset.navigationCollapsed = saved.collapsed === true ? "true" : "false";
+  root.dataset.navigationCollapsed = String(typeof saved.collapsed === "boolean"
+    ? saved.collapsed : window.matchMedia("(max-width: 1099px)").matches);
+  const params = new URLSearchParams(window.location.search);
+  if (!document.querySelector("[data-repository]") && !document.body.dataset.storyId &&
+      ["view", "scope", "page", "focus"].some((key) => params.has(key))) {
+    const error = document.querySelector("[data-home-error]");
+    if (error) {
+      error.hidden = false;
+      error.textContent = "Repository exploration is unavailable. Run topo scan to generate it.";
+    }
+  }
 
   function save() {
     if (!storageAvailable) return;
@@ -544,10 +607,19 @@ const SHELL_SCRIPT = `(() => {
     return "";
   }
 
-  function storyLink(entry) {
+  function storyLink(entry, home = false) {
     const link = document.createElement("a");
     link.href = entry.href;
     link.textContent = entry.title;
+    if (home) {
+      const title = document.createElement("strong");
+      title.textContent = entry.title;
+      const summary = document.createElement("span");
+      summary.textContent = entry.summary;
+      const metadata = document.createElement("small");
+      metadata.textContent = entry.family + " / " + entry.category + " / " + entry.classification;
+      link.replaceChildren(title, summary, metadata);
+    }
     link.dataset.kind = "story";
     link.dataset.storyId = entry.id;
     if (entry.active) link.setAttribute("aria-current", "page");
@@ -572,21 +644,29 @@ const SHELL_SCRIPT = `(() => {
       [entry.title, entry.summary, entry.category, entry.family, entry.folder]
         .some((value) => value.toLocaleLowerCase().includes(query))
     ).sort(compare);
-    list.replaceChildren();
+    const homeList = document.querySelector("[data-home-inventory]");
+    const count = document.querySelector("[data-inventory-count]");
+    if (count) count.textContent = visible.length + " of " + entries.length + " diagrams";
+    for (const target of [list, homeList].filter(Boolean)) renderInventory(target, visible);
+  }
+
+  function renderInventory(target, visible) {
+    const home = target.hasAttribute("data-home-inventory");
+    target.replaceChildren();
     if (visible.length === 0) {
       const empty = document.createElement("p");
       empty.className = "catalogue-empty";
       empty.textContent = entries.length === 0
-        ? "No diagrams are available."
+        ? "No diagrams yet."
         : "No diagrams match this filter.";
-      list.append(empty);
+      target.append(empty);
       return;
     }
     if (controls.group.value === "flat") {
       const flat = document.createElement("div");
       flat.className = "story-links";
-      for (const entry of visible) flat.append(storyLink(entry));
-      list.append(flat);
+      for (const entry of visible) flat.append(storyLink(entry, home));
+      target.append(flat);
       return;
     }
     const groups = new Map();
@@ -622,19 +702,20 @@ const SHELL_SCRIPT = `(() => {
       button.setAttribute("aria-expanded", "true");
       const links = document.createElement("div");
       links.className = "story-links";
-      for (const entry of values) links.append(storyLink(entry));
+      for (const entry of values) links.append(storyLink(entry, home));
       button.addEventListener("click", () => {
         const expanded = button.getAttribute("aria-expanded") === "true";
         button.setAttribute("aria-expanded", String(!expanded));
         links.hidden = expanded;
       });
       section.append(button, links);
-      list.append(section);
+      target.append(section);
     }
   }
 
   function updateCollapse() {
     const collapsed = root.dataset.navigationCollapsed === "true";
+    controls.collapse.setAttribute("aria-expanded", String(!collapsed));
     controls.collapse.setAttribute(
       "aria-label",
       collapsed ? "Expand diagram navigation" : "Collapse diagram navigation",
@@ -729,6 +810,7 @@ export function renderStoryWrapper(
   links: readonly StoryLink[],
   config?: WorkspaceCatalogueConfig,
   historyIncomplete = false,
+  repository?: RepositoryIndex,
 ): string {
   const classification =
     story.document.classification ?? "source-grounded";
@@ -761,7 +843,7 @@ export function renderStoryWrapper(
         <a data-return hidden></a>
       </div>
       <ul>${nodes}</ul>
-    </details>`);
+    </details>`, repository);
 }
 
 function familyLabel(story: CatalogueStory): string {
@@ -802,6 +884,8 @@ function catalogueEntries(
     folder: folderLabel(story.documentPath),
     created: story.history?.created ?? null,
     modified: story.history?.modified ?? null,
+    classification: story.document.classification === "capability-demo"
+      ? "Capability demo - not source-grounded" : "Source-grounded",
     href: storyPage
       ? `../../stories/${encodeURIComponent(story.document.id)}/`
       : `./stories/${encodeURIComponent(story.document.id)}/`,
@@ -817,15 +901,15 @@ function renderShellPage(
   repository?: RepositoryIndex,
 ): string {
   const entries = catalogueEntries(stories, config, selected !== undefined);
-  const title = config?.title ?? "Topocode";
+  const title = config?.title ?? "Repository diagrams";
   const description =
     config?.description ??
-    "The storybook for architects: source-grounded diagrams rendered through Archify.";
+    "Architecture, workflows, and source-grounded explanations in one place.";
   const accent = config?.accentColor ?? "#7dd3fc";
   const selectedClassification =
     selected?.document.classification ?? "source-grounded";
   const template = entries.map((entry) =>
-    `<a data-kind="${entry.kind}" data-id="${escapeHtml(entry.id)}" data-category="${escapeHtml(entry.category)}" data-family="${escapeHtml(entry.family)}" data-folder="${escapeHtml(entry.folder)}" data-title="${escapeHtml(entry.title)}" data-summary="${escapeHtml(entry.summary)}" data-created="${entry.created ?? ""}" data-modified="${entry.modified ?? ""}" data-active="${entry.id === selected?.document.id}" href="${entry.href}">${escapeHtml(entry.title)}</a>`,
+    `<a data-kind="${entry.kind}" data-id="${escapeHtml(entry.id)}" data-category="${escapeHtml(entry.category)}" data-family="${escapeHtml(entry.family)}" data-folder="${escapeHtml(entry.folder)}" data-title="${escapeHtml(entry.title)}" data-summary="${escapeHtml(entry.summary)}" data-classification="${escapeHtml(entry.classification)}" data-created="${entry.created ?? ""}" data-modified="${entry.modified ?? ""}" data-active="${entry.id === selected?.document.id}" href="${entry.href}">${escapeHtml(entry.title)}</a>`,
   ).join("\n");
   const historyStatus = historyIncomplete
     ? "Git history is incomplete. Creation date unavailable for some diagrams."
@@ -837,7 +921,7 @@ function renderShellPage(
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="${escapeHtml(selected?.document.summary ?? description)}" />
     <link rel="icon" href="data:," />
-    <title>${escapeHtml(title)}</title>
+    <title>${escapeHtml(title)} | Topocode</title>
     <style>
       :root { color-scheme: dark; --accent: ${accent}; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
       * { box-sizing: border-box; }
@@ -849,7 +933,7 @@ function renderShellPage(
       button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px solid #ffd33d; outline-offset: 2px; }
       [data-topo-shell] { display: grid; grid-template-columns: 19rem minmax(0, 1fr); width: 100%; height: 100%; }
       [data-navigation-collapsed="true"] { grid-template-columns: 3.5rem minmax(0, 1fr); }
-      .catalogue-panel { display: grid; grid-template-rows: auto auto auto minmax(0, 1fr) auto; min-width: 0; min-height: 0; border-right: 1px solid #29364a; background: #0b1524; }
+      .catalogue-panel { display: grid; grid-template-rows: auto auto auto auto minmax(0, 1fr) auto; min-width: 0; min-height: 0; border-right: 1px solid #29364a; background: #0b1524; }
       .brand-row { display: flex; align-items: center; gap: 0.5rem; min-width: 0; padding: 0.75rem; border-bottom: 1px solid #29364a; }
       .brand-row strong, .brand-row h1 { min-width: 0; margin: 0; overflow: hidden; color: white; font-size: 1.05rem; text-overflow: ellipsis; white-space: nowrap; }
       [data-collapse] { flex: 0 0 2.25rem; margin-left: auto; border: 1px solid #3a4a61; border-radius: 0.45rem; background: #111f32; color: white; cursor: pointer; }
@@ -861,9 +945,10 @@ function renderShellPage(
       .catalogue-controls input, .catalogue-controls select { width: 100%; border: 1px solid #3a4a61; border-radius: 0.4rem; background: #101d30; color: white; padding: 0.4rem 0.5rem; }
       .sort-controls { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.5rem; }
       [data-shell-status] { margin: 0; padding: 0.65rem 0.75rem; border-bottom: 1px solid #29364a; color: #fcd34d; font-size: 0.78rem; line-height: 1.35; }
-      [data-story-list] { min-height: 0; overflow: auto; padding: 0.55rem; }
+      [data-shell-status] { grid-row: 4; }
+      [data-story-list] { grid-row: 5; min-height: 0; overflow: auto; padding: 0.55rem; }
       .catalogue-group { margin-bottom: 0.35rem; }
-      .catalogue-group > button { width: 100%; border: 0; background: transparent; color: #a9b7ca; padding: 0.45rem 0.5rem; text-align: left; cursor: pointer; font-size: 0.75rem; font-weight: 750; letter-spacing: 0.08em; text-transform: uppercase; }
+      .catalogue-group > button { width: 100%; border: 0; background: transparent; color: #a9b7ca; padding: 0.45rem 0.5rem; text-align: left; cursor: pointer; font-size: 0.85rem; font-weight: 750; }
       .catalogue-group > button::before { content: "▾"; display: inline-block; width: 1.1rem; }
       .catalogue-group > button[aria-expanded="false"]::before { content: "▸"; }
       .story-links { display: grid; gap: 0.15rem; }
@@ -871,7 +956,7 @@ function renderShellPage(
       .story-links a:hover { background: #14243a; color: white; }
       .story-links a[aria-current="page"] { background: #17324d; color: white; box-shadow: inset 3px 0 var(--accent); font-weight: 700; }
       .catalogue-empty { margin: 0; padding: 1rem 0.65rem; color: #a9b7ca; line-height: 1.5; }
-      .catalogue-footer { padding: 0.7rem 0.85rem; border-top: 1px solid #29364a; color: #7f8da1; font-size: 0.75rem; }
+      .catalogue-footer { grid-row: 6; padding: 0.7rem 0.85rem; border-top: 1px solid #29364a; color: #7f8da1; font-size: 0.75rem; }
       .story-main { display: grid; grid-template-rows: minmax(0, 1fr) auto; min-width: 0; min-height: 0; background: #f8fafc; }
       .classification { color: #a9b7ca; font-size: 0.9rem; font-weight: 600; }
       a { color: #7dd3fc; }
@@ -885,10 +970,23 @@ function renderShellPage(
       .story-context [data-return] { margin-left: auto; }
       .story-details ul { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 0.5rem; margin: 0; padding: 0 0.75rem 0.75rem; list-style: none; }
       .story-details li { display: grid; gap: 0.35rem; padding: 0.65rem; background: #111c2e; border-radius: 0.5rem; }
-      .empty-main { display: grid; place-items: center; min-width: 0; min-height: 0; padding: 2rem; background: radial-gradient(circle at 50% 35%, #162640, #07101d 65%); text-align: center; }
-      .empty-main div { max-width: 38rem; }
-      .empty-main h1 { margin: 0 0 0.75rem; font-size: clamp(2rem, 5vw, 4rem); }
-      .empty-main p { margin: 0; color: #a9b7ca; font-size: 1.05rem; line-height: 1.6; }
+      .home-main { min-width: 0; min-height: 0; overflow: auto; padding: clamp(1.5rem, 4vw, 4rem); }
+      .home-main > * { max-width: 64rem; }
+      .home-main h1 { margin: 0 0 0.75rem; font-size: clamp(1.7rem, 3vw, 2.5rem); }
+      .home-main p, .home-main li { max-width: 75ch; color: #a9b7ca; line-height: 1.6; }
+      .home-main h2 { font-size: 1.25rem; margin-top: 2rem; }
+      .home-main code { color: #e5edf7; overflow-wrap: anywhere; }
+      .home-main ol { padding-left: 1.4rem; }
+      [data-home-inventory] .story-links a { display: grid; gap: 0.4rem; padding: 1rem; border-bottom: 1px solid #29364a; border-radius: 0; }
+      [data-home-inventory] small { color: #a9b7ca; font-size: 0.8rem; }
+      [data-home-inventory] .catalogue-group { margin: 1rem 0; }
+      .site-navigation { display: grid; gap: 0.25rem; padding: 0.6rem 0.75rem; border-bottom: 1px solid #29364a; }
+      .site-navigation a { display: flex; align-items: center; padding: 0.25rem 0.5rem; text-decoration: none; border-radius: 0.35rem; }
+      .site-navigation a:hover, .site-navigation [aria-current="page"] { background: #17324d; color: white; }
+      .site-navigation h1 { margin: 0.4rem 0.5rem; font-size: 1rem; overflow-wrap: anywhere; }
+      .site-title { display: block; margin-top: 0.2rem; color: #a9b7ca; font-size: 0.8rem; overflow-wrap: anywhere; }
+      .brand-identity { min-width: 0; }
+      .brand-identity > a { color: white; text-decoration: none; font-weight: 750; font-size: 1.1rem; }
       .repository-home { flex: 0 0 auto; font-size: 0.8rem; display: inline-flex; align-items: center; }
       .repository-main { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-width: 0; min-height: 0; background: #f8fafc; }
       .repository-toolbar { padding: 0.6rem 1rem; background: #0b1524; border-bottom: 1px solid #29364a; }
@@ -912,7 +1010,7 @@ function renderShellPage(
         [data-topo-shell],
         [data-navigation-collapsed="true"] { grid-template-columns: 1px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
         .catalogue-panel,
-        body[data-story-id] .catalogue-panel { position: relative; z-index: 3; display: grid; grid-template-rows: auto auto auto minmax(0, 1fr) auto; width: 1px; min-width: 0; padding: 0 0 2.6rem; overflow: visible; border-right: 0; border-bottom: 0; background: transparent; }
+        body[data-story-id] .catalogue-panel { position: relative; z-index: 3; display: grid; grid-template-rows: auto auto auto auto minmax(0, 1fr) auto; width: 1px; min-width: 0; padding: 0 0 2.6rem; overflow: visible; border-right: 0; border-bottom: 0; background: transparent; }
         .catalogue-panel::before { position: absolute; z-index: -1; inset: 0 auto 0 0; width: 14rem; border-right: 1px solid #29364a; background: #0b1524; box-shadow: 0.5rem 0 1.25rem rgb(0 0 0 / 30%); content: ""; }
         [data-navigation-collapsed="true"] .catalogue-panel::before { width: 3.5rem; box-shadow: none; }
         .catalogue-panel > * { width: 14rem; }
@@ -928,7 +1026,8 @@ function renderShellPage(
         .story-links a { padding: 0.4rem 0.55rem 0.4rem 1.35rem; white-space: normal; }
         .catalogue-footer { display: block; }
         [data-navigation-collapsed="true"] .brand-row { width: 3.5rem; border-right: 0; background: #0b1524; }
-        .story-main, .empty-main, .repository-main { grid-column: 2; grid-row: 1; }
+        .story-main, .home-main, .repository-main { grid-column: 2; grid-row: 1; }
+        .home-main { padding-left: 4.5rem; }
         .repository-toolbar { padding-left: 3.75rem; }
         .story-main { grid-template-rows: minmax(0, 1fr); }
         .story-details { position: fixed; z-index: 4; top: auto; right: auto; bottom: 0; left: 0; width: 14rem; max-height: min(70vh, 36rem); border: 1px solid #29364a; border-radius: 0 0.5rem 0 0; box-shadow: 0 0.4rem 1.2rem rgb(0 0 0 / 35%); }
@@ -943,7 +1042,7 @@ function renderShellPage(
       @media (min-width: 1100px) and (max-width: 1280px) and (max-height: 760px) {
         [data-topo-shell] { grid-template-columns: 14rem minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
         [data-navigation-collapsed="true"] { grid-template-columns: 3.5rem minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
-        .catalogue-panel, body[data-story-id] .catalogue-panel { display: grid; grid-template-rows: auto auto auto minmax(0, 1fr) auto; padding-right: 0; padding-bottom: 2.6rem; border-right: 1px solid #29364a; border-bottom: 0; }
+        .catalogue-panel, body[data-story-id] .catalogue-panel { display: grid; grid-template-rows: auto auto auto auto minmax(0, 1fr) auto; padding-right: 0; padding-bottom: 2.6rem; border-right: 1px solid #29364a; border-bottom: 0; }
         .brand-row { display: flex; flex-basis: auto; padding: 0.65rem; border-right: 0; border-bottom: 1px solid #29364a; }
         .brand-row strong, .brand-row h1 { font-size: 0.92rem; }
         .catalogue-controls { display: grid; min-width: 0; padding: 0.55rem; border-right: 0; border-bottom: 1px solid #29364a; }
@@ -958,7 +1057,7 @@ function renderShellPage(
         .story-links a { padding: 0.4rem 0.55rem 0.4rem 1.35rem; white-space: normal; }
         .catalogue-footer { display: block; }
         [data-navigation-collapsed="true"] .brand-row { flex-basis: auto; border-right: 0; }
-        .story-main, .empty-main, .repository-main { grid-column: 2; grid-row: 1; }
+        .story-main, .home-main, .repository-main { grid-column: 2; grid-row: 1; }
         .story-main { grid-template-rows: minmax(0, 1fr); }
         .story-details { position: fixed; z-index: 4; top: auto; right: auto; bottom: 0; left: 0; width: 14rem; max-height: min(70vh, 36rem); border: 1px solid #29364a; border-radius: 0 0.5rem 0 0; box-shadow: 0 0.4rem 1.2rem rgb(0 0 0 / 35%); }
         .story-details summary { padding: 0.35rem 0.65rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -974,11 +1073,16 @@ function renderShellPage(
     <div data-topo-shell data-navigation-collapsed="false" data-category-order="${escapeHtml(JSON.stringify(config?.categoryOrder ?? []))}">
       <nav class="catalogue-panel" aria-label="Diagram catalogue">
         <div class="brand-row">
-          ${selected === undefined
-            ? `<strong>${escapeHtml(title)}</strong>`
-            : `<h1 title="${escapeHtml(selected.document.title)}">${escapeHtml(selected.document.title)}</h1>`}
-          <a class="repository-home" data-repository-home href="${selected === undefined ? "./" : "../../"}">Repository</a>
+          <div class="brand-identity">
+            <a href="${selected === undefined ? "./" : "../../"}" aria-label="Topocode home">Topocode</a>
+            <span class="site-title">${escapeHtml(title)}</span>
+          </div>
           <button type="button" data-collapse aria-label="Collapse diagram navigation" title="Collapse diagram navigation">‹</button>
+        </div>
+        <div class="site-navigation">
+          <a data-home-link href="${selected === undefined ? "./" : "../../"}"${selected === undefined ? ' aria-current="page"' : ""}>Home</a>
+          ${repository === undefined ? "" : `<a data-repository-home href="${selected === undefined ? "./" : "../../"}?view=repository">Repository</a>`}
+          ${selected === undefined ? "" : `<h1>${escapeHtml(selected.document.title)}</h1>`}
         </div>
         <div class="catalogue-controls">
           <label><span>Filter diagrams</span><input data-filter type="search" autocomplete="off" placeholder="Filter diagrams" /></label>
@@ -1007,14 +1111,14 @@ function renderShellPage(
           </div>
         </div>
         <p data-shell-status role="status"${historyStatus ? "" : " hidden"}>${historyStatus}</p>
-        <div data-story-list><p class="catalogue-empty">${entries.length === 0 ? "No diagrams are available." : "Loading diagrams..."}</p></div>
-        <div class="catalogue-footer">Topo is the storybook for architects.</div>
+        <div data-story-list><p class="catalogue-empty">${entries.length === 0 ? "No diagrams yet." : "Loading diagrams..."}</p></div>
+        <div class="catalogue-footer"><a href="${selected === undefined ? "./" : "../../"}THIRD_PARTY_NOTICES.txt">Third-party notices</a></div>
       </nav>
-      <main class="${repository !== undefined && selected === undefined ? "repository-main" : selected === undefined ? "empty-main" : "story-main"}">${content}</main>
+      ${selected === undefined ? content : `<main class="story-main">${content}</main>`}
     </div>
     <template data-catalogue-data>${template}</template>
     <script src="${selected === undefined ? "./" : "../../"}shell.js"></script>
-    ${repository === undefined ? "" : '<script src="./repository-navigation.js"></script>'}
+    ${repository === undefined || selected !== undefined ? "" : '<script src="./repository-navigation.js"></script>'}
     ${selected === undefined ? "" : '<script src="../../story-navigation.js"></script>'}
   </body>
 </html>
@@ -1028,18 +1132,36 @@ export function renderCataloguePage(
   repository?: RepositoryIndex,
   currentSource?: RepositorySource,
 ): string {
-  const title = config?.title ?? "Topocode";
+  const title = config?.title ?? "Repository diagrams";
   const description =
     config?.description ??
-    "The storybook for architects: source-grounded diagrams rendered through Archify.";
+    "Architecture, workflows, and source-grounded explanations in one place.";
   return renderShellPage(
     stories,
     config,
     historyIncomplete,
     undefined,
-    repository === undefined
-      ? `<div><h1>${escapeHtml(title)}</h1><p>${escapeHtml(description)}</p></div>`
-      : repositoryMarkup(repository, currentSource),
+    `<main class="home-main" data-home>
+      <p data-home-error role="alert" hidden></p>
+      <h1>${escapeHtml(title)}</h1><p>${escapeHtml(description)}</p>
+      <h2>Diagram inventory</h2>
+      <p data-inventory-count>${stories.length} diagrams</p>
+      <div data-home-inventory></div>
+      ${stories.length === 0 ? `<section aria-label="Getting started">
+        <h2>Your first diagram</h2>
+        <p>This site is ready. No authored diagrams have been rendered yet.</p>
+        <ol>
+          <li>Author a supported <code>stories/&lt;name&gt;.topo.json</code> story with source anchors, or an explicitly labeled capability demo.</li>
+          <li>Check it with <code>topo story validate . stories/&lt;name&gt;.topo.json</code>, then commit it.</li>
+          <li>Run <code>topo story preview . stories/&lt;name&gt;.topo.json</code> and refresh this page. All committed stories join this inventory.</li>
+        </ol>
+        <p><code>topo init . --skills</code> can install optional project authoring guidance.</p>
+      </section>` : ""}
+      ${repository === undefined
+        ? `<p data-scan-state>Repository not scanned. Run <code>topo scan .</code> when you want generated repository exploration of supported TypeScript/JavaScript sources. A scan is not required for authored stories.</p>`
+        : '<p>Generated source exploration is available from <a href="?view=repository">Repository</a>.</p>'}
+    </main>
+    ${repository === undefined ? "" : `<main class="repository-main" data-repository hidden>${repositoryMarkup(repository, currentSource)}</main>`}`,
     repository,
   );
 }
@@ -1155,6 +1277,7 @@ export async function writeCatalogue(
           links.get(story.document.id) ?? [],
           config,
           historyIncomplete,
+          repository,
         ),
       ),
       writeGenerated(

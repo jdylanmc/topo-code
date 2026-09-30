@@ -83,6 +83,7 @@ async function copySite(
   const repository = generatedRepository?.index ?? await readRepositoryIndex(root);
   const expected = new Set([
     "data.json",
+    "site-state.json",
     "index.html",
     "shell.js",
     "story-navigation.js",
@@ -129,7 +130,7 @@ async function copySite(
     }
   }
   await copy("");
-  await writeComposedSite(root, "", catalogue, config.catalogue, generatedRepository);
+  await writeComposedSite(root, "", catalogue, { title: config.repositoryId, ...config.catalogue }, generatedRepository);
   await prune("");
 }
 
@@ -221,6 +222,7 @@ export async function generateArtifacts(
     await writeGenerated(root, "reports/outputs/curated-views.json", serializeCuratedViewsSnapshot(curatedViews.snapshot));
     await writeGenerated(root, "reports/outputs/curated-view-deltas.json", serializeCuratedViewDeltas(curatedViews));
     await writeGenerated(root, "cache/site/data.json", data);
+    await removeUnscannedState(root);
     return { layout, dashboard, warnings: enrichment.warnings };
   });
 }
@@ -290,6 +292,16 @@ export async function ingestReports(
     await writeGenerated(root, "reports/outputs/curated-views.json", serializeCuratedViewsSnapshot(curatedViews.snapshot));
     await writeGenerated(root, "reports/outputs/curated-view-deltas.json", serializeCuratedViewDeltas(curatedViews));
     await writeGenerated(root, "cache/site/data.json", data);
+    await removeUnscannedState(root);
     return { dashboard, warnings: enrichment.warnings };
   });
+}
+
+async function removeUnscannedState(root: string): Promise<void> {
+  const state = await workspacePath(root, "cache/site/site-state.json");
+  try {
+    await unlink(state);
+  } catch (error) {
+    if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
+  }
 }

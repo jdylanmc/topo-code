@@ -46,11 +46,13 @@ Commit the source and authored story together. Build or refresh the generated
 site, preview the committed story, and inspect it locally:
 
 ```sh
-npm exec --no -- topo scan .
+npm exec --no -- topo init .
 npm exec --no -- topo story preview . stories/example.topo.json
 npm exec --no -- topo serve .
 ```
 
+Home inventories all committed supported stories, not only the preview target.
+Scanning is optional for generated Repository exploration.
 Open `/stories/<story-id>/`. If source changes later, rerun validation before
 previewing and preserve identity plus unrelated authored intent during repairs.
 Humans review the authored explanation and generated view; they do not edit the

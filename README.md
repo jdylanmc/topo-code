@@ -5,11 +5,12 @@
 A local-first, deterministic code-architecture visualizer.
 
 ```
-scan  ->  generate  ->  publish
+init  ->  serve  ->  author / scan  ->  bundle
 ```
 
-Scan a repository, build a canonical graph, publish a self-contained static site
-into `.topo/`. No hosted service, no telemetry, no account.
+Initialize a repository to create a ready-to-serve static diagram home in
+`.topo/`. Add authored stories or scan supported source when needed.
+No hosted service, no telemetry, no account.
 
 The goal is to put a software engineer in the human-in-the-loop position: every
 claim the tool makes about a codebase is backed by evidence you can follow, and
@@ -24,17 +25,18 @@ everything a human adds is recorded as such.
 
 ## Install the toolbelt
 
-After publication, install `@jdylanmc/topo-code@0.1.0` in your project, then run
+The public `@jdylanmc/topo-code@0.1.0` predates the init-first home described
+here. Use a locally built candidate tarball for this unreleased behavior; no
+version bump or publication is implied. After installing the candidate, run
 `npm exec --no -- topo init . --skills`. This adds project-local Topocode skills
 and instructions without replacing existing files. Read
-`.agents/skills/topo/SKILL.md`, scan, author/validate stories, preview and bundle
-using the installed CLI. Plain `topo init` keeps workspace-only behavior.
-Before publication, install both candidate tarballs in one npm command:
+`.agents/skills/topo/SKILL.md`, serve, author/validate stories, preview and bundle
+using the installed CLI. Plain `topo init` creates the same site without skills.
+Install both candidate tarballs in one npm command:
 
 ```sh
 npm install --save-dev /path/to/jdylanmc-topo-archify-0.1.0.tgz /path/to/jdylanmc-topo-code-0.1.0.tgz
 npm exec --no -- topo init . --skills
-npm exec --no -- topo scan .
 npm exec --no -- topo serve .
 ```
 
@@ -53,11 +55,14 @@ From this checkout, with Node.js 22+ and Corepack:
 corepack yarn install --immutable
 node scripts/bootstrap-renderer.mjs /path/to/jdylanmc-topo-archify-0.1.0.tgz
 corepack yarn build
-corepack yarn topo scan /absolute/path/to/a/typescript-repository
-corepack yarn topo serve /absolute/path/to/a/typescript-repository
+corepack yarn topo init /absolute/path/to/a/repository
+corepack yarn topo serve /absolute/path/to/a/repository
 ```
 
-Open the printed address. The default **Repository** view drills from packages
+Open the printed address. **Home** is the diagram inventory, initially empty.
+Initialization works with an empty/unborn Git repository, invokes no scanner,
+model or native renderer, and starts no server or browser automatically.
+Run `topo scan` to add **Repository** exploration, which drills from packages
 and directories into files, classes, functions, and other compiler declarations.
 Each scope is a bounded, source-backed Archify diagram; breadcrumbs, pagination,
 source evidence, and deep links work without a server-side query service.
@@ -88,9 +93,10 @@ includes Topocode, Archify MIT, third-party, and JetBrains Mono SIL OFL 1.1
 notices. Deployment, upload, public URLs, and authentication remain the hosting
 owner's responsibility.
 
-`topo scan` renders every committed source-grounded story under
+`topo scan` renders every supported committed story under
 `/stories/<story-id>/`; `topo story validate` checks an uncommitted authored
-draft, and `topo story preview` refreshes one committed story. The retired
+draft, and `topo story preview` refreshes the inventory and all committed
+stories without requiring a scan. The retired
 WebGL explorer is not generated or bundled. See the
 [local agent authoring workflow](./docs/story-authoring.md),
 [catalogue configuration](./docs/story-catalogue.md), the
@@ -129,7 +135,8 @@ node /absolute/path/to/topo-code/packages/cli/dist/main.js scan "$PWD"
 ```
 
 Documentation uses `topo` as shorthand for that built entry point. The supported
-input is a local Git repository containing TypeScript/JavaScript. Unknown
+input for scanning is a local Git repository containing TypeScript/JavaScript.
+Initialization and authored stories do not require scannable source. Unknown
 configuration, unresolved local/workspace imports and incomplete scans fail
 explicitly. An intentional `--allow-partial` preview is visibly non-authoritative
 and exits **2**, not success. See the [scanner contract](./docs/scanner.md).

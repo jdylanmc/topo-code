@@ -7,6 +7,11 @@ document; and uses Topocode's objective validation and preview commands. No
 hosted model service is required, and `topo scan` never invokes an agent or
 model.
 
+Start with `topo init <repo>` and `topo serve <repo>` for the empty Home.
+After validating and committing a story, `topo story preview` populates the
+same Home inventory with every supported committed story. `topo scan` is
+optional for generated Repository exploration; it is not a preview prerequisite.
+
 Source-grounded stories may select any native diagram family and must keep
 evidence on every section. Use `classification: "capability-demo"` only for an
 explicitly conceptual, anchor-free renderer demonstration; it is labelled as

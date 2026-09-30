@@ -4,7 +4,6 @@ import { readFile, readdir, stat } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 import { BUILTIN_MODULE_MANIFESTS, validateModuleCatalog } from "@topo/modules";
-import { scanRepository } from "@topo/scanner";
 import { initializeWorkspace, isMissing, workspacePath } from "@topo/workspace";
 import { runEnrichment } from "./enrichment.js";
 import { bundleSite } from "./bundle.js";
@@ -13,6 +12,7 @@ import { serveSite } from "./server.js";
 import {
   assertCatalogueCurrent,
   buildCatalogue,
+  initializeSite,
   writeBuiltCatalogue,
 } from "./catalogue.js";
 import { validateStory } from "./story-validation.js";
@@ -34,6 +34,8 @@ Requires a Git repository and Node.js 22 or newer.
 Scan is strict by default. --allow-partial publishes a visibly incomplete
 preview and exits 2; it never turns partial evidence into success.
 Serve binds only to 127.0.0.1. Config and authored metadata are never overwritten.
+Init creates a ready-to-serve diagram home without scanning or opening a browser.
+Scan adds repository exploration; story preview refreshes all committed stories.
 `;
 
 async function siteAssets(): Promise<string> {
@@ -109,9 +111,12 @@ export async function runCli(args: string[]): Promise<number> {
   const root = resolve(positionals[storyCommand ? 2 : 1] ?? ".");
   if (command === "init") {
     const installSkills = values.skills ? await prepareProjectSkills(root) : undefined;
+    const assets = await siteAssets();
     const result = await initializeWorkspace(root);
+    await initializeSite(root, assets);
     if (installSkills) console.log(`Installed ${await installSkills()} project skill/instruction files (identical files preserved).`);
     console.log(`${result.created ? "Initialized" : "Preserved"} ${root}/.topo`);
+    console.log(`Site ready; run topo serve "${root}"`);
     return 0;
   }
   if (command === "serve") {
@@ -174,11 +179,11 @@ export async function runCli(args: string[]): Promise<number> {
     }
     try {
       if (!(await stat(await workspacePath(root, "cache/site/index.html"))).isFile()) {
-        throw new Error("Site index is not a file; run topo scan again");
+        throw new Error("Site index is not a file; repair the generated site before preview");
       }
     } catch (error) {
       if (!isMissing(error)) throw error;
-      throw new Error("Site is not built; run topo scan first");
+      throw new Error("Site is not initialized; run topo init first");
     }
     const catalogue = await buildCatalogue(root);
     const requested = resolve(positionals[documentIndex]!);
@@ -188,10 +193,11 @@ export async function runCli(args: string[]): Promise<number> {
     if (selected === undefined) {
       throw new Error("preview requires a committed story under stories/");
     }
+    const { config } = await initializeWorkspace(root);
     await writeBuiltCatalogue(
       root,
       catalogue,
-      (await initializeWorkspace(root)).config.catalogue,
+      { title: config.repositoryId, ...config.catalogue },
     );
     if (catalogue.source.dirty) {
       console.warn(
@@ -246,6 +252,7 @@ export async function runCli(args: string[]): Promise<number> {
     }
   }
   const start = performance.now();
+  const { scanRepository } = await import("@topo/scanner");
   const result = await scanRepository({
     root, repositoryId: config.repositoryId, revision: state.revision,
     quality: { allowPartial: values["allow-partial"] ?? false },

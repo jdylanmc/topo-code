@@ -315,7 +315,8 @@ describe("generated catalogue", () => {
       (await loadConfig(root)).catalogue,
     );
 
-    expect(page).toContain("<title>System tours</title>");
+    expect(page).toContain("<title>System tours | Topocode</title>");
+    expect(page).toContain('aria-label="Topocode home">Topocode</a>');
     expect(page).toContain("--accent: #ff5500");
     expect(page).toContain("Critical paths");
     expect(page).not.toContain("Dependency atlas");

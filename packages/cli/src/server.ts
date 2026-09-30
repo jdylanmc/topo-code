@@ -150,7 +150,12 @@ export async function composeSiteData(
 export async function serveSite(root: string, port = 4173): Promise<{ server: Server; url: string }> {
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error("Port must be an integer from 0 to 65535");
   const index = await workspacePath(root, "cache/site/index.html");
-  if (!(await stat(index)).isFile()) throw new Error("Site is not built; run topo scan first");
+  try {
+    if (!(await stat(index)).isFile()) throw new Error("Site index is not a file");
+  } catch (error) {
+    if (!isMissing(error)) throw error;
+    throw new Error("Site is not initialized; run topo init first");
+  }
   const directory = await realpath(resolve(index, ".."));
   const dataPath = resolve(directory, "data.json");
   const viewsToken = randomBytes(32).toString("base64url");

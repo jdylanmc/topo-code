@@ -29,7 +29,7 @@ async function fixture(root: string, wide = false): Promise<void> {
   await topo(root, "scan");
 }
 
-test("default Archify repository view drills through packages and files to compiler evidence", async ({
+test("selected Archify repository view drills through packages and files to compiler evidence", async ({
   page, repository, startSite,
 }) => {
   await fixture(repository);
@@ -37,6 +37,8 @@ test("default Archify repository view drills through packages and files to compi
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(url);
+  await expect(page.locator("[data-home]")).toBeVisible();
+  await page.locator("[data-repository-home]").click();
   const index = JSON.parse(await readFile(join(repository, ".topo/cache/site/repository.json"), "utf8"));
   const node = (path: string, kind: string) =>
     index.nodes.find((item: { path: string; kind: string }) => item.path === path && item.kind === kind);
@@ -113,7 +115,7 @@ test("bounded repository pages and source evidence survive a plain static base p
     expect([...png.subarray(0, 8)]).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);
     await page.getByRole("navigation", { name: "Repository breadcrumbs" })
       .getByRole("link", { name: "Repository", exact: true }).click();
-    await expect(page).toHaveURL(base);
+    await expect(page).toHaveURL(`${base}?view=repository`);
     await page.goto(`${base}?scope=missing`);
     await expect(page.getByRole("alert")).toContainText("unavailable");
     await expect(page.getByRole("button", { name: "Next", exact: true })).toBeDisabled();

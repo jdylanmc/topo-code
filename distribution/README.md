@@ -6,18 +6,15 @@ model invocation during scanning. The exact renderer dependency is
 `@jdylanmc/topo-archify@0.1.0`, containing pristine upstream Archify **3.0.0**.
 
 ```sh
-npm install --save-dev @jdylanmc/topo-code@0.1.0
+npm install --save-dev /path/to/jdylanmc-topo-archify-0.1.0.tgz /path/to/jdylanmc-topo-code-0.1.0.tgz
 npm exec --no -- topo init . --skills
-npm exec --no -- topo scan .
 npm exec --no -- topo serve .
 npm exec --no -- topo bundle . --output ./site-output --base-path /architecture/
 ```
 
-These registry commands apply **after publication**. For local candidates:
-
-```sh
-npm install --save-dev /path/to/jdylanmc-topo-archify-0.1.0.tgz /path/to/jdylanmc-topo-code-0.1.0.tgz
-```
+The init-first Home described here is **unreleased**. The already-public
+`@jdylanmc/topo-code@0.1.0` predates it; use a local candidate containing this
+change. No registry update or version bump is implied.
 
 Installing both tarballs in the same command satisfies the exact renderer
 dependency normally, without a fake registry, workspace links or source checkout.
@@ -30,17 +27,21 @@ existing instructions, skills, authored stories or config. Identical files are
 preserved; differing destinations or symlinks fail explicitly. After a package
 upgrade, compare and deliberately reconcile installed context before retrying.
 An interrupted copy may leave new files; rerun safely, never force overwrite.
-Plain `topo init` retains its existing workspace-only behavior.
+Plain `topo init` creates the same ready-to-serve Home without skills. Both
+forms work on empty/unborn repositories, invoke no scanner/model/native renderer,
+and start no server/browser. Repeating init preserves the current site.
 
 Read the installed skills. Author `stories/**/*.topo.json` from actual source.
 `topo story validate . stories/example.topo.json` accepts drafts; preview requires
 committed stories. Preserve story/section/anchor identities when source moves.
-Commit only with owner authority, then scan and
+Commit only with owner authority, then run
 `topo story preview . stories/example.topo.json`.
 Validation proves structure and anchor resolution, not semantic accuracy.
 Before/after source-change examples ship in `examples/story-authoring/`.
 
-The default Repository canvas exposes compiler/static evidence, not inferred
+Home is the categorized diagram inventory, initially empty. Preview refreshes
+all committed supported stories. Optional `topo scan .` adds a selectable
+Repository canvas exposing compiler/static evidence, not inferred
 runtime behavior. Partial previews exit 2. `topo enrich` is a separate explicit
 provider-command surface, not part of scanning. Generated `.topo/cache` output
 is disposable; configuration and authored documents are not.

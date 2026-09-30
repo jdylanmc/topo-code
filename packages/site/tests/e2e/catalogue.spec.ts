@@ -90,6 +90,75 @@ test("topo serve presents an empty shell without restoring the retired explorer"
   }
 });
 
+for (const skills of [false, true]) {
+  test(`init${skills ? " --skills" : ""} serves a branded empty home before analysis`, async ({
+    page, repository, startSite,
+  }) => {
+    await topo(repository, "init", ...(skills ? [repository, "--skills"] : []));
+    const url = await startSite();
+    const failures: string[] = [];
+    page.on("pageerror", (error) => failures.push(error.message));
+    await page.goto(url);
+    await expect(page.getByRole("link", { name: "Topocode home" })).toBeVisible();
+    await expect(page.locator("[data-home-inventory]")).toHaveText("No diagrams yet.");
+    await expect(page.locator("[data-scan-state]")).toContainText("Repository not scanned");
+    await expect(page.locator("[data-repository-viewer], [data-story-viewer]")).toHaveCount(0);
+    expect((await page.request.get(`${url}/data.json`)).status()).toBe(404);
+    await page.getByLabel("Filter diagrams").focus();
+    await expect(page.getByLabel("Filter diagrams")).toBeFocused();
+    await page.keyboard.type("anything");
+    await expect(page.locator("[data-home-inventory]")).toHaveText("No diagrams yet.");
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByRole("button", { name: "Collapse diagram navigation" }).click();
+    await expect(page.locator("[data-home]")).toBeVisible();
+    const bounds = await page.locator("[data-home]").boundingBox();
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(391);
+    expect(failures).toEqual([]);
+  });
+}
+
+test("preview populates the same home and category tree without scanning, including static bundles", async ({
+  page, repository, startSite,
+}) => {
+  await topo(repository, "init");
+  await sourceFixture(repository);
+  await story(repository, "core", "alpha", "Alpha architecture", "Foundations");
+  await story(repository, "journeys", "beta", "Beta workflow", "Journeys", { diagramFamily: "workflow" });
+  await commit(repository, "Authored inventory", "stories");
+  await topo(repository, "story", "validate", repository, join(repository, "stories/core/alpha.topo.json"));
+  await topo(repository, "story", "preview", repository, join(repository, "stories/core/alpha.topo.json"));
+  const url = await startSite();
+  await page.goto(url);
+  const navigation = page.getByRole("navigation", { name: "Diagram catalogue" });
+  await expect(navigation.locator("[data-story-id]")).toHaveCount(2);
+  await expect(page.locator("[data-home-inventory] [data-story-id]")).toHaveCount(2);
+  await expect(page.locator("[data-home]")).toBeVisible();
+  await page.getByLabel("Group diagrams by").selectOption("category");
+  await expect(navigation.getByRole("button", { name: "Journeys" })).toBeVisible();
+  await expect(page.locator("[data-home-inventory]").getByRole("button", { name: "Journeys" })).toBeVisible();
+  await page.getByLabel("Filter diagrams").fill("beta");
+  await expect(page.locator("[data-home-inventory] [data-story-id]")).toHaveCount(1);
+  await navigation.getByRole("link", { name: "Beta workflow", exact: true }).click();
+  await expect(page.locator("[data-story-viewer]").contentFrame().locator('svg[role="img"]')).toBeVisible();
+  await page.getByRole("link", { name: "Home", exact: true }).click();
+  await expect(page.locator("[data-home-inventory] [data-story-id]")).toHaveCount(2);
+  expect((await page.request.get(`${url}/data.json`)).status()).toBe(404);
+  await topo(repository, "bundle", repository, "--output", join(repository, ".topo/deploy"), "--base-path", "/docs/topo/");
+  const site = await startStaticServer(join(repository, ".topo/deploy"));
+  try {
+    await page.goto(`${site.url}/docs/topo/`);
+    await page.locator("[data-home-inventory] [data-story-id=alpha]").click();
+    await expect(page.locator("[data-story-viewer]").contentFrame().locator('svg[role="img"]')).toBeVisible();
+    await page.getByRole("link", { name: "Home", exact: true }).click();
+    await expect(page).toHaveURL(`${site.url}/docs/topo/`);
+    expect((await page.request.get(`${site.url}/docs/topo/THIRD_PARTY_NOTICES.txt`)).status()).toBe(200);
+    expect((await page.request.get(`${site.url}/docs/topo/stories/missing/`)).status()).toBe(404);
+  } finally {
+    await page.goto("about:blank");
+    await stopStaticServer(site.server);
+  }
+});
+
 test("bundled shell and stories run under a static base path without explorer assets", async ({
   page,
   repository,
@@ -113,7 +182,7 @@ test("bundled shell and stories run under a static base path without explorer as
     const baseUrl = `${url}/published/topo/`;
     await page.goto(baseUrl);
     await expect(page.getByRole("navigation", { name: "Diagram catalogue" })).toBeVisible();
-    await page.getByRole("link", { name: /Checkout/ }).click();
+    await page.getByRole("navigation", { name: "Diagram catalogue" }).getByRole("link", { name: "Checkout", exact: true }).click();
     await expect(page).toHaveURL(`${baseUrl}stories/checkout/`);
     await expect(page.getByRole("heading", { name: "Checkout" })).toBeVisible();
     expect((await page.request.get(`${baseUrl}explorer/`)).status()).toBe(404);
@@ -170,13 +239,14 @@ test("configured catalogue remains complete without an explorer entry", async ({
   const url = await startSite();
   expect(new URL(url).port).not.toBe("4173");
   await page.goto(url);
-  await expect(page).toHaveTitle("System tours");
+  await expect(page).toHaveTitle("System tours | Topocode");
   await expect(page.getByRole("navigation", { name: "Diagram catalogue" })
     .locator('a[href*="/stories/"]')).toHaveCount(2);
   await page.getByLabel("Group diagrams by").selectOption("category");
-  await expect(page.getByRole("button", { name: "Critical paths" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Operations" })).toBeVisible();
-  await page.getByRole("link", { name: /Checkout/ }).click();
+  const navigation = page.getByRole("navigation", { name: "Diagram catalogue" });
+  await expect(navigation.getByRole("button", { name: "Critical paths" })).toBeVisible();
+  await expect(navigation.getByRole("button", { name: "Operations" })).toBeVisible();
+  await navigation.getByRole("link", { name: "Checkout", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Checkout" })).toBeVisible();
   expect((await page.request.get(`${url}/explorer/`)).status()).toBe(404);
 });
@@ -288,7 +358,7 @@ test("shell groups, sorts, filters, persists, navigates, and contains every diag
     await expect(page.getByRole("button", { name: group })).toBeVisible();
   }
   await page.getByLabel("Group diagrams by").selectOption("flat");
-  await expect(catalogue.locator("button[aria-expanded]")).toHaveCount(0);
+  await expect(catalogue.locator("[data-story-list] button[aria-expanded]")).toHaveCount(0);
 
   await page.getByLabel("Sort diagrams by").selectOption("title");
   await page.getByLabel("Sort direction").selectOption("ascending");
@@ -514,7 +584,7 @@ test("invalid saved preferences cannot block the diagram inventory", async ({
       localStorage.setItem("topo.diagram-catalogue.preferences.v1", value);
     }, stored);
     await page.goto(url);
-    await expect(page.getByRole("link", { name: "Alpha architecture" }))
+    await expect(page.getByRole("link", { name: "Alpha architecture", exact: true }))
       .toBeVisible();
     await expect(page.getByLabel("Group diagrams by")).toHaveValue("type");
     await expect(page.getByLabel("Sort diagrams by")).toHaveValue("title");
@@ -535,7 +605,7 @@ test("invalid saved preferences cannot block the diagram inventory", async ({
     });
     await unavailablePage.goto(url);
     await expect(
-      unavailablePage.getByRole("link", { name: "Alpha architecture" }),
+      unavailablePage.getByRole("link", { name: "Alpha architecture", exact: true }),
     ).toBeVisible();
     await expect(unavailablePage.getByRole("status")).toContainText(
       "Preferences cannot persist in this browser.",

@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import {
   cp,
   mkdir,
@@ -80,14 +82,16 @@ async function readRequiredNotice(
 async function validateComposedSite(
   root: string,
   sourceDirectory: string,
-): Promise<string> {
+): Promise<string | undefined> {
   const dataPath = join(sourceDirectory, "data.json");
   let value: unknown;
   try {
     value = JSON.parse(await readFile(dataPath, "utf8")) as unknown;
   } catch (error) {
     if (isMissing(error)) {
-      throw new Error("Site is not built; run topo scan first");
+      await validateUnscannedSite(root);
+      await validateNotices(sourceDirectory);
+      return undefined;
     }
     throw new Error("Generated site data.json is invalid JSON", {
       cause: error,
@@ -109,8 +113,50 @@ async function validateComposedSite(
   const repository = await readRepositoryIndex(root);
   if (repository !== undefined) await assertRepositoryCurrent(root, repository, catalogue.source);
   const config = await loadConfig(root);
-  await writeBuiltCatalogue(root, catalogue, config.catalogue);
-  const [notices, archifyLicense, fontLicense] = await Promise.all([
+  await writeBuiltCatalogue(root, catalogue, { title: config.repositoryId, ...config.catalogue });
+  await validateNotices(sourceDirectory);
+  return composed;
+}
+
+async function validateUnscannedSite(root: string): Promise<void> {
+  const config = await loadConfig(root);
+  let state: unknown;
+  try {
+    state = JSON.parse(await readFile(await workspacePath(root, "cache/site/site-state.json"), "utf8")) as unknown;
+  } catch (error) {
+    if (isMissing(error)) throw new Error("Site is not built; run topo init or topo scan first");
+    throw error;
+  }
+  if (typeof state !== "object" || state === null || Array.isArray(state) ||
+      !("schemaVersion" in state) || state.schemaVersion !== "1.0" ||
+      !("kind" in state) || state.kind !== "unscanned" ||
+      !("repositoryId" in state) || state.repositoryId !== config.repositoryId ||
+      Object.keys(state).length !== 3) {
+    throw new Error("Invalid unscanned site state");
+  }
+  for (const name of ["graph/graph.json", "cache/site/repository.json"]) {
+    if (await exists(await workspacePath(root, name))) {
+      throw new Error("Scanned evidence exists but site data.json is missing; run topo scan first");
+    }
+  }
+  for (const name of ["index.html", "shell.js"]) {
+    if (!(await stat(await workspacePath(root, `cache/site/${name}`))).isFile()) {
+      throw new Error(`Missing initialized site asset: ${name}`);
+    }
+  }
+  // An unborn repository has no committed stories and needs no source snapshot.
+  try {
+    await promisify(execFile)("git", ["-C", root, "rev-parse", "--verify", "--quiet", "HEAD"]);
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === 1) return;
+    throw error;
+  }
+  await writeBuiltCatalogue(root, await buildCatalogue(root), { title: config.repositoryId, ...config.catalogue });
+}
+
+async function validateNotices(sourceDirectory: string): Promise<void> {
+  const [, notices, archifyLicense, fontLicense] = await Promise.all([
+    readRequiredNotice(sourceDirectory, "LICENSE.txt"),
     readRequiredNotice(sourceDirectory, "THIRD_PARTY_NOTICES.txt"),
     readRequiredNotice(sourceDirectory, "ARCHIFY_LICENSE.txt"),
     readRequiredNotice(sourceDirectory, "JETBRAINS_MONO_LICENSE.txt"),
@@ -125,7 +171,6 @@ async function validateComposedSite(
       "Built site license notices do not cover the embedded viewer and font; run corepack yarn build in the Topocode checkout.",
     );
   }
-  return composed;
 }
 
 export async function bundleSite(
@@ -165,7 +210,7 @@ export async function bundleSite(
       await mkdir(stagedSite, { recursive: true });
     }
     await cp(sourceDirectory, stagedSite, { recursive: true });
-    await writeFile(join(stagedSite, "data.json"), composedData);
+    if (composedData !== undefined) await writeFile(join(stagedSite, "data.json"), composedData);
     if (await exists(outputDirectory)) {
       await rename(outputDirectory, backup);
       movedExisting = true;

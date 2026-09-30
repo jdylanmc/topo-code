@@ -98,6 +98,36 @@ afterEach(async () => {
 });
 
 describe("static site bundle", () => {
+  it("bundles an initialized unborn repository without fabricating analysis", async () => {
+    const root = await temp("topo-bundle-unborn-");
+    await execute("git", ["init", "--quiet", root]);
+    await execute(process.execPath, [entry, "init", root]);
+    const result = await bundleSite(root, join(await temp("topo-empty-output-"), "site"), {
+      basePath: "/docs/architecture/",
+    });
+    expect(await readFile(join(result.siteDirectory, "index.html"), "utf8")).toContain("No diagrams yet");
+    expect(await readFile(join(result.siteDirectory, "site-state.json"), "utf8")).toContain('"unscanned"');
+    await expect(readFile(join(result.siteDirectory, "data.json"))).rejects.toMatchObject({ code: "ENOENT" });
+    await rm(join(root, ".topo/cache/site/ARCHIFY_LICENSE.txt"));
+    await expect(bundleSite(root, result.outputDirectory)).rejects.toThrow("license notices are missing");
+  });
+
+  it("does not let an unscanned marker bypass missing scanned data", async () => {
+    const root = await repository();
+    await execute(process.execPath, [entry, "init", root]);
+    await writeFile(join(root, ".topo/graph/graph.json"), "{}");
+    await expect(bundleSite(root, join(await temp("topo-invalid-output-"), "site")))
+      .rejects.toThrow("Scanned evidence exists");
+  });
+
+  it("rejects an invalid initialized state rather than treating it as an empty graph", async () => {
+    const root = await repository();
+    await execute(process.execPath, [entry, "init", root]);
+    await writeFile(join(root, ".topo/cache/site/site-state.json"), '{"kind":"unscanned"}');
+    await expect(bundleSite(root, join(await temp("topo-invalid-output-"), "site")))
+      .rejects.toThrow("Invalid unscanned site state");
+  });
+
   it("publishes the composed site beneath the configured base path", async () => {
     const root = await repository();
     await writeCachedSite(root);

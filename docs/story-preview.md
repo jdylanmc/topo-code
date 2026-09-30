@@ -37,10 +37,11 @@ non-factual, contain no repository anchors, and appear in the generated
 Wrappers preserve the classification in visible text and
 `data-story-classification`.
 
-Scanning renders every committed story and composes the catalogue:
+Initialize a site before preview; no scan is required:
 
 ```sh
-corepack yarn topo scan /absolute/path/to/repository
+corepack yarn topo init /absolute/path/to/repository
+corepack yarn topo story preview /absolute/path/to/repository /absolute/path/to/repository/stories/checkout.topo.json
 corepack yarn topo serve /absolute/path/to/repository
 ```
 
@@ -53,7 +54,8 @@ inventory beside the main viewer iframe. Classification, summary, return, and
 node controls remain available without placing a second navigation card over
 the rendered diagram. The shell is served at `/` and on every story route; the
 retired repository explorer is not generated. Run
-`topo preview` to refresh a specific committed story's viewer without rescanning:
+`topo preview` to select a committed story while refreshing all committed
+stories and the shared Home inventory without scanning:
 
 ```sh
 corepack yarn topo preview /absolute/path/to/repository \
