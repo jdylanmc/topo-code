@@ -9,19 +9,25 @@ const consumer = resolve(process.argv[2]);
 const output = resolve(process.argv[3]);
 const baseUrl = process.argv[4];
 const onlyId = process.argv[5];
+const manifest = JSON.parse(await readFile(join(consumer, ".topo/cache/plugin-spike/meaningful-guide/manifest.json"), "utf8"));
+if (!Array.isArray(manifest.pages) || manifest.pages.length === 0) {
+  throw new Error("Guide manifest requires a nonempty pages array");
+}
+const pages = onlyId ? manifest.pages.filter(({ id }) => id === onlyId) : manifest.pages;
+if (pages.length === 0) throw new Error(`No guide chapters matched: ${onlyId}`);
+const viewports = [[1440, 900], [1600, 1000], [1920, 1080]];
+const expectedMeasurements = pages.length * viewports.length;
 const require = createRequire(join(consumer, "package.json"));
 const { chromium } = require("@playwright/test");
-const manifest = JSON.parse(await readFile(join(consumer, ".topo/cache/plugin-spike/meaningful-guide/manifest.json"), "utf8"));
-const pages = onlyId ? manifest.pages.filter(({ id }) => id === onlyId) : manifest.pages;
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch({ headless: true,
   ...(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {}) });
-const page = await browser.newPage();
 const results = [];
 try {
+  const page = await browser.newPage();
   for (const chapter of pages) {
     const view = JSON.parse(await readFile(join(consumer, chapter.path), "utf8"));
-    for (const [width, height] of [[1440, 900], [1600, 1000], [1920, 1080]]) {
+    for (const [width, height] of viewports) {
       await page.setViewportSize({ width, height });
       await page.goto(`${baseUrl}/${chapter.id}.html`);
       await page.waitForFunction(() => document.querySelector("#diagram")?.contentDocument?.querySelector("svg"));
@@ -66,7 +72,12 @@ try {
 } finally {
   await browser.close();
 }
-await writeFile(join(output, "measurements.json"), JSON.stringify({ passed: results.every(({ passed }) => passed), results }, null, 2) + "\n");
+if (results.length === 0 || results.length !== expectedMeasurements) {
+  throw new Error(`Incomplete guide measurements: expected ${expectedMeasurements}, received ${results.length}`);
+}
+await writeFile(join(output, "measurements.json"), JSON.stringify({
+  passed: results.every(({ passed }) => passed), expectedMeasurements, results,
+}, null, 2) + "\n");
 console.log(JSON.stringify(results.map(({ id, width, minFont, nodesPreserved, overlap, passed, svgViewBox }) =>
   ({ id, width, minFont, nodesPreserved, overlap, passed, svgViewBox })), null, 2));
 if (results.some(({ passed }) => !passed)) process.exitCode = 1;

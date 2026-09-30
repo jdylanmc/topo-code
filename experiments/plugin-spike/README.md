@@ -137,6 +137,9 @@ the historical counts are not an invariant oracle.
 - Source changes invalidate views. Regenerate and deliberately reconcile;
   never edit derived baselines or ignore stale-source errors. Artifact sets are
   staged and rolled back after reported publication failures, not crash-atomic.
+  Books prepare every chapter and companion file before publishing one set
+  containing those files, `index.html` and `book.json`. Chapter ID `index` is
+  reserved and rejected before writes.
 - Default rendering uses pristine Archify 3.0.0 via the published renderer CLI
   and requires all nine native showcase checks. Dense branch-heavy pages may
   exceed its layout capability; failures remain explicit.
@@ -170,6 +173,9 @@ and `.topo/cache/plugin-spike/meaningful-guide/manifest.json` page list.
 requires Playwright and a browser already installed in that consumer.
 `PLAYWRIGHT_CHANNEL` optionally selects an existing browser; no browser is
 downloaded by the script. These helpers are not prerequisites for static scans.
+Empty manifests and unmatched chapter selections are rejected before browser
+loading/launch. Successful measurement reports require the full nonzero
+selected-chapter-by-viewport count.
 
 ## Licenses
 

@@ -119,7 +119,7 @@ export function validateView(baseline, view) {
   return { entities, relations, sections };
 }
 
-export async function renderView(root, baseline, view, output, options = {}) {
+async function prepareView(root, baseline, view, output, options = {}) {
   const validated = validateView(baseline, view);
   const current = await assertBaselineCurrent(root, baseline);
   validateFacts(baseline, current.files);
@@ -153,7 +153,8 @@ export async function renderView(root, baseline, view, output, options = {}) {
     sectionAnchors.set(section.id, [...new Set(ids)]);
   }
   if (options.renderer && !["archify", "graphviz"].includes(options.renderer)) throw new Error("Unsupported view renderer");
-  const artifact = options.renderer === "graphviz" ? await renderFlow(view) : await renderNative(view);
+  const renderArtifact = options.renderArtifact ?? (options.renderer === "graphviz" ? renderFlow : renderNative);
+  const artifact = await renderArtifact(view);
   const evidence = {
     baselineId: baseline.id,
     sections: view.sections.map((section) => ({
@@ -188,32 +189,40 @@ export async function renderView(root, baseline, view, output, options = {}) {
     humanReview: "pending",
     limitation: "Checks establish source references and baseline topology, not semantic truth of authored text or runtime behavior.",
   };
-  await writeArtifactSet([
+  const artifacts = [
     { path: `${output}.native.html`, contents: artifact.contents },
     { path: `${output}.spec.json`, contents: serialize(artifact.specification) },
     { path: `${output}.evidence.json`, contents: serialize(evidence) },
     { path: output, contents: page },
     { path: `${output}.receipt.json`, contents: serialize(receipt) },
-  ]);
-  return receipt;
+  ];
+  return { receipt, artifacts, page };
+}
+
+export async function renderView(root, baseline, view, output, options = {}) {
+  const prepared = await prepareView(root, baseline, view, output, options);
+  await writeArtifactSet(prepared.artifacts);
+  return prepared.receipt;
 }
 
 export async function renderBook(root, baseline, views, output, options = {}) {
   if (!views.length || new Set(views.map(({ id }) => id)).size !== views.length) throw new Error("A diagram book requires unique view IDs");
+  if (views.some(({ id }) => id === "index")) throw new Error("The view ID index is reserved for the book entry page");
   const source = await assertBaselineCurrent(root, baseline);
   for (const view of views) validateViewEvidence(baseline, view, source.files);
   const navigation = views.map(({ id, title }) => ({ id, title }));
-  const receipts = [];
+  const prepared = [];
   for (const view of views) {
-    receipts.push(await renderView(root, baseline, view, join(output, `${view.id}.html`),
-      { navigation, renderer: options.renderer }));
+    prepared.push(await prepareView(root, baseline, view, join(output, `${view.id}.html`),
+      { navigation, renderer: options.renderer, renderArtifact: options.renderArtifact }));
   }
   await assertBaselineCurrent(root, baseline);
-  const first = await readFile(join(output, `${views[0].id}.html`), "utf8");
+  const receipts = prepared.map(({ receipt }) => receipt);
   await writeArtifactSet([
-    { path: join(output, "index.html"), contents: first },
+    ...prepared.flatMap(({ artifacts }) => artifacts),
+    { path: join(output, "index.html"), contents: prepared[0].page },
     { path: join(output, "book.json"), contents: serialize({ baselineId: baseline.id, navigation, receipts }) },
-  ]);
+  ], options.publication);
   return { views: views.length, baselineId: baseline.id, receipts };
 }
 

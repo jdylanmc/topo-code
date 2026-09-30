@@ -50,6 +50,16 @@ staged output-set rollback. Historical independent fix-review reported all five
 resolved, with positive controls. That review is **not approval of this new
 curation commit**, a security audit or manual semantic acceptance.
 
+The curation PR's independent whole review subsequently found three further
+defects: books published chapters before the complete book was ready, chapter
+ID `index` collided with the book entry page, and an empty browser-check
+selection could report success. The correction prepares the entire book before
+one rollback-capable publication, reserves `index`, and requires a nonzero
+complete measurement count. Tests cover second-chapter render failure, late
+book publication rollback, reserved-ID preservation, and executable empty/
+unmatched selection rejection. Independent verification of these corrections
+remains pending; rollback is still not crash-atomic publication.
+
 ## Rendering: two engines, different evidence
 
 Simple native Archify 3.0.0 pages passed all nine showcase checks and ten
