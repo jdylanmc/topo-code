@@ -3,6 +3,10 @@
 Issue [#13](https://github.com/jdylanmc/topo-code/issues/13) ships one practical
 CLI-plus-skills toolbelt, not a public SDK. Initial candidate versions:
 
+**Init-first Home is unreleased.** The already-public 0.1.0 predates this change.
+Locally built 0.1.0 candidate tarballs can prove the change without changing
+registry contents; do not republish that version or imply it contains this fix.
+
 | npm package | Version | Upstream runtime |
 | --- | --- | --- |
 | `@jdylanmc/topo-archify` | 0.1.0 | Archify 3.0.0, `9286c3b9c2cef359e98586b420d769d87bcb163f` |
@@ -68,7 +72,9 @@ composed legal notices. Debug source maps and tests do not ship.
 agent instructions or authored files. Differing files/symlinks are explicit
 conflicts; identical files allow repeat setup. It preflights all destinations
 before copying context. Files use exclusive creation; an interruption may leave
-new files but never replaces old files. Plain init remains unchanged.
+new files but never replaces old files. Both init forms now create the same
+minimal branded Home with notices; skills remain opt-in. No scan, model,
+source analysis, renderer invocation, server or browser launch occurs in init.
 
 ## Release owner gate
 

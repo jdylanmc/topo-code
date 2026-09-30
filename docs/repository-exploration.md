@@ -1,11 +1,17 @@
 # Repository exploration
 
-`topo scan` generates the default Repository view in the existing storybook
+`topo scan` generates the selectable Repository view in the existing storybook
 shell. It uses the scanner's file/import graph and compiler declaration
 inventory, not a model, an authored story, or the retired WebGL renderer.
 The same view works in `topo serve` and a plain static `topo bundle`.
 
 ## Explore
+
+The root URL now opens the **Home inventory**. Select **Repository** to open
+`?view=repository`. Existing root `?scope=...`, `?page=...`, and `?focus=...`
+deep links still enter equivalent exploration directly, including under a static
+base path. Repository breadcrumbs return to `?view=repository`; **Home** returns
+to the unqualified root. Unknown selections remain explicit errors.
 
 - Select a directory or package to drill into its children. Package names come
   from repository package manifests; directories retain their source paths.
@@ -86,7 +92,7 @@ Generated files live under `.topo/cache/site/`:
 | `repository/<view-id>/viewer.html` | Native Archify artifact for one bounded page |
 | `repository-runtime/<hash>.js` / `<hash>.css` | Shared, integrity-checked native viewer runtime |
 | `repository-navigation.js` | Wrapper-side navigation and evidence interaction |
-| `index.html` | Existing shell with repository exploration as its default canvas |
+| `index.html` | Home inventory and selectable repository exploration in one shell |
 
 These are regenerable cache, not authored documents. A static bundle includes
 them beneath its configured base path and retains the existing notices.

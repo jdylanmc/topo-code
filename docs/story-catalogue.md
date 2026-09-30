@@ -1,8 +1,12 @@
 # Generated diagram catalogue
 
-`topo scan` discovers every committed `stories/**/*.topo.json` document,
+`topo init` creates a ready-to-serve empty catalogue without analysis.
+`topo scan` and `topo story preview` discover every committed `stories/**/*.topo.json` document,
 validates and renders it through `@topo/story` and `@topo/diagram-core`, and
-generates one Storybook-like application shell. Its default `/` canvas is
+generate one application shell. Its default `/` is **Home**, the categorized
+diagram inventory, never the first diagram or Repository canvas. Topocode
+branding stays visible independently of the configured repository title.
+After scanning, select **Repository** for
 [generated repository exploration](./repository-exploration.md). The same
 shell remains present on every `/stories/<story-id>/` page while the selected
 diagram renders through the pinned Archify viewer in the main iframe.
@@ -41,8 +45,11 @@ reducing the viewer width. Collapsing the drawer or selecting a story exposes
 the readable viewer while retaining keyboard access and the saved preference.
 
 The retired WebGL repository explorer is not generated, served, or bundled.
-Repositories with no stories show an explicit empty authored-diagram inventory
-while retaining generated repository exploration. Scanner and compiler evidence
+Repositories with no stories show accurate author/validate/commit/preview
+steps. An unscanned site explicitly says so; scanning is optional for stories.
+The Home list and left tree derive from the same generated entries and share
+filtering, grouping and sorting. Home is reachable from every story; capability
+demos stay labeled as not source-grounded. Scanner and compiler evidence
 drive that read-only view; layout, module, curated-view and enrichment artifacts
 retain their independent data contracts.
 
@@ -68,7 +75,8 @@ Add only desired presentation and authored-category overrides to
 }
 ```
 
-Run `topo scan` again, then `topo serve`. Unknown keys, malformed colors,
+Run `topo story preview` or `topo scan` again, then `topo serve`. Unknown keys, malformed colors,
 duplicate category-order entries, empty labels, and overrides for unknown story
-IDs fail explicitly. Configuration changes copy and categorization only; it
+IDs fail explicitly when the inventory is discovered (init does not discover
+or render stories). Configuration changes copy and categorization only; it
 does not load executable addons or replace the pinned renderer.

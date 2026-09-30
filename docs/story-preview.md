@@ -37,10 +37,11 @@ non-factual, contain no repository anchors, and appear in the generated
 Wrappers preserve the classification in visible text and
 `data-story-classification`.
 
-Scanning renders every committed story and composes the catalogue:
+Initialize a site before preview; no scan is required:
 
 ```sh
-corepack yarn topo scan /absolute/path/to/repository
+corepack yarn topo init /absolute/path/to/repository
+corepack yarn topo story preview /absolute/path/to/repository /absolute/path/to/repository/stories/checkout.topo.json
 corepack yarn topo serve /absolute/path/to/repository
 ```
 
@@ -53,7 +54,8 @@ inventory beside the main viewer iframe. Classification, summary, return, and
 node controls remain available without placing a second navigation card over
 the rendered diagram. The shell is served at `/` and on every story route; the
 retired repository explorer is not generated. Run
-`topo preview` to refresh a specific committed story's viewer without rescanning:
+`topo preview` to select a committed story while refreshing all committed
+stories and the shared Home inventory without scanning:
 
 ```sh
 corepack yarn topo preview /absolute/path/to/repository \
@@ -76,6 +78,10 @@ The story file must be tracked, committed, and unchanged relative to `HEAD`.
 Source files may contain uncommitted changes: the CLI states that the preview
 describes the working tree while retaining the committed revision in rendered
 metadata.
+Source-grounded native rendering also requires the repository's Git `origin`
+remote for evidence validation. Initialization and anchor-free capability demos
+do not require a remote. This is the existing native evidence contract, not an
+instruction to invent a remote or misclassify factual stories as demos.
 
 An optional nonempty `category` field supplies the story's catalogue category.
 Without it, Topocode derives a category from the first directory below

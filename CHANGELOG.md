@@ -23,6 +23,12 @@ publication remains a separate release-owner action.
 
 ### Added
 
+- Create a ready-to-serve, branded diagram Home on plain or skills-enabled
+  `topo init`, including empty/unborn repositories without scanning. Reuse the
+  categorized inventory across Home and native story pages, keep Repository
+  exploration selectable and old deep links working, and bundle truthful
+  unscanned sites with notices. This is unreleased; public npm 0.1.0 is unchanged.
+
 - Add GitHub-only publication of verified tarballs: normal OIDC and explicit
   first-package bootstrap through version/commit-bound tags, with a UI-managed
   token exposed only to its publish step. No local npm authentication is needed.

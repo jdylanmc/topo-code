@@ -1,6 +1,10 @@
 # The `.topo/` workspace
 
-`topo scan <repository>` initializes the workspace without replacing existing
+`topo init <repository>` initializes a ready-to-serve diagram home without
+analysis, a model, native rendering, or a Git commit. `--skills` adds optional
+authoring guidance; neither form launches a server/browser. Repeated init
+preserves the current generated site, diagrams and authored context.
+`topo scan <repository>` also initializes the workspace without replacing existing
 configuration or human-authored metadata. Unknown config versions, malformed
 JSON and unsupported options are errors, not invitations to reset a workspace.
 
@@ -19,6 +23,7 @@ JSON and unsupported options are errors, not invitations to reset a workspace.
 | `metadata/` | Human-authored notes and pins | Commit and review; never overwritten by generation |
 | `metadata/views/<id>.json` | Named path view, overrides, pins, review baseline | Commit and review; explicit local saves only |
 | `cache/site/` | Compiled site assets and atomic data snapshot | Ignore; regenerate |
+| `cache/site/site-state.json` | Explicit `unscanned` state, bound to repository ID; no graph/revision claim | Ignore; removed after scanned data is written |
 | `cache/site/repository.json` | Generated repository hierarchy, source evidence and page index | Ignore; regenerate with scan |
 | `cache/site/repository/<view-id>/viewer.html` | Pinned Archify views for bounded repository scopes | Ignore; included in static bundles |
 | `cache/enrichment-runs/` | Temporary command input, prompt and staged output | Ignore; owned run directories are cleaned after execution |
@@ -65,6 +70,19 @@ Optional `catalogue` configuration changes the generated shell's title,
 description, accent color, category order, and per-story category overrides.
 It cannot add executable extensions or replace the pinned Archify renderer.
 See the [story catalogue walkthrough](./story-catalogue.md).
+The repository title defaults to `repositoryId`; Topocode product branding
+remains separate. Init does not refresh an existing site; use preview or scan.
+
+An initialized-only site (including an unborn Git repository) is bundleable.
+It has shell assets and all legal notices, but no `data.json` or fake graph.
+After story preview, it remains unscanned while carrying the full authored
+inventory. Bundling refreshes committed stories when HEAD exists. Missing
+scanned data cannot be bypassed with an unscanned marker; scanned bundles still
+validate graph identity, revision, repository fingerprints and runtime assets.
+Without HEAD, bundling requires the cached Home to match the current empty
+initialized Home and no rendered stories to remain. A preview retained across
+an orphan-branch switch is rejected without changing the cache or existing
+bundle; restore the intended committed source before bundling.
 
 ## Layout and authored pins
 

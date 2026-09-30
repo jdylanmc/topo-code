@@ -27,8 +27,45 @@ const executable = path.join(root, "node_modules/@jdylanmc/topo-code/bin/topo.js
 const networkGuard = path.join(root, "node_modules/.topo-no-network.mjs");
 const cli = (...args) => run(process.execPath, [executable, ...args], {
   NODE_OPTIONS: `--import=${pathToFileURL(networkGuard).href}`,
+  ...(args[0] === "init" ? { TOPO_INIT_PROOF: "1" } : {}),
 });
 let server;
+async function startServer(repository = ".") {
+  server = spawn(process.execPath, [executable, "serve", repository, "--port", "0"], { cwd: root, stdio: ["ignore", "pipe", "pipe"] });
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("Installed server did not become ready")), 10000);
+    let output = "";
+    server.stdout.on("data", (chunk) => {
+      output += chunk;
+      const match = /Topocode: (http:\/\/127\.0\.0\.1:\d+)/.exec(output);
+      if (match) { clearTimeout(timer); resolve(match[1]); }
+    });
+    server.on("error", (error) => { clearTimeout(timer); reject(error); });
+    server.on("exit", (code) => { clearTimeout(timer); reject(new Error(`Installed server exited ${code}: ${output}`)); });
+    server.stderr.on("data", (chunk) => { output += chunk; });
+  });
+}
+async function stopServer() {
+  const stopped = once(server, "exit");
+  server.kill("SIGTERM");
+  await stopped;
+  server = undefined;
+}
+async function proveEmptySite(repository = ".") {
+  const site = path.resolve(root, repository, ".topo/cache/site");
+  assert.equal(JSON.parse(await readFile(path.join(site, "site-state.json"), "utf8")).kind, "unscanned");
+  await assert.rejects(lstat(path.join(site, "data.json")), { code: "ENOENT" });
+  const url = await startServer(repository);
+  const html = await (await fetch(url)).text();
+  assert.match(html, /Topocode home/);
+  assert.match(html, /No diagrams yet/);
+  assert.match(html, /Repository not scanned/);
+  assert.equal((await fetch(`${url}/data.json`)).status, 404);
+  for (const name of ["shell.js", "LICENSE.txt", "THIRD_PARTY_NOTICES.txt", "ARCHIFY_LICENSE.txt", "JETBRAINS_MONO_LICENSE.txt"]) {
+    assert.equal((await fetch(`${url}/${name}`)).status, 200);
+  }
+  await stopServer();
+}
 try {
   await writeFile(path.join(root, "package.json"), '{"name":"unrelated-consumer","private":true,"type":"module"}\n');
   run(process.platform === "win32" ? "npm.cmd" : "npm", [
@@ -37,8 +74,16 @@ try {
   ]);
   const installed = path.join(root, "node_modules/@jdylanmc/topo-code");
   await writeFile(networkGuard, `import http from "node:http"; import https from "node:https"; import net from "node:net";
+import childProcess from "node:child_process"; import { register, syncBuiltinESMExports } from "node:module";
 const denied = () => { throw new Error("Unexpected network access in installed Topocode"); };
 globalThis.fetch = denied; http.request = denied; http.get = denied; https.request = denied; https.get = denied; net.connect = denied;
+if (process.env.TOPO_INIT_PROOF === "1") {
+  for (const name of ["spawn", "spawnSync", "exec", "execSync", "execFile", "execFileSync", "fork"]) {
+    childProcess[name] = () => { throw new Error("Init invoked a subprocess: " + name); };
+  }
+  register("data:text/javascript," + encodeURIComponent('export function resolve(specifier, context, next) { if (specifier === "@topo/scanner") throw new Error("Init loaded the scanner"); return next(specifier, context); }'), import.meta.url);
+}
+syncBuiltinESMExports();
 `);
   const manifest = JSON.parse(await readFile(path.join(installed, "package.json"), "utf8"));
   assert.equal(manifest.name, "@jdylanmc/topo-code");
@@ -121,13 +166,19 @@ globalThis.fetch = denied; http.request = denied; http.get = denied; https.reque
   assert.match(run(process.platform === "win32" ? "npm.cmd" : "npm", ["exec", "--no", "--", "topo", "--help"]), /Topocode:/);
   git("init", "--quiet");
   git("remote", "add", "origin", "https://github.com/example/installed-consumer.git");
-  await writeFile(path.join(root, ".gitignore"), "node_modules/\n.topo/cache/\nsite-output/\n");
+  await writeFile(path.join(root, ".gitignore"), "node_modules/\n.topo/cache/\nsite-output/\nskills-only/\n");
   await writeFile(path.join(root, "AGENTS.md"), "# Existing owner instructions\nDo not replace.\n");
   await mkdir(path.join(root, ".github"), { recursive: true });
   await writeFile(path.join(root, ".github/copilot-instructions.md"), "Existing instructions.\n");
   await mkdir(path.join(root, ".agents/skills/unrelated"), { recursive: true });
   await writeFile(path.join(root, ".agents/skills/unrelated/SKILL.md"), "Existing skill.\n");
   cli("init", ".");
+  await proveEmptySite();
+  cli("bundle", ".", "--output", ".topo/cache/empty-bundle", "--base-path", "/empty/topo/");
+  await mkdir(path.join(root, "skills-only"));
+  git("init", "--quiet", "skills-only");
+  cli("init", "skills-only", "--skills");
+  await proveEmptySite("skills-only");
   await assert.rejects(lstat(path.join(root, ".agents/skills/topo")), { code: "ENOENT" });
   const config = await readFile(path.join(root, ".topo/config.json"), "utf8");
   cli("init", ".", "--skills");
@@ -154,6 +205,9 @@ globalThis.fetch = denied; http.request = denied; http.get = denied; https.reque
   const before = JSON.parse(await readFile(storyPath, "utf8"));
   assert.match(cli("story", "validate", ".", "stories/checkout.topo.json"), /charge-order: src\/checkout.ts:10-12/);
   commit("Author source-grounded story");
+  cli("story", "preview", ".", "stories/checkout.topo.json");
+  await assert.rejects(lstat(path.join(root, ".topo/cache/site/data.json")), { code: "ENOENT" });
+  assert.match(await readFile(path.join(root, ".topo/cache/site/stories/checkout/viewer.html"), "utf8"), /Charge payment/);
   assert.match(cli("scan", "."), /Scanned/);
   cli("story", "preview", ".", "stories/checkout.topo.json");
 
@@ -172,28 +226,13 @@ globalThis.fetch = denied; http.request = denied; http.get = denied; https.reque
   cli("story", "preview", ".", "stories/checkout.topo.json");
   const viewer = await readFile(path.join(root, ".topo/cache/site/stories/checkout/viewer.html"), "utf8");
   assert.match(viewer, /Charge payment/);
-  server = spawn(process.execPath, [executable, "serve", ".", "--port", "0"], { cwd: root, stdio: ["ignore", "pipe", "pipe"] });
-  const url = await new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error("Installed server did not become ready")), 10000);
-    let output = "";
-    server.stdout.on("data", (chunk) => {
-      output += chunk;
-      const match = /Topocode: (http:\/\/127\.0\.0\.1:\d+)/.exec(output);
-      if (match) { clearTimeout(timer); resolve(match[1]); }
-    });
-    server.on("error", (error) => { clearTimeout(timer); reject(error); });
-    server.on("exit", (code) => { clearTimeout(timer); reject(new Error(`Installed server exited ${code}: ${output}`)); });
-    server.stderr.on("data", (chunk) => { output += chunk; });
-  });
+  const url = await startServer();
   for (const resource of ["/", "/stories/checkout/", "/stories/checkout/viewer.html", "/LICENSE.txt", "/THIRD_PARTY_NOTICES.txt"]) {
     const response = await fetch(`${url}${resource}`);
     assert.equal(response.status, 200, resource);
     assert.ok((await response.text()).length > 10, resource);
   }
-  const stopped = once(server, "exit");
-  server.kill("SIGTERM");
-  await stopped;
-  server = undefined;
+  await stopServer();
   cli("bundle", ".", "--output", "site-output", "--base-path", "/architecture/");
   const bundle = path.join(root, "site-output/architecture");
   assert.match(await readFile(path.join(bundle, "stories/checkout/viewer.html"), "utf8"), /Charge payment/);
@@ -204,7 +243,7 @@ globalThis.fetch = denied; http.request = denied; http.get = denied; https.reque
   console.log(JSON.stringify({
     status: "passed", consumer: root, node: process.version,
     packages: { topocode: manifest.version, renderer: manifest.dependencies["@jdylanmc/topo-archify"] },
-    evidence: ["clean npm install", "credential-free npm publish dry-run of both workflow file arguments", "bundled private modules and export targets", "portable skills and conflict preservation", "draft validate", "source move failure and identity-preserving repair", "scan and preview with network forbidden", "live serve", "static bundle and notices"],
+    evidence: ["clean npm install", "credential-free npm publish dry-run of both workflow file arguments", "bundled private modules and export targets", "plain and fresh skills init immediately served without scanner loading or subprocesses", "unborn empty static bundle", "portable skills and conflict preservation", "draft validate", "preview without scan", "source move failure and identity-preserving repair", "scan and preview with network forbidden", "live serve", "static bundle and notices"],
   }, null, 2));
 } finally {
   if (server && server.exitCode === null) {

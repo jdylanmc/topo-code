@@ -68,7 +68,7 @@ async function writeActualGalleryFixture(repository: string): Promise<void> {
     "packages/diagram-core/src/index.ts":
       "export function renderStory() {}\n",
     "packages/cli/src/catalogue.ts":
-      "export function buildCatalogue() {}\n",
+      "export function buildCatalogue() {}\nexport function initializeSite() {}\nexport function renderCataloguePage() {}\n",
     "packages/cli/src/bundle.ts":
       "export function bundleSite() {}\n",
     "packages/cli/src/story-validation.ts":

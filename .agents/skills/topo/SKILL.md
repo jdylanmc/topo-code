@@ -14,8 +14,10 @@ Corepack, model service, account or renderer download is needed.
    Use `npm exec --no -- topo init . --skills` for opt-in project context.
    Identical context files are preserved; differing files and symlinks fail
    explicitly. Do not overwrite existing skills/instructions or use a force flag.
-   Without `--skills`, init only initializes the workspace.
-2. Run `npm exec --no -- topo scan .`. It scans TypeScript/JavaScript and renders
+   Both forms create a ready-to-serve diagram home without analysis, rendering
+   or browser/server launch, even in an empty/unborn repository. Repeated init
+   preserves authored context and the existing generated site.
+2. Optionally run `npm exec --no -- topo scan .`. It scans TypeScript/JavaScript and renders
    committed stories plus Repository exploration. It never invokes a model.
    Unsupported/unresolved source fails; an explicitly requested `--allow-partial`
    preview is visibly partial and exits 2, not success.
@@ -23,11 +25,16 @@ Corepack, model service, account or renderer download is needed.
    explanation from source evidence. Validate drafts; commit only with the
    repository owner's authority, then scan/preview the committed story.
 4. Run `npm exec --no -- topo serve . --port 4173`. Review the printed loopback
-   URL: Repository canvas, story navigation, source evidence, theme and exports.
+   URL: Home inventory, optional Repository exploration, story navigation,
+   source evidence, theme and exports. Serve works immediately after init.
    Stop your server when finished; never kill another user's listener.
 5. Run `npm exec --no -- topo bundle . --output ./site-output --base-path /architecture/`.
    Serve the output with a static server. Hosting, access control and uploading
    are separate owner decisions. Preserve all emitted license notices.
+
+The init-first home is an unreleased source/local-candidate feature; public
+npm 0.1.0 predates it. Use a candidate containing this change, not a claim that
+the existing registry version was updated.
 
 `topo enrich` is a separate, explicitly configured provider-command workflow for
 secondary commentary. It is not required for source-grounded story editing.

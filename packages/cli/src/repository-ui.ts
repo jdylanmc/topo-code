@@ -68,6 +68,7 @@ export const REPOSITORY_SCRIPT = `(() => {
     if (scopeId !== index.rootId) url.searchParams.set("scope", scopeId);
     if (number !== 1) url.searchParams.set("page", String(number));
     if (focus) url.searchParams.set("focus", focus);
+    if (!url.search) url.searchParams.set("view", "repository");
     return url.pathname + url.search;
   }
   function link(text, target) {
@@ -175,13 +176,25 @@ export const REPOSITORY_SCRIPT = `(() => {
   function render() {
     error.hidden = true;
     const params = new URL(window.location.href).searchParams;
+    const repositorySelected = ["view", "scope", "page", "focus"].some((key) => params.has(key));
+    document.querySelector("[data-home]").hidden = repositorySelected;
+    document.querySelector("[data-repository]").hidden = !repositorySelected;
+    for (const [selector, active] of [
+      ["[data-home-link]", !repositorySelected], ["[data-repository-home]", repositorySelected],
+    ]) {
+      const link = document.querySelector(selector);
+      if (active) link.setAttribute("aria-current", "page");
+      else link.removeAttribute("aria-current");
+    }
+    if (!repositorySelected) return;
     const id = params.get("scope") || index.rootId;
     const numberText = params.get("page") || "1";
     scope = nodes.get(id);
     const number = Number(numberText);
     page = index.pages.find((candidate) => candidate.scopeId === id && candidate.number === number);
     selected = params.get("focus") ? nodes.get(params.get("focus")) : undefined;
-    if (!scope || !/^\\d+$/.test(numberText) || !page ||
+    if ((params.has("view") && params.get("view") !== "repository") ||
+        !scope || !/^\\d+$/.test(numberText) || !page ||
         (params.has("focus") && !selected)) {
       frame.hidden = true;
       previous.disabled = true;

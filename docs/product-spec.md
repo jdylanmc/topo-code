@@ -2,9 +2,10 @@
 
 ## Status and provenance
 
-Topocode is a local-first architecture storybook for a codebase. It scans a
-local Git repository, checks source-grounded stories, renders them, and builds a
-static site. The site has no hosted service, account, or telemetry.
+Topocode is a local-first architecture storybook for a codebase. Initialization
+creates a functional static Home inventory immediately; scanning and authored
+story rendering add evidence and diagrams to the same shell. The site has no
+hosted service, account, or telemetry.
 
 This file is the maintained product intent. GitHub issues track bounded work and
 keep delivery history. The original MVP specification is preserved in
@@ -18,10 +19,13 @@ both surfaces, or required restoring the explorer, are superseded. Scanner,
 graph, layout, report, view, module, and enrichment data remain useful inputs.
 They are not a second visual explorer.
 
-Issue #70's owner-aligned replacement adds a default Repository canvas in this
+Issue #70's owner-aligned replacement adds a Repository canvas in this
 same shell: structural packages/directories, files, and compiler declarations
 rendered as bounded Archify views. This replaces neither authored stories nor
 their renderer-neutral contract and does not restore WebGL.
+The approved init-first migration makes Home the default and Repository an
+explicit selection. This source/local-candidate change is unreleased; public
+npm 0.1.0 predates it.
 
 ## People and core workflow
 
@@ -33,18 +37,21 @@ their renderer-neutral contract and does not restore WebGL.
 
 The normal workflow is:
 
-1. An engineer or agent creates or updates a committed
+1. `topo init` creates Home and notices, with optional `--skills` project
+   guidance. `topo serve` works now, even with no commit or supported source.
+2. An engineer or agent creates or updates a committed
    `stories/**/*.topo.json` file. Humans should not need to hand-edit raw JSON.
-2. `topo story validate` checks the document and its source anchors.
-3. `topo scan` builds the graph, renders every committed story, and generates
-   the shell.
-4. `topo serve` provides the local review loop.
+3. `topo story validate` checks the document and its source anchors before
+   commit; `topo story preview` renders all committed stories into the inventory.
+4. Optionally, `topo scan` builds the graph and adds Repository exploration.
+   `topo serve` provides the local review loop.
 5. `topo bundle` emits plain static files for owner-managed hosting.
 
 These steps preserve the original author, browse, review, package, and customize
 scenarios. **S-1, S-2, S-3, S-4, S-5**
 
-Scanning never invokes a model. Agent help is optional and local. `topo enrich`
+Initialization invokes neither source analysis nor native rendering and starts
+no server/browser. Scanning never invokes a model. Agent help is optional and local. `topo enrich`
 may run an explicitly configured provider command, but that is separate from
 scanning and structural validation.
 
@@ -92,13 +99,17 @@ scanning and structural validation.
   collapsible grouping, diagram-family/category/folder/flat views, Git-backed
   sorting, deep links, and responsive left navigation. No hand-maintained index
   is required. **FR-03, AC-05**
-- Repository exploration is the default landing canvas. It supports
+- Home is the default categorized inventory, never an auto-selected diagram.
+  Topocode identity is permanent and separate from the configurable repository
+  title. Home and the left tree reuse one inventory and common controls.
+- Repository exploration is an explicit selection. It supports
   package/directory-to-file-to-declaration drill-down, breadcrumbs, paginated
   native diagrams, source evidence and durable scope/page/focus URLs. Scanner
   and compiler facts remain distinct from runtime behavior; dirty, partial,
   stale and missing-evidence states are explicit. **#70**
-- A repository with no stories still gets repository exploration and a clear
-  empty authored-story inventory.
+- A repository with no stories gets a functional empty Home with accurate
+  author/validate/commit/preview steps. Unscanned state is explicit, without a
+  fabricated graph. Repository exploration appears after scanning.
   **AC-06, S-E2**
 - `.topo/config.json` may set the shell title, description, accent color,
   category order, and story category overrides. Configuration cannot load
@@ -113,6 +124,9 @@ scanning and structural validation.
   the consumer. **FR-05, NFR-04, AC-08, S-4**
 - Bundles retain Topocode, Archify, third-party, and embedded JetBrains Mono
   notices. **NFR-01, AC-09**
+- Initialized-only sites are bundleable without requiring HEAD; scanned sites
+  retain all existing freshness and evidence checks. Repeated init preserves
+  authored files and existing generated site/diagrams without downgrading them.
 - A local agent can create, validate, preview, and update a story without a
   mandatory model service. **FR-07, AC-12, S-1**
 
@@ -167,7 +181,7 @@ This table preserves the disposition of every numbered original requirement.
 | --- | --- |
 | **FR-01; AC-01** | Shipped: committed renderer-neutral stories and runtime anchor resolution. |
 | **FR-02; AC-13, AC-15** | Shipped adapter and atomic failure behavior. The requirement to retain a parallel WebGL renderer is superseded by PR #71. |
-| **FR-03; AC-05, AC-06** | Shipped story catalogue and empty state. The requirement to index the old explorer is superseded by PR #71. |
+| **FR-03; AC-05, AC-06** | Init-first source migration: branded Home and truthful unscanned empty state; scan/preview populate one categorized inventory. Public npm 0.1.0 predates it. The old explorer requirement remains superseded by PR #71. |
 | **FR-04; AC-07** | Shipped through the existing serve command. |
 | **FR-05; NFR-04; AC-08** | Shipped host-agnostic static bundles. |
 | **FR-06; AC-11** | Partly shipped: bounded catalogue configuration. Broader composition/extensibility and the required manual walkthrough remain unresolved above. |
@@ -203,8 +217,11 @@ sketch canvas (**N-4**), manual JSON authoring (**N-5**), an unlisted renderer
 fork or font changes (**N-6**), rebuilt commodity diagramming infrastructure
 (**N-7**), heuristic coverage gates (**N-8**), or restoration of the retired
 WebGL explorer. It does not authorize publishing under the `archify` name.
+Rust/Tauri prototypes, Graphviz, plugin marketplaces and `.topo-view.json`
+remain outside the supported core story contract; this migration integrates none.
 
-Public npm publication remains a release-owner step in #13. The 0.1.0 candidate
+Further npm publication remains a release-owner step. The existing public
+0.1.0 does not contain the init-first migration. The local candidate
 CLI-plus-skills tarball, opt-in `topo init --skills`, exact renderer dependency,
 and clean installed-consumer regression are implemented; see
 [distribution](./npm-release.md). #57 is paused Unified Modeling
