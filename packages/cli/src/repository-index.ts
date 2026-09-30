@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { posix } from "node:path";
 import { architectureComponentWidth } from "@topo/diagram-core";
-import { graphLocation, readLanguageFacts, sourceFileFactId } from "@topo/languages";
+import { graphLocation, readLanguageFacts, RUST_DECLARATION_KINDS, sourceFileFactId } from "@topo/languages";
 import type {
   GraphDocument,
   LogicalArchitectureDocument,
@@ -11,8 +11,7 @@ import type {
 
 export const REPOSITORY_NODE_KINDS = new Set([
   "repository", "directory", "package", "file", "external", "class", "function",
-  "interface", "type", "enum", "variable", "struct", "union", "trait", "impl",
-  "module", "const", "static", "variant", "field", "macro", "extern-block", "extern-crate",
+  "interface", "type", "enum", "variable", ...RUST_DECLARATION_KINDS,
 ]);
 
 export interface RepositorySource {

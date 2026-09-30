@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { runInNewContext } from "node:vm";
 import { scanTauri } from "../src/plugins/tauri.mjs";
 import { scanRust } from "../src/plugins/rust.mjs";
 import { hash, sourceLocation } from "../src/contract.mjs";
@@ -22,6 +23,88 @@ async function analyze(contents, extra = []) {
   const files = [{ path: "src/main.ts", contents, sha256: hash(contents) }, ...extra];
   return scanTauri({ root: "/synthetic", files }, [rust]);
 }
+
+async function recordedAnalysis(code) {
+  const invoked = [];
+  runInNewContext(code, { invoke: (value) => invoked.push(value), args: [1, "different"], key: "run" });
+  const contents = `import { invoke } from "@tauri-apps/api/core";\n${code}`;
+  const files = [
+    { path: "Cargo.toml", contents: '[package]\nname="fixture"\nversion="0.1.0"\n' },
+    { path: "src/lib.rs", contents: "#[tauri::command] fn snapshot() {} fn setup() { tauri::Builder::default().invoke_handler(tauri::generate_handler![snapshot]); }\n" },
+    { path: "src/main.js", contents },
+  ].map((file) => ({ ...file, sha256: hash(file.contents) }));
+  const context = { root: "/synthetic", files };
+  return {
+    invoked: JSON.parse(JSON.stringify(invoked)),
+    result: await scanTauri(context, [await scanRust(context)]),
+  };
+}
+
+for (const { name, code, invoked, bindings } of [
+  { name: "ordinary scalar parameter", code: 'function run(ignored, command) { invoke(command); } run(1, "snapshot");', invoked: ["snapshot"], bindings: ["snapshot"] },
+  { name: "preceding literal spread", code: 'function run(ignored, command) { invoke(command); } run(...[1, "different"], "snapshot");', invoked: ["different"], bindings: [] },
+  { name: "preceding unknown spread", code: 'function run(ignored, command) { invoke(command); } run(...globalThis.args, "snapshot");', invoked: ["different"], bindings: [] },
+  { name: "spread at the selected position", code: 'function run(command) { invoke(command); } run(...["snapshot"]);', invoked: ["snapshot"], bindings: [] },
+  { name: "spread after a scalar position", code: 'function run(command, ...other) { invoke(command); } run("snapshot", ...[1, 2]);', invoked: ["snapshot"], bindings: ["snapshot"] },
+  { name: "rest parameter array", code: 'function run(...command) { invoke(command); } run("snapshot");', invoked: [["snapshot"]], bindings: [] },
+  { name: "ordinary scalar array binding", code: 'for (const [command] of [["snapshot"]]) { invoke(command); }', invoked: ["snapshot"], bindings: ["snapshot"] },
+  { name: "rest array binding", code: 'for (const [...command] of [["snapshot"]]) { invoke(command); }', invoked: [["snapshot"]], bindings: [] },
+  { name: "preceding spread in destructured literal", code: 'for (const [ignored, command] of [[...[1, "different"], "snapshot"]]) { invoke(command); }', invoked: ["different"], bindings: [] },
+  { name: "preceding unknown spread in destructuring", code: 'for (const [ignored, command] of [[...globalThis.args, "snapshot"]]) { invoke(command); }', invoked: ["different"], bindings: [] },
+  { name: "spread after scalar array binding", code: 'for (const [command] of [["snapshot", ...["other"]]]) { invoke(command); }', invoked: ["snapshot"], bindings: ["snapshot"] },
+]) {
+  test(`parameter positions preserve runtime values: ${name}`, async () => {
+    const actual = await recordedAnalysis(code);
+    assert.deepEqual(actual.invoked, invoked);
+    assert.deepEqual(actual.result.extensions.bindings.map((item) => item.commandName), bindings);
+    if (!bindings.length) assert.ok(actual.result.unresolved.some((item) => item.kind === "tauri-invocation"));
+  });
+}
+
+for (const { name, mutation, resolved } of [
+  { name: "unmodified method", mutation: "", resolved: true },
+  { name: "unrelated literal key", mutation: 'obj["other"] = () => {};', resolved: true },
+  { name: "dot assignment", mutation: "obj.run = () => {};", resolved: false },
+  { name: "literal bracket assignment", mutation: 'obj["run"] = () => {};', resolved: false },
+  { name: "constant key assignment", mutation: 'const key = "run"; obj[key] = () => {};', resolved: false },
+  { name: "constant key chain", mutation: 'const original = "run"; const key = original; obj[key] = () => {};', resolved: false },
+  { name: "unknown computed key", mutation: "obj[globalThis.key] = () => {};", resolved: false },
+  { name: "unknown key through same receiver alias", mutation: "const alias = obj; alias[globalThis.key] = () => {};", resolved: false },
+]) {
+  test(`helper writes invalidate the actual member: ${name}`, async () => {
+    const actual = await recordedAnalysis(`const obj = { run(command) { invoke(command); } }; ${mutation} obj.run("snapshot");`);
+    assert.deepEqual(actual.invoked, resolved ? ["snapshot"] : []);
+    assert.deepEqual(actual.result.extensions.bindings.map((item) => item.commandName), resolved ? ["snapshot"] : []);
+    if (!resolved) assert.ok(actual.result.unresolved.some((item) => item.kind === "tauri-invocation"));
+  });
+}
+
+test("unknown computed writes do not invalidate a different unmodified receiver", async () => {
+  const actual = await recordedAnalysis(`
+const obj = { run(command) { invoke(command); } };
+const other = { run(command) { invoke(command); } };
+obj[globalThis.key] = () => {};
+obj.run("snapshot");
+other.run("snapshot");
+`);
+  assert.deepEqual(actual.invoked, ["snapshot"]);
+  assert.deepEqual(actual.result.extensions.bindings.map((item) => item.commandName), ["snapshot"]);
+});
+
+test("literal bracket calls share the same helper and write invalidation boundary", async () => {
+  const control = await recordedAnalysis('const obj = { run(command) { invoke(command); } }; obj["run"]("snapshot");');
+  assert.deepEqual(control.invoked, ["snapshot"]);
+  assert.deepEqual(control.result.extensions.bindings.map((item) => item.commandName), ["snapshot"]);
+  const changed = await recordedAnalysis('const obj = { run(command) { invoke(command); } }; obj["run"] = () => {}; obj["run"]("snapshot");');
+  assert.deepEqual(changed.invoked, []);
+  assert.deepEqual(changed.result.extensions.bindings, []);
+});
+
+test("deleting a helper member cannot revive its previous definition through an optional call", async () => {
+  const actual = await recordedAnalysis('const obj = { run(command) { invoke(command); } }; delete obj["run"]; obj.run?.("snapshot");');
+  assert.deepEqual(actual.invoked, []);
+  assert.deepEqual(actual.result.extensions.bindings, []);
+});
 
 test("literal, constant, and imported alias invocation bindings retain evidence", async () => {
   const result = await analyze(`

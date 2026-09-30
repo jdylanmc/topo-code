@@ -2,13 +2,17 @@
   "schemaVersion": "1.0",
   "id": "snapshot-overview",
   "title": "Snapshot boundary",
-  "summary": "A native Architecture view of the source-declared snapshot handler.",
+  "summary": "A native Architecture view of the snapshot handler, trait contract and inherent method.",
   "category": "Technical flows",
   "anchors": [
-    { "id": "command", "path": "src-tauri/src/lib.rs", "symbol": "snapshot", "language": "rust", "sha256": "724edbd8e42b6c45ad1d7eccaa2eba0d7f8dafb12f068ef6e8e96bdd2d76ddcf" }
+    { "id": "command", "path": "src-tauri/src/lib.rs", "symbol": "snapshot", "language": "rust", "sha256": "10ae862a530842a58fa4bbd52a6054e18567d38436d8acf06912ac65d2084b1b" },
+    { "id": "impl-ready", "path": "src-tauri/src/lib.rs", "symbol": "src-tauri/src/lib.rs::impl Snapshot#0::ready", "language": "rust", "sha256": "10ae862a530842a58fa4bbd52a6054e18567d38436d8acf06912ac65d2084b1b" },
+    { "id": "trait-ready", "path": "src-tauri/src/lib.rs", "symbol": "src-tauri/src/lib.rs::Readiness::ready", "language": "rust", "sha256": "10ae862a530842a58fa4bbd52a6054e18567d38436d8acf06912ac65d2084b1b" }
   ],
   "sections": [
-    { "id": "handler", "title": "Snapshot handler", "body": "The command returns a string based on its input. Open the technical workflow for individual branch evidence.", "anchorIds": ["command"] }
+    { "id": "handler", "title": "Snapshot handler", "body": "The command returns a string based on its input. Open the technical workflow for individual branch evidence.", "anchorIds": ["command"] },
+    { "id": "ready-method", "title": "Read readiness", "body": "The inherent Snapshot method reads its stored ready field. Its structural qualified anchor distinguishes it from the trait methods.", "anchorIds": ["impl-ready"] },
+    { "id": "trait-method", "title": "Readiness contract", "body": "The trait declares a ready method without a body. This is syntax and ownership evidence, not a compiler dispatch claim.", "anchorIds": ["trait-ready"] }
   ],
   "connections": []
 }

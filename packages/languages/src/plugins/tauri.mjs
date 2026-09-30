@@ -33,15 +33,37 @@ export async function scanTauri(context, contributions) {
   const paths = new Map(sourceFiles.map((file) => [resolve(context.root, file.path), file.path]));
   const calls = [];
   const writtenSymbols = new Set();
+  const writtenReceiverTypes = new Set();
   const opaqueFunctions = new Set();
+  function propertyKey(node, seen = new Set()) {
+    node = unwrap(node);
+    if (!node || seen.has(node) || seen.size > 8) return undefined;
+    if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node) || ts.isNumericLiteral(node)) return node.text;
+    if (ts.isIdentifier(node)) {
+      const symbol = checker.getSymbolAtLocation(node);
+      const definitions = symbol?.declarations ?? [];
+      if (writtenSymbols.has(symbol) || definitions.length !== 1) return undefined;
+      const declaration = definitions[0];
+      if (isConst(declaration)) return propertyKey(declaration.initializer, new Set(seen).add(node));
+    }
+    return undefined;
+  }
+  function memberSymbol(node) {
+    if (ts.isPropertyAccessExpression(node)) return checker.getSymbolAtLocation(node.name);
+    const key = propertyKey(node.argumentExpression);
+    return key === undefined ? undefined : checker.getPropertyOfType(checker.getTypeAtLocation(node.expression), key);
+  }
   function writtenTarget(node) {
     node = unwrap(node);
     if (ts.isIdentifier(node)) {
       const symbol = checker.getSymbolAtLocation(node);
       if (symbol) writtenSymbols.add(symbol);
     } else if (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)) {
-      const symbol = checker.getSymbolAtLocation(ts.isPropertyAccessExpression(node) ? node.name : node);
+      const symbol = memberSymbol(node);
       if (symbol) writtenSymbols.add(symbol);
+      if (ts.isElementAccessExpression(node) && propertyKey(node.argumentExpression) === undefined) {
+        writtenReceiverTypes.add(checker.getTypeAtLocation(node.expression));
+      }
     } else if (ts.isArrayLiteralExpression(node)) {
       node.elements.forEach(writtenTarget);
     } else if (ts.isObjectLiteralExpression(node)) {
@@ -78,6 +100,7 @@ export async function scanTauri(context, contributions) {
           node.operatorToken.kind <= ts.SyntaxKind.LastAssignment) writtenTarget(node.left);
       if ((ts.isPrefixUnaryExpression(node) || ts.isPostfixUnaryExpression(node)) &&
           [ts.SyntaxKind.PlusPlusToken, ts.SyntaxKind.MinusMinusToken].includes(node.operator)) writtenTarget(node.operand);
+      if (ts.isDeleteExpression(node)) writtenTarget(node.expression);
       if ((ts.isForOfStatement(node) || ts.isForInStatement(node)) &&
           !ts.isVariableDeclarationList(node.initializer)) writtenTarget(node.initializer);
       ts.forEachChild(node, visit);
@@ -134,12 +157,14 @@ export async function scanTauri(context, contributions) {
       ts.isNamespaceImport(declaration) && importedFromCore(declaration));
   }
   function functionForCall(call) {
-    let expression = unwrap(call.expression);
-    if (ts.isPropertyAccessExpression(expression)) expression = expression.name;
-    let symbol = checker.getSymbolAtLocation(expression);
+    const expression = unwrap(call.expression);
+    const member = ts.isPropertyAccessExpression(expression) || ts.isElementAccessExpression(expression);
+    if (member && (writtenReceiverTypes.has(checker.getTypeAtLocation(expression.expression)) ||
+        writtenSymbols.has(checker.getSymbolAtLocation(unwrap(expression.expression))))) return [];
+    let symbol = member ? memberSymbol(expression) : checker.getSymbolAtLocation(expression);
     if (symbol?.flags & ts.SymbolFlags.Alias) symbol = checker.getAliasedSymbol(symbol);
     if (writtenSymbols.has(symbol)) return [];
-    return declarations(expression, true).flatMap((declaration) => {
+    return (symbol?.declarations ?? []).flatMap((declaration) => {
       if ((ts.isFunctionDeclaration(declaration) || ts.isMethodDeclaration(declaration)) && declaration.body) return [declaration];
       if (ts.isVariableDeclaration(declaration) && declaration.initializer) {
         const initializer = unwrap(declaration.initializer);
@@ -155,6 +180,10 @@ export async function scanTauri(context, contributions) {
       list.push(call);
       callsByFunction.set(fn, list);
     }
+  }
+  function positionalArgument(elements, index) {
+    return elements.slice(0, index + 1).some((element) => ts.isSpreadElement(element))
+      ? undefined : elements[index];
   }
   function strings(node, seen = new Set(), depth = 0) {
     node = unwrap(node);
@@ -185,25 +214,26 @@ export async function scanTauri(context, contributions) {
       }
       if (ts.isParameter(declaration)) {
         const symbol = checker.getSymbolAtLocation(node);
-        if (writtenSymbols.has(symbol) || opaqueFunctions.has(declaration.parent)) return { values: [], complete: false };
+        if (declaration.dotDotDotToken || writtenSymbols.has(symbol) || opaqueFunctions.has(declaration.parent)) return { values: [], complete: false };
         const fn = declaration.parent;
         const index = fn.parameters?.indexOf(declaration);
         if (index === undefined || index < 0) return { values: [], complete: false };
         const invocations = callsByFunction.get(fn) ?? [];
-        const values = invocations.flatMap((call) => strings(call.arguments[index], next, depth + 1).values.map((value) => ({
+        const values = invocations.flatMap((call) => strings(positionalArgument(call.arguments, index), next, depth + 1).values.map((value) => ({
           ...value, bindingSite: value.bindingSite ?? location(call), evidence: [...value.evidence, location(call)],
         })));
         // Known call sites are evidence; this is not a closed-world caller inventory.
         return { values, complete: false };
       }
       if (ts.isBindingElement(declaration) && ts.isArrayBindingPattern(declaration.parent)) {
+        if (declaration.dotDotDotToken) return { values: [], complete: false };
         const binding = declaration.parent;
         const variable = binding.parent;
         const statement = variable.parent?.parent;
         if (isConst(variable) && ts.isForOfStatement(statement) && ts.isArrayLiteralExpression(statement.expression)) {
           const index = binding.elements.indexOf(declaration);
           const parts = statement.expression.elements.map((element) =>
-            ts.isArrayLiteralExpression(element) ? strings(element.elements[index], next, depth + 1) : { values: [], complete: false });
+            ts.isArrayLiteralExpression(element) ? strings(positionalArgument(element.elements, index), next, depth + 1) : { values: [], complete: false });
           return { values: parts.flatMap(({ values }) => values), complete: parts.every(({ complete }) => complete) };
         }
       }
@@ -359,6 +389,8 @@ export async function scanTauri(context, contributions) {
     "Only explicit app generate_handler registrations with established Rust paths are joined.",
     "Plugin/custom/generated registrations and non-enumerable dynamic command names remain unresolved.",
     "Helper propagation enumerates known local call sites, not all potential callers.",
+    "Rest values and parameter/binding positions affected by preceding spreads remain unresolved; arrays are not scalar command strings.",
+    "Known member writes invalidate that helper; unknown computed writes conservatively invalidate helper propagation for the receiver type.",
     "Rust cfg conditions, procedural macros and build-time pruning are not evaluated.",
   ];
   result.extensions = {

@@ -5,9 +5,10 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
+import { createGraphDocument } from "@topo/schema";
 import { bundleSite } from "./bundle.js";
-import { readRepositoryIndex } from "./repository-generation.js";
-import { buildCatalogue, writeBuiltCatalogue } from "./catalogue.js";
+import { generateRepository, readRepositoryIndex } from "./repository-generation.js";
+import { buildCatalogue, repositoryState, writeBuiltCatalogue } from "./catalogue.js";
 
 const execute = promisify(execFile);
 const entry = fileURLToPath(new URL("../dist/main.js", import.meta.url));
@@ -41,6 +42,34 @@ afterEach(async () => {
 });
 
 describe("generated repository delivery", () => {
+  it("rejects an unsupported produced declaration before preparing or publishing viewers", async () => {
+    const root = await repository();
+    const source = await repositoryState(root);
+    const graph = createGraphDocument({
+      graphId: "repo:fixture",
+      repository: { id: "fixture", label: "Fixture", revision: source.revision },
+      nodes: [{
+        id: "path:src/order.ts", label: "order.ts", kind: "file",
+        identity: { kind: "path", value: "src/order.ts" },
+      }],
+      extensions: {
+        "dev.topo.languages": {
+          schemaVersion: "1.0",
+          contributions: [{
+            entities: [{
+              id: "unknown:declaration", name: "Order", kind: "unknown-adapter-kind", language: "typescript",
+              qualifiedName: "src/order.ts::Order", exported: true, signatures: [], attributes: [],
+              location: { path: "src/order.ts", startLine: 2, startColumn: 1, endLine: 4, endColumn: 2 },
+            }],
+            relationships: [],
+          }],
+        },
+      },
+    });
+    await expect(generateRepository(root, graph, undefined, source)).rejects.toThrow("Invalid generated repository node");
+    await expect(readFile(join(root, ".topo/cache/site/repository.json"))).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
   it("scans a local-only repository into real Archify pages without creating authored stories", async () => {
     const root = await repository();
     await execute(process.execPath, [entry, "scan", root]);

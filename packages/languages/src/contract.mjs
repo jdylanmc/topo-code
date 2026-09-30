@@ -3,6 +3,17 @@ import { posix } from "node:path";
 
 export const CONTRACT_VERSION = "1.0";
 
+export const RUST_SYNTAX_KINDS = Object.freeze({
+  struct_item: "struct", enum_item: "enum", union_item: "union",
+  trait_item: "trait", impl_item: "impl", mod_item: "module",
+  function_item: "function", function_signature_item: "function",
+  type_item: "type", associated_type: "type", const_item: "const",
+  static_item: "static", enum_variant: "variant", field_declaration: "field",
+  macro_definition: "macro", foreign_mod_item: "extern-block",
+  extern_crate_declaration: "extern-crate",
+});
+export const RUST_DECLARATION_KINDS = Object.freeze([...new Set([...Object.values(RUST_SYNTAX_KINDS), "method"])]);
+
 export function compare(left, right) {
   return left < right ? -1 : left > right ? 1 : 0;
 }

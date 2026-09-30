@@ -9,6 +9,7 @@ import { assertInventoryCurrent, captureInventory } from "./inventory.mjs";
 import { factId, hash, serialize } from "./contract.mjs";
 
 export type { Contribution, Entity, Relationship, ScanContext, SourceLocation } from "./contract-types.js";
+export { RUST_DECLARATION_KINDS } from "./contract.mjs";
 export const LANGUAGE_EVIDENCE_KEY = "dev.topo.languages";
 export interface PluginSelection {
   languages: readonly ("typescript" | "rust")[];

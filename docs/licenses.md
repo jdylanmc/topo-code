@@ -127,6 +127,11 @@ bundled musl COPYRIGHT alongside the Viz.js MIT text. The generated notice embed
 component-specific source URLs and digests. Checked-in upstream files stay
 byte-exact; generated notices alone normalize whitespace. Tests reject backend
 tampering and version drift; EPL-2.0 remains absent from the global allowlist.
+The vendored directory is explicitly `-text` in `.gitattributes`, preventing
+Git checkout/EOL conversion even with Windows-style `core.autocrlf=true`.
+Regression tests run real checkout filters for all six pinned license files,
+verify their unchanged SHA-256 values and verify that an ordinary text control
+does convert to CRLF. Raw-byte hash checks are not relaxed or normalized.
 
 To restore those exact upstream notice files, maintainers may explicitly run
 `node scripts/embedded-notices.mjs --fetch`. It verifies each pinned digest

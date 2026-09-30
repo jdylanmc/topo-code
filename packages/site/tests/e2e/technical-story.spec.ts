@@ -26,6 +26,7 @@ async function scanPartial(repository: string) {
 test("technical branches retain geometry, exact edge evidence, Home links and cache-rebuilt identity", async ({ page, repository, startSite }) => {
   await mixed(repository);
   await scanPartial(repository);
+  await topo(repository, "story", "preview", repository, join(repository, "stories/snapshot-overview.topo.json"));
   const url = await startSite();
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
@@ -93,6 +94,10 @@ test("technical branches retain geometry, exact edge evidence, Home links and ca
   await expect(page).toHaveURL(/snapshot\/.*focus=choose/);
   const index = JSON.parse(await readFile(join(repository, ".topo/cache/site/repository.json"), "utf8"));
   expect(index.nodes.some((node: { kind: string }) => node.kind === "struct")).toBe(true);
+  const methods = index.nodes.filter((node: { kind: string }) => node.kind === "method");
+  expect(methods).toHaveLength(3);
+  expect(methods.map((method: { parentId: string }) => index.nodes.find((node: { id: string }) =>
+    node.id === method.parentId).kind).sort()).toEqual(["impl", "impl", "trait"]);
   expect(index.relationships.some((edge: { kind: string }) => edge.kind === "tauri-command-binding")).toBe(true);
   const before = index.nodes.map((node: { id: string }) => node.id);
   await page.goto("about:blank");
@@ -100,6 +105,7 @@ test("technical branches retain geometry, exact edge evidence, Home links and ca
   await scanPartial(repository);
   const rebuilt = JSON.parse(await readFile(join(repository, ".topo/cache/site/repository.json"), "utf8"));
   expect(rebuilt.nodes.map((node: { id: string }) => node.id)).toEqual(before);
+  await topo(repository, "story", "preview", repository, join(repository, "stories/snapshot-overview.topo.json"));
   await topo(repository, "bundle", repository, "--output", join(repository, ".topo/deploy"));
   for (const name of ["spec.dot", "validation.json", "evidence.json", "renderer.json"]) {
     expect((await readFile(join(repository, ".topo/deploy/stories/snapshot", name))).length).toBeGreaterThan(20);

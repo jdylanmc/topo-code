@@ -162,6 +162,7 @@ export async function generateRepository(
     }
   }
   const index = buildRepositoryIndex(graph, logical, source, packages);
+  assertRepositoryIndex(index);
   const nodes = new Map(index.nodes.map((node) => [node.id, node]));
   const renderable = index.pages.filter((page) =>
     page.nodeIds.length > 0 || nodes.get(page.scopeId)!.locations.length > 0);
@@ -197,8 +198,10 @@ export async function generateRepository(
       runtimeFiles.set(name, file);
     }
     await assertSourceSnapshot(root, snapshot);
+    const generatedIndex = { ...index, runtimeFiles: [...runtimeFiles.keys()].sort(), rendererReceipts };
+    assertRepositoryIndex(generatedIndex);
     return {
-      index: { ...index, runtimeFiles: [...runtimeFiles.keys()].sort(), rendererReceipts },
+      index: generatedIndex,
       viewerFiles, runtimeFiles, dispose,
     };
   } catch (error) {

@@ -50,6 +50,31 @@ mod inner { fn hidden() {} }
   assert.doesNotThrow(() => serialize(result));
 });
 
+test("named descendants of impls, externs and nested blocks keep structural identities under trivia edits", async () => {
+  const code = `pub struct Engine;
+trait Read { fn snapshot(&self) -> u8; }
+impl Engine { pub fn snapshot(&self) -> u8 { 1 } }
+impl Engine { pub fn second(&self) -> u8 { 2 } }
+impl Read for Engine { fn snapshot(&self) -> u8 { 3 } }
+extern "C" { fn external_snapshot() -> u8; }
+extern "C" { fn another_snapshot() -> u8; }
+fn nested() { impl Engine { fn local(&self) {} } extern "C" { fn local_external(); } }
+`;
+  const before = await scan(code, [cargo]);
+  const after = await scan(`// unrelated comment\n\n${code.replaceAll("impl Engine", "impl /* header comment */\nEngine").replaceAll('extern "C"', 'extern /* ABI comment */\n"C"')}`, [cargo]);
+  const identity = (result) => result.entities.map(({ id, ownerId, qualifiedName }) => ({ id, ownerId, qualifiedName }));
+  assert.deepEqual(identity(after), identity(before));
+  assert.equal(new Set(before.entities.map((entity) => entity.qualifiedName)).size, before.entities.length);
+  assert.equal(before.entities.filter((entity) => entity.name === "snapshot").length, 3);
+  assert.ok(before.entities.some((entity) => entity.qualifiedName === "nested/src/lib.rs::impl Engine#0::snapshot"));
+  assert.ok(before.entities.some((entity) => entity.qualifiedName === "nested/src/lib.rs::impl Engine#1::second"));
+  assert.ok(before.entities.some((entity) => entity.qualifiedName === 'nested/src/lib.rs::extern "C"#0::external_snapshot'));
+  assert.ok(before.entities.some((entity) => entity.qualifiedName === 'nested/src/lib.rs::extern "C"#1::another_snapshot'));
+  assert.notDeepEqual(named(before, "snapshot", "method").location, named(after, "snapshot", "method").location);
+  const ownership = (result) => result.relationships.filter((edge) => edge.kind === "owns").map(({ id, from, to }) => ({ id, from, to }));
+  assert.deepEqual(ownership(after), ownership(before));
+});
+
 test("comments, strings and macro bodies do not fabricate declarations; UTF-16 locations stay exact", async () => {
   const result = await scan('// fn fake() {}\nconst NOTE: &str = "😀é fn fake2() {}"; fn r#type() {}\nmacro_rules! make { () => { fn fake3() {} } }\nmake!();\n', [cargo]);
   assert.deepEqual(result.entities.map((entity) => entity.name).sort(), ["NOTE", "make", "type"]);

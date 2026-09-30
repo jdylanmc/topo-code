@@ -142,6 +142,15 @@ publication remains a separate release-owner action.
 
 ### Fixed
 
+- Retain Rust impl/trait methods through validated Repository publication,
+  preview, bundle and cache recreation. Structural impl/extern owner identities
+  keep named descendants and qualified anchors stable across comment-only moves.
+- Reject uncertain Tauri helper positions across spreads/rest bindings and
+  invalidate obsolete helpers after equivalent dot/computed-member writes,
+  while preserving known scalar and unmodified-receiver controls.
+- Preserve byte-pinned upstream license files through Git checkout conversion,
+  including Windows autocrlf, without weakening exact license digest gates.
+
 - Make shell, evidence, authored/generated viewers and native default exports
   share one app-owned theme across focus navigation, stored preferences, media
   changes and native actions without altering pristine renderer package bytes.

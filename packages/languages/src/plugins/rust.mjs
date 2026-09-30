@@ -2,7 +2,7 @@ import { parse, registerDynamicLanguage } from "@ast-grep/napi";
 import rust from "@ast-grep/lang-rust";
 import toml from "@iarna/toml";
 import { posix } from "node:path";
-import { compare, emptyContribution, factId, hash, repositoryPath, sourceLocation } from "../contract.mjs";
+import { compare, emptyContribution, factId, hash, repositoryPath, RUST_SYNTAX_KINDS, sourceLocation } from "../contract.mjs";
 
 // The napi package bundles web grammars only. This loads the separate prebuilt
 // Rust grammar; neither the grammar's postinstall nor a compiler is invoked.
@@ -16,15 +16,7 @@ export const manifest = Object.freeze({
   capabilities: ["syntax-declarations", "lexical-ownership", "lexical-binding-observations", "local-impl-targets", "cargo-manifest-evidence", "tauri-syntax-observations"],
 });
 
-const KINDS = new Map([
-  ["struct_item", "struct"], ["enum_item", "enum"], ["union_item", "union"],
-  ["trait_item", "trait"], ["impl_item", "impl"], ["mod_item", "module"],
-  ["function_item", "function"], ["function_signature_item", "function"],
-  ["type_item", "type"], ["associated_type", "type"], ["const_item", "const"],
-  ["static_item", "static"], ["enum_variant", "variant"], ["field_declaration", "field"],
-  ["macro_definition", "macro"], ["foreign_mod_item", "extern-block"],
-  ["extern_crate_declaration", "extern-crate"],
-]);
+const KINDS = new Map(Object.entries(RUST_SYNTAX_KINDS));
 const COMMENT_KINDS = new Set(["line_comment", "block_comment"]);
 const ATTRIBUTE_KINDS = new Set(["attribute_item", "inner_attribute_item"]);
 const LIMITATIONS = [
@@ -116,6 +108,21 @@ function unique(values) {
 function signature(node) {
   const body = node.field("body");
   return body ? node.text().slice(0, body.range().start.index - node.range().start.index).trimEnd() : node.text();
+}
+
+function structuralHeader(node) {
+  const bodyStart = node.field("body")?.range().start.index ?? node.range().end.index;
+  const parts = [];
+  function visitHeader(child) {
+    if (COMMENT_KINDS.has(child.kind()) || child.range().start.index >= bodyStart) return;
+    if (!child.children().length || ["string_literal", "raw_string_literal", "char_literal"].includes(child.kind())) {
+      parts.push(child.text());
+    } else {
+      child.children().forEach(visitHeader);
+    }
+  }
+  node.children().forEach(visitHeader);
+  return parts.join(" ");
 }
 
 function handlerPaths(tree) {
@@ -302,6 +309,9 @@ export async function scanRust(context) {
   const impls = [];
   const registrationRecords = new Map();
   const identities = new Map();
+  const ownerOccurrences = new Map();
+  const anonymousScopes = new Map();
+  const scopeOccurrences = new Map();
   const unresolvedIds = new Set();
   const scopesByName = new Map();
   const bindingIds = new Set();
@@ -333,7 +343,7 @@ export async function scanRust(context) {
   }
   function edge(from, to, kind, evidence, method = "syntax-explicit-lexical") {
     contribution.relationships.push({
-      id: factId("rust", kind, evidence.path, JSON.stringify([from, to, evidence])),
+      id: factId("rust", kind, evidence.path, JSON.stringify([from, to])),
       from, to, kind, method, evidence: [evidence],
     });
   }
@@ -379,8 +389,16 @@ export async function scanRust(context) {
       extensions.lexicalScopes.push(record);
     }
     function scopedName(scope, kind, node) {
-      const { start } = node.range();
-      return `${scope}::<${kind}@${start.line + 1}:${start.column + 1}>`;
+      // Source offsets identify repeated visits to a node, never its emitted identity.
+      const range = node.range();
+      const nodeKey = JSON.stringify([file.path, scope, kind, range.start.index, range.end.index]);
+      if (!anonymousScopes.has(nodeKey)) {
+        const group = JSON.stringify([scope, kind]);
+        const occurrence = scopeOccurrences.get(group) ?? 0;
+        scopeOccurrences.set(group, occurrence + 1);
+        anonymousScopes.set(nodeKey, `${scope}::<${kind}#${occurrence}>`);
+      }
+      return anonymousScopes.get(nodeKey);
     }
     function binding(node, state, kind, name, options = {}) {
       const id = factId("rust", "lexical-binding", file.path,
@@ -549,7 +567,14 @@ export async function scanRust(context) {
         const header = signature(node);
         const name = rawName ? cleanName(rawName) : kind === "impl" ? header : kind === "extern-block" ? header : `<anonymous-${kind}>`;
         const loc = location(file, node);
-        const segment = ["impl", "extern-block"].includes(kind) ? `${name}@${loc.startLine}:${loc.startColumn}` : name;
+        let segment = name;
+        if (["impl", "extern-block"].includes(kind)) {
+          const headerIdentity = structuralHeader(node);
+          const group = JSON.stringify([file.path, state.scope, kind, headerIdentity]);
+          const occurrence = ownerOccurrences.get(group) ?? 0;
+          ownerOccurrences.set(group, occurrence + 1);
+          segment = `${headerIdentity}#${occurrence}`;
+        }
         const qualifiedName = `${state.scope}::${segment}`;
         const visibility = node.children().find((child) => child.kind() === "visibility_modifier")?.text() ?? "inherited";
         const identityKey = JSON.stringify([file.path, state.scope, kind, name]);

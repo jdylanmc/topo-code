@@ -277,12 +277,27 @@ syncBuiltinESMExports();
   const partial = () => assert.throws(() => mixedCli("scan", mixedRoot, "--allow-partial"), (error) =>
     error.status === 2 && /PARTIAL PREVIEW:/.test(error.stdout));
   partial();
+  mixedCli("story", "preview", mixedRoot, overviewPath);
+  mixedCli("bundle", mixedRoot, "--output", path.join(mixedRoot, ".topo/pre-repair-bundle"));
   const mixedSite = path.join(mixedRoot, ".topo/cache/site");
   const facts = JSON.parse(await readFile(path.join(mixedRoot, ".topo/graph/graph.json"), "utf8")).extensions["dev.topo.languages"];
   assert.deepEqual(facts.contributions.map((item) => item.plugin.id), ["typescript", "rust", "tauri"]);
   assert.equal(facts.contributions.find((item) => item.plugin.id === "tauri").relationships.filter((edge) =>
     edge.kind === "tauri-command-binding").length, 1);
-  const ids = JSON.parse(await readFile(path.join(mixedSite, "repository.json"), "utf8")).nodes.map((node) => node.id);
+  const initialIndex = JSON.parse(await readFile(path.join(mixedSite, "repository.json"), "utf8"));
+  const methods = initialIndex.nodes.filter((node) => node.kind === "method");
+  assert.equal(methods.length, 3);
+  assert.deepEqual(methods.map((method) => initialIndex.nodes.find((node) => node.id === method.parentId).kind).sort(), ["impl", "impl", "trait"]);
+  const ids = initialIndex.nodes.map((node) => node.id);
+  const rustIdentity = (evidence) => {
+    const rust = evidence.contributions.find((item) => item.plugin.id === "rust");
+    return {
+      declarations: rust.entities.map(({ id, qualifiedName, ownerId }) => ({ id, qualifiedName, ownerId })),
+      ownership: rust.relationships.filter((edge) => edge.kind === "owns").map(({ id, from, to }) => ({ id, from, to })),
+    };
+  };
+  const originalRustIdentity = rustIdentity(facts);
+  const overviewBefore = JSON.parse(await readFile(overviewPath, "utf8"));
   const storyBefore = JSON.parse(await readFile(technicalPath, "utf8"));
   const rustPath = path.join(mixedRoot, "src-tauri/src/lib.rs");
   const sourceBefore = await readFile(rustPath, "utf8");
@@ -301,8 +316,14 @@ syncBuiltinESMExports();
   assert.deepEqual(repaired.sections, storyBefore.sections);
   assert.deepEqual(repaired.connections, storyBefore.connections);
   mixedCli("story", "validate", mixedRoot, technicalPath);
+  assert.match(mixedCli("story", "validate", mixedRoot, overviewPath), /impl-ready: src-tauri\/src\/lib.rs/);
+  const overviewAfter = JSON.parse(await readFile(overviewPath, "utf8"));
+  assert.deepEqual(overviewAfter.anchors.map(({ id, path, symbol }) => ({ id, path, symbol })),
+    overviewBefore.anchors.map(({ id, path, symbol }) => ({ id, path, symbol })));
   mixedCommit("Reconcile freshness after unrelated comment without changing intent");
   partial();
+  const shiftedFacts = JSON.parse(await readFile(path.join(mixedRoot, ".topo/graph/graph.json"), "utf8")).extensions["dev.topo.languages"];
+  assert.deepEqual(rustIdentity(shiftedFacts), originalRustIdentity);
   assert.deepEqual(JSON.parse(await readFile(path.join(mixedSite, "repository.json"), "utf8")).nodes.map((node) => node.id), ids);
   await rm(path.join(mixedRoot, ".topo/cache"), { recursive: true });
   partial();

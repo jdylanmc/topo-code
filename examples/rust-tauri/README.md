@@ -15,4 +15,7 @@ serve, bundle and cache recreation. Do not copy this example over real source.
 The expected frontend-to-handler binding is `refresh -> snapshot`; `snapshot`
 returns ready or pending based on the input. The author traces those branches
 without claiming a compiler-derived control-flow graph. The second story is a
-native Architecture view sharing the handler anchor.
+native Architecture view sharing the handler anchor and using distinct qualified
+impl/trait method anchors. The fixture also includes a trait implementation and
+an extern declaration so persisted readback and comment-only identity repair
+exercise structural owners, not just free functions.

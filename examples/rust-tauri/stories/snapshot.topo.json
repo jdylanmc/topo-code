@@ -8,8 +8,8 @@
   "category": "Technical flows",
   "anchors": [
     { "id": "frontend", "path": "src/main.ts", "symbol": "refresh", "language": "typescript", "sha256": "0cc239167a30f35b215257faf3468e54692be1785045684d1404888229df608f" },
-    { "id": "command", "path": "src-tauri/src/lib.rs", "symbol": "snapshot", "language": "rust", "sha256": "724edbd8e42b6c45ad1d7eccaa2eba0d7f8dafb12f068ef6e8e96bdd2d76ddcf" },
-    { "id": "registration", "path": "src-tauri/src/lib.rs", "symbol": "run", "language": "rust", "sha256": "724edbd8e42b6c45ad1d7eccaa2eba0d7f8dafb12f068ef6e8e96bdd2d76ddcf" }
+    { "id": "command", "path": "src-tauri/src/lib.rs", "symbol": "snapshot", "language": "rust", "sha256": "10ae862a530842a58fa4bbd52a6054e18567d38436d8acf06912ac65d2084b1b" },
+    { "id": "registration", "path": "src-tauri/src/lib.rs", "symbol": "run", "language": "rust", "sha256": "10ae862a530842a58fa4bbd52a6054e18567d38436d8acf06912ac65d2084b1b" }
   ],
   "sections": [
     { "id": "invoke", "title": "Request snapshot", "body": "refresh invokes the constant snapshot command with ready.", "anchorIds": ["frontend"] },

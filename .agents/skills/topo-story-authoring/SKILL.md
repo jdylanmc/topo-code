@@ -109,3 +109,12 @@ edge excerpts, cross-story/return links, Home inventory, shared app theme and
 actual exports. Graphviz has its own layout receipt, not borrowed Archify
 certification. A generic fixture is not evidence for another application's
 behavior; disposable consumer diagrams/caches must not enter Topocode source.
+
+Impl/trait methods are first-class source nodes. Repeated method names require
+their structural qualified symbol, for example
+`src/lib.rs::impl Engine#0::snapshot`, not an owner line/column. Comments and
+blank lines change freshness/evidence but not these identities; preserve the
+qualified symbol during comment-only hash repair. Tauri rest values and
+spread-shifted argument positions remain unresolved, as do overwritten helpers
+after dot or computed-member writes. Never promote those unresolved cases to
+specific source-derived calls in a narrative.

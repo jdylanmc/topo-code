@@ -50,7 +50,10 @@ unresolved observations. Rust/Tauri are explicitly partial; normal scan refuses
 publication unless `--allow-partial` is supplied. That preview **exits 2** and
 displays partial quality, not success. Unknown calls/imports and ambiguous
 bindings remain unresolved instead of guessed edges. Repository exploration
-shows Rust kinds and ownership plus supported bridge relationships.
+shows Rust kinds, including impl/trait methods, and ownership plus supported
+bridge relationships. The producer and persisted Repository reader share the
+Rust declaration vocabulary; generation checks the reader contract before
+publishing any viewers.
 
 Named Rust IDs are source-relative lexical identities, independent of absolute
 checkout path and unrelated line insertion. Invocation relationships retain
@@ -58,6 +61,23 @@ their invocation-site identity even when multiple calls share one constant.
 Locations are 1-based UTF-16 code-unit columns with exclusive ends. Conditional
 duplicates and edited invocation sites can legitimately change IDs; this is not
 a compiler-stable symbol identity guarantee across arbitrary refactoring.
+Impl and extern owners use a comment/whitespace-independent tokenized header
+and a source-order discriminator among identical headers, such as
+`src/lib.rs::impl Engine#0::snapshot`. Anonymous nested scopes use structural
+ordinals, not lines/columns. Named descendants, qualified anchors and Rust
+ownership edges survive unrelated comments/blank lines; positions and hashes
+still change as evidence. Adding or reordering structurally identical owners
+can change their ordinals. Old unreleased candidate anchors containing
+`@line:column` must be reconciled once against the corrected structural names.
+
+Tauri helper propagation requires an established scalar argument position.
+Rest parameters/rest bindings are arrays, not scalar command names. A spread
+at or before the selected argument or destructured element leaves that value
+unresolved; later spreads do not invalidate earlier known scalar positions.
+Dot writes and known literal/constant bracket keys invalidate the same helper
+symbol. Unknown computed keys conservatively invalidate helper propagation for
+the receiver type, including aliases; unrelated separately inferred receivers
+remain usable. These are bounded static checks, not a general heap/alias model.
 
 `cfg`/`cfg_attr` are recorded, never evaluated. Derive, attribute/procedural
 macros, `include!`, opaque macro-generated bindings, aliases, custom module
@@ -177,8 +197,17 @@ are described in `docs/licenses.md` and shipped `THIRD_PARTY_NOTICES.txt`.
   Rust shadowing; explicit crate paths and unrelated sibling scopes differ.
 - Static values stop being authoritative after mutation, including
   assertion-wrapped and destructured writes to TypeScript helper parameters.
+- Syntactic argument indexes are not runtime positions across spreads, and rest
+  bindings are not strings. Compare inferred bindings with independent local
+  execution of synthetic inputs, preserving scalar positive controls.
+- Equivalent dot and bracket writes must invalidate the same member. Unknown
+  computed writes require receiver-level conservatism, not stale known edges.
 - Shared constants explain values, not invocation identity or source ownership.
   Same-line declarations require full column containment, not line-only tests.
+- Physical owner positions must not enter named descendant identities. Use
+  structural owner keys and deterministic duplicate handling; retain positions
+  solely as evidence. Exercise actual persisted method-bearing indexes, not
+  just parser output, before claiming scan/preview/bundle compatibility.
 - Parser evidence is useful without pretending to be rust-analyzer. Keep
   unresolved facts, per-plugin limitations and source fingerprints attached.
 - A branch-capable engine must keep decisions and data semantics. Do not
@@ -191,8 +220,13 @@ are described in `docs/licenses.md` and shipped `THIRD_PARTY_NOTICES.txt`.
 - Prepare every story before publication; failures must not leave a mixture
   of old and new generations. Verify nonempty/matched browser selections,
   actual export pixels, fresh installs and cache recreation, not test counts.
+- Exact upstream license digests require no-conversion Git attributes, not just
+  whitespace-warning suppression. Exercise real checkout filters under
+  `core.autocrlf=true` with an ordinary-text CRLF control.
 
 The synthetic fixture has four technical nodes/three source-traced edges, a
 native overview, JavaScript/TypeScript source, Rust struct/command/registration,
-and two Rust branches. It is an executable small-boundary proof, not a
+three impl/trait methods, an extern declaration and two Rust branches.
+Its qualified method anchors and ownership survive the installed comment-only
+freshness repair and cache recreation. It is an executable small-boundary proof, not a
 large-repository throughput benchmark or a verified platform matrix.

@@ -5,7 +5,7 @@ import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promi
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { vizAttributions } from "./embedded-notices.mjs";
+import { VIZ_COMPONENTS, vizAttributions } from "./embedded-notices.mjs";
 import {
   checkThirdPartyNotices,
   collectDependencyClosure,
@@ -34,6 +34,37 @@ async function createFixture(context) {
   context.after(() => rm(root, { force: true, recursive: true }));
   return root;
 }
+
+test("every byte-pinned upstream license survives actual Windows-style Git checkout filters", async (context) => {
+  const root = await createFixture(context);
+  const pins = new Map(VIZ_COMPONENTS.map((item) => [item.file, item.sha256]));
+  const overrides = JSON.parse(await readFile(new URL("../licenses/third-party/overrides.json", import.meta.url), "utf8"));
+  for (const item of overrides.overrides) pins.set(item.licenseFile, item.sha256);
+  assert.equal(pins.size, 6);
+  await mkdir(path.join(root, "licenses/third-party"), { recursive: true });
+  await copyFile(new URL("../.gitattributes", import.meta.url), path.join(root, ".gitattributes"));
+  for (const [name, expected] of pins) {
+    const bytes = await readFile(new URL(`../licenses/third-party/${name}`, import.meta.url));
+    assert.equal(createHash("sha256").update(bytes).digest("hex"), expected, name);
+    await writeFile(path.join(root, "licenses/third-party", name), bytes);
+  }
+  await writeFile(path.join(root, "control.txt"), "one\ntwo\n");
+  const git = (...args) => execFileSync("git", [
+    "-c", "core.autocrlf=true", "-c", "core.eol=crlf", "-c", `core.attributesfile=${os.devNull}`,
+    "-c", "user.name=License Fixture", "-c", "user.email=fixture@example.invalid",
+    "-c", "commit.gpgsign=false", ...args,
+  ], { cwd: root, stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, GIT_CONFIG_GLOBAL: os.devNull, GIT_CONFIG_NOSYSTEM: "1" } });
+  git("init", "--quiet");
+  git("add", ".");
+  git("commit", "--quiet", "-m", "Pinned license checkout fixture");
+  assert.equal(git("cat-file", "--filters", "HEAD:control.txt").toString(), "one\r\ntwo\r\n");
+  for (const [name, expected] of pins) {
+    const filtered = git("cat-file", "--filters", `HEAD:licenses/third-party/${name}`);
+    const actual = createHash("sha256").update(filtered).digest("hex");
+    assert.equal(actual, expected, name);
+    context.diagnostic(`${name}: ${actual}`);
+  }
+});
 
 async function createWorkspace(root, directory, manifest) {
   await writeJson(
