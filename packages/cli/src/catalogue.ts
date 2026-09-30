@@ -1156,6 +1156,7 @@ export function renderCataloguePage(
           <li>Check it with <code>topo story validate . stories/&lt;name&gt;.topo.json</code>, then commit it.</li>
           <li>Run <code>topo story preview . stories/&lt;name&gt;.topo.json</code> and refresh this page. All committed stories join this inventory.</li>
         </ol>
+        <p>Source-grounded native stories require the repository's Git origin remote for evidence validation. Capability demos do not.</p>
         <p><code>topo init . --skills</code> can install optional project authoring guidance.</p>
       </section>` : ""}
       ${repository === undefined

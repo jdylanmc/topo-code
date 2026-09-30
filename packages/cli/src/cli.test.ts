@@ -74,6 +74,7 @@ describe("documented CLI workflow", () => {
       expect(html).toContain("Topocode home");
       expect(html).toContain("No diagrams yet");
       expect(html).toContain("Repository not scanned");
+      expect(html).toContain("Git origin remote");
       expect(html).not.toContain("data-repository-viewer");
     } finally {
       await new Promise<void>((done, reject) => server.close((error) => error ? reject(error) : done()));

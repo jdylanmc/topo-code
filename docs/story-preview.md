@@ -78,6 +78,10 @@ The story file must be tracked, committed, and unchanged relative to `HEAD`.
 Source files may contain uncommitted changes: the CLI states that the preview
 describes the working tree while retaining the committed revision in rendered
 metadata.
+Source-grounded native rendering also requires the repository's Git `origin`
+remote for evidence validation. Initialization and anchor-free capability demos
+do not require a remote. This is the existing native evidence contract, not an
+instruction to invent a remote or misclassify factual stories as demos.
 
 An optional nonempty `category` field supplies the story's catalogue category.
 Without it, Topocode derives a category from the first directory below

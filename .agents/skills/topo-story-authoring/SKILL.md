@@ -60,6 +60,9 @@ renderer output in `.topo/cache/site`.
 
 Commit only when authorized by the repository owner. For a globally installed
 CLI, use `topo` directly instead of `npm exec --no -- topo`.
+Source-grounded native rendering requires the repository's Git `origin` remote
+for evidence validation. Do not invent a remote. Initialization and anchor-free
+capability demos do not require one; demos must never replace factual evidence.
 
 ## Minimal source-grounded document
 
