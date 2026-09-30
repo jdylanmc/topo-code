@@ -59,13 +59,20 @@ never change global settings or commit credentials.
 ## Package boundary
 
 `distribution/package.json` owns public identity and exports. `scripts/pack.mjs`
-stages built modules/assets and npm-bundles the twelve private `@topo/*` packages
+stages built modules/assets and npm-bundles the thirteen private `@topo/*` packages
 with concrete internal versions. Their original file-relative ESM/resource
 boundaries remain intact. No `workspace:*`, build hooks, source checkout,
 unpublished private-package lookup or absolute local dependency path is required.
 External runtime dependencies remain declared. Consumers receive schemas, three
 portable skills and project instructions, example source-change fixtures and
 composed legal notices. Debug source maps and tests do not ship.
+
+The candidate includes optional native Rust parser dependencies, an explicitly
+selected Tauri bridge and `@viz-js/viz@3.30.0` with the exact embedded Graphviz
+license exception. Installed `docs/rust-tauri.md` and `examples/rust-tauri/`
+cover mixed-language operation, technical authoring and cache-only recreation.
+The package smoke exercises both the original JavaScript/TypeScript consumer and
+a fresh mixed consumer; no development workspace imports are used after packing.
 
 `topo init --skills` opts into `.agents/skills/topo*` and
 `.github/instructions/topo.instructions.md`. It does not overwrite existing

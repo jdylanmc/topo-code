@@ -17,7 +17,7 @@ test("actual lint results cover the eligible tracked source inventory", async (c
   // Keep this expectation independent of ESLint's globs so broader ignores fail.
   const expected = [...tracked].filter((file) =>
     /\.(?:[cm]?[jt]s|[jt]sx)$/.test(file)
-    && (!file.includes("/") || /^(packages|scripts|benchmarks|tools|distribution)\//.test(file))
+    && (!file.includes("/") || /^(packages|scripts|benchmarks|tools|distribution|examples)\//.test(file))
     && !/(^|\/)(node_modules|\.topo|dist|build|coverage|playwright-report|test-results)\//.test(file)
     && !/^(benchmarks\/(results|\.generated)|packages\/schema\/src\/generated|packages\/[^/]+\/vendor)\//.test(file),
   ).sort();
@@ -34,6 +34,8 @@ test("correctness rules cover maintained source, tests, scripts and tooling", as
   for (const filePath of [
     "packages/cli/src/main.ts",
     "distribution/topo.js",
+    "examples/rust-tauri/src/main.ts",
+    "examples/rust-tauri/src/label.js",
     "packages/site/src/data.ts",
     "packages/site/src/data.test.ts",
     "packages/site/tests/e2e/workflow.spec.ts",

@@ -4,18 +4,18 @@ export const SCANNER_MODULE_ID = "@topo/scanner-typescript" as const;
 export const SCANNER_VERSION = "0.0.0" as const;
 
 export interface ScannerCapabilities {
-  languages: readonly ["javascript", "typescript"];
-  granularity: readonly ["directory", "file", "semantic-entity"];
-  relationships: readonly ["imports", "calls", "constructs", "type-use", "heritage"];
-  moduleResolution: "typescript-compiler";
-  workspaceManifests: readonly ["package.json"];
-  opaqueAssets: readonly ["css"];
+  languages: readonly string[];
+  granularity: readonly string[];
+  relationships: readonly string[];
+  moduleResolution: string;
+  workspaceManifests: readonly string[];
+  opaqueAssets: readonly string[];
   partialResults: true;
 }
 
 export interface ScannerManifest {
-  id: typeof SCANNER_MODULE_ID;
-  version: typeof SCANNER_VERSION;
+  id: string;
+  version: string;
   contractVersion: "1.0";
   capabilities: ScannerCapabilities;
 }

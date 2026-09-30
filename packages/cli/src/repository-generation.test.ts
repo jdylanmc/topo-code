@@ -5,9 +5,10 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
+import { createGraphDocument } from "@topo/schema";
 import { bundleSite } from "./bundle.js";
-import { readRepositoryIndex } from "./repository-generation.js";
-import { buildCatalogue, writeBuiltCatalogue } from "./catalogue.js";
+import { generateRepository, readRepositoryIndex } from "./repository-generation.js";
+import { buildCatalogue, repositoryState, writeBuiltCatalogue } from "./catalogue.js";
 
 const execute = promisify(execFile);
 const entry = fileURLToPath(new URL("../dist/main.js", import.meta.url));
@@ -41,6 +42,34 @@ afterEach(async () => {
 });
 
 describe("generated repository delivery", () => {
+  it("rejects an unsupported produced declaration before preparing or publishing viewers", async () => {
+    const root = await repository();
+    const source = await repositoryState(root);
+    const graph = createGraphDocument({
+      graphId: "repo:fixture",
+      repository: { id: "fixture", label: "Fixture", revision: source.revision },
+      nodes: [{
+        id: "path:src/order.ts", label: "order.ts", kind: "file",
+        identity: { kind: "path", value: "src/order.ts" },
+      }],
+      extensions: {
+        "dev.topo.languages": {
+          schemaVersion: "1.0",
+          contributions: [{
+            entities: [{
+              id: "unknown:declaration", name: "Order", kind: "unknown-adapter-kind", language: "typescript",
+              qualifiedName: "src/order.ts::Order", exported: true, signatures: [], attributes: [],
+              location: { path: "src/order.ts", startLine: 2, startColumn: 1, endLine: 4, endColumn: 2 },
+            }],
+            relationships: [],
+          }],
+        },
+      },
+    });
+    await expect(generateRepository(root, graph, undefined, source)).rejects.toThrow("Invalid generated repository node");
+    await expect(readFile(join(root, ".topo/cache/site/repository.json"))).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
   it("scans a local-only repository into real Archify pages without creating authored stories", async () => {
     const root = await repository();
     await execute(process.execPath, [entry, "scan", root]);
@@ -139,13 +168,32 @@ describe("generated repository delivery", () => {
     const root = await repository();
     await execute(process.execPath, [entry, "scan", root]);
     const index = (await readRepositoryIndex(root))!;
-    expect(index.runtimeFiles?.filter((file) => file.endsWith(".js"))).toHaveLength(2);
+    expect(index.runtimeFiles?.filter((file) => file.endsWith(".js"))).toHaveLength(3);
+    const scripts = await Promise.all(index.runtimeFiles!.filter((file) => file.endsWith(".js")).map((file) =>
+      readFile(join(root, ".topo/cache/site/repository-runtime", file), "utf8")));
+    expect(scripts.filter((script) => script.includes("topo.theme.v1"))).toHaveLength(1);
+    expect(Object.keys(index.rendererReceipts!)).toHaveLength(index.pages.length);
     const output = join(root, ".topo/deploy");
     await bundleSite(root, output);
     const before = await readFile(join(output, "index.html"), "utf8");
     const runtime = join(root, ".topo/cache/site/repository-runtime", index.runtimeFiles![0]!);
     await writeFile(runtime, "tampered");
     await expect(bundleSite(root, output)).rejects.toThrow(/runtime asset integrity failure/);
+    expect(await readFile(join(output, "index.html"), "utf8")).toBe(before);
+  });
+
+  it("binds adapted shared viewers separately and rejects viewer tampering before publication", async () => {
+    const root = await repository();
+    await execute(process.execPath, [entry, "scan", root]);
+    const index = (await readRepositoryIndex(root))!;
+    const [id, receipt] = Object.entries(index.rendererReceipts!)[0]!;
+    expect(receipt.outputSha256).not.toBe(receipt.sourceOutputSha256);
+    const output = join(root, ".topo/deploy");
+    await bundleSite(root, output);
+    const before = await readFile(join(output, "index.html"), "utf8");
+    const viewer = join(root, ".topo/cache/site/repository", id, "viewer.html");
+    await writeFile(viewer, `${await readFile(viewer, "utf8")}\n<!-- changed -->`);
+    await expect(bundleSite(root, output)).rejects.toThrow("Repository viewer integrity failure");
     expect(await readFile(join(output, "index.html"), "utf8")).toBe(before);
   });
 });

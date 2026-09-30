@@ -5,6 +5,7 @@ import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promi
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { VIZ_COMPONENTS, vizAttributions } from "./embedded-notices.mjs";
 import {
   checkThirdPartyNotices,
   collectDependencyClosure,
@@ -33,6 +34,37 @@ async function createFixture(context) {
   context.after(() => rm(root, { force: true, recursive: true }));
   return root;
 }
+
+test("every byte-pinned upstream license survives actual Windows-style Git checkout filters", async (context) => {
+  const root = await createFixture(context);
+  const pins = new Map(VIZ_COMPONENTS.map((item) => [item.file, item.sha256]));
+  const overrides = JSON.parse(await readFile(new URL("../licenses/third-party/overrides.json", import.meta.url), "utf8"));
+  for (const item of overrides.overrides) pins.set(item.licenseFile, item.sha256);
+  assert.equal(pins.size, 6);
+  await mkdir(path.join(root, "licenses/third-party"), { recursive: true });
+  await copyFile(new URL("../.gitattributes", import.meta.url), path.join(root, ".gitattributes"));
+  for (const [name, expected] of pins) {
+    const bytes = await readFile(new URL(`../licenses/third-party/${name}`, import.meta.url));
+    assert.equal(createHash("sha256").update(bytes).digest("hex"), expected, name);
+    await writeFile(path.join(root, "licenses/third-party", name), bytes);
+  }
+  await writeFile(path.join(root, "control.txt"), "one\ntwo\n");
+  const git = (...args) => execFileSync("git", [
+    "-c", "core.autocrlf=true", "-c", "core.eol=crlf", "-c", `core.attributesfile=${os.devNull}`,
+    "-c", "user.name=License Fixture", "-c", "user.email=fixture@example.invalid",
+    "-c", "commit.gpgsign=false", ...args,
+  ], { cwd: root, stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, GIT_CONFIG_GLOBAL: os.devNull, GIT_CONFIG_NOSYSTEM: "1" } });
+  git("init", "--quiet");
+  git("add", ".");
+  git("commit", "--quiet", "-m", "Pinned license checkout fixture");
+  assert.equal(git("cat-file", "--filters", "HEAD:control.txt").toString(), "one\r\ntwo\r\n");
+  for (const [name, expected] of pins) {
+    const filtered = git("cat-file", "--filters", `HEAD:licenses/third-party/${name}`);
+    const actual = createHash("sha256").update(filtered).digest("hex");
+    assert.equal(actual, expected, name);
+    context.diagnostic(`${name}: ${actual}`);
+  }
+});
 
 async function createWorkspace(root, directory, manifest) {
   await writeJson(
@@ -74,7 +106,7 @@ async function createBundledLicenseFixtures(root) {
 test("the direct inventory cannot skip external @topo names and shares the license policy", async (context) => {
   const root = await createFixture(context);
   await mkdir(path.join(root, "scripts"));
-  for (const name of ["check-licenses.mjs", "dependency-notices.mjs"]) {
+  for (const name of ["check-licenses.mjs", "dependency-notices.mjs", "embedded-notices.mjs"]) {
     await copyFile(new URL(name, import.meta.url), path.join(root, "scripts", name));
   }
   await createWorkspace(root, "app", {
@@ -136,6 +168,34 @@ async function createLicenseOverride(
     null,
   );
 }
+
+test("portable optional notices are identical with and without the exact platform package", async (context) => {
+  const root = await createFixture(context);
+  await createWorkspace(root, "app", { name: "@topo/app", optionalDependencies: { runtime: "1.0.0" } });
+  await createLicenseOverride(root);
+  const file = path.join(root, "licenses/third-party/overrides.json");
+  const manifest = JSON.parse(await readFile(file, "utf8"));
+  manifest.overrides[0].optionalDistribution = true;
+  await writeJson(file, manifest);
+  const installed = renderThirdPartyNotices(await collectDependencyClosure({ rootDirectory: root }));
+  await rm(path.join(root, "node_modules/runtime"), { recursive: true });
+  const absent = renderThirdPartyNotices(await collectDependencyClosure({ rootDirectory: root, platform: "linux", architecture: "x64" }));
+  assert.equal(absent, installed);
+  assert.match(absent, /Optional platform distribution/);
+  await createWorkspace(root, "app", { name: "@topo/app", optionalDependencies: { runtime: "2.0.0" } });
+  const drifted = await collectDependencyClosure({ rootDirectory: root });
+  assert.throws(() => renderThirdPartyNotices(drifted), /override is unused/);
+});
+
+test("the embedded Graphviz exception rejects package drift and altered backend bytes", async (context) => {
+  const root = await createFixture(context);
+  await assert.rejects(vizAttributions(root, root, { name: "@viz-js/viz", version: "3.31.0", license: "MIT" }), /only for/);
+  await mkdir(path.join(root, "lib"));
+  await writeFile(path.join(root, "lib/provenance.json"), "{}");
+  await writeFile(path.join(root, "lib/backend.js"), "changed");
+  await assert.rejects(vizAttributions(root, root, { name: "@viz-js/viz", version: "3.30.0", license: "MIT" }), /digest mismatch/);
+  assert.equal((await import("./dependency-notices.mjs")).ALLOWED_LICENSES.has("EPL-2.0"), false);
+});
 
 test("walks hoisted dependencies through workspace references", async (context) => {
   const root = await createFixture(context);

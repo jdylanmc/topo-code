@@ -46,6 +46,15 @@ runtime behavior. Partial previews exit 2. `topo enrich` is a separate explicit
 provider-command surface, not part of scanning. Generated `.topo/cache` output
 is disposable; configuration and authored documents are not.
 
+Explicit first-party Rust/Tauri selection, technical decision/data workflows
+and hash-bound source evidence are supported by this unreleased candidate.
+Read `docs/rust-tauri.md` and the synthetic `examples/rust-tauri/` before
+configuring analysis or authoring technical stories. Rust/Tauri are parser-backed
+and partial, not Cargo/rust-analyzer semantics. Graphviz is an explicit bounded
+backend with its own receipts and complete EPL-2.0/source-availability notices,
+not a native-renderer fallback. App-owned themes also govern native default
+exports. None of these changes updates the already-published 0.1.0.
+
 Bundles are plain static files with notices; hosting, deployment and access
 control are yours. Runtime rendering does not download Archify or call a model.
 Private bundled `@topo/*` modules are implementation details, not a public SDK.

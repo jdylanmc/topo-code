@@ -3,6 +3,7 @@ import { cp, lstat, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "nod
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { checkThirdPartyNotices } from "./dependency-notices.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const output = path.resolve(process.argv[2] ?? path.join(root, "dist"));
@@ -16,13 +17,14 @@ async function copy(source, destination) {
   if (entry.isDirectory()) {
     await mkdir(destination, { recursive: true });
     for (const file of await readdir(source)) await copy(path.join(source, file), path.join(destination, file));
-  } else if (/\.(?:js|ts)$/.test(source)) {
+  } else if (/\.[cm]?[jt]s$/.test(source)) {
     await writeFile(destination, (await readFile(source, "utf8")).replace(/^\/\/# sourceMappingURL=.*(?:\r?\n|$)/gm, ""));
   } else {
     await cp(source, destination);
   }
 }
 try {
+  await checkThirdPartyNotices({ rootDirectory: root });
   const manifest = await json(path.join(root, "distribution/package.json"));
   const bundled = [];
   for (const entry of (await readdir(path.join(root, "packages"), { withFileTypes: true })).filter((entry) => entry.isDirectory())) {
@@ -40,6 +42,12 @@ try {
     if (entry.name === "site") internal.exports["./data"].types = "./dist/data-contract/data.d.ts";
     bundled.push(internal.name);
     const dependencies = {};
+    const optionalDependencies = { ...internal.optionalDependencies };
+    for (const [name, spec] of Object.entries(optionalDependencies)) {
+      manifest.optionalDependencies ??= {};
+      if (manifest.optionalDependencies[name] && manifest.optionalDependencies[name] !== spec) throw new Error(`Conflicting optional packaged dependency: ${name}`);
+      manifest.optionalDependencies[name] = spec;
+    }
     for (const [name, spec] of Object.entries({ ...internal.dependencies, ...internal.peerDependencies })) {
       if (spec.startsWith("workspace:")) {
         dependencies[name] = "0.0.0";
@@ -52,7 +60,7 @@ try {
     // Compiled private module boundaries remain intact; no workspace resolver ships.
     await writeJson(path.join(destination, "package.json"), {
       name: internal.name, version: "0.0.0", private: true, type: "module",
-      exports: internal.exports, dependencies,
+      exports: internal.exports, dependencies, optionalDependencies,
     });
     manifest.dependencies[internal.name] = "0.0.0";
   }
@@ -65,6 +73,10 @@ try {
   await copy(path.join(root, "packages/site/dist/THIRD_PARTY_NOTICES.txt"), path.join(stage, "THIRD_PARTY_NOTICES.txt"));
   await copy(path.join(root, "packages/cli/skills"), path.join(stage, "skills"));
   await copy(path.join(root, "examples/story-authoring"), path.join(stage, "examples/story-authoring"));
+  await copy(path.join(root, "examples/rust-tauri"), path.join(stage, "examples/rust-tauri"));
+  await mkdir(path.join(stage, "docs"));
+  await copy(path.join(root, "docs/rust-tauri.md"), path.join(stage, "docs/rust-tauri.md"));
+  await copy(path.join(root, "docs/licenses.md"), path.join(stage, "docs/licenses.md"));
   for (const [directory, name] of [["story", "story.schema.json"], ["schema", "graph.schema.json"]]) {
     await copy(path.join(root, "packages", directory, name), path.join(stage, name));
   }

@@ -23,6 +23,20 @@ publication remains a separate release-owner action.
 
 ### Added
 
+- Support explicit first-party Rust language and Tauri bridge selection through
+  normal scan/preview/bundle commands, retaining JS/TS defaults, deterministic
+  source identities, lexical ownership, per-plugin partial/unresolved evidence
+  and conservative shadowing/mutation handling. No Cargo, proc-macro or model
+  execution is introduced.
+- Add snapshot-bound technical Workflow stories with decision/data shapes,
+  exact node/edge excerpts and source-traced versus inferred connections.
+  Explicit Graphviz 16.0.0 rendering has engine-specific layout receipts and a
+  narrowly pinned embedded EPL-2.0 exception with full notices and source
+  availability. Native diagram families remain unchanged.
+- Ship generic Rust/Tauri fixtures, installed authoring/operation guidance and
+  transferable parser, rendering, theme, publication and regeneration findings.
+  No consumer application's authored diagrams or caches are included.
+
 - Create a ready-to-serve, branded diagram Home on plain or skills-enabled
   `topo init`, including empty/unborn repositories without scanning. Reuse the
   categorized inventory across Home and native story pages, keep Repository
@@ -127,6 +141,22 @@ publication remains a separate release-owner action.
   Installation does not activate orchestration or scheduled monitoring.
 
 ### Fixed
+
+- Retain Rust impl/trait methods through validated Repository publication,
+  preview, bundle and cache recreation. Structural impl/extern owner identities
+  keep named descendants and qualified anchors stable across comment-only moves.
+- Reject uncertain Tauri helper positions across spreads/rest bindings and
+  invalidate obsolete helpers after equivalent dot/computed-member writes,
+  while preserving known scalar and unmodified-receiver controls.
+- Preserve byte-pinned upstream license files through Git checkout conversion,
+  including Windows autocrlf, without weakening exact license digest gates.
+
+- Make shell, evidence, authored/generated viewers and native default exports
+  share one app-owned theme across focus navigation, stored preferences, media
+  changes and native actions without altering pristine renderer package bytes.
+- Preserve renderer-owned evidence/specification assets through scan and bundle,
+  distinguish native and adapted/shared-output hashes, and roll back reported
+  generation-replacement failures rather than leaving mixed generations.
 
 - Publish explicit local tarball paths so npm cannot interpret `dist/filename.tgz`
   as GitHub shorthand; verify both release modes with offline dry-run publication.

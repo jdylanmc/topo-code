@@ -21,6 +21,7 @@
     "@topo/diagram-core": "workspace:*",
     "@topo/enrichment": "workspace:*",
     "@topo/graph": "workspace:*",
+    "@topo/languages": "workspace:*",
     "@topo/modules": "workspace:*",
     "@topo/reports": "workspace:*",
     "@topo/scanner": "workspace:*",

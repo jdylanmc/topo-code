@@ -3,12 +3,14 @@ import { execFile } from "node:child_process";
 import { readFile, readdir, rm, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
-import { renderStory } from "@topo/diagram-core";
+import { CORE_THEME_SCRIPT, renderStory } from "@topo/diagram-core";
 import {
   parseStoryDocument,
   resolveStoryDocument,
   type StoryDocument,
   type StoryRenderer,
+  type ResolvedSourceAnchor,
+  type StoryArtifact,
 } from "@topo/story";
 import {
   writeGenerated,
@@ -16,6 +18,8 @@ import {
   isMissing,
   loadConfig,
   withWorkspaceLock,
+  withGeneratedTransaction,
+  removeGenerated,
   type WorkspaceCatalogueConfig,
 } from "@topo/workspace";
 import {
@@ -37,10 +41,9 @@ export interface CatalogueStory {
     readonly modified: number | null;
   };
   readonly contents: string;
-  readonly renderer: {
-    readonly name: string;
-    readonly pin: string;
-  };
+  readonly renderer: StoryArtifact["renderer"];
+  readonly anchors?: readonly ResolvedSourceAnchor[];
+  readonly assets?: Readonly<Record<string, string>>;
 }
 
 export interface BuiltCatalogue {
@@ -89,6 +92,7 @@ export async function initializeSite(root: string, assets: string): Promise<void
       ...await Promise.all(SITE_NOTICES.map(async (name): Promise<[string, Buffer]> =>
         [name, await readFile(resolve(assets, name))])),
       ["shell.js", SHELL_SCRIPT],
+      ["theme.js", CORE_THEME_SCRIPT],
       ["site-state.json", `${JSON.stringify({
         schemaVersion: "1.0", kind: "unscanned", repositoryId: config.repositoryId,
       })}\n`],
@@ -295,9 +299,12 @@ export async function buildCatalogue(
       documentPath,
       history,
       contents: artifact.contents,
-      renderer: {
-        name: artifact.renderer.name,
-        pin: artifact.renderer.pin,
+      renderer: artifact.renderer,
+      anchors: resolved.anchors,
+      assets: {
+        ...artifact.assets,
+        "evidence.json": `${JSON.stringify({ source: resolved.source, anchors: resolved.anchors, connections: document.connections }, null, 2)}\n`,
+        "renderer.json": `${JSON.stringify(artifact.renderer, null, 2)}\n`,
       },
     };
   }));
@@ -362,6 +369,17 @@ const STORY_NAVIGATION_SCRIPT = `(() => {
   const crossLinks = [...document.querySelectorAll("[data-cross-story]")];
   const params = new URLSearchParams(window.location.search);
 
+  function showEvidence(focus, edge) {
+    for (const evidence of document.querySelectorAll("[data-section-evidence]")) {
+      evidence.hidden = edge !== null || Boolean(focus) && evidence.dataset.sectionEvidence !== focus;
+    }
+    for (const evidence of document.querySelectorAll("[data-edge-evidence]")) {
+      evidence.hidden = edge !== null ? evidence.dataset.edgeEvidence !== edge :
+        Boolean(focus) && evidence.dataset.edgeFrom !== focus && evidence.dataset.edgeTo !== focus;
+    }
+    if (edge !== null) document.querySelector(".story-details").open = true;
+  }
+
   function setFocus(nodeId) {
     for (const link of nodeLinks) {
       if (link.getAttribute("data-node-id") === nodeId) {
@@ -375,6 +393,7 @@ const STORY_NAVIGATION_SCRIPT = `(() => {
 
   function rememberFocus(nodeId) {
     const url = new URL(window.location.href);
+    url.searchParams.delete("edge");
     if (nodeId) url.searchParams.set("focus", nodeId);
     else url.searchParams.delete("focus");
     window.history.replaceState(null, "", url);
@@ -416,11 +435,27 @@ const STORY_NAVIGATION_SCRIPT = `(() => {
     const child = frame.contentWindow;
     const childDocument = frame.contentDocument;
     if (!child || !childDocument) return;
+    const currentParams = new URLSearchParams(window.location.search);
+    showEvidence(currentParams.get("focus") || "", currentParams.get("edge"));
     const syncSelectedNode = () => {
-      const focus = new URLSearchParams(child.location.hash.replace(/^#/, "")).get("focus");
+      const selected = new URLSearchParams(child.location.hash.replace(/^#/, ""));
+      const edge = selected.get("edge");
+      if (edge !== null && document.querySelector('[data-edge-evidence="' + CSS.escape(edge) + '"]')) {
+        const current = new URL(window.location.href);
+        current.searchParams.delete("focus");
+        current.searchParams.set("edge", edge);
+        window.history.replaceState(null, "", current);
+        showEvidence("", edge);
+        return;
+      }
+      const focus = selected.get("focus");
       if (!focus) return;
       const candidates = crossLinks.filter((link) => link.getAttribute("data-source-node") === focus);
-      rememberFocus(focus);
+      const current = new URL(window.location.href);
+      current.searchParams.delete("edge");
+      current.searchParams.set("focus", focus);
+      window.history.replaceState(null, "", current);
+      showEvidence(focus, null);
       if (diagramFamily !== "sequence" && candidates.length === 1) {
         follow(candidates[0]);
       }
@@ -430,6 +465,9 @@ const STORY_NAVIGATION_SCRIPT = `(() => {
   });
 
   setFocus(params.get("focus") || "");
+  if (params.has("edge") && document.querySelector('[data-edge-evidence="' + CSS.escape(params.get("edge")) + '"]')) {
+    frame.src = "viewer.html#edge=" + encodeURIComponent(params.get("edge"));
+  }
 })();\n`;
 
 async function retireLegacySiteEntries(
@@ -438,18 +476,12 @@ async function retireLegacySiteEntries(
   retireLegacyAssets: boolean,
 ): Promise<void> {
   await Promise.all([
-    rm(await workspacePath(root, "cache/site/explorer"), {
-      recursive: true,
-      force: true,
-    }),
+    removeGenerated(root, "cache/site/explorer"),
     ...(retireLegacyAssets
-      ? [rm(await workspacePath(root, "cache/site/assets"), {
-          recursive: true,
-          force: true,
-        })]
+      ? [removeGenerated(root, "cache/site/assets")]
       : []),
     ...["favicon.svg", "main.js", "styles.css"].map(async (name) =>
-      rm(await workspacePath(root, `cache/site/${name}`), { force: true })),
+      removeGenerated(root, `cache/site/${name}`)),
   ]);
   const storyRoot = await workspacePath(root, "cache/site/stories");
   const expected = new Set(stories.map(({ document }) => document.id));
@@ -464,10 +496,15 @@ async function retireLegacySiteEntries(
   }
   await Promise.all(entries
     .filter((entry) => !expected.has(entry.name))
-    .map(async (entry) => rm(
-      await workspacePath(root, `cache/site/stories/${entry.name}`),
-      { recursive: entry.isDirectory(), force: true },
-    )));
+    .map(async (entry) => removeGenerated(root, `cache/site/stories/${entry.name}`)));
+  for (const story of stories) {
+    if (!entries.some((entry) => entry.name === story.document.id && entry.isDirectory())) continue;
+    const files = await readdir(await workspacePath(root, `cache/site/stories/${story.document.id}`));
+    const retained = new Set(["index.html", "viewer.html", ...Object.keys(story.assets ?? {})]);
+    for (const file of files) {
+      if (!retained.has(file)) await removeGenerated(root, `cache/site/stories/${story.document.id}/${file}`);
+    }
+  }
 }
 
 const SHELL_SCRIPT = `(() => {
@@ -829,11 +866,20 @@ export function renderStoryWrapper(
     const crossLinks = (linksByNode.get(section.id) ?? []).map((link) =>
       `<a data-cross-story data-source-node="${escapeHtml(section.id)}" href="../${encodeURIComponent(link.targetStoryId)}/?focus=${encodeURIComponent(link.targetNodeId)}&amp;from=${encodeURIComponent(story.document.id)}&amp;fromFocus=${encodeURIComponent(section.id)}">Open ${escapeHtml(link.targetStoryTitle)}: ${escapeHtml(link.targetNodeTitle)}</a>`,
     ).join("");
+    const evidence = (story.anchors ?? []).filter((anchor) => section.anchorIds.includes(anchor.id)).map((anchor) =>
+      `<figure><figcaption>${escapeHtml(anchor.path)}:${anchor.location.startLine}-${anchor.location.endLine}</figcaption><pre>${escapeHtml(anchor.excerpt)}</pre></figure>`).join("");
     return `<li>
       <a data-node-id="${escapeHtml(section.id)}" href="?focus=${encodeURIComponent(section.id)}">${escapeHtml(section.title)}</a>
       ${crossLinks}
+      <div data-section-evidence="${escapeHtml(section.id)}"><p>${escapeHtml(section.body)}</p>${evidence}</div>
     </li>`;
   }).join("\n");
+  const edges = story.document.connections.map((edge, index) => {
+    if (!edge.classification) return "";
+    const excerpts = (story.anchors ?? []).filter((anchor) => edge.anchorIds?.includes(anchor.id)).map((anchor) =>
+      `<figure><figcaption>${escapeHtml(anchor.path)}:${anchor.location.startLine}-${anchor.location.endLine}</figcaption><pre>${escapeHtml(anchor.excerpt)}</pre></figure>`).join("");
+    return `<div data-edge-evidence="${index}" data-edge-from="${escapeHtml(edge.from)}" data-edge-to="${escapeHtml(edge.to)}"><p><a href="?edge=${index}">${escapeHtml(edge.classification)}: ${escapeHtml(edge.label ?? `${edge.from} to ${edge.to}`)}</a></p><p>${escapeHtml(edge.rationale!)}</p>${excerpts}</div>`;
+  }).join("");
   return renderShellPage(stories, config, historyIncomplete, story, `\
     <iframe data-story-viewer title="${escapeHtml(story.document.title)} rendered story" src="viewer.html"></iframe>
     <details class="story-details">
@@ -843,7 +889,7 @@ export function renderStoryWrapper(
         <p>${escapeHtml(story.document.summary)}</p>
         <a data-return hidden></a>
       </div>
-      <ul>${nodes}</ul>
+      <ul>${nodes}</ul>${edges}
     </details>`, repository);
 }
 
@@ -923,6 +969,7 @@ function renderShellPage(
     <meta name="description" content="${escapeHtml(selected?.document.summary ?? description)}" />
     <link rel="icon" href="data:," />
     <title>${escapeHtml(title)} | Topocode</title>
+    <script src="${selected === undefined ? "./" : "../../"}theme.js"></script>
     <style>
       :root { color-scheme: dark; --accent: ${accent}; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
       * { box-sizing: border-box; }
@@ -1070,6 +1117,26 @@ function renderShellPage(
         [data-navigation-collapsed="true"] .story-details:not([open]) summary { overflow: hidden; font-size: 0; text-align: center; }
         [data-navigation-collapsed="true"] .story-details:not([open]) summary::after { content: "…"; font-size: 1rem; }
       }
+      :root[data-theme="light"] body { background: #f4f7fb; color: #183647; }
+      :root[data-theme="light"] .catalogue-panel,
+      :root[data-theme="light"] .catalogue-panel::before,
+      :root[data-theme="light"] .brand-row,
+      :root[data-theme="light"] .story-details,
+      :root[data-theme="light"] .repository-toolbar,
+      :root[data-theme="light"] input,
+      :root[data-theme="light"] select,
+      :root[data-theme="light"] button { background: #e6eef7; color: #183647; border-color: #a0b6cc; }
+      :root[data-theme="light"] a,
+      :root[data-theme="light"] .story-links a,
+      :root[data-theme="light"] .brand-identity a,
+      :root[data-theme="light"] .site-navigation a { color: #165c9a; }
+      :root[data-theme="light"] p,
+      :root[data-theme="light"] .site-title,
+      :root[data-theme="light"] [data-repository-page],
+      :root[data-theme="light"] [data-repository-status] { color: #37536c; }
+      [data-section-evidence] { font-size: 0.875rem; line-height: 1.5; }
+      .story-details figure { margin: 0.5rem 0; overflow-wrap: anywhere; }
+      .story-details pre { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 78ch; font-size: 12px; }
     </style>
   </head>
   <body${selected === undefined ? "" : ` data-story-id="${escapeHtml(selected.document.id)}" data-story-classification="${selectedClassification}" data-diagram-family="${selected.document.diagramFamily ?? "architecture"}"`}>
@@ -1084,6 +1151,7 @@ function renderShellPage(
           <button type="button" data-collapse aria-label="Collapse diagram navigation" title="Collapse diagram navigation">‹</button>
         </div>
         <div class="site-navigation">
+          <button type="button" data-topo-theme aria-label="Toggle app theme" aria-pressed="false">Theme</button>
           <a data-home-link href="${selected === undefined ? "./" : "../../"}"${selected === undefined ? ' aria-current="page"' : ""}>Home</a>
           ${repository === undefined ? "" : `<a data-repository-home href="${selected === undefined ? "./" : "../../"}?view=repository">Repository</a>`}
           ${selected === undefined ? "" : `<h1>${escapeHtml(selected.document.title)}</h1>`}
@@ -1179,6 +1247,7 @@ export async function writeStoryPage(
   const links = storyLinks(stories);
   await Promise.all([
     writeGenerated(root, "cache/site/shell.js", SHELL_SCRIPT),
+    writeGenerated(root, "cache/site/theme.js", CORE_THEME_SCRIPT),
     writeGenerated(
       root,
       "cache/site/story-navigation.js",
@@ -1224,7 +1293,7 @@ export async function writeBuiltCatalogue(
   config: WorkspaceCatalogueConfig | undefined,
 ): Promise<void> {
   await assertCatalogueCurrent(root, catalogue);
-  await writeCatalogue(
+  await withWorkspaceLock(root, () => writeCatalogue(
     root,
     catalogue.stories,
     config,
@@ -1232,10 +1301,22 @@ export async function writeBuiltCatalogue(
     true,
     undefined,
     catalogue.source,
-  );
+  ));
 }
 
 export async function writeCatalogue(
+  root: string,
+  stories: readonly CatalogueStory[],
+  config: WorkspaceCatalogueConfig | undefined,
+  historyIncomplete = false,
+  retireLegacyAssets = false,
+  generatedRepository?: GeneratedRepository,
+  currentSource?: RepositorySource,
+): Promise<void> {
+  return withGeneratedTransaction(root, () => publishCatalogue(root, stories, config, historyIncomplete, retireLegacyAssets, generatedRepository, currentSource));
+}
+
+async function publishCatalogue(
   root: string,
   stories: readonly CatalogueStory[],
   config: WorkspaceCatalogueConfig | undefined,
@@ -1267,12 +1348,17 @@ export async function writeCatalogue(
       writeGenerated(root, "cache/site/repository.json", `${JSON.stringify(generatedRepository.index)}\n`),
     ]),
     writeGenerated(root, "cache/site/shell.js", SHELL_SCRIPT),
+    writeGenerated(root, "cache/site/theme.js", CORE_THEME_SCRIPT),
     writeGenerated(
       root,
       "cache/site/story-navigation.js",
       STORY_NAVIGATION_SCRIPT,
     ),
     ...stories.flatMap((story) => [
+      ...Object.entries(story.assets ?? {}).map(([name, contents]) => {
+        if (!/^[a-z0-9-]+\.(?:json|dot)$/.test(name)) throw new Error(`Unsupported renderer-owned asset: ${name}`);
+        return writeGenerated(root, `cache/site/stories/${story.document.id}/${name}`, contents);
+      }),
       writeGenerated(
         root,
         `cache/site/stories/${story.document.id}/index.html`,

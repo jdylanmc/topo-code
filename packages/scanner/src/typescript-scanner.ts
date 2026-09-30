@@ -1325,7 +1325,7 @@ export async function scanRepository(
   const fatalEmpty = sortedSources.length === 0;
   if (
     errors.length > 0 &&
-    (!quality.allowPartial || fatalEmpty || rootCargo)
+    (!quality.allowPartial || fatalEmpty)
   ) {
     throw new ScanError(
       `Repository scan failed with ${errors.length} error diagnostic${errors.length === 1 ? "" : "s"}.`,

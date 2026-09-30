@@ -7,5 +7,6 @@
     "types": ["node"]
   },
   "include": ["src/**/*.ts"],
+  "references": [{ "path": "../languages" }],
   "exclude": ["src/**/*.test.ts"]
 }

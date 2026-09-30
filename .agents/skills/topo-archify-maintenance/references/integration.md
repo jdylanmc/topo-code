@@ -55,6 +55,20 @@ https://github.com/jdylanmc/topo-code/issues/13.
   not semantic truth. The installed tarball fixture must move source, observe
   stale-anchor failure, repair only affected fields, preserve stable IDs and
   unrelated intent, then preview and bundle.
+- **Theme ownership:** core owns `topo.theme.v1`, including native T/button/command
+  actions, reconstructed focus URLs and default SVG export's explicit-theme
+  seam. Test hostile old storage and live OS media plus actual SVG/PNG pixels.
+  A one-time `?theme=dark` is insufficient. Renderer package bytes stay pristine;
+  adapted/shared output hashes are separate from upstream receipts.
+- **Technical backend:** explicit Graphviz 16.0.0 via `@viz-js/viz@3.30.0` handles
+  authored decisions/data with engine-specific receipts. Preserve native families;
+  never silently route a failing native story through Graphviz or call its
+  checks Archify certification. The exact embedded EPL-2.0 exception, backend
+  digest, build provenance and complete notices are enforced separately.
+- **Language boundary:** normal core commands compose first-party parser-backed
+  Rust and Tauri evidence. Do not restore a private experimental CLI, infer
+  Rust semantics from spelling, or hide partial/unresolved coverage. Installed
+  `docs/rust-tauri.md` records durable operation and regression findings.
 
 ## Where the executable evidence lives
 

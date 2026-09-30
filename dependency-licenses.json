@@ -1,5 +1,26 @@
 {
   "dependencies": {
+    "@ast-grep/napi": {
+      "range": "0.45.3",
+      "license": "MIT",
+      "source": "https://github.com/ast-grep/ast-grep/blob/979c143639e3588c31f563091e69398683ed34f0/LICENSE"
+    },
+    "@ast-grep/lang-rust": {
+      "range": "0.0.7",
+      "license": "ISC",
+      "source": "https://www.npmjs.com/package/@ast-grep/lang-rust/v/0.0.7"
+    },
+    "@iarna/toml": {
+      "range": "2.2.5",
+      "license": "ISC",
+      "source": "https://www.npmjs.com/package/@iarna/toml/v/2.2.5"
+    },
+    "@viz-js/viz": {
+      "range": "3.30.0",
+      "license": "MIT",
+      "source": "https://github.com/mdaines/viz-js/blob/99da545270e6e7b127a5c7ba65974b8a604a6358/LICENSE",
+      "embeddedLicenseException": "Graphviz 16.0.0 EPL-2.0; exact backend, provenance and complete notices checked by scripts/embedded-notices.mjs"
+    },
     "@jdylanmc/topo-archify": {
       "range": "0.1.0",
       "license": "MIT",
@@ -21,7 +42,7 @@
       "source": "https://registry.npmjs.org/ignore/7.0.8"
     },
     "typescript-compiler-api": {
-      "range": "npm:typescript@^6.0.0",
+      "range": "npm:typescript@6.0.3",
       "license": "Apache-2.0",
       "source": "https://github.com/microsoft/TypeScript/blob/main/LICENSE.txt"
     }

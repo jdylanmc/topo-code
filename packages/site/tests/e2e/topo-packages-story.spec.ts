@@ -176,7 +176,8 @@ test("package architecture renders a readable multi-row workspace map", async ({
         return [...counts.values()].sort((left, right) => left - right);
       });
 
-    expect(rows).toEqual([3, 3, 3, 4]);
+    expect(fixture.workspaces).toHaveLength(14);
+    expect(rows).toEqual([3, 3, 4, 4]);
   } finally {
     await page.goto("about:blank");
     await stopTopoServer(server);

@@ -16,6 +16,9 @@ import type {
 } from "@topo/story";
 import { cliPath as archifyCli } from "@jdylanmc/topo-archify";
 import { verifyArchifyIntegrity } from "./integrity.js";
+import { adaptViewerTheme, outputHash } from "./theme.js";
+import { renderGraphviz } from "./graphviz.js";
+export { CORE_THEME_SCRIPT } from "./theme.js";
 
 export {
   verifyArchifyIntegrity,
@@ -1539,14 +1542,19 @@ export function* renderArchitectureStoryBatch(
       ], { cwd: directory, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, stdio: ["ignore", "pipe", "pipe"] });
     }
     for (const { output } of jobs) {
+      const sourceContents = readFileSync(output, "utf8");
+      const contents = adaptViewerTheme(improveStoryReadability(sourceContents, "architecture"));
       yield {
         kind: "html",
         mediaType: "text/html",
-        contents: improveStoryReadability(readFileSync(output, "utf8"), "architecture"),
+        contents,
         renderer: {
           name: "archify",
           pin: integrity.version,
           sha256: integrity.archiveSha256,
+          sourceOutputSha256: outputHash(sourceContents),
+          outputSha256: outputHash(contents),
+          adaptation: "topocode-readability-and-theme-v1",
         },
       };
     }
@@ -1557,7 +1565,8 @@ export function* renderArchitectureStoryBatch(
   }
 }
 
-export function renderStory(story: ResolvedStoryDocument): StoryArtifact {
+export function renderStory(story: ResolvedStoryDocument): StoryArtifact | Promise<StoryArtifact> {
+  if (story.document.renderer === "graphviz") return renderGraphviz(story);
   const integrity = verifyArchifyIntegrity();
   const family = story.document.diagramFamily ?? "architecture";
   const adaptiveSequenceLayout = family === "sequence"
@@ -1611,25 +1620,20 @@ export function renderStory(story: ResolvedStoryDocument): StoryArtifact {
         adaptiveSequenceLayout!,
       )
       : readFileSync(outputPath, "utf8");
+    const adapted = adaptViewerTheme(improveStoryReadability(
+      contents, family, adaptiveDataflowLayout, adaptiveSequenceLayout?.fontSize,
+    ));
     return {
       kind: "html",
       mediaType: "text/html",
-      contents: family === "architecture" ||
-          family === "workflow" ||
-          family === "sequence" ||
-          family === "dataflow" ||
-          family === "lifecycle"
-        ? improveStoryReadability(
-          contents,
-          family,
-          adaptiveDataflowLayout,
-          adaptiveSequenceLayout?.fontSize,
-        )
-        : contents,
+      contents: adapted,
       renderer: {
         name: "archify",
         pin: integrity.version,
         sha256: integrity.archiveSha256,
+        sourceOutputSha256: outputHash(readFileSync(outputPath, "utf8")),
+        outputSha256: outputHash(adapted),
+        adaptation: "topocode-readability-and-theme-v1",
       },
     };
   } catch (error) {

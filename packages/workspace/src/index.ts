@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
-import { lstat, mkdir, readFile, realpath, rename, unlink, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readFile, readdir, realpath, rename, rmdir, unlink, writeFile } from "node:fs/promises";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { basename, dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { serializeJson, type JsonValue } from "@topo/schema";
 
@@ -24,6 +25,7 @@ export interface WorkspaceConfig {
   schemaVersion: "1.0";
   repositoryId: string;
   modules: string[];
+  analysis?: { languages: ("typescript" | "rust")[]; frameworks: "tauri"[] };
   enrichment?: WorkspaceEnrichmentConfig;
   catalogue?: WorkspaceCatalogueConfig;
 }
@@ -174,6 +176,24 @@ export function parseConfig(input: unknown): WorkspaceConfig {
     value.catalogue === undefined
       ? undefined
       : parseCatalogueConfig(value.catalogue);
+  let analysis: WorkspaceConfig["analysis"];
+  if (value.analysis !== undefined) {
+    const configured = value.analysis;
+    if (typeof configured !== "object" || configured === null || Array.isArray(configured) ||
+        !("languages" in configured) || !Array.isArray(configured.languages) || !configured.languages.length ||
+        !configured.languages.every((id): id is "typescript" | "rust" => id === "typescript" || id === "rust") ||
+        !("frameworks" in configured) || !Array.isArray(configured.frameworks) ||
+        !configured.frameworks.every((id): id is "tauri" => id === "tauri") ||
+        new Set(configured.languages).size !== configured.languages.length ||
+        new Set(configured.frameworks).size !== configured.frameworks.length ||
+        Object.keys(configured).some((key) => key !== "languages" && key !== "frameworks")) {
+      throw new Error("Workspace analysis requires distinct first-party languages [typescript, rust] and frameworks [tauri]");
+    }
+    if (configured.frameworks.includes("tauri") && (!configured.languages.includes("typescript") || !configured.languages.includes("rust"))) {
+      throw new Error("Tauri requires explicitly selected typescript and rust languages");
+    }
+    analysis = { languages: [...configured.languages], frameworks: [...configured.frameworks] };
+  }
   const unknown = Object.keys(value).filter(
     (key) =>
       ![
@@ -182,6 +202,7 @@ export function parseConfig(input: unknown): WorkspaceConfig {
         "modules",
         "enrichment",
         "catalogue",
+        "analysis",
       ].includes(key),
   );
   if (unknown.length) throw new Error(`Unknown workspace config keys: ${unknown.join(", ")}`);
@@ -191,6 +212,7 @@ export function parseConfig(input: unknown): WorkspaceConfig {
     modules: [...value.modules],
     ...(enrichment === undefined ? {} : { enrichment }),
     ...(catalogue === undefined ? {} : { catalogue }),
+    ...(analysis === undefined ? {} : { analysis }),
   };
 }
 
@@ -265,6 +287,12 @@ export async function writeGenerated(root: string, name: string, content: string
     throw new Error(`Refusing to overwrite authored workspace artifact: ${name}`);
   }
   const target = await workspacePath(root, name);
+  const transaction = generation.getStore();
+  if (transaction) {
+    if (transaction.root !== await realpath(root)) throw new Error("A generated transaction cannot write another repository");
+    transaction.files.set(name, Buffer.from(content));
+    return;
+  }
   await mkdir(dirname(target), { recursive: true });
   const temporary = `${target}.${randomUUID()}.tmp`;
   try {
@@ -276,8 +304,111 @@ export async function writeGenerated(root: string, name: string, content: string
     } catch (error) {
       if (!isMissing(error)) throw error;
     }
+
   }
 }
+
+    interface Generation {
+      root: string;
+      files: Map<string, Buffer | null>;
+      directories: Set<string>;
+    }
+    const generation = new AsyncLocalStorage<Generation>();
+
+    export async function removeGenerated(root: string, name: string): Promise<void> {
+      if (!["graph/", "reports/outputs/", "cache/"].some((prefix) => name.startsWith(prefix))) {
+        throw new Error(`Refusing to remove authored workspace artifact: ${name}`);
+      }
+      const target = await workspacePath(root, name);
+      let info;
+      try { info = await lstat(target); }
+      catch (error) { if (isMissing(error)) return; throw error; }
+      if (info.isSymbolicLink()) throw new Error(`Refusing generated symlink: ${name}`);
+      if (info.isDirectory()) {
+        for (const entry of await readdir(target)) await removeGenerated(root, `${name}/${entry}`);
+        const transaction = generation.getStore();
+        if (transaction) transaction.directories.add(name);
+        else await rmdir(target);
+      } else if (info.isFile()) {
+        const transaction = generation.getStore();
+        if (transaction) transaction.files.set(name, null);
+        else await unlink(target);
+      } else throw new Error(`Unsupported generated artifact: ${name}`);
+    }
+
+    /** Prepare all output before replacement; reported publication errors restore the old generation.
+     * This is rollback-capable, not crash-atomic. Callers hold the workspace write lock. */
+    export async function withGeneratedTransaction<T>(
+      root: string,
+      action: () => Promise<T>,
+      operations: { rename?: typeof rename } = {},
+    ): Promise<T> {
+      const repository = await realpath(root);
+      const parent = generation.getStore();
+      if (parent) {
+        if (parent.root !== repository) throw new Error("Cannot nest transactions across repositories");
+        return action();
+      }
+      const transaction: Generation = { root: repository, files: new Map(), directories: new Set() };
+      const result = await generation.run(transaction, action);
+      const id = randomUUID();
+      const prepared: { target: string; staged?: string; backup?: string; previous?: Buffer }[] = [];
+      const committed: typeof prepared = [];
+      let preserveBackups = false;
+      async function current(target: string): Promise<Buffer | undefined> {
+        try {
+          if (!(await lstat(target)).isFile()) throw new Error(`Generated destination is not a regular file: ${target}`);
+          return await readFile(target);
+        } catch (error) { if (isMissing(error)) return undefined; throw error; }
+      }
+      try {
+        for (const [name, contents] of transaction.files) {
+          const target = await workspacePath(root, name);
+          const previous = await current(target);
+          await mkdir(dirname(target), { recursive: true });
+          const staged = contents === null ? undefined : `${target}.${id}.stage`;
+          const backup = previous === undefined ? undefined : `${target}.${id}.rollback`;
+          const entry = { target, ...(staged ? { staged } : {}), ...(backup ? { backup } : {}), ...(previous ? { previous } : {}) };
+          prepared.push(entry);
+          if (staged) await writeFile(staged, contents!, { flag: "wx" });
+          if (backup) await writeFile(backup, previous!, { flag: "wx" });
+        }
+        for (const file of prepared) {
+          const actual = await current(file.target);
+          if (actual === undefined ? file.previous !== undefined : file.previous === undefined || !actual.equals(file.previous)) {
+            throw new Error(`Generated artifact changed during staging: ${file.target}`);
+          }
+        }
+        for (const file of prepared) {
+          if (file.staged) await (operations.rename ?? rename)(file.staged, file.target);
+          else if (file.previous !== undefined) await unlink(file.target);
+          committed.push(file);
+        }
+      } catch (error) {
+        const failures: unknown[] = [error];
+        for (const file of committed.reverse()) {
+          try {
+            if (file.backup) await rename(file.backup, file.target);
+            else if (file.staged) await unlink(file.target);
+          } catch (rollbackError) { failures.push(rollbackError); }
+        }
+        preserveBackups = failures.length > 1;
+        if (preserveBackups) throw new AggregateError(failures, `Generated rollback incomplete; preserve .${id}.rollback files for repair`);
+        throw error;
+      } finally {
+        for (const file of prepared) {
+          for (const path of [file.staged, ...(preserveBackups ? [] : [file.backup])]) {
+            if (!path) continue;
+            try { await unlink(path); } catch (error) { if (!isMissing(error)) throw error; }
+          }
+        }
+      }
+      for (const name of [...transaction.directories].sort((a, b) => b.length - a.length)) {
+        const path = await workspacePath(root, name);
+        if (!(await readdir(path)).length) await rmdir(path);
+      }
+      return result;
+    }
 
 export async function writeAuthoredAtomic(root: string, name: string, content: string | Uint8Array): Promise<void> {
   let target = await workspacePath(root, name);

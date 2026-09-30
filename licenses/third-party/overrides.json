@@ -1,4 +1,85 @@
 {
   "version": 1,
-  "overrides": []
+  "overrides": [
+    {
+      "name": "@viz-js/viz", "version": "3.30.0", "spdx": "MIT", "licenseFile": "viz-js.LICENSE",
+      "sha256": "f1fb91bf7cbcb42b2af56949e4fa909e1979d5b57c2826cabacdb4b631457720",
+      "sourceRepository": "mdaines/viz-js",
+      "sourceCommitUrl": "https://github.com/mdaines/viz-js/commit/99da545270e6e7b127a5c7ba65974b8a604a6358",
+      "sourceLicenseUrl": "https://raw.githubusercontent.com/mdaines/viz-js/99da545270e6e7b127a5c7ba65974b8a604a6358/LICENSE",
+      "packageMetadataUrl": "https://www.npmjs.com/package/@viz-js/viz/v/3.30.0"
+    },
+    {
+      "name": "@ast-grep/napi-darwin-arm64", "version": "0.45.3", "spdx": "MIT", "optionalDistribution": true, "licenseFile": "ast-grep.LICENSE",
+      "sha256": "81471889c77b2161a3e4dcdb1b2e6ca382e485766132d92d5fe1d7497e7dd2d9",
+      "sourceRepository": "ast-grep/ast-grep",
+      "sourceCommitUrl": "https://github.com/ast-grep/ast-grep/commit/979c143639e3588c31f563091e69398683ed34f0",
+      "sourceLicenseUrl": "https://raw.githubusercontent.com/ast-grep/ast-grep/979c143639e3588c31f563091e69398683ed34f0/LICENSE",
+      "packageMetadataUrl": "https://www.npmjs.com/package/@ast-grep/napi-darwin-arm64/v/0.45.3"
+    },
+    {
+      "name": "@ast-grep/napi-darwin-x64", "version": "0.45.3", "spdx": "MIT", "optionalDistribution": true, "licenseFile": "ast-grep.LICENSE",
+      "sha256": "81471889c77b2161a3e4dcdb1b2e6ca382e485766132d92d5fe1d7497e7dd2d9",
+      "sourceRepository": "ast-grep/ast-grep",
+      "sourceCommitUrl": "https://github.com/ast-grep/ast-grep/commit/979c143639e3588c31f563091e69398683ed34f0",
+      "sourceLicenseUrl": "https://raw.githubusercontent.com/ast-grep/ast-grep/979c143639e3588c31f563091e69398683ed34f0/LICENSE",
+      "packageMetadataUrl": "https://www.npmjs.com/package/@ast-grep/napi-darwin-x64/v/0.45.3"
+    },
+    {
+      "name": "@ast-grep/napi-linux-x64-gnu", "version": "0.45.3", "spdx": "MIT", "optionalDistribution": true, "licenseFile": "ast-grep.LICENSE",
+      "sha256": "81471889c77b2161a3e4dcdb1b2e6ca382e485766132d92d5fe1d7497e7dd2d9",
+      "sourceRepository": "ast-grep/ast-grep",
+      "sourceCommitUrl": "https://github.com/ast-grep/ast-grep/commit/979c143639e3588c31f563091e69398683ed34f0",
+      "sourceLicenseUrl": "https://raw.githubusercontent.com/ast-grep/ast-grep/979c143639e3588c31f563091e69398683ed34f0/LICENSE",
+      "packageMetadataUrl": "https://www.npmjs.com/package/@ast-grep/napi-linux-x64-gnu/v/0.45.3"
+    },
+    {
+      "name": "@ast-grep/napi-linux-x64-musl", "version": "0.45.3", "spdx": "MIT", "optionalDistribution": true, "licenseFile": "ast-grep.LICENSE",
+      "sha256": "81471889c77b2161a3e4dcdb1b2e6ca382e485766132d92d5fe1d7497e7dd2d9",
+      "sourceRepository": "ast-grep/ast-grep",
+      "sourceCommitUrl": "https://github.com/ast-grep/ast-grep/commit/979c143639e3588c31f563091e69398683ed34f0",
+      "sourceLicenseUrl": "https://raw.githubusercontent.com/ast-grep/ast-grep/979c143639e3588c31f563091e69398683ed34f0/LICENSE",
+      "packageMetadataUrl": "https://www.npmjs.com/package/@ast-grep/napi-linux-x64-musl/v/0.45.3"
+    },
+    {
+      "name": "@ast-grep/napi-linux-arm64-gnu", "version": "0.45.3", "spdx": "MIT", "optionalDistribution": true, "licenseFile": "ast-grep.LICENSE",
+      "sha256": "81471889c77b2161a3e4dcdb1b2e6ca382e485766132d92d5fe1d7497e7dd2d9",
+      "sourceRepository": "ast-grep/ast-grep",
+      "sourceCommitUrl": "https://github.com/ast-grep/ast-grep/commit/979c143639e3588c31f563091e69398683ed34f0",
+      "sourceLicenseUrl": "https://raw.githubusercontent.com/ast-grep/ast-grep/979c143639e3588c31f563091e69398683ed34f0/LICENSE",
+      "packageMetadataUrl": "https://www.npmjs.com/package/@ast-grep/napi-linux-arm64-gnu/v/0.45.3"
+    },
+    {
+      "name": "@ast-grep/napi-linux-arm64-musl", "version": "0.45.3", "spdx": "MIT", "optionalDistribution": true, "licenseFile": "ast-grep.LICENSE",
+      "sha256": "81471889c77b2161a3e4dcdb1b2e6ca382e485766132d92d5fe1d7497e7dd2d9",
+      "sourceRepository": "ast-grep/ast-grep",
+      "sourceCommitUrl": "https://github.com/ast-grep/ast-grep/commit/979c143639e3588c31f563091e69398683ed34f0",
+      "sourceLicenseUrl": "https://raw.githubusercontent.com/ast-grep/ast-grep/979c143639e3588c31f563091e69398683ed34f0/LICENSE",
+      "packageMetadataUrl": "https://www.npmjs.com/package/@ast-grep/napi-linux-arm64-musl/v/0.45.3"
+    },
+    {
+      "name": "@ast-grep/napi-win32-x64-msvc", "version": "0.45.3", "spdx": "MIT", "optionalDistribution": true, "licenseFile": "ast-grep.LICENSE",
+      "sha256": "81471889c77b2161a3e4dcdb1b2e6ca382e485766132d92d5fe1d7497e7dd2d9",
+      "sourceRepository": "ast-grep/ast-grep",
+      "sourceCommitUrl": "https://github.com/ast-grep/ast-grep/commit/979c143639e3588c31f563091e69398683ed34f0",
+      "sourceLicenseUrl": "https://raw.githubusercontent.com/ast-grep/ast-grep/979c143639e3588c31f563091e69398683ed34f0/LICENSE",
+      "packageMetadataUrl": "https://www.npmjs.com/package/@ast-grep/napi-win32-x64-msvc/v/0.45.3"
+    },
+    {
+      "name": "@ast-grep/napi-win32-ia32-msvc", "version": "0.45.3", "spdx": "MIT", "optionalDistribution": true, "licenseFile": "ast-grep.LICENSE",
+      "sha256": "81471889c77b2161a3e4dcdb1b2e6ca382e485766132d92d5fe1d7497e7dd2d9",
+      "sourceRepository": "ast-grep/ast-grep",
+      "sourceCommitUrl": "https://github.com/ast-grep/ast-grep/commit/979c143639e3588c31f563091e69398683ed34f0",
+      "sourceLicenseUrl": "https://raw.githubusercontent.com/ast-grep/ast-grep/979c143639e3588c31f563091e69398683ed34f0/LICENSE",
+      "packageMetadataUrl": "https://www.npmjs.com/package/@ast-grep/napi-win32-ia32-msvc/v/0.45.3"
+    },
+    {
+      "name": "@ast-grep/napi-win32-arm64-msvc", "version": "0.45.3", "spdx": "MIT", "optionalDistribution": true, "licenseFile": "ast-grep.LICENSE",
+      "sha256": "81471889c77b2161a3e4dcdb1b2e6ca382e485766132d92d5fe1d7497e7dd2d9",
+      "sourceRepository": "ast-grep/ast-grep",
+      "sourceCommitUrl": "https://github.com/ast-grep/ast-grep/commit/979c143639e3588c31f563091e69398683ed34f0",
+      "sourceLicenseUrl": "https://raw.githubusercontent.com/ast-grep/ast-grep/979c143639e3588c31f563091e69398683ed34f0/LICENSE",
+      "packageMetadataUrl": "https://www.npmjs.com/package/@ast-grep/napi-win32-arm64-msvc/v/0.45.3"
+    }
+  ]
 }

@@ -1,0 +1,31 @@
+{
+  "name": "@topo/languages",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty false",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "@topo/scanner": "workspace:*",
+    "@topo/schema": "workspace:*",
+    "typescript-compiler-api": "npm:typescript@6.0.3"
+  },
+  "optionalDependencies": {
+    "@ast-grep/lang-rust": "0.0.7",
+    "@ast-grep/napi": "0.45.3",
+    "@iarna/toml": "2.2.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "typescript": "^7.0.2"
+  }
+}

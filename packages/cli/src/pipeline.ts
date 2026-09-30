@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readFile, readdir, rmdir, unlink, writeFile } from "node:fs/promises";
+import { readFile, readdir, rmdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   hashAnalysis,
@@ -42,6 +42,8 @@ import {
   withWorkspaceLock,
   workspacePath,
   writeGenerated,
+  removeGenerated,
+  withGeneratedTransaction,
 } from "@topo/workspace";
 import {
   buildCuratedViews,
@@ -86,9 +88,11 @@ async function copySite(
     "site-state.json",
     "index.html",
     "shell.js",
+    "theme.js",
     "story-navigation.js",
     ...stories.map(({ document }) => `stories/${document.id}/index.html`),
     ...stories.map(({ document }) => `stories/${document.id}/viewer.html`),
+    ...stories.flatMap(({ document, assets }) => Object.keys(assets ?? {}).map((name) => `stories/${document.id}/${name}`)),
     ...(repository === undefined ? [] : [
       "repository.json", "repository-navigation.js",
       ...(repository.runtimeFiles ?? []).map((name) => `repository-runtime/${name}`),
@@ -118,14 +122,20 @@ async function copySite(
   }
   async function prune(relative: string) {
     const directory = await workspacePath(root, relative ? `cache/site/${relative}` : "cache/site");
-    for (const entry of await readdir(directory, { withFileTypes: true })) {
+    let entries;
+    try { entries = await readdir(directory, { withFileTypes: true }); }
+    catch (error) {
+      if (error instanceof Error && "code" in error && error.code === "ENOENT") return;
+      throw error;
+    }
+    for (const entry of entries) {
       const name = relative ? `${relative}/${entry.name}` : entry.name;
       const path = await workspacePath(root, `cache/site/${name}`);
       if (entry.isDirectory()) {
         await prune(name);
         if (!(await readdir(path)).length) await rmdir(path);
       } else if (entry.isFile()) {
-        if (!expected.has(name)) await unlink(path);
+        if (!expected.has(name)) await removeGenerated(root, `cache/site/${name}`);
       } else throw new Error(`Unsupported cached site asset type: ${name}`);
     }
   }
@@ -181,7 +191,7 @@ export async function generateArtifacts(
   catalogue?: BuiltCatalogue,
 ): Promise<ArtifactGenerationResult> {
   assertGraphDocument(graph);
-  return withWorkspaceLock(root, async () => {
+  return withWorkspaceLock(root, () => withGeneratedTransaction(root, async () => {
     const config = await loadConfig(root);
     if (config.repositoryId !== graph.repository.id) throw new Error("Graph repository identity differs from .topo/config.json");
     const composedGraph = composeConfiguredGraph(graph, config.modules);
@@ -224,7 +234,7 @@ export async function generateArtifacts(
     await writeGenerated(root, "cache/site/data.json", data);
     await removeUnscannedState(root);
     return { layout, dashboard, warnings: enrichment.warnings };
-  });
+  }));
 }
 
 export interface ReportIngestionResult {
@@ -298,10 +308,5 @@ export async function ingestReports(
 }
 
 async function removeUnscannedState(root: string): Promise<void> {
-  const state = await workspacePath(root, "cache/site/site-state.json");
-  try {
-    await unlink(state);
-  } catch (error) {
-    if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
-  }
+  await removeGenerated(root, "cache/site/site-state.json");
 }

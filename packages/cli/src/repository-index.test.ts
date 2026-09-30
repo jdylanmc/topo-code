@@ -1,9 +1,16 @@
 import { describe, expect, it } from "vitest";
+import { RUST_DECLARATION_KINDS } from "@topo/languages";
 import {
   createGraphDocument,
   type LogicalArchitectureDocument,
 } from "@topo/schema";
-import { buildRepositoryIndex } from "./repository-index.js";
+import { buildRepositoryIndex, REPOSITORY_NODE_KINDS } from "./repository-index.js";
+
+it("the persisted Repository vocabulary covers the Rust producer contract including methods", () => {
+  expect(RUST_DECLARATION_KINDS).toContain("method");
+  expect(RUST_DECLARATION_KINDS.length).toBeGreaterThan(10);
+  for (const kind of RUST_DECLARATION_KINDS) expect(REPOSITORY_NODE_KINDS.has(kind)).toBe(true);
+});
 
 const source = { revision: "fixture", dirty: false, fingerprint: "snapshot" };
 
