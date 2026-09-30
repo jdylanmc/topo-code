@@ -231,10 +231,11 @@ export async function scanProject(
     externalImportCount: 0, unresolvedImportCount: 0,
   };
   const rustPaths = new Set(contributions.find((item) => item.plugin.id === "rust")?.coverage.analyzedFiles ?? []);
+  const rustFiles = captured.files.filter((file) => file.language === "rust" && rustPaths.has(file.path));
   return { graph, logicalArchitecture, diagnostics, authoritative, metrics: {
     ...metrics,
-    sourceFileCount: metrics.sourceFileCount + rustPaths.size,
-    linesOfCode: metrics.linesOfCode + captured.files.filter((file) => rustPaths.has(file.path))
+    sourceFileCount: metrics.sourceFileCount + rustFiles.length,
+    linesOfCode: metrics.linesOfCode + rustFiles
       .reduce((total, file) => total + file.contents.split(/\r?\n/).filter((line) => line.trim()).length, 0),
   } };
 }
