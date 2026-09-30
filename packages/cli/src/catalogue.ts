@@ -543,7 +543,8 @@ const SHELL_SCRIPT = `(() => {
     if (allowed[key].includes(saved[key])) controls[key].value = saved[key];
   }
   root.dataset.navigationCollapsed = String(typeof saved.collapsed === "boolean"
-    ? saved.collapsed : window.matchMedia("(max-width: 1099px)").matches);
+    ? saved.collapsed
+    : !document.body.dataset.storyId && window.matchMedia("(max-width: 1099px)").matches);
   const params = new URLSearchParams(window.location.search);
   if (!document.querySelector("[data-repository]") && !document.body.dataset.storyId &&
       ["view", "scope", "page", "focus"].some((key) => params.has(key))) {
