@@ -30,6 +30,7 @@ const cli = (...args) => run(process.execPath, [executable, ...args], {
   ...(args[0] === "init" ? { TOPO_INIT_PROOF: "1" } : {}),
 });
 let server;
+let noOptionalRoot;
 async function startServer(repository = ".") {
   server = spawn(process.execPath, [executable, "serve", repository, "--port", "0"], { cwd: root, stdio: ["ignore", "pipe", "pipe"] });
   return new Promise((resolve, reject) => {
@@ -240,10 +241,114 @@ syncBuiltinESMExports();
   assert.match(notices, /@jdylanmc\/topo-archify@0\.1\.0/);
   assert.match(notices, /SIL OPEN FONT LICENSE/i);
   assert.match(await readFile(path.join(bundle, "index.html"), "utf8"), /repository/i);
+  assert.match(notices, /Graphviz 16\.0\.0/);
+  assert.match(notices, /Eclipse Public License - v 2\.0/);
+  assert.match(notices, /Source available at: https:\/\/gitlab\.com/);
+  assert.match(await readFile(path.join(installed, "docs/rust-tauri.md"), "utf8"), /stale-source/);
+
+  const mixedRoot = path.join(root, "node_modules/.mixed-source");
+  const freshHome = path.join(root, "node_modules/.fresh-home");
+  await mkdir(mixedRoot);
+  await mkdir(freshHome);
+  const mixedCli = (...args) => run(process.execPath, [executable, ...args], {
+    HOME: freshHome, USERPROFILE: freshHome,
+    NODE_OPTIONS: `--import=${pathToFileURL(networkGuard).href}`,
+  });
+  git("init", "--quiet", mixedRoot);
+  git("-C", mixedRoot, "remote", "add", "origin", "https://github.com/example/synthetic-snapshot.git");
+  mixedCli("init", mixedRoot, "--skills");
+  await proveEmptySite(mixedRoot);
+  const mixedFixture = path.join(installed, "examples/rust-tauri");
+  for (const name of ["src", "src-tauri", "stories"]) {
+    await cp(path.join(mixedFixture, name), path.join(mixedRoot, name), { recursive: true });
+  }
+  await cp(path.join(mixedFixture, "topo.config.json"), path.join(mixedRoot, ".topo/config.json"));
+  await writeFile(path.join(mixedRoot, "package.json"), '{"name":"synthetic-snapshot","type":"module"}\n');
+  const mixedCommit = (message) => {
+    git("-C", mixedRoot, "add", ".");
+    git("-C", mixedRoot, "-c", "user.name=Topo Package Test", "-c", "user.email=topo@example.invalid",
+      "-c", "commit.gpgsign=false", "commit", "--quiet", "-m", message);
+  };
+  mixedCommit("Persist mixed source and technical stories");
+  const technicalPath = path.join(mixedRoot, "stories/snapshot.topo.json");
+  const overviewPath = path.join(mixedRoot, "stories/snapshot-overview.topo.json");
+  assert.match(mixedCli("story", "validate", mixedRoot, technicalPath), /command: src-tauri\/src\/lib.rs/);
+  mixedCli("story", "preview", mixedRoot, technicalPath);
+  const partial = () => assert.throws(() => mixedCli("scan", mixedRoot, "--allow-partial"), (error) =>
+    error.status === 2 && /PARTIAL PREVIEW:/.test(error.stdout));
+  partial();
+  const mixedSite = path.join(mixedRoot, ".topo/cache/site");
+  const facts = JSON.parse(await readFile(path.join(mixedRoot, ".topo/graph/graph.json"), "utf8")).extensions["dev.topo.languages"];
+  assert.deepEqual(facts.contributions.map((item) => item.plugin.id), ["typescript", "rust", "tauri"]);
+  assert.equal(facts.contributions.find((item) => item.plugin.id === "tauri").relationships.filter((edge) =>
+    edge.kind === "tauri-command-binding").length, 1);
+  const ids = JSON.parse(await readFile(path.join(mixedSite, "repository.json"), "utf8")).nodes.map((node) => node.id);
+  const storyBefore = JSON.parse(await readFile(technicalPath, "utf8"));
+  const rustPath = path.join(mixedRoot, "src-tauri/src/lib.rs");
+  const sourceBefore = await readFile(rustPath, "utf8");
+  await writeFile(rustPath, `// Unrelated comment; whole-file freshness still changes.\n${sourceBefore}`);
+  assert.throws(() => mixedCli("story", "validate", mixedRoot, technicalPath), /stale-source/);
+  assert.throws(() => mixedCli("story", "preview", mixedRoot, technicalPath), /stale-source/);
+  for (const file of [technicalPath, overviewPath]) {
+    const document = JSON.parse(await readFile(file, "utf8"));
+    for (const anchor of document.anchors.filter((item) => item.path === "src-tauri/src/lib.rs")) {
+      anchor.sha256 = createHash("sha256").update(await readFile(rustPath)).digest("hex");
+    }
+    await writeFile(file, `${JSON.stringify(document, null, 2)}\n`);
+  }
+  const repaired = JSON.parse(await readFile(technicalPath, "utf8"));
+  assert.equal(repaired.id, storyBefore.id);
+  assert.deepEqual(repaired.sections, storyBefore.sections);
+  assert.deepEqual(repaired.connections, storyBefore.connections);
+  mixedCli("story", "validate", mixedRoot, technicalPath);
+  mixedCommit("Reconcile freshness after unrelated comment without changing intent");
+  partial();
+  assert.deepEqual(JSON.parse(await readFile(path.join(mixedSite, "repository.json"), "utf8")).nodes.map((node) => node.id), ids);
+  await rm(path.join(mixedRoot, ".topo/cache"), { recursive: true });
+  partial();
+  mixedCli("story", "preview", mixedRoot, technicalPath);
+  assert.deepEqual(JSON.parse(await readFile(path.join(mixedSite, "repository.json"), "utf8")).nodes.map((node) => node.id), ids);
+  const mixedUrl = await startServer(mixedRoot);
+  for (const name of ["", "stories/snapshot/", "stories/snapshot/viewer.html", "stories/snapshot/evidence.json",
+    "stories/snapshot/spec.dot", "stories/snapshot/validation.json", "stories/snapshot/renderer.json", "theme.js"]) {
+    const response = await fetch(`${mixedUrl}/${name}`);
+    assert.equal(response.status, 200, name);
+    assert.ok((await response.text()).length > 20);
+  }
+  await stopServer();
+  const mixedBundle = path.join(mixedRoot, ".topo/deploy");
+  mixedCli("bundle", mixedRoot, "--output", mixedBundle, "--base-path", "/technical/");
+  for (const name of ["evidence.json", "spec.dot", "validation.json", "renderer.json"]) {
+    assert.ok((await readFile(path.join(mixedBundle, "technical/stories/snapshot", name))).length > 20);
+  }
+  const withoutRust = noOptionalRoot = await mkdtemp(path.join(tmpdir(), "topo-without-optional-"));
+  await writeFile(path.join(withoutRust, "package.json"), '{"name":"without-rust","private":true,"type":"module"}\n');
+  run(process.platform === "win32" ? "npm.cmd" : "npm", [
+    "install", "--prefix", withoutRust, "--omit=optional", "--ignore-scripts", "--no-audit", "--no-fund",
+    path.resolve(rendererTarball), path.resolve(topoTarball),
+  ]);
+  await assert.rejects(lstat(path.join(withoutRust, "node_modules/@ast-grep/napi")), { code: "ENOENT" });
+  const noRustCli = (...args) => run(process.execPath, [path.join(withoutRust, "node_modules/@jdylanmc/topo-code/bin/topo.js"), ...args], {
+    NODE_OPTIONS: `--import=${pathToFileURL(networkGuard).href}`,
+  });
+  git("init", "--quiet", withoutRust);
+  await writeFile(path.join(withoutRust, ".gitignore"), "node_modules/\n");
+  await writeFile(path.join(withoutRust, "main.js"), "export function answer() { return 42; }\n");
+  git("-C", withoutRust, "add", ".");
+  git("-C", withoutRust, "-c", "user.name=Topo Package Test", "-c", "user.email=topo@example.invalid",
+    "-c", "commit.gpgsign=false", "commit", "--quiet", "-m", "JavaScript without optional Rust packages");
+  noRustCli("init", withoutRust);
+  assert.match(noRustCli("scan", withoutRust), /Scanned/);
+  const noRustConfig = path.join(withoutRust, ".topo/config.json");
+  const selectedRust = JSON.parse(await readFile(noRustConfig, "utf8"));
+  selectedRust.analysis = { languages: ["rust"], frameworks: [] };
+  await writeFile(noRustConfig, JSON.stringify(selectedRust));
+  await writeFile(path.join(withoutRust, "lib.rs"), "pub fn answer() -> u8 { 42 }\n");
+  assert.throws(() => noRustCli("scan", withoutRust, "--allow-partial"), /Rust adapter unavailable/);
   console.log(JSON.stringify({
     status: "passed", consumer: root, node: process.version,
     packages: { topocode: manifest.version, renderer: manifest.dependencies["@jdylanmc/topo-archify"] },
-    evidence: ["clean npm install", "credential-free npm publish dry-run of both workflow file arguments", "bundled private modules and export targets", "plain and fresh skills init immediately served without scanner loading or subprocesses", "unborn empty static bundle", "portable skills and conflict preservation", "draft validate", "preview without scan", "source move failure and identity-preserving repair", "scan and preview with network forbidden", "live serve", "static bundle and notices"],
+    evidence: ["clean npm install", "credential-free npm publish dry-run of both workflow file arguments", "bundled private modules and export targets", "plain and fresh skills init immediately served without scanner loading or subprocesses", "unborn empty static bundle", "portable skills and conflict preservation", "draft validate", "preview without scan", "source move failure and identity-preserving repair", "scan and preview with network forbidden", "live serve", "static bundle and notices", "fresh-home installed mixed JavaScript/TypeScript/Rust/Tauri fixture", "one conservative Tauri binding", "whole-file stale rejection and reviewed comment-only repair", "cache-only recreation with stable IDs", "technical evidence/spec/receipt bundle assets and EPL source availability", "actual omit-optional install: JS baseline works, explicit Rust fails diagnostically"],
   }, null, 2));
 } finally {
   if (server && server.exitCode === null) {
@@ -252,4 +357,5 @@ syncBuiltinESMExports();
     await stopped;
   }
   if (!retainedDirectory) await rm(root, { recursive: true, force: true });
+  if (noOptionalRoot) await rm(noOptionalRoot, { recursive: true, force: true });
 }

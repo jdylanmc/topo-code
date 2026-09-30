@@ -11,6 +11,7 @@ import {
 import path from "node:path";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
+import { vizAttributions } from "./embedded-notices.mjs";
 
 export const ALLOWED_LICENSES = new Set([
   "0BSD",
@@ -157,6 +158,9 @@ async function readLicenseOverrides(rootDirectory) {
     }
 
     const identity = `${override.name}@${override.version}`;
+    if (override.optionalDistribution !== undefined && override.optionalDistribution !== true) {
+      throw new Error(`${identity} optionalDistribution must be true or omitted.`);
+    }
     if (overrides.has(identity)) {
       throw new Error(`Duplicate license override for ${identity}.`);
     }
@@ -321,7 +325,11 @@ export async function collectDependencyClosure({
       dependency.fromManifestPath,
       root,
     );
-    if (!manifestPath) {
+    const optionalOverride = dependency.kind === "optional"
+      ? licenseOverrides.get(`${dependency.name}@${dependency.spec}`)
+      : undefined;
+    const portableOptional = optionalOverride?.optionalDistribution === true;
+    if (!manifestPath && !portableOptional) {
       if (dependency.kind === "optional") {
         optionalExclusions.push({
           architecture,
@@ -338,13 +346,17 @@ export async function collectDependencyClosure({
       continue;
     }
 
-    const packageDirectory = await realpath(path.dirname(manifestPath));
-    const manifest = await readManifest(manifestPath);
+    const packageDirectory = manifestPath
+      ? await realpath(path.dirname(manifestPath))
+      : `optional:${dependency.name}@${dependency.spec}`;
+    const manifest = manifestPath ? await readManifest(manifestPath) : {
+      name: optionalOverride.name, version: optionalOverride.version, license: optionalOverride.spdx,
+    };
     const identity = `${manifest.name}@${manifest.version}`;
     let record = packagesByIdentity.get(identity);
 
     if (!record) {
-      let attributionFiles = await readAttributionFiles(packageDirectory);
+      let attributionFiles = manifestPath ? await readAttributionFiles(packageDirectory) : [];
       if (!attributionFiles.some((file) => file.kind === "license")) {
         const override = licenseOverrides.get(identity);
         if (override) {
@@ -368,6 +380,7 @@ export async function collectDependencyClosure({
               `${identity} declares "${manifest.license}" but its reviewed override is "${override.spdx}".`,
             );
           }
+          attributionFiles.push(...await vizAttributions(root, packageDirectory, manifest));
         }
       }
       record = {
@@ -378,6 +391,7 @@ export async function collectDependencyClosure({
         name: manifest.name,
         provenance: new Set(),
         version: manifest.version,
+        optionalDistribution: portableOptional,
       };
       packagesByIdentity.set(identity, record);
 
@@ -415,12 +429,7 @@ export async function collectDependencyClosure({
       continue;
     }
     visitedRealpaths.add(packageDirectory);
-    enqueueRuntimeDependencies(
-      queue,
-      manifest,
-      manifestPath,
-      dependency.chain,
-    );
+    if (manifestPath) enqueueRuntimeDependencies(queue, manifest, manifestPath, dependency.chain);
   }
 
   for (const identity of licenseOverrides.keys()) {
@@ -500,6 +509,9 @@ export function renderThirdPartyNotices(closure) {
       lines.push(`- ${provenance}\n`);
     }
     lines.push("\n");
+    if (dependency.optionalDistribution) {
+      lines.push("Optional platform distribution: attribution covers this exact declared variant whether or not installed on the build host.\n\n");
+    }
 
     for (const attribution of dependency.attributionFiles) {
       if (attribution.source) {

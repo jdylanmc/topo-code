@@ -9,6 +9,12 @@ import type {
   SourceLocation,
 } from "@topo/schema";
 
+export const REPOSITORY_NODE_KINDS = new Set([
+  "repository", "directory", "package", "file", "external", "class", "function",
+  "interface", "type", "enum", "variable", "struct", "union", "trait", "impl",
+  "module", "const", "static", "variant", "field", "macro", "extern-block", "extern-crate",
+]);
+
 export interface RepositorySource {
   readonly revision: string;
   readonly dirty: boolean;
@@ -59,6 +65,12 @@ export interface RepositoryIndex {
   readonly relationships: readonly RepositoryRelationship[];
   readonly pages: readonly RepositoryPage[];
   readonly runtimeFiles?: readonly string[];
+  readonly rendererReceipts?: Readonly<Record<string, {
+    readonly sourceOutputSha256: string;
+    readonly outputSha256: string;
+    readonly rendererArchiveSha256: string;
+    readonly adaptation: "topocode-readability-theme-shared-assets-v1";
+  }>>;
 }
 
 export function repositoryId(kind: string, identity: string): string {
@@ -217,6 +229,12 @@ export function buildRepositoryIndex(
     if (from === undefined || to === undefined) {
       throw new Error(`Semantic relationship ${edge.id} has an unknown endpoint.`);
     }
+    relationships.push({
+      id: repositoryId("relationship", edge.id),
+      from, to, kind: edge.kind, locations: edge.locations,
+    });
+  }
+  {
     const facts = readLanguageFacts(graph);
     const factIds = new Map(semanticIds);
     for (const [path, node] of byPath) {
@@ -247,10 +265,6 @@ export function buildRepositoryIndex(
       if (!from || !to) throw new Error(`Language relationship has an unknown endpoint: ${edge.id}`);
       relationships.push({ id, from, to, kind: edge.kind, locations: edge.evidence.map(graphLocation) });
     }
-    relationships.push({
-      id: repositoryId("relationship", edge.id),
-      from, to, kind: edge.kind, locations: edge.locations,
-    });
   }
   for (const node of nodes.values()) {
     node.childIds.sort((left, right) => {

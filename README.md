@@ -12,6 +12,12 @@ Initialize a repository to create a ready-to-serve static diagram home in
 `.topo/`. Add authored stories or scan supported source when needed.
 No hosted service, no telemetry, no account.
 
+Normal commands also support explicitly selected, parser-backed **Rust/Tauri**
+and snapshot-bound technical workflows with decisions, exact node/edge source
+evidence and an explicit Graphviz renderer. These capabilities are unreleased;
+the existing registry 0.1.0 is unchanged. See [supported configuration, portable
+examples and limits](./docs/rust-tauri.md).
+
 The goal is to put a software engineer in the human-in-the-loop position: every
 claim the tool makes about a codebase is backed by evidence you can follow, and
 everything a human adds is recorded as such.

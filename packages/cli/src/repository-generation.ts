@@ -11,6 +11,7 @@ import { readOptionalArtifact, workspacePath } from "@topo/workspace";
 import {
   buildRepositoryIndex,
   repositoryId,
+  REPOSITORY_NODE_KINDS,
   type RepositoryIndex,
   type RepositoryNode,
   type RepositoryPage,
@@ -169,6 +170,7 @@ export async function generateRepository(
   try {
     const viewerFiles = new Map<string, string>();
     const assets = new Map<string, string>();
+    const rendererReceipts: Record<string, NonNullable<RepositoryIndex["rendererReceipts"]>[string]> = {};
     const artifacts = renderArchitectureStoryBatch(
       renderable.map((page) => pageStory(root, index, page, snapshot, nodes)),
       { sourceEvidence: "wrapper" },
@@ -177,7 +179,15 @@ export async function generateRepository(
     for (const artifact of artifacts) {
       const page = renderable[offset++]!;
       const file = join(directory, `${page.id}.html`);
-      await writeFile(file, shareViewerAssets(artifact.contents, assets));
+      const contents = shareViewerAssets(artifact.contents, assets);
+      if (!artifact.renderer.sourceOutputSha256 || !artifact.renderer.sha256) throw new Error("Native renderer provenance is missing");
+      rendererReceipts[page.id] = {
+        sourceOutputSha256: artifact.renderer.sourceOutputSha256,
+        outputSha256: createHash("sha256").update(contents).digest("hex"),
+        rendererArchiveSha256: artifact.renderer.sha256,
+        adaptation: "topocode-readability-theme-shared-assets-v1",
+      };
+      await writeFile(file, contents);
       viewerFiles.set(page.id, file);
     }
     const runtimeFiles = new Map<string, string>();
@@ -188,7 +198,7 @@ export async function generateRepository(
     }
     await assertSourceSnapshot(root, snapshot);
     return {
-      index: { ...index, runtimeFiles: [...runtimeFiles.keys()].sort() },
+      index: { ...index, runtimeFiles: [...runtimeFiles.keys()].sort(), rendererReceipts },
       viewerFiles, runtimeFiles, dispose,
     };
   } catch (error) {
@@ -260,13 +270,12 @@ function assertRepositoryIndex(value: unknown): asserts value is RepositoryIndex
       typeof file !== "string" || !/^[a-f0-9]{64}\.(?:js|css)$/.test(file))
   )) throw new Error("Invalid generated repository runtime assets.");
   const nodes = new Map<string, { kind: string; childIds: string[]; parentId?: string }>();
-  const kinds = new Set(["repository", "directory", "package", "file", "external", "class", "function", "interface", "type", "enum", "variable"]);
   for (const node of value.nodes) {
     if (
       typeof node !== "object" || node === null ||
       typeof node.id !== "string" || !/^[a-z][a-z0-9-]*$/.test(node.id) ||
       typeof node.name !== "string" || typeof node.kind !== "string" ||
-      !kinds.has(node.kind) ||
+      !REPOSITORY_NODE_KINDS.has(node.kind) ||
       typeof node.path !== "string" ||
       (node.parentId !== undefined && typeof node.parentId !== "string") ||
       (node.fingerprint !== undefined && typeof node.fingerprint !== "string") ||
@@ -329,6 +338,19 @@ function assertRepositoryIndex(value: unknown): asserts value is RepositoryIndex
       !edge.locations.every(sourceLocation)
     ) throw new Error("Invalid generated repository relationship.");
   }
+  if ("rendererReceipts" in value) {
+    if (typeof value.rendererReceipts !== "object" || value.rendererReceipts === null || Array.isArray(value.rendererReceipts)) {
+      throw new Error("Invalid repository renderer receipts");
+    }
+    for (const [id, receipt] of Object.entries(value.rendererReceipts)) {
+      if (!pages.has(id) || typeof receipt !== "object" || receipt === null ||
+          !("adaptation" in receipt) || receipt.adaptation !== "topocode-readability-theme-shared-assets-v1" ||
+          !["sourceOutputSha256", "outputSha256", "rendererArchiveSha256"].every((key) =>
+            key in receipt && typeof Reflect.get(receipt, key) === "string" && /^[a-f0-9]{64}$/.test(Reflect.get(receipt, key)))) {
+        throw new Error("Invalid repository renderer receipt");
+      }
+    }
+  }
 }
 
 export async function assertRepositoryCurrent(
@@ -343,6 +365,12 @@ export async function assertRepositoryCurrent(
     const content = await readFile(await workspacePath(root, `cache/site/repository-runtime/${file}`));
     if (createHash("sha256").update(content).digest("hex") !== file.split(".")[0]) {
       throw new Error(`Repository runtime asset integrity failure: ${file}; run topo scan again.`);
+    }
+    for (const [id, receipt] of Object.entries(index.rendererReceipts ?? {})) {
+      const contents = await readFile(await workspacePath(root, `cache/site/repository/${id}/viewer.html`));
+      if (createHash("sha256").update(contents).digest("hex") !== receipt.outputSha256) {
+        throw new Error(`Repository viewer integrity failure: ${id}; run topo scan again.`);
+      }
     }
   }
   const files = index.nodes.filter((node) => node.kind === "file");

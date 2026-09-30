@@ -16,9 +16,12 @@ export const CORE_THEME_SCRIPT = `(() => {
     if (theme !== "light" && theme !== "dark") throw new Error("Unsupported Topocode theme");
     html.dataset.theme = theme;
     html.style.colorScheme = theme;
-    const url = new URL(location.href);
-    url.searchParams.set("theme", theme);
-    history.replaceState(null, "", url);
+    if (window.parent !== window || window.Archify || new URL(location.href).searchParams.has("theme") ||
+        !document.querySelector("script[src$='theme.js']")) {
+      const url = new URL(location.href);
+      url.searchParams.set("theme", theme);
+      history.replaceState(null, "", url);
+    }
     if (persist) {
       try { localStorage.setItem(key, theme); }
       catch { console.warn("Topocode theme cannot persist in this browser."); }
@@ -34,8 +37,10 @@ export const CORE_THEME_SCRIPT = `(() => {
   }
   window.topoSetTheme = apply;
   function toggle(event) {
-    event.preventDefault();
-    event.stopImmediatePropagation();
+    if (event) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
     const owner = window.parent !== window && typeof window.parent.topoSetTheme === "function" ? window.parent : window;
     owner.topoSetTheme(html.dataset.theme === "dark" ? "light" : "dark", true);
   }
@@ -47,7 +52,21 @@ export const CORE_THEME_SCRIPT = `(() => {
         event.target instanceof Element && !event.target.closest("input,textarea,select,[contenteditable=true]")) toggle(event);
   }, true);
   apply(initial === "light" ? "light" : "dark", false);
-  document.addEventListener("DOMContentLoaded", () => apply(html.dataset.theme, false));
+  document.addEventListener("DOMContentLoaded", () => {
+    apply(html.dataset.theme, false);
+    const native = window.Archify;
+    if (!native) return;
+    native.theme.toggle = () => toggle();
+    const run = native.exportMenu.run.bind(native.exportMenu);
+    native.exportMenu.run = format => run(format === "svg" ? "svg-" + html.dataset.theme : format);
+    document.addEventListener("click", event => {
+      if (event.target instanceof Element && event.target.closest('button[data-format="svg"]')) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        native.exportMenu.run("svg");
+      }
+    }, true);
+  });
 })();`;
 
 export function adaptViewerTheme(contents: string): string {

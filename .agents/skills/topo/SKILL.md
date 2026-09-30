@@ -17,10 +17,16 @@ Corepack, model service, account or renderer download is needed.
    Both forms create a ready-to-serve diagram home without analysis, rendering
    or browser/server launch, even in an empty/unborn repository. Repeated init
    preserves authored context and the existing generated site.
-2. Optionally run `npm exec --no -- topo scan .`. It scans TypeScript/JavaScript and renders
+2. Optionally run `npm exec --no -- topo scan .`. It defaults to TypeScript/JavaScript and renders
    committed stories plus Repository exploration. It never invokes a model.
    Unsupported/unresolved source fails; an explicitly requested `--allow-partial`
    preview is visibly partial and exits 2, not success.
+   For Rust/Tauri, first read installed
+   `node_modules/@jdylanmc/topo-code/docs/rust-tauri.md`. Explicitly configure
+   `analysis.languages: ["typescript", "rust"]` and `analysis.frameworks: ["tauri"]`
+   in durable `.topo/config.json`. The bridge requires both languages. Rust alone
+   is also supported. These parser-backed adapters remain partial; no Cargo,
+   rust-analyzer, proc-macro expansion or arbitrary plugin loader is implied.
 3. Read [story authoring](../topo-story-authoring/SKILL.md). Author/refine a focused
    explanation from source evidence. Validate drafts; commit only with the
    repository owner's authority, then scan/preview the committed story.
@@ -32,7 +38,7 @@ Corepack, model service, account or renderer download is needed.
    Serve the output with a static server. Hosting, access control and uploading
    are separate owner decisions. Preserve all emitted license notices.
 
-The init-first home is an unreleased source/local-candidate feature; public
+The init-first home and Rust/Tauri support are unreleased source/local-candidate features; public
 npm 0.1.0 predates it. Use a candidate containing this change, not a claim that
 the existing registry version was updated.
 
@@ -42,3 +48,8 @@ Never execute an unknown enrichment command or claim inferred commentary is fact
 Do not edit generated `.topo/cache` artifacts. Keep story IDs stable when source
 moves. [Renderer maintenance](../topo-archify-maintenance/SKILL.md) is a maintainer
 workflow, not an automatic consumer update or global skill installation.
+
+After deleting only `.topo/cache`, regenerate with `topo scan . --allow-partial`
+(exit 2 for Rust/Tauri), not edits to generated HTML. Preserve config, source,
+stories and stable IDs. Bundles carry evidence, renderer assets and legal notices.
+The synthetic installed `examples/rust-tauri/` demonstrates the portable workflow.

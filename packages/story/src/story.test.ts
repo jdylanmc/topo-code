@@ -98,7 +98,7 @@ describe("story document contract", () => {
     expect(validate(invalid)).toBe(false);
   });
 
-  it("publishes a renderer-independent JSON schema", async () => {
+  it("publishes a source-intent schema with bounded renderer selection and no authored line ranges", async () => {
     const schema = JSON.parse(await readFile(schemaPath, "utf8"));
     const validate = new Ajv2020({ strict: true }).compile(schema);
     expect(validate(validStory())).toBe(true);
@@ -114,7 +114,10 @@ describe("story document contract", () => {
         anchorIds: ["manifest-dependency"],
       }],
     })).toBe(true);
-    expect(JSON.stringify(schema)).not.toMatch(/renderer|lineRange|startLine|endLine/);
+    expect(validate({ ...validStory(), renderer: "archify" })).toBe(true);
+    expect(validate({ ...validStory(), renderer: "arbitrary-plugin" })).toBe(false);
+    expect(validate({ ...validStory(), renderer: "graphviz" })).toBe(false);
+    expect(JSON.stringify(schema)).not.toMatch(/lineRange|startLine|endLine/);
   });
 
   it("rejects invalid documents with the document path", () => {

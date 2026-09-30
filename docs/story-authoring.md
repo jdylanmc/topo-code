@@ -12,6 +12,9 @@ After validating and committing a story, `topo story preview` populates the
 same Home inventory with every supported committed story. `topo scan` is
 optional for generated Repository exploration; it is not a preview prerequisite.
 
+For parser-backed Rust/Tauri anchors, hash-bound technical branches, independent
+Graphviz receipts and cache regeneration, use the [supported technical workflow](./rust-tauri.md).
+
 Source-grounded stories may select any native diagram family and must keep
 evidence on every section. Use `classification: "capability-demo"` only for an
 explicitly conceptual, anchor-free renderer demonstration; it is labelled as

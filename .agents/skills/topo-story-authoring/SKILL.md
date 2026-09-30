@@ -36,7 +36,7 @@ npm exec --no -- topo story validate . stories/example.topo.json
 ```
 
 Repair each reported `invalid-document`, `missing-file`, `missing-symbol`, or
-`missing-pattern` failure by rereading the cited source and updating the
+`missing-pattern` or `stale-source` failure by rereading the cited source and updating the
 smallest affected authored fields. Repeat until validation succeeds. A success
 lists every resolved source location but does **not** establish semantic
 accuracy or complete explanation coverage; the author and human reviewer remain
@@ -90,3 +90,22 @@ small focused stories and short labels. For source moves, reread both sides,
 repair only affected anchors and explanation, and retain IDs/unrelated intent.
 The package includes executable before/after fixtures under
 `node_modules/@jdylanmc/topo-code/examples/story-authoring/`.
+
+## Rust/Tauri technical workflows
+
+Read installed `node_modules/@jdylanmc/topo-code/docs/rust-tauri.md` and
+`examples/rust-tauri/stories/` before using the extended contract.
+Rust anchors support `language: "rust"`, an unambiguous lexical `symbol` and
+exact `pattern`. Use `renderer: "graphviz", diagramFamily: "workflow"` explicitly
+for decisions (`kind: "decision"`) or values (`kind: "data"`); native families
+remain the default. Every technical anchor pins the complete file's SHA-256.
+Every connection declares `classification: "source-traced"` or `"inferred"`,
+`rationale` and `anchorIds`; source-traced connections require verified evidence.
+Do not label an authored arrow source-derived or compiler control flow.
+
+Hash changes require rereading and reconciling the explanation, not blindly
+refreshing digests. Retain IDs when meaning is unchanged. Check exact node and
+edge excerpts, cross-story/return links, Home inventory, shared app theme and
+actual exports. Graphviz has its own layout receipt, not borrowed Archify
+certification. A generic fixture is not evidence for another application's
+behavior; disposable consumer diagrams/caches must not enter Topocode source.

@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import { Ajv2020 } from "ajv/dist/2020.js";
 import { expect, it } from "vitest";
 import { assertStoryDocument, resolveStoryDocument, type StoryDocument } from "./index.js";
 
@@ -26,4 +28,22 @@ it("does not present unsupported native branches or authored traces as scanner-d
   expect(() => assertStoryDocument({ ...story, renderer: "archify" })).toThrow("explicit graphviz");
   expect(() => assertStoryDocument({ ...story, connections: [{ ...story.connections[0], classification: "source-derived" }] })).toThrow("not scanner-derived");
   expect(() => assertStoryDocument({ ...story, anchors: [{ id: "choose-source", path: "src/lib.rs" }] })).toThrow("sha256");
+});
+
+it("keeps the published technical schema strict and aligned with runtime validation", async () => {
+  const validate = new Ajv2020({ strict: true }).compile(JSON.parse(
+    await readFile(new URL("../story.schema.json", import.meta.url), "utf8")));
+  expect(validate(story)).toBe(true);
+  for (const invalid of [
+    { ...story, diagramFamily: "architecture" },
+    { ...story, renderer: "archify" },
+    { ...story, anchors: [{ id: "choose-source", path: "src/lib.rs" }] },
+    { ...story, connections: [{ from: "choose", to: "done" }] },
+    { ...story, connections: [{ ...story.connections[0], classification: "source-derived" }] },
+    { ...story, connections: [{ ...story.connections[0], anchorIds: [] }] },
+    { ...story, connections: [{ ...story.connections[0], rationale: undefined }] },
+  ]) {
+    expect(validate(invalid)).toBe(false);
+    expect(() => assertStoryDocument(invalid)).toThrow();
+  }
 });

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "1.0",
+  "id": "snapshot-overview",
+  "title": "Snapshot boundary",
+  "summary": "A native Architecture view of the source-declared snapshot handler.",
+  "category": "Technical flows",
+  "anchors": [
+    { "id": "command", "path": "src-tauri/src/lib.rs", "symbol": "snapshot", "language": "rust", "sha256": "724edbd8e42b6c45ad1d7eccaa2eba0d7f8dafb12f068ef6e8e96bdd2d76ddcf" }
+  ],
+  "sections": [
+    { "id": "handler", "title": "Snapshot handler", "body": "The command returns a string based on its input. Open the technical workflow for individual branch evidence.", "anchorIds": ["command"] }
+  ],
+  "connections": []
+}

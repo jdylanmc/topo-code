@@ -15,6 +15,40 @@ function wrap(value: string): string {
   return lines.join("\n");
 }
 
+function layoutBounds(input: unknown, count: number): { width: number; height: number } {
+  function object(value: unknown): Record<string, unknown> {
+    if (typeof value !== "object" || value === null || Array.isArray(value)) throw new Error("Invalid Graphviz layout object");
+    return value as Record<string, unknown>;
+  }
+  function numbers(value: unknown, size: number): number[] {
+    if (typeof value !== "string") throw new Error("Missing Graphviz layout coordinates");
+    const result = value.split(",").map(Number);
+    if (result.length !== size || !result.every(Number.isFinite)) throw new Error("Non-finite Graphviz layout coordinates");
+    return result;
+  }
+  const layout = object(input);
+  const [left, bottom, right, top] = numbers(layout.bb, 4) as [number, number, number, number];
+  if (right <= left || top <= bottom) throw new Error("Empty Graphviz layout bounds");
+  if (!Array.isArray(layout.objects) || layout.objects.length !== count) throw new Error("Graphviz layout node count mismatch");
+  const boxes = layout.objects.map((item) => {
+    const node = object(item);
+    const [x, y] = numbers(node.pos, 2) as [number, number];
+    const width = numbers(node.width, 1)[0]! * 72, height = numbers(node.height, 1)[0]! * 72;
+    const box = { left: x - width / 2, right: x + width / 2, bottom: y - height / 2, top: y + height / 2 };
+    // Graphviz serializes inches and points at different precisions.
+    if (width <= 0 || height <= 0 || box.left < left - 0.1 || box.right > right + 0.1 ||
+        box.bottom < bottom - 0.1 || box.top > top + 0.1) throw new Error("Graphviz node exceeds layout bounds");
+    return box;
+  });
+  for (const [index, a] of boxes.entries()) {
+    for (const b of boxes.slice(index + 1)) {
+      if (Math.min(a.right, b.right) > Math.max(a.left, b.left) &&
+          Math.min(a.top, b.top) > Math.max(a.bottom, b.bottom)) throw new Error("Graphviz node boxes overlap");
+    }
+  }
+  return { width: right - left, height: top - bottom };
+}
+
 export async function renderGraphviz(story: ResolvedStoryDocument): Promise<StoryArtifact> {
   const { document } = story;
   const quote = JSON.stringify;
@@ -24,22 +58,24 @@ export async function renderGraphviz(story: ResolvedStoryDocument): Promise<Stor
     'node [fontname="Arial",fontsize=20,shape=box,style="rounded,filled",margin="0.18,0.12",penwidth=1.5];',
     'edge [fontname="Arial",fontsize=17,arrowsize=0.7,penwidth=1.4];',
     ...document.sections.map((section, index) =>
-      `${quote(section.id)} [id="node${index}",label=${quote(wrap(section.title))},shape=${quote(section.kind === "decision" ? "diamond" : section.kind === "data" ? "cylinder" : "box")}];`),
+      `${quote(section.id)} [id="node${index}",label=${quote(wrap(section.title))},shape=${quote(section.kind === "decision" ? "diamond" : section.kind === "data" ? "cylinder" : "box")},style=${quote(section.kind === "decision" ? "filled" : "rounded,filled")}];`),
     ...document.connections.map((edge, index) =>
       `${quote(edge.from)} -> ${quote(edge.to)} [id="edge${index}",label=${quote(wrap(`${edge.classification === "inferred" ? "Inferred: " : ""}${edge.label ?? ""}`))},style=${quote(edge.classification === "inferred" ? "dashed" : "solid")}];`),
     "}",
   ].join("\n");
   const viz = await instance();
-  const result = viz.render(specification, { engine: "dot", format: "svg" });
+  const result = viz.renderFormats(specification, ["svg", "json"], { engine: "dot" });
   if (result.status !== "success" || result.errors.length) throw new Error(`Graphviz layout failed: ${JSON.stringify(result.errors)}`);
-  let svg = result.output.slice(result.output.indexOf("<svg"));
+  const bounds = layoutBounds(JSON.parse(result.output.json!), document.sections.length);
+  let svg = result.output.svg!.slice(result.output.svg!.indexOf("<svg"));
   if (!svg.startsWith("<svg")) throw new Error("Graphviz returned no SVG");
   for (const [index, section] of document.sections.entries()) {
     if (!svg.includes(`id="node${index}"`)) throw new Error(`Graphviz omitted section ${section.id}`);
     svg = svg.replace(`id="node${index}"`, `id="node${index}" data-node-id="${escape(section.id)}" tabindex="0" role="button" aria-label="${escape(section.title)}"`);
   }
-  for (const [index] of document.connections.entries()) {
+  for (const [index, edge] of document.connections.entries()) {
     if (!svg.includes(`id="edge${index}"`)) throw new Error(`Graphviz omitted connection ${index}`);
+    svg = svg.replace(`id="edge${index}"`, `id="edge${index}" data-edge-index="${index}" data-edge-from="${escape(edge.from)}" data-edge-to="${escape(edge.to)}" tabindex="0" role="button" aria-label="${escape(`${edge.classification}: ${edge.label ?? `${edge.from} to ${edge.to}`}`)}"`);
   }
   const native = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escape(document.title)}</title>
 <style>
@@ -48,17 +84,18 @@ export async function renderGraphviz(story: ResolvedStoryDocument): Promise<Stor
 *{box-sizing:border-box}body{margin:0;height:100dvh;background:var(--bg);color:var(--ink);font:14px/1.5 Arial,sans-serif;display:grid;grid-template-rows:auto minmax(0,1fr)}
 header{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:.4rem .8rem}
 button{font:inherit;padding:.35rem .7rem;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:4px;cursor:pointer}
-main{min-height:0;padding:.5rem;overflow:auto;display:grid;place-items:center}svg{width:100%;height:100%;display:block}
+main{min-height:0;padding:.5rem;overflow:auto;display:grid;place-items:center}svg{width:100%;height:100%;min-width:${Math.ceil(bounds.width * 0.72)}px;min-height:${Math.ceil(bounds.height * 0.72)}px;display:block}
 .node>polygon,.node>path,.node>ellipse{fill:var(--panel);stroke:var(--line)}.node text,.edge text{fill:var(--ink)}
 .edge path{stroke:var(--line)}.edge polygon{stroke:var(--line);fill:var(--line)}
+[data-edge-index]{cursor:pointer}[data-edge-index]:focus{outline:none}[data-edge-index]:focus path,[data-edge-index][aria-current=true] path{stroke:var(--focus);stroke-width:3}
 [data-node-id]{cursor:pointer}[data-node-id]:focus{outline:none}[data-node-id]:focus>polygon,[data-node-id]:focus>path,[data-node-id][aria-current=true]>polygon,[data-node-id][aria-current=true]>path{stroke:var(--focus);stroke-width:3}
 button:focus-visible{outline:3px solid var(--focus)}
 </style></head><body><header><span>Agent source traces / inferences. Not compiler control flow.</span><button id="export-svg">Export SVG</button></header><main>${svg}</main>
 <script>
-function focusNode(id){for(const node of document.querySelectorAll("[data-node-id]"))node.setAttribute("aria-current",String(node.dataset.nodeId===id));}
-document.addEventListener("click",event=>{const node=event.target.closest("[data-node-id]");if(node){location.hash="focus="+encodeURIComponent(node.dataset.nodeId);focusNode(node.dataset.nodeId);}});
-document.addEventListener("keydown",event=>{if((event.key==="Enter"||event.key===" ")&&event.target.matches("[data-node-id]")){event.preventDefault();event.target.dispatchEvent(new MouseEvent("click",{bubbles:true}));}});
-focusNode(new URLSearchParams(location.hash.slice(1)).get("focus"));
+function focusSelection(){const params=new URLSearchParams(location.hash.slice(1));for(const node of document.querySelectorAll("[data-node-id]"))node.setAttribute("aria-current",String(node.dataset.nodeId===params.get("focus")));for(const edge of document.querySelectorAll("[data-edge-index]"))edge.setAttribute("aria-current",String(edge.dataset.edgeIndex===params.get("edge")));}
+document.addEventListener("click",event=>{const target=event.target.closest("[data-node-id],[data-edge-index]");if(target){location.hash=target.hasAttribute("data-node-id")?"focus="+encodeURIComponent(target.dataset.nodeId):"edge="+target.dataset.edgeIndex;focusSelection();}});
+document.addEventListener("keydown",event=>{if((event.key==="Enter"||event.key===" ")&&event.target.matches("[data-node-id],[data-edge-index]")){event.preventDefault();event.target.dispatchEvent(new MouseEvent("click",{bubbles:true}));}});
+window.addEventListener("hashchange",focusSelection);focusSelection();
 document.getElementById("export-svg").addEventListener("click",()=>{
  const original=document.querySelector("svg"), clone=original.cloneNode(true);
  const originals=[original,...original.querySelectorAll("*")], copies=[clone,...clone.querySelectorAll("*")];
@@ -70,7 +107,8 @@ document.getElementById("export-svg").addEventListener("click",()=>{
 </script></body></html>`;
   const contents = adaptViewerTheme(native);
   const validation = { engine: "Graphviz", engineVersion: viz.graphvizVersion, package: "@viz-js/viz@3.30.0",
-    checks: ["dot layout succeeded without diagnostics", "every authored node retained", "every authored edge retained"],
+    checks: ["dot layout succeeded without diagnostics", "every authored node retained", "every authored edge retained", "finite positive layout bounds", "nodes contained within layout", "node boxes do not overlap"],
+    bounds,
     nodes: document.sections.length, edges: document.connections.length,
     nativeArchifyChecks: false, semanticAcceptance: false, browserAcceptance: "separate" };
   return {

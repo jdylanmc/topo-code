@@ -1,0 +1,2 @@
+# Preserve upstream attribution bytes; the generated notices normalize whitespace.
+licenses/third-party/* -whitespace

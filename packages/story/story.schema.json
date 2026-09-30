@@ -71,9 +71,9 @@
         },
         "allOf": [
           {
-            "if": { "required": ["classification"] },
-            "then": { "required": ["anchorIds", "rationale"] },
-            "else": { "not": { "anyOf": [{ "required": ["anchorIds"] }, { "required": ["rationale"] }] } }
+            "if": { "properties": { "classification": {} }, "required": ["classification"] },
+            "then": { "properties": { "anchorIds": {}, "rationale": {} }, "required": ["anchorIds", "rationale"] },
+            "else": { "not": { "anyOf": [{ "properties": { "anchorIds": {} }, "required": ["anchorIds"] }, { "properties": { "rationale": {} }, "required": ["rationale"] }] } }
           },
           {
             "if": { "properties": { "classification": { "const": "source-traced" } }, "required": ["classification"] },
@@ -90,11 +90,11 @@
           "required": ["diagramFamily"],
           "properties": {
             "diagramFamily": { "const": "workflow" },
-            "anchors": { "type": "array", "items": { "type": "object", "required": ["sha256"] } },
-            "connections": { "type": "array", "items": { "type": "object", "required": ["classification"] } }
+            "anchors": { "type": "array", "items": { "type": "object", "properties": { "sha256": {} }, "required": ["sha256"] } },
+            "connections": { "type": "array", "items": { "type": "object", "properties": { "classification": {} }, "required": ["classification"] } }
           }
         },
-        "else": { "properties": { "sections": { "type": "array", "items": { "type": "object", "not": { "required": ["kind"] } } } } }
+        "else": { "properties": { "sections": { "type": "array", "items": { "type": "object", "not": { "properties": { "kind": {} }, "required": ["kind"] } } } } }
       },
       {
         "if": {

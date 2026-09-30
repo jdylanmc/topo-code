@@ -139,13 +139,32 @@ describe("generated repository delivery", () => {
     const root = await repository();
     await execute(process.execPath, [entry, "scan", root]);
     const index = (await readRepositoryIndex(root))!;
-    expect(index.runtimeFiles?.filter((file) => file.endsWith(".js"))).toHaveLength(2);
+    expect(index.runtimeFiles?.filter((file) => file.endsWith(".js"))).toHaveLength(3);
+    const scripts = await Promise.all(index.runtimeFiles!.filter((file) => file.endsWith(".js")).map((file) =>
+      readFile(join(root, ".topo/cache/site/repository-runtime", file), "utf8")));
+    expect(scripts.filter((script) => script.includes("topo.theme.v1"))).toHaveLength(1);
+    expect(Object.keys(index.rendererReceipts!)).toHaveLength(index.pages.length);
     const output = join(root, ".topo/deploy");
     await bundleSite(root, output);
     const before = await readFile(join(output, "index.html"), "utf8");
     const runtime = join(root, ".topo/cache/site/repository-runtime", index.runtimeFiles![0]!);
     await writeFile(runtime, "tampered");
     await expect(bundleSite(root, output)).rejects.toThrow(/runtime asset integrity failure/);
+    expect(await readFile(join(output, "index.html"), "utf8")).toBe(before);
+  });
+
+  it("binds adapted shared viewers separately and rejects viewer tampering before publication", async () => {
+    const root = await repository();
+    await execute(process.execPath, [entry, "scan", root]);
+    const index = (await readRepositoryIndex(root))!;
+    const [id, receipt] = Object.entries(index.rendererReceipts!)[0]!;
+    expect(receipt.outputSha256).not.toBe(receipt.sourceOutputSha256);
+    const output = join(root, ".topo/deploy");
+    await bundleSite(root, output);
+    const before = await readFile(join(output, "index.html"), "utf8");
+    const viewer = join(root, ".topo/cache/site/repository", id, "viewer.html");
+    await writeFile(viewer, `${await readFile(viewer, "utf8")}\n<!-- changed -->`);
+    await expect(bundleSite(root, output)).rejects.toThrow("Repository viewer integrity failure");
     expect(await readFile(join(output, "index.html"), "utf8")).toBe(before);
   });
 });

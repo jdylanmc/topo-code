@@ -304,7 +304,7 @@ export async function buildCatalogue(
       assets: {
         ...artifact.assets,
         "evidence.json": `${JSON.stringify({ source: resolved.source, anchors: resolved.anchors, connections: document.connections }, null, 2)}\n`,
-        "receipt.json": `${JSON.stringify(artifact.renderer, null, 2)}\n`,
+        "renderer.json": `${JSON.stringify(artifact.renderer, null, 2)}\n`,
       },
     };
   }));
@@ -369,6 +369,17 @@ const STORY_NAVIGATION_SCRIPT = `(() => {
   const crossLinks = [...document.querySelectorAll("[data-cross-story]")];
   const params = new URLSearchParams(window.location.search);
 
+  function showEvidence(focus, edge) {
+    for (const evidence of document.querySelectorAll("[data-section-evidence]")) {
+      evidence.hidden = edge !== null || Boolean(focus) && evidence.dataset.sectionEvidence !== focus;
+    }
+    for (const evidence of document.querySelectorAll("[data-edge-evidence]")) {
+      evidence.hidden = edge !== null ? evidence.dataset.edgeEvidence !== edge :
+        Boolean(focus) && evidence.dataset.edgeFrom !== focus && evidence.dataset.edgeTo !== focus;
+    }
+    if (edge !== null) document.querySelector(".story-details").open = true;
+  }
+
   function setFocus(nodeId) {
     for (const link of nodeLinks) {
       if (link.getAttribute("data-node-id") === nodeId) {
@@ -382,6 +393,7 @@ const STORY_NAVIGATION_SCRIPT = `(() => {
 
   function rememberFocus(nodeId) {
     const url = new URL(window.location.href);
+    url.searchParams.delete("edge");
     if (nodeId) url.searchParams.set("focus", nodeId);
     else url.searchParams.delete("focus");
     window.history.replaceState(null, "", url);
@@ -423,18 +435,27 @@ const STORY_NAVIGATION_SCRIPT = `(() => {
     const child = frame.contentWindow;
     const childDocument = frame.contentDocument;
     if (!child || !childDocument) return;
-    const focus = params.get("focus") || "";
-    for (const evidence of document.querySelectorAll("[data-section-evidence]")) {
-      evidence.hidden = Boolean(focus) && evidence.dataset.sectionEvidence !== focus;
-    }
+    const currentParams = new URLSearchParams(window.location.search);
+    showEvidence(currentParams.get("focus") || "", currentParams.get("edge"));
     const syncSelectedNode = () => {
-      const focus = new URLSearchParams(child.location.hash.replace(/^#/, "")).get("focus");
+      const selected = new URLSearchParams(child.location.hash.replace(/^#/, ""));
+      const edge = selected.get("edge");
+      if (edge !== null && document.querySelector('[data-edge-evidence="' + CSS.escape(edge) + '"]')) {
+        const current = new URL(window.location.href);
+        current.searchParams.delete("focus");
+        current.searchParams.set("edge", edge);
+        window.history.replaceState(null, "", current);
+        showEvidence("", edge);
+        return;
+      }
+      const focus = selected.get("focus");
       if (!focus) return;
       const candidates = crossLinks.filter((link) => link.getAttribute("data-source-node") === focus);
       const current = new URL(window.location.href);
+      current.searchParams.delete("edge");
       current.searchParams.set("focus", focus);
       window.history.replaceState(null, "", current);
-      for (const evidence of document.querySelectorAll("[data-section-evidence]")) evidence.hidden = evidence.dataset.sectionEvidence !== focus;
+      showEvidence(focus, null);
       if (diagramFamily !== "sequence" && candidates.length === 1) {
         follow(candidates[0]);
       }
@@ -444,6 +465,9 @@ const STORY_NAVIGATION_SCRIPT = `(() => {
   });
 
   setFocus(params.get("focus") || "");
+  if (params.has("edge") && document.querySelector('[data-edge-evidence="' + CSS.escape(params.get("edge")) + '"]')) {
+    frame.src = "viewer.html#edge=" + encodeURIComponent(params.get("edge"));
+  }
 })();\n`;
 
 async function retireLegacySiteEntries(
@@ -473,6 +497,14 @@ async function retireLegacySiteEntries(
   await Promise.all(entries
     .filter((entry) => !expected.has(entry.name))
     .map(async (entry) => removeGenerated(root, `cache/site/stories/${entry.name}`)));
+  for (const story of stories) {
+    if (!entries.some((entry) => entry.name === story.document.id && entry.isDirectory())) continue;
+    const files = await readdir(await workspacePath(root, `cache/site/stories/${story.document.id}`));
+    const retained = new Set(["index.html", "viewer.html", ...Object.keys(story.assets ?? {})]);
+    for (const file of files) {
+      if (!retained.has(file)) await removeGenerated(root, `cache/site/stories/${story.document.id}/${file}`);
+    }
+  }
 }
 
 const SHELL_SCRIPT = `(() => {
@@ -836,19 +868,20 @@ export function renderStoryWrapper(
     ).join("");
     const evidence = (story.anchors ?? []).filter((anchor) => section.anchorIds.includes(anchor.id)).map((anchor) =>
       `<details><summary>${escapeHtml(anchor.path)}:${anchor.location.startLine}-${anchor.location.endLine}</summary><pre>${escapeHtml(anchor.excerpt)}</pre></details>`).join("");
-    const traces = story.document.connections.filter((edge) => edge.from === section.id || edge.to === section.id).filter((edge) => edge.classification).map((edge) => {
-      const excerpts = (story.anchors ?? []).filter((anchor) => edge.anchorIds?.includes(anchor.id)).map((anchor) =>
-        `<details><summary>${escapeHtml(anchor.path)}:${anchor.location.startLine}</summary><pre>${escapeHtml(anchor.excerpt)}</pre></details>`).join("");
-      return `<p><strong>${escapeHtml(edge.classification!)}: ${escapeHtml(edge.label ?? `${edge.from} to ${edge.to}`)}</strong> ${escapeHtml(edge.rationale ?? "")}</p>${excerpts}`;
-    }).join("");
     return `<li>
       <a data-node-id="${escapeHtml(section.id)}" href="?focus=${encodeURIComponent(section.id)}">${escapeHtml(section.title)}</a>
       ${crossLinks}
-      <div data-section-evidence="${escapeHtml(section.id)}"><p>${escapeHtml(section.body)}</p>${evidence}${traces}</div>
+      <div data-section-evidence="${escapeHtml(section.id)}"><p>${escapeHtml(section.body)}</p>${evidence}</div>
     </li>`;
   }).join("\n");
+  const edges = story.document.connections.map((edge, index) => {
+    if (!edge.classification) return "";
+    const excerpts = (story.anchors ?? []).filter((anchor) => edge.anchorIds?.includes(anchor.id)).map((anchor) =>
+      `<details open><summary>${escapeHtml(anchor.path)}:${anchor.location.startLine}-${anchor.location.endLine}</summary><pre>${escapeHtml(anchor.excerpt)}</pre></details>`).join("");
+    return `<div data-edge-evidence="${index}" data-edge-from="${escapeHtml(edge.from)}" data-edge-to="${escapeHtml(edge.to)}"><p><a href="?edge=${index}">${escapeHtml(edge.classification)}: ${escapeHtml(edge.label ?? `${edge.from} to ${edge.to}`)}</a></p><p>${escapeHtml(edge.rationale!)}</p>${excerpts}</div>`;
+  }).join("");
   return renderShellPage(stories, config, historyIncomplete, story, `\
-    <iframe data-story-viewer title="${escapeHtml(story.document.title)} rendered story" src="viewer.html?theme=dark"></iframe>
+    <iframe data-story-viewer title="${escapeHtml(story.document.title)} rendered story" src="viewer.html"></iframe>
     <details class="story-details">
       <summary>Story navigation and details</summary>
       <div class="story-context">
@@ -856,7 +889,7 @@ export function renderStoryWrapper(
         <p>${escapeHtml(story.document.summary)}</p>
         <a data-return hidden></a>
       </div>
-      <ul>${nodes}</ul>
+      <ul>${nodes}</ul>${edges}
     </details>`, repository);
 }
 

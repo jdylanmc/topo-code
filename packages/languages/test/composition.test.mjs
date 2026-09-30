@@ -41,3 +41,16 @@ test("named Rust entity identity survives unrelated line insertion", async () =>
   assert.equal(before.entities[0].id, after.entities[0].id);
   assert.notDeepEqual(before.entities[0].location, after.entities[0].location);
 });
+
+test("selected adapters without source remain explicitly unsupported rather than disappearing", async (t) => {
+  const root = await repository(t, {
+    "Cargo.toml": '[package]\nname="only-rust"\nversion="0.1.0"\n',
+    "src/lib.rs": "pub fn answer() -> u8 { 42 }\n",
+  });
+  const result = await scanProject({ root, quality: { allowPartial: true } },
+    { languages: ["typescript", "rust"], frameworks: [] });
+  const evidence = result.graph.extensions["dev.topo.languages"];
+  assert.deepEqual(evidence.contributions.map((item) => item.plugin.id), ["typescript", "rust"]);
+  assert.equal(evidence.contributions[0].coverage.status, "unsupported");
+  assert.equal(result.metrics.sourceFileCount, 1);
+});

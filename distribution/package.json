@@ -11,7 +11,7 @@
     "./story.schema.json": "./story.schema.json",
     "./graph.schema.json": "./graph.schema.json"
   },
-  "files": ["bin", "skills", "examples", "*.schema.json", "LICENSE", "THIRD_PARTY_NOTICES.txt", "README.md"],
+  "files": ["bin", "skills", "examples", "docs", "*.schema.json", "LICENSE", "THIRD_PARTY_NOTICES.txt", "README.md"],
   "dependencies": { "@jdylanmc/topo-archify": "0.1.0" },
   "repository": { "type": "git", "url": "git+https://github.com/jdylanmc/topo-code.git" },
   "publishConfig": { "access": "public" }

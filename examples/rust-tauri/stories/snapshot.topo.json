@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "1.0",
+  "id": "snapshot",
+  "title": "Snapshot readiness",
+  "summary": "An authored trace of a frontend invoke and two Rust return branches, not compiler control flow.",
+  "diagramFamily": "workflow",
+  "renderer": "graphviz",
+  "category": "Technical flows",
+  "anchors": [
+    { "id": "frontend", "path": "src/main.ts", "symbol": "refresh", "language": "typescript", "sha256": "0cc239167a30f35b215257faf3468e54692be1785045684d1404888229df608f" },
+    { "id": "command", "path": "src-tauri/src/lib.rs", "symbol": "snapshot", "language": "rust", "sha256": "724edbd8e42b6c45ad1d7eccaa2eba0d7f8dafb12f068ef6e8e96bdd2d76ddcf" },
+    { "id": "registration", "path": "src-tauri/src/lib.rs", "symbol": "run", "language": "rust", "sha256": "724edbd8e42b6c45ad1d7eccaa2eba0d7f8dafb12f068ef6e8e96bdd2d76ddcf" }
+  ],
+  "sections": [
+    { "id": "invoke", "title": "Request snapshot", "body": "refresh invokes the constant snapshot command with ready.", "anchorIds": ["frontend"] },
+    { "id": "choose", "title": "Ready?", "body": "The handler tests the ready argument.", "kind": "decision", "anchorIds": ["command"] },
+    { "id": "ready", "title": "Ready value", "body": "The true branch produces the owned ready string.", "kind": "data", "anchorIds": ["command"] },
+    { "id": "pending", "title": "Pending value", "body": "The else branch produces the owned pending string.", "anchorIds": ["command"] }
+  ],
+  "connections": [
+    { "from": "invoke", "to": "choose", "label": "snapshot", "classification": "source-traced", "rationale": "The frontend command literal matches the registered root handler. This is not proof of runtime invocation.", "anchorIds": ["frontend", "registration", "command"] },
+    { "from": "choose", "to": "ready", "label": "true", "classification": "source-traced", "rationale": "The if ready branch returns the ready string.", "anchorIds": ["command"] },
+    { "from": "choose", "to": "pending", "label": "false", "classification": "source-traced", "rationale": "The else branch returns the pending string.", "anchorIds": ["command"] }
+  ]
+}

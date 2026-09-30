@@ -4,7 +4,7 @@
   "classification": "source-grounded",
   "id": "topo-packages",
   "title": "Topocode package boundaries",
-  "summary": "The root Yarn workspace configuration defines thirteen current packages. Selected arrows show compile-time workspace dependencies declared in package manifests, not runtime calls, deployment, ownership, or a complete import graph.",
+  "summary": "The root Yarn workspace configuration defines fourteen current packages. Selected arrows show compile-time workspace dependencies declared in package manifests, not runtime calls, deployment, ownership, or a complete import graph.",
   "category": "Topocode internals",
   "anchors": [
     { "id": "root-workspaces", "path": "package.json" },
@@ -14,6 +14,7 @@
     { "id": "eslint-config-manifest", "path": "tools/eslint-config/package.json" },
     { "id": "reports-manifest", "path": "packages/reports/package.json" },
     { "id": "scanner-manifest", "path": "packages/scanner/package.json" },
+    { "id": "languages-manifest", "path": "packages/languages/package.json" },
     { "id": "workspace-manifest", "path": "packages/workspace/package.json" },
     { "id": "enrichment-manifest", "path": "packages/enrichment/package.json" },
     { "id": "schema-manifest", "path": "packages/schema/package.json" },
@@ -66,7 +67,7 @@
     {
       "id": "cli",
       "title": "@topo/cli",
-      "body": "Command-line composition package. Its manifest declares workspace dependencies on diagram-core, enrichment, graph, modules, reports, scanner, schema, site, story, views, and workspace; the map selects its diagram-core relationship.",
+      "body": "Command-line composition package. Its manifest declares workspace dependencies on diagram-core, enrichment, graph, languages, modules, reports, scanner, schema, site, story, views, and workspace; the map selects its diagram-core relationship.",
       "anchorIds": [
         "cli-manifest",
         "cli-diagram-core-dependency",
@@ -76,7 +77,7 @@
     {
       "id": "diagram-core",
       "title": "@topo/diagram-core",
-      "body": "Pinned Archify rendering boundary. Its manifest declares a workspace dependency on story.",
+      "body": "Pinned native Archify and explicit Graphviz rendering boundary. Its manifest declares a workspace dependency on story.",
       "anchorIds": [
         "diagram-core-manifest",
         "diagram-core-story-dependency",
@@ -86,7 +87,7 @@
     {
       "id": "story",
       "title": "@topo/story",
-      "body": "Authored story parsing and source-evidence resolution package. Its manifest declares no internal workspace dependency.",
+      "body": "Authored story parsing and source-evidence resolution package. Its manifest depends on languages for parser-backed Rust anchors.",
       "anchorIds": [
         "story-manifest",
         "root-packages-workspace"
@@ -119,6 +120,12 @@
         "scanner-manifest",
         "root-packages-workspace"
       ]
+    },
+    {
+      "id": "languages",
+      "title": "@topo/languages",
+      "body": "First-party language and framework composition. Uses scanner for TypeScript/JavaScript, parser-backed Rust evidence, and the Tauri bridge; no model, Cargo build or arbitrary plugin loading.",
+      "anchorIds": ["languages-manifest", "root-packages-workspace"]
     },
     {
       "id": "workspace",

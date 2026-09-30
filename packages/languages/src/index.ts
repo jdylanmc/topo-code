@@ -171,6 +171,13 @@ export async function scanProject(
   if (selection.languages.includes("typescript") && hasTypeScript) {
     result = await createTypeScriptScannerAdapter().scan({ ...options, quality: { ...options.quality, allowPartial: true } });
     contributions.push(typescriptContribution(result));
+  } else if (selection.languages.includes("typescript")) {
+    contributions.push({
+      plugin: { id: "typescript", kind: "language", version: "1.0",
+        languages: ["typescript", "javascript"], capabilities: ["compiler-declarations", "static-references"] },
+      entities: [], relationships: [], unresolved: [], diagnostics: [], extensions: {},
+      coverage: { status: "unsupported", analyzedFiles: [], limitations: ["No TypeScript/JavaScript source was captured for the selected adapter."] },
+    });
   }
   if (selection.languages.includes("rust")) contributions.push(await rustContribution(captured));
   if (selection.frameworks.includes("tauri")) {
@@ -203,7 +210,7 @@ export async function scanProject(
   }
   graph.nodes.sort((a, b) => a.id.localeCompare(b.id, "en"));
   for (const contribution of contributions.filter((item) => item.plugin.id !== "typescript")) {
-    graph.modules.push({ id: `@topo/${contribution.plugin.id}`, version: "1.0", schemaVersion: "1.0" });
+    graph.modules.push({ id: `@topo/${contribution.plugin.id}`, version: "1.0.0", schemaVersion: "1.0" });
   }
   graph.extensions[LANGUAGE_EVIDENCE_KEY] = json(languageEvidence);
   graph.extensions["dev.topo.scanner"] = json({ authoritative, status: authoritative ? "complete" : "partial", diagnostics });
@@ -217,11 +224,18 @@ export async function scanProject(
     coverage: { languages: ["javascript", "typescript"], relationshipKinds: [], completeSourceInventory: false, runtimeBehavior: false },
     entities: [], relationships: [], responsibilities: [], unassignedEntityIds: [], diagnostics: [],
   };
-  return { graph, logicalArchitecture, diagnostics, authoritative, metrics: result?.metrics ?? {
+  const metrics = result?.metrics ?? {
     configCount: 0, workspacePackageCount: 0, coveredWorkspacePackageCount: 0,
-    sourceFileCount: captured.files.filter((file: { language: string }) => file.language === "rust").length,
+    sourceFileCount: 0,
     assetFileCount: 0, linesOfCode: 0, localImportCount: 0, assetImportCount: 0,
     externalImportCount: 0, unresolvedImportCount: 0,
+  };
+  const rustPaths = new Set(contributions.find((item) => item.plugin.id === "rust")?.coverage.analyzedFiles ?? []);
+  return { graph, logicalArchitecture, diagnostics, authoritative, metrics: {
+    ...metrics,
+    sourceFileCount: metrics.sourceFileCount + rustPaths.size,
+    linesOfCode: metrics.linesOfCode + captured.files.filter((file) => rustPaths.has(file.path))
+      .reduce((total, file) => total + file.contents.split(/\r?\n/).filter((line) => line.trim()).length, 0),
   } };
 }
 
