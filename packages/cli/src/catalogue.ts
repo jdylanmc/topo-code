@@ -935,12 +935,14 @@ function renderShellPage(
       [data-topo-shell] { display: grid; grid-template-columns: 19rem minmax(0, 1fr); width: 100%; height: 100%; }
       [data-navigation-collapsed="true"] { grid-template-columns: 3.5rem minmax(0, 1fr); }
       .catalogue-panel { display: grid; grid-template-rows: auto auto auto auto minmax(0, 1fr) auto; min-width: 0; min-height: 0; border-right: 1px solid #29364a; background: #0b1524; }
-      .brand-row { display: flex; align-items: center; gap: 0.5rem; min-width: 0; padding: 0.75rem; border-bottom: 1px solid #29364a; }
+      .brand-row { position: relative; display: flex; align-items: center; gap: 0.5rem; min-width: 0; padding: 0.75rem; border-bottom: 1px solid #29364a; }
       .brand-row strong, .brand-row h1 { min-width: 0; margin: 0; overflow: hidden; color: white; font-size: 1.05rem; text-overflow: ellipsis; white-space: nowrap; }
       [data-collapse] { flex: 0 0 2.25rem; margin-left: auto; border: 1px solid #3a4a61; border-radius: 0.45rem; background: #111f32; color: white; cursor: pointer; }
       [data-navigation-collapsed="true"] .catalogue-panel > :not(.brand-row),
       [data-navigation-collapsed="true"] .brand-row > :not([data-collapse]) { display: none; }
       [data-navigation-collapsed="true"] .brand-row { padding: 0.65rem; }
+      .collapsed-brand { display: none; }
+      [data-navigation-collapsed="true"] .brand-row > .collapsed-brand { display: block; position: absolute; top: 4.5rem; left: 1.15rem; color: white; font-size: 0.9rem; font-weight: 750; text-decoration: none; writing-mode: vertical-rl; }
       .catalogue-controls { display: grid; gap: 0.55rem; padding: 0.75rem; border-bottom: 1px solid #29364a; }
       .catalogue-controls label { display: grid; gap: 0.25rem; color: #a9b7ca; font-size: 0.75rem; font-weight: 650; }
       .catalogue-controls input, .catalogue-controls select { width: 100%; border: 1px solid #3a4a61; border-radius: 0.4rem; background: #101d30; color: white; padding: 0.4rem 0.5rem; }
@@ -1078,6 +1080,7 @@ function renderShellPage(
             <a href="${selected === undefined ? "./" : "../../"}" aria-label="Topocode home">Topocode</a>
             <span class="site-title">${escapeHtml(title)}</span>
           </div>
+          <a class="collapsed-brand" href="${selected === undefined ? "./" : "../../"}" aria-label="Topocode home">Topocode</a>
           <button type="button" data-collapse aria-label="Collapse diagram navigation" title="Collapse diagram navigation">‹</button>
         </div>
         <div class="site-navigation">

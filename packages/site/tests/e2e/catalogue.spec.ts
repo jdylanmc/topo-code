@@ -110,6 +110,9 @@ for (const skills of [false, true]) {
     await expect(page.locator("[data-home-inventory]")).toHaveText("No diagrams yet.");
     await page.setViewportSize({ width: 390, height: 844 });
     await page.getByRole("button", { name: "Collapse diagram navigation" }).click();
+    await expect(page.getByRole("link", { name: "Topocode home" })).toBeVisible();
+    await page.getByRole("link", { name: "Topocode home" }).focus();
+    await expect(page.getByRole("link", { name: "Topocode home" })).toBeFocused();
     await expect(page.locator("[data-home]")).toBeVisible();
     const bounds = await page.locator("[data-home]").boundingBox();
     expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(391);
