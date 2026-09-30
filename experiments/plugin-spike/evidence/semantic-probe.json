@@ -1,0 +1,200 @@
+{
+  "schemaVersion": 1,
+  "status": "bounded-historical-feasibility-evidence",
+  "analyzer": "rust-analyzer 0.0.0 (682a84e95b 2026-09-13)",
+  "toolchain": "1.98.1-aarch64-apple-darwin",
+  "attempts": 2,
+  "liveLauncherShipped": false,
+  "osSandboxClaimed": false,
+  "cargoInvocations": 0,
+  "rustupInvocations": 0,
+  "procMacroExecution": false,
+  "fixture": {
+    "root": "semantic-fixture/lib.rs",
+    "modules": [
+      "semantic-fixture/model.rs",
+      "semantic-fixture/worker.rs"
+    ],
+    "edition": "2021",
+    "cfg": [
+      "unix",
+      "target_os=\"macos\"",
+      "target_arch=\"aarch64\"",
+      "target_pointer_width=\"64\"",
+      "target_endian=\"little\"",
+      "target_family=\"unix\"",
+      "feature=\"enabled\""
+    ],
+    "dependencies": [],
+    "sysroot": null
+  },
+  "profile": {
+    "project": "Explicit linked JSON single-crate project; no Cargo project discovery.",
+    "configuration": {
+      "cargo": {
+        "autoreload": false,
+        "sysroot": null,
+        "sysrootSrc": null,
+        "buildScripts": {
+          "enable": false,
+          "rebuildOnSave": false
+        }
+      },
+      "checkOnSave": false,
+      "procMacro": {
+        "enable": false,
+        "attributes": {
+          "enable": false
+        }
+      },
+      "rustc": {
+        "source": null
+      },
+      "cachePriming": {
+        "enable": false
+      },
+      "diagnostics": {
+        "enable": false
+      }
+    },
+    "environment": "Isolated HOME/CARGO_HOME/RUSTUP_HOME/TMPDIR/cache/target; offline Cargo setting; fixed PATH with deny-by-default tool guards; explicit pinned rustc.",
+    "allowedPerAttempt": [
+      [
+        "rustc",
+        "-vV"
+      ],
+      [
+        "rustc",
+        "--version"
+      ],
+      [
+        "rustc",
+        "--print",
+        "cfg",
+        "-O",
+        "--target",
+        "aarch64-apple-darwin"
+      ]
+    ],
+    "deniedPerAttempt": [
+      [
+        "rustc",
+        "-Z",
+        "unstable-options",
+        "--print",
+        "target-spec-json",
+        "--target",
+        "aarch64-apple-darwin"
+      ]
+    ],
+    "initialAnyDenialGate": {
+      "synthetic": false,
+      "real": false
+    },
+    "reviewedNonBuildingGate": {
+      "synthetic": true,
+      "real": true
+    },
+    "audit": "Initial conservative gate rejected any denied command. Audit found only the exact optional rustc -Z target-spec-json metadata request; it stayed DENIED and was never executed. No guard expansion, build, download, sysroot installation or synthetic retry."
+  },
+  "protocol": {
+    "transport": "Standard JSON-RPC LSP over stdio",
+    "negotiated": [
+      "textDocument/documentSymbol",
+      "textDocument/definition",
+      "textDocument/references",
+      "textDocument/prepareCallHierarchy",
+      "callHierarchy/incomingCalls",
+      "callHierarchy/outgoingCalls"
+    ],
+    "readiness": "Actual experimental/serverStatus quiescent notification before queries; autoreload-disabled warning retained.",
+    "syntheticOracles": [
+      {
+        "name": "cross-module-definition",
+        "passed": true
+      },
+      {
+        "name": "trait-definition",
+        "passed": true
+      },
+      {
+        "name": "cfg-enabled-definition",
+        "passed": true
+      },
+      {
+        "name": "method-definition",
+        "passed": true
+      },
+      {
+        "name": "dynamic-trait-not-invented-concrete-target",
+        "passed": true
+      },
+      {
+        "name": "call-hierarchy-cross-module-target",
+        "passed": true
+      },
+      {
+        "name": "references-include-cross-module-trait-use",
+        "passed": true
+      }
+    ],
+    "realQueries": [
+      {
+        "name": "real-document-symbols",
+        "resultCount": 92,
+        "status": "responded"
+      },
+      {
+        "name": "local-GithubAuth-definition",
+        "resultCount": 1,
+        "status": "responded"
+      },
+      {
+        "name": "cross-module-Store-definition",
+        "resultCount": 1,
+        "status": "responded"
+      },
+      {
+        "name": "local-GithubAuth-references",
+        "resultCount": 45,
+        "status": "responded"
+      },
+      {
+        "name": "real-run-call-hierarchy",
+        "resultCount": 1,
+        "status": "responded"
+      }
+    ],
+    "realOutgoingLocalCallsFromRun": 13,
+    "realDefinitionOracles": [
+      {
+        "symbol": "GithubAuth",
+        "url": "https://github.com/jdylanmc/pr-sniper/blob/9222f8a8b5abe0e65223703a1bf80e994db7f9cc/src-tauri/src/lib.rs#L66"
+      },
+      {
+        "symbol": "Store",
+        "url": "https://github.com/jdylanmc/pr-sniper/blob/9222f8a8b5abe0e65223703a1bf80e994db7f9cc/src-tauri/src/storage.rs#L416"
+      }
+    ],
+    "bothServersExited": 0,
+    "targetDirectoriesEmpty": true
+  },
+  "inputBoundary": "Hash-verified source snapshot only; no Cargo.toml, build.rs, proc-macro libraries, dependencies or runtime files copied into the language-server project.",
+  "limitations": [
+    "No rust-src/sysroot",
+    "No external dependency crate graph",
+    "No procedural macros/build.rs",
+    "Explicit cfg assumptions, not Cargo feature/target resolution",
+    "Not whole-program reachability or compiler validation"
+  ],
+  "liveReproduction": {
+    "status": "Not supplied as a runnable launcher; no new semantic experiments during curation.",
+    "prerequisites": "A separately approved guarded LSP client, matching installed analyzer/toolchain, explicit JSON project/isolated environment and monitored command policy. Rust-src was absent. Settings are not an OS sandbox.",
+    "fixtureOnly": "The included sources preserve the synthetic input, not a complete packaged semantic backend."
+  },
+  "originalReceiptSha256": {
+    "summary": "166f527e128e634d263d5d111a333ab76314ad4e8013a3400fe72b79f1060876",
+    "syntheticProtocol": "74ff5ffed800d21870a6a8c64ee8839e3c1b8b10a63d5264f4cb0720da583476",
+    "realProtocol": "0bd34fd103c199c4766ccae5a6421b8162babab46815d216beaf308e0afe2c51"
+  }
+}

@@ -23,6 +23,10 @@ publication remains a separate release-owner action.
 
 ### Added
 
+- Retain an isolated TypeScript/Rust/Tauri plugin-integration experiment with
+  reproducible package checks and bounded source/rendering findings; not released
+  Rust support. Core landing/catalogue integration remains separate work.
+
 - Add GitHub-only publication of verified tarballs: normal OIDC and explicit
   first-package bootstrap through version/commit-bound tags, with a UI-managed
   token exposed only to its publish step. No local npm authentication is needed.
