@@ -278,7 +278,7 @@ syncBuiltinESMExports();
     error.status === 2 && /PARTIAL PREVIEW:/.test(error.stdout));
   partial();
   mixedCli("story", "preview", mixedRoot, overviewPath);
-  mixedCli("bundle", mixedRoot, "--output", path.join(mixedRoot, ".topo/pre-repair-bundle"));
+  mixedCli("bundle", mixedRoot, "--output", path.join(mixedRoot, ".topo/cache/pre-repair-bundle"));
   const mixedSite = path.join(mixedRoot, ".topo/cache/site");
   const facts = JSON.parse(await readFile(path.join(mixedRoot, ".topo/graph/graph.json"), "utf8")).extensions["dev.topo.languages"];
   assert.deepEqual(facts.contributions.map((item) => item.plugin.id), ["typescript", "rust", "tauri"]);
