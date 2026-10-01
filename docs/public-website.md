@@ -46,25 +46,35 @@ Documentation is rendered directly from its maintained source, not copied into
 a second documentation tree. Public instructions describe the released product;
 development and release documents retain their separately labeled procedures.
 
-## The intentionally empty demo
+## Curated source-backed demo
 
-Each build initializes a fresh temporary, unborn Git repository with the checked-in
-demo configuration and runs the real built `topo init` and `topo bundle` commands.
-It copies their bundle unchanged, including notices. This proves the empty Home
-workflow, not source analysis or architectural quality.
+Each build validates the two curated stories against the working source and
+requires their story/evidence files to be committed. It clones that exact local
+revision into a temporary repository, retains the real origin, applies the demo
+catalogue configuration, then runs the actual `topo init` and `topo bundle`.
+The emitted bundle is copied unchanged, including notices and evidence receipts.
+No scanner or model is invoked. A local unpushed revision has local evidence;
+its GitHub source links become available only after that revision is published.
 
-Existing root `stories/` and `examples/` are preserved and are not included in the
-public demo. Do not automatically author a showcase. Maps will be curated with
-the owner one at a time. When that starts, extend the build to validate the
-approved stories against actual Topocode source and fail on stale evidence
-before publishing. Do not claim this empty-demo build checks story freshness.
+`stories/public/internal-modules.topo.json` covers all fourteen private modules.
+Its twelve visible arrows are a selected dependency spine; each node's narrative
+contains all declared incoming/outgoing internal dependencies (31 declarations).
+`dependency-context.topo.json` groups internal consumers and nineteen direct
+external dependency names into five roles, preserving dependency/dev/peer/optional
+kinds and requested versions in details. Neither map claims runtime calls or a
+transitive dependency inventory. Stable node IDs are reserved for future curated
+drilldowns; only real cross-story links are emitted.
+
+`catalogue.storyIds` selects exactly these two maps. Existing development stories
+and examples are preserved but excluded from the demo. Hash-bound evidence fails
+on source drift; it must be reassessed, not silently regenerated during builds.
 
 The website palette applies a presentation-only stylesheet to the
-same-origin embedded empty Home. It never rewrites generated bundle files or
+same-origin embedded storybook shell. It never rewrites generated bundle files or
 renderer receipts. The embedded Home uses Blueprint rather than a competing
 dark/light button; standalone Home
 retains its native dark/light control. Broader renderer palette support is not
-implied by this empty-Home styling.
+implied by this shell styling.
 
 ## Background motion
 
@@ -96,6 +106,7 @@ Pages and later custom-domain deployment. DNS/domain purchase is separate.
 No additional visual approval job is inserted.
 
 CI checks rendered local links and fragments, Blueprint styling, mobile layout,
-keyboard access, accessibility, motion preferences, and the real empty Home.
+keyboard access, accessibility, motion preferences, source freshness, dependency
+coverage, and module-to-context/return navigation.
 A website workflow in a branch is not a published website; deployment requires
 integration into main and Pages configuration.

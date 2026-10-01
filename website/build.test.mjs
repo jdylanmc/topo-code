@@ -6,6 +6,7 @@ import { basePath, build, markdown, resolveDocLink, root } from "./build.mjs";
 import { themes } from "./themes.mjs";
 import { contourSvg } from "./contours.mjs";
 import { contourIcon, contourPath } from "./brand.mjs";
+import { resolveStoryDocument } from "../packages/story/dist/index.js";
 
 test("Contour header and favicon share geometry with Blueprint favicon colors", () => {
   for (const svg of [contourIcon(), contourIcon(true)]) {
@@ -55,7 +56,36 @@ test("original contour fallback is stable, finite, and bounded", () => {
   assert.ok(svg.length < 400000);
   assert.ok((svg.match(/<path /g) ?? []).length >= 15);
 });
-test("build real empty Home for both project Pages and custom-domain roots", async () => {
+test("curated module maps retain all manifest declarations and reject stale evidence", async () => {
+  const main = JSON.parse(await readFile(path.join(root, "stories/public/internal-modules.topo.json"), "utf8"));
+  const context = JSON.parse(await readFile(path.join(root, "stories/public/dependency-context.topo.json"), "utf8"));
+  const internalNames = new Set(main.sections.map(section => section.title));
+  assert.equal(internalNames.size, 14);
+  const externalNames = new Set();
+  for (const anchor of context.anchors) {
+    const manifest = JSON.parse(await readFile(path.join(root, anchor.path), "utf8"));
+    for (const kind of ["dependencies", "devDependencies", "peerDependencies", "optionalDependencies"]) {
+      for (const [target, version] of Object.entries(manifest[kind] ?? {})) {
+        const declaration = `${manifest.name} -> ${target} [${kind}: ${version}]`;
+        if (internalNames.has(manifest.name) && internalNames.has(target)) {
+          assert.ok(main.sections.find(section => section.title === manifest.name).body.includes(declaration));
+          assert.ok(main.sections.find(section => section.title === target).body.includes(declaration));
+        } else if (!internalNames.has(target)) {
+          externalNames.add(target);
+          assert.ok(context.sections.some(section => section.body.includes(declaration)), declaration);
+        }
+      }
+    }
+  }
+  assert.equal(externalNames.size, 19);
+  await assert.rejects(resolveStoryDocument(
+    root, context, "stories/public/dependency-context.topo.json",
+    { revision: "stale-probe", dirty: true },
+    async file => (await readFile(path.join(root, file), "utf8")) + (file === "package.json" ? "\n" : ""),
+  ), /stale-source/);
+});
+
+test("build only the curated story set for project Pages and custom-domain roots", async () => {
   const original = process.env.SITE_BASE_PATH;
   try {
     for (const base of ["/", "/topo-code/"]) {
@@ -68,11 +98,16 @@ test("build real empty Home for both project Pages and custom-domain roots", asy
       const home = await readFile(path.join(output, "demo/home/index.html"), "utf8");
       const state = JSON.parse(await readFile(path.join(output, "demo/home/site-state.json"), "utf8"));
       assert.match(home, /data-topo-shell/);
-      assert.doesNotMatch(home, /data-kind="story"/);
+      assert.equal((home.match(/data-kind="story"/g) ?? []).length, 2);
+      assert.match(home, /Topocode internal modules/);
+      assert.match(home, /Dependency context by role/);
+      assert.doesNotMatch(home, /Workflow capability|topo-packages/);
       assert.match(JSON.stringify(state), /unscanned/);
       assert.match(await readFile(path.join(output, "index.html"), "utf8"), new RegExp(`${base}assets/client.mjs`));
       assert.match(await readFile(path.join(output, "docs/index.html"), "utf8"), /Get started with Topocode/);
       assert.ok((await readFile(path.join(output, "demo/home/THIRD_PARTY_NOTICES.txt"), "utf8")).length > 100);
+      const evidence = JSON.parse(await readFile(path.join(output, "demo/home/stories/dependency-context/evidence.json"), "utf8"));
+      assert.equal(evidence.anchors.length, 16);
       if (base === "/") {
         const rootOutput = path.join(root, "dist/public-site-root");
         await rm(rootOutput, { recursive: true, force: true });

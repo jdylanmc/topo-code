@@ -14,6 +14,11 @@ primary source filename. The full `body` narrative and source anchors remain
 available in the evidence panel. Other diagram families do not accept this
 caption field.
 
+Native Architecture cards show at most three compact source links, matching the
+pinned renderer's schema. Topocode still validates every section anchor and
+retains all of them in the story evidence panel and `evidence.json`; grouped
+nodes do not discard source evidence to fit the renderer.
+
 The optional `diagramFamily` selects `architecture`, `workflow`, `sequence`,
 `dataflow`, or `lifecycle`; omission retains the legacy Architecture behavior.
 Sequence and Dataflow connections require a nonempty `label` because their

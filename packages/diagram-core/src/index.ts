@@ -658,7 +658,9 @@ function archifySpec(
       ...(sectionAnchors.length === 0 || !nativeSourceEvidence
         ? {}
         : {
-            sources: sectionAnchors.map((anchor) => ({
+            // Native cards allow three links; the story wrapper retains every
+            // validated anchor and its excerpt in the full evidence panel.
+            sources: sectionAnchors.slice(0, 3).map((anchor) => ({
               path: anchor.path,
               line: anchor.location.startLine,
               end_line: anchor.location.endLine,
@@ -1410,8 +1412,8 @@ function improveStoryReadability(
 svg { max-height: 100vh; }
 svg [data-source-evidence-beacon] { display: none; }
 svg text[data-node-label],
-svg text[data-detail="context"],
-svg g[data-edge-from] > text { font-size: ${architectureFontSize}px; }`
+svg g[data-edge-from] > text { font-size: ${architectureFontSize}px; }
+svg text[data-detail="context"] { font-size: 16px; transform: translateY(12px); }`
     : family === "workflow"
       ? `
 svg text[data-node-label],

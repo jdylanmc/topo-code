@@ -18,7 +18,7 @@ test("Contour is the final header mark and favicon", async ({ page, request, bas
 });
 
 for (const [palette, theme] of Object.entries(themes)) {
-  test(`${theme.name}: accessible website and matching empty demo`, async ({ page }, info) => {
+  test(`${theme.name}: accessible website and curated storybook`, async ({ page }, info) => {
     const errors = [];
     page.on("pageerror", error => errors.push(error.message));
     await page.goto("./");
@@ -30,7 +30,8 @@ for (const [palette, theme] of Object.entries(themes)) {
     await expect(frame.locator("[data-topo-shell]")).toBeVisible();
     await expect(frame.locator("html")).toHaveAttribute("data-website-palette", palette);
     await expect(frame.locator("html")).toHaveAttribute("data-theme", theme.mode);
-    expect(await frame.locator("[data-kind=story]").count()).toBe(0);
+    await expect(frame.locator("body")).toHaveAttribute("data-story-id", "internal-modules");
+    await expect(frame.frameLocator("[data-story-viewer]").locator("svg g[data-node-id]")).toHaveCount(14);
     expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
     await page.getByRole("button", { name: "Expand demo" }).click();
     await expect(page.locator(".demo-stage")).toHaveClass(/expanded/);
@@ -69,13 +70,12 @@ for (const [palette, theme] of Object.entries(themes)) {
     await expect(page.locator("html")).toHaveAttribute("data-palette", "blueprint");
   });
 
-  test("embedded Home uses Blueprint; standalone retains its native toggle", async ({ page }) => {
+  test("embedded storybook uses Blueprint; standalone retains its native toggle", async ({ page }) => {
     await page.goto("demo/");
     const frame = page.frameLocator("[data-demo]");
     await expect(frame.locator("html")).toHaveAttribute("data-website-palette", "blueprint");
     await expect(frame.locator("[data-topo-theme]")).toBeHidden();
-    await frame.locator("[data-home]").focus();
-    await page.keyboard.press("t");
+    await frame.locator("body").press("t");
     await expect(frame.locator("html")).toHaveAttribute("data-website-palette", "blueprint");
     await expect(frame.locator("html")).toHaveAttribute("data-theme", "dark");
     await expect(page.locator("[data-theme-status]")).toContainText("standalone Home");
@@ -83,6 +83,26 @@ for (const [palette, theme] of Object.entries(themes)) {
     await page.locator("[data-topo-theme]").click();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   });
+
+test("module details preserve complete dependencies and cross-story return navigation", async ({ page }) => {
+  await page.goto("demo/");
+  const frame = page.frameLocator("[data-demo]");
+  const viewer = frame.frameLocator("[data-story-viewer]");
+  await viewer.locator('svg g[data-node-id="cli"]').click();
+  await expect(frame.locator(".story-details")).toHaveAttribute("open", "");
+  await expect(frame.locator('[data-section-evidence="cli"] > p')).toContainText("@topo/cli -> @topo/schema [dependencies: workspace:*]");
+  const link = frame.locator('a[data-cross-story][data-source-node="cli"]').filter({ hasText: "Build, test, docs" });
+  await link.click();
+  await expect(frame.locator("body")).toHaveAttribute("data-story-id", "dependency-context");
+  await expect(frame.locator('[data-section-evidence="tooling-consumers"] > p')).toContainText("devDependencies");
+  await expect(frame.locator("[data-return]")).toBeVisible();
+  await frame.locator("[data-return]").click();
+  await expect(frame.locator("body")).toHaveAttribute("data-story-id", "internal-modules");
+  await expect(frame.locator('[data-section-evidence="cli"]')).toBeVisible();
+  await page.getByRole("link", { name: "Dependency context", exact: true }).click();
+  await expect(frame.locator("body")).toHaveAttribute("data-story-id", "dependency-context");
+  await expect(frame.frameLocator("[data-story-viewer]").locator("svg g[data-node-id]")).toHaveCount(10);
+});
 
 test("retired theme preferences cannot override Blueprint", async ({ page }) => {
   for (const retired of ["porcelain", "forest", "sandstone", "oxide", "aubergine", "graphite"]) {

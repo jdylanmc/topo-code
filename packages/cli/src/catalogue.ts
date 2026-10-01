@@ -387,7 +387,7 @@ const STORY_NAVIGATION_SCRIPT = `(() => {
       evidence.hidden = edge !== null ? evidence.dataset.edgeEvidence !== edge :
         Boolean(focus) && evidence.dataset.edgeFrom !== focus && evidence.dataset.edgeTo !== focus;
     }
-    if (edge !== null) document.querySelector(".story-details").open = true;
+    if (edge !== null || focus) document.querySelector(".story-details").open = true;
   }
 
   function setFocus(nodeId) {
@@ -1145,6 +1145,7 @@ function renderShellPage(
       :root[data-theme="light"] [data-repository-page],
       :root[data-theme="light"] [data-repository-status] { color: #37536c; }
       [data-section-evidence] { font-size: 0.875rem; line-height: 1.5; }
+      [data-section-evidence] > p { white-space: pre-line; }
       .story-details figure { margin: 0.5rem 0; overflow-wrap: anywhere; }
       .story-details pre { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 78ch; font-size: 12px; }
     </style>

@@ -4,7 +4,8 @@
   "modules": [],
   "catalogue": {
     "title": "Topocode",
-    "description": "A place for carefully curated maps of Topocode itself. No maps have been published yet. We will build them together, one question at a time.",
-    "accentColor": "#80d8ed"
+    "description": "Start with the internal modules and their responsibilities, then explore dependency context by role. These maps cite the actual Topocode source and manifests.",
+    "accentColor": "#80d8ed",
+    "storyIds": ["internal-modules", "dependency-context"]
   }
 }

@@ -83,5 +83,6 @@ changes. Neither check proves that a narrative is meaningful, correct in every
 detail, or complete. Review maps with a person who knows the system, and repair
 the explanation when the implementation changes.
 
-The public self-demo starts empty by design. We will curate its maps together
-instead of publishing development fixtures as an architectural tour.
+The public self-demo starts with an internal-module map and a companion showing
+external dependencies grouped by role. We curate these maps together instead
+of publishing development fixtures as an architectural tour.

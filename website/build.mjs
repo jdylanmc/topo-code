@@ -6,6 +6,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { Marked } from "marked";
 import { contourSvg } from "./contours.mjs";
 import { contourIcon } from "./brand.mjs";
+import { validateStory } from "../packages/cli/dist/story-validation.js";
 
 export const root = fileURLToPath(new URL("../", import.meta.url));
 export const github = "https://github.com/jdylanmc/topo-code";
@@ -74,6 +75,19 @@ export async function build() {
   const base = basePath(process.env.SITE_BASE_PATH);
   const manifest = JSON.parse(await readFile(path.join(root, "distribution/package.json"), "utf8"));
   const version = manifest.version;
+  const sourceRevision = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
+  const demoConfig = JSON.parse(await readFile(path.join(root, "website/demo/.topo/config.json"), "utf8"));
+  const curatedStories = demoConfig.catalogue.storyIds.map(id => `stories/public/${id}.topo.json`);
+  for (const file of curatedStories) {
+    const story = await validateStory(root, file);
+    const inputs = [file, ...story.document.anchors.map(anchor => anchor.path)];
+    try {
+      execFileSync("git", ["diff", "--quiet", "HEAD", "--", ...inputs], { cwd: root });
+      execFileSync("git", ["cat-file", "-e", `${sourceRevision}:${file}`], { cwd: root });
+    } catch (error) {
+      throw new Error(`Commit the curated story and its source before building the demo: ${file}`, { cause: error });
+    }
+  }
   const docs = [...primaryDocs.map(([, file]) => path.posix.basename(file)), ...referenceDocs.map(name => `${name}.md`)];
   const routes = new Map(docs.map(name => [`docs/${name}`, `docs/${name.slice(0, -3)}/`]));
   routes.set("docs/getting-started.md", "docs/");
@@ -100,7 +114,7 @@ export async function build() {
   pages.set("index.html", shell("Architecture you can explain", "Home", `
 <section class="hero"><div><h1>Make your codebase make sense.</h1>
 <p class="lede">An architecture storybook for people building software with agents. Map one meaningful question at a time. Keep the explanation close to the code.</p>
-<div class="actions"><a class="button" href="${route("docs/")}">Get started</a><a href="${route("demo/")}">Explore the demo scaffold</a></div></div>
+<div class="actions"><a class="button" href="${route("docs/")}">Get started</a><a href="${route("demo/")}">Explore Topocode's own maps</a></div></div>
 <div class="workbench"><h2>Start in your repository.</h2><p>Node.js 22+ and Git. No account or hosted service.</p>
 <pre><code data-install>${escapeHtml(install)}</code></pre><button data-copy>Copy install command</button><div class="status" data-copy-status role="status"></div>
 <pre><code>npx --no topo init . --skills
@@ -117,9 +131,9 @@ npx --no topo serve .</code></pre><p>A working Home, before your first map.</p><
   const roadmap = await readFile(path.join(root, "website/roadmap.json"), "utf8");
   const columns = JSON.parse(roadmap);
   pages.set("roadmap/index.html", shell("Roadmap", "Roadmap", `<h1>Where we’re heading.</h1><p class="lede">A curated direction, not a delivery calendar. GitHub issues hold the discussions and current status.</p><div class="roadmap">${columns.map(column => `<section><h2>${escapeHtml(column.title)}</h2><p>${escapeHtml(column.description)}</p><ul>${column.items.map(item => `<li><a href="${github}/issues/${item.issue}">${escapeHtml(item.title)}</a><p class="quiet">${escapeHtml(item.detail)}</p></li>`).join("")}</ul></section>`).join("")}</div><p>Already available: the npm toolbelt, a branded Home, source-backed stories, and minimal Rust/Tauri support. Roadmap grouping reflects intent, not issue readiness or promised dates.</p>`));
-  pages.set("demo/index.html", shell("Topocode’s own storybook", "Demo", `<h1>A home for our own maps.</h1><p class="lede">This is the real Topocode Home, intentionally empty. We’ll curate maps of Topocode together, one question at a time.</p><p>No architecture has been scanned or published here. Existing development fixtures are not being presented as a curated public tour.</p>
-<section class="demo-stage" aria-label="Interactive Topocode demo"><div class="demo-toolbar"><span>Live scaffold · no maps yet</span><button data-expand-demo aria-pressed="false">Expand demo</button><a href="${route("demo/home/")}">Open standalone Home</a></div><iframe data-demo title="Empty Topocode diagram Home" src="${route("demo/home/")}"></iframe></section>
-<p class="quiet">The embedded Home uses the website’s Blueprint theme. Standalone Home retains Topocode’s own dark/light control. No rendered maps or export artifacts are recolored.</p>`));
+  pages.set("demo/index.html", shell("Topocode’s own storybook", "Demo", `<h1>Meet the modules.</h1><p class="lede">Fourteen internal packages, their responsibilities, and their declared dependencies. Start with the internal map; open the companion for external dependencies grouped by role.</p><p>Arrows mean manifest dependencies, not runtime calls. The main map draws a selected composition spine; click a module for its complete incoming and outgoing internal declarations. Module-specific deep dives will be curated next.</p>
+<section class="demo-stage" aria-label="Interactive Topocode demo"><div class="demo-toolbar"><a target="topocode-demo" href="${route("demo/home/stories/internal-modules/")}">Internal modules</a><a target="topocode-demo" href="${route("demo/home/stories/dependency-context/")}">Dependency context</a><button data-expand-demo aria-pressed="false">Expand demo</button><a href="${route("demo/home/")}">Open standalone Home</a></div><iframe data-demo name="topocode-demo" title="Topocode module maps" src="${route("demo/home/stories/internal-modules/")}"></iframe></section>
+<p class="quiet">Source snapshot: <code>${sourceRevision.slice(0, 12)}</code>. Node evidence and cross-story links are available inside the storybook. Existing development fixtures are excluded. Rendered artifacts retain their own provenance; website styling does not recolor exported maps.</p>`));
   pages.set("404.html", shell("Page not found", "Home", `<h1>This path has no map.</h1><p>The page may have moved. <a href="${base}">Return home</a> or <a href="${route("docs/")}">browse the documentation</a>.</p>`));
 
   await mkdir(path.join(root, "dist"), { recursive: true });
@@ -137,7 +151,10 @@ npx --no topo serve .</code></pre><p>A working Home, before your first map.</p><
     await writeFile(path.join(staging, "assets/icon.svg"), contourIcon(true));
     await writeFile(path.join(staging, "assets/contours.svg"), contourSvg());
     await writeFile(path.join(staging, ".nojekyll"), "");
-    execFileSync("git", ["init", "--quiet", demoRepo]);
+    execFileSync("git", ["clone", "--quiet", "--shared", "--no-checkout", root, demoRepo]);
+    execFileSync("git", ["-C", demoRepo, "checkout", "--quiet", "--detach", sourceRevision]);
+    const origin = execFileSync("git", ["remote", "get-url", "origin"], { cwd: root, encoding: "utf8" }).trim();
+    execFileSync("git", ["-C", demoRepo, "remote", "set-url", "origin", origin]);
     await cp(path.join(root, "website/demo/.topo"), path.join(demoRepo, ".topo"), { recursive: true });
     const cli = path.join(root, "packages/cli/dist/main.js");
     for (const args of [
@@ -148,7 +165,7 @@ npx --no topo serve .</code></pre><p>A working Home, before your first map.</p><
     const output = path.join(root, "dist/public-site");
     await rm(output, { recursive: true, force: true });
     await rename(staging, output);
-    console.log(`Built ${pages.size} pages and an empty CLI-generated Home at ${output} (base ${base})`);
+    console.log(`Built ${pages.size} pages and ${curatedStories.length} source-backed stories at ${output} (base ${base})`);
   } finally {
     await rm(staging, { recursive: true, force: true });
     await rm(demoRepo, { recursive: true, force: true });
