@@ -6,6 +6,17 @@ import { root } from "../build.mjs";
 import { themes } from "../themes.mjs";
 import { contourPath } from "../brand.mjs";
 
+async function settleViewer(page) {
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    await Promise.all(document.getAnimations()
+      .filter(animation => animation.effect?.getTiming().iterations !== Infinity)
+      .map(animation => animation.finished));
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  });
+}
+
 test("Contour is the final header mark and favicon", async ({ page, request, baseURL }) => {
   await page.goto("./");
   await expect(page.locator(".brand svg path")).toHaveAttribute("d", contourPath);
@@ -109,7 +120,7 @@ test("module details preserve complete dependencies and cross-story return navig
 
 test("semantic lenses classify responsibilities, preserve geometry, and compare only drawn arrows", async ({ page }) => {
   await page.goto("demo/home/stories/internal-modules/viewer.html");
-  await page.evaluate(() => document.fonts.ready);
+  await settleViewer(page);
   const diagram = page.locator('svg[data-diagram-type="architecture"]');
   const geometry = () => diagram.locator("g[data-node-id]").evaluateAll(nodes =>
     nodes.map(node => {
@@ -189,7 +200,7 @@ test("collaboration sequence remains readable on desktop", async ({ page }) => {
   for (const [width, height] of [[1440, 900], [1600, 1000], [1920, 1080], [2048, 1320]]) {
     await page.setViewportSize({ width, height });
     await page.goto("demo/home/stories/story-to-screen/viewer.html");
-    await page.evaluate(() => document.fonts.ready);
+    await settleViewer(page);
     const metrics = await page.locator('svg[data-topo-family="sequence"]').evaluate(svg => {
       const scale = svg.getScreenCTM().a;
       const labels = [...svg.querySelectorAll("text")].filter(text => text.textContent.trim() && getComputedStyle(text).display !== "none");
@@ -209,7 +220,7 @@ test("curated maps fit desktop viewports with readable role captions", async ({ 
     for (const [width, height] of [[1440, 900], [1600, 1000], [1920, 1080], [2048, 1320]]) {
       await page.setViewportSize({ width, height });
       await page.goto(`demo/home/stories/${id}/viewer.html`);
-      await page.evaluate(() => document.fonts.ready);
+      await settleViewer(page);
       const diagram = page.locator('svg[data-diagram-type="architecture"]');
       await expect(diagram).toBeVisible();
       await expect(diagram.locator("g[data-node-id]")).toHaveCount(count);
@@ -277,7 +288,7 @@ for (const [id, module, detailNode, boundary] of [
     for (const [width, height] of [[1440, 900], [1600, 1000], [1920, 1080], [2048, 1320]]) {
       await page.setViewportSize({ width, height });
       await page.goto(`demo/home/stories/${id}/viewer.html`);
-      await page.evaluate(() => document.fonts.ready);
+      await settleViewer(page);
       const diagram = page.locator('svg[data-topo-family="sequence"]');
       await expect(diagram.locator("g[data-node-id]")).toHaveCount(4);
       const metrics = await diagram.evaluate(svg => ({
