@@ -36,6 +36,12 @@
       "path": "packages/cli/package.json",
       "language": "text",
       "sha256": "e1aaebf5b0fe115fe56a658b71022c849e25120794cdbd1b063ccda97c880086"
+    },
+    {
+      "id": "repository-workspace",
+      "path": "docs/workspace.md",
+      "language": "text",
+      "sha256": "5ee9bc0818206b67cb7e3fde77b038e036f826d10ac2a153c6703b6644909bbe"
     }
   ],
   "sections": [
@@ -70,6 +76,15 @@
       "drilldown": {
         "storyId": "cli-surface"
       }
+    },
+    {
+      "id": "repository",
+      "title": "Repository",
+      "body": "Holds source code, configuration, and authored stories. The agent writes and commits the story; the CLI reads source and generates disposable cache/output. This is a file and Git boundary, not a separate hosted service.",
+      "anchorIds": [
+        "repository-workspace",
+        "agent-skill"
+      ]
     }
   ],
   "connections": [
@@ -85,14 +100,19 @@
     },
     {
       "from": "cli",
+      "to": "repository",
+      "label": "Read code (no model)"
+    },
+    {
+      "from": "cli",
       "to": "agent",
       "label": "Graph, evidence, diagnostics",
       "variant": "return"
     },
     {
       "from": "agent",
-      "to": "agent",
-      "label": "Interpret; author anchored story"
+      "to": "repository",
+      "label": "Write interpreted story"
     },
     {
       "from": "agent",
@@ -107,7 +127,7 @@
     },
     {
       "from": "agent",
-      "to": "agent",
+      "to": "repository",
       "label": "Commit with authorization"
     },
     {

@@ -165,9 +165,9 @@ test("idea-to-architecture sequence shows the collaboration and review loop", as
   const wrapper = page.frameLocator("[data-demo]");
   await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "story-to-screen");
   const flow = wrapper.frameLocator("[data-story-viewer]");
-  await expect(flow.locator("svg g[data-node-id]")).toHaveCount(3);
+  await expect(flow.locator("svg g[data-node-id]")).toHaveCount(4);
   await expect(flow.locator("svg")).toContainText("Review, refine, repeat");
-  await expect(flow.locator("svg")).toContainText("Interpret; author anchored story");
+  await expect(flow.locator("svg")).toContainText("Write interpreted story");
   await expect(flow.locator("svg")).toContainText("Commit with authorization");
   await flow.locator('svg g[data-node-id="cli"]').click();
   await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "cli-surface");

@@ -135,7 +135,7 @@ test("build only the curated story set for project Pages and custom-domain roots
       const evidence = JSON.parse(await readFile(path.join(output, "demo/home/stories/dependency-context/evidence.json"), "utf8"));
       assert.equal(evidence.anchors.length, 16);
       const flow = JSON.parse(await readFile(path.join(output, "demo/home/stories/story-to-screen/evidence.json"), "utf8"));
-      assert.equal(flow.connections.length, 11);
+      assert.equal(flow.connections.length, 12);
       assert.equal(flow.connections.at(-1).label, "Review, refine, repeat");
       assert.ok(flow.connections.every(edge => edge.label));
       assert.ok(flow.anchors.every(anchor => /^[a-f0-9]{64}$/.test(anchor.sha256)));
