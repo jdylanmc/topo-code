@@ -180,6 +180,7 @@ test("idea-to-architecture sequence shows the collaboration and review loop", as
   await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "story-to-screen");
   await expect(wrapper.locator('[data-node-id="cli"]')).toHaveAttribute("aria-current", "true");
   await expect(wrapper.locator(".story-details")).not.toHaveAttribute("open", "");
+  await page.locator("[data-demo]").scrollIntoViewIfNeeded();
   await wrapper.locator(".story-details > summary").click();
   await expect(wrapper.locator('[data-section-evidence="cli"]')).toBeVisible();
 });
