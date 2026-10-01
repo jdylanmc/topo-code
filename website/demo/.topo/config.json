@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "1.0",
+  "repositoryId": "topocode",
+  "modules": [],
+  "catalogue": {
+    "title": "Topocode",
+    "description": "A place for carefully curated maps of Topocode itself. No maps have been published yet. We will build them together, one question at a time.",
+    "accentColor": "#80d8ed"
+  }
+}

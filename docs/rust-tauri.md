@@ -1,9 +1,8 @@
 # Rust, Tauri and technical stories
 
 This is supported **Topocode 0.2.0** behavior of normal `topo` commands,
-not an experiment executable. Node 22 and 24 are supported. After publication,
-install with `npm install --save-dev @jdylanmc/topo-code@0.2.0`; release
-preparation alone is not a registry-availability claim.
+not an experiment executable. Node 22 and 24 are supported.
+Install the published package with `npm install --save-dev @jdylanmc/topo-code@0.2.0`.
 The installed package includes this document, the story JSON Schema and
 `examples/rust-tauri/`; no development checkout or previous agent session is
 required.

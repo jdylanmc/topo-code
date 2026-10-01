@@ -2,7 +2,7 @@ import parser from "@typescript-eslint/parser";
 
 const maintainedFiles = [
   "*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}",
-  "{packages,scripts,benchmarks,tools,distribution,examples}/**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}",
+  "{packages,scripts,benchmarks,tools,distribution,examples,website}/**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}",
 ];
 
 export default [

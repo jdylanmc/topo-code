@@ -22,16 +22,15 @@ The goal is to put a software engineer in the human-in-the-loop position: every
 claim the tool makes about a codebase is backed by evidence you can follow, and
 everything a human adds is recorded as such.
 
-> **Release preparation: 0.2.0.** The scan-to-site workflow, deterministic reports,
+> **Released: 0.2.0.** The scan-to-site workflow, deterministic reports,
 > source-grounded stories, static analysis modules, optional AI commentary, and
 > pinned Archify 3.0.0 rendering are implemented. Topo is the storybook for
 > architects: the generated shell inventories every diagram while preserving
-> real Archify viewers. This source prepares the next minor release; registry
-> publication remains a separate release-owner step.
+> real Archify viewers. Install the published package from npm.
 
 ## Install the toolbelt
 
-Once 0.2.0 is published, install the public package below. Its exact
+Install the public package below. Its exact
 `@jdylanmc/topo-archify@0.1.0` dependency is installed automatically; no source
 checkout or paired tarball is required. Then run
 `npm exec --no -- topo init . --skills`. This adds project-local Topocode skills
@@ -47,6 +46,9 @@ npm exec --no -- topo serve .
 ```
 
 See [package bootstrap, consumer proof and release procedure](./docs/npm-release.md).
+
+See the [getting-started guide](./docs/getting-started.md), [CLI reference](./docs/cli.md),
+and [public website build/deployment guide](./docs/public-website.md).
 
 ## Run locally
 

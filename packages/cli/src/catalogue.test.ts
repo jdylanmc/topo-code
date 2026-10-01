@@ -94,6 +94,12 @@ afterEach(async () => {
 });
 
 describe("generated catalogue", () => {
+  it("makes the empty Home scroll region keyboard-accessible", () => {
+    expect(renderCataloguePage([], undefined)).toContain(
+      '<main class="home-main" data-home tabindex="0" aria-label="Diagram home">',
+    );
+  });
+
   it("keeps Topocode's factual architecture stories source-grounded and current", async () => {
     const stories = await buildCatalogueStories(repositoryRoot);
     const factual = ["topo-architecture", "topo-packages"].map((id) => {

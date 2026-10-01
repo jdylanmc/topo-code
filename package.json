@@ -12,6 +12,8 @@
     "tools/eslint-config"
   ],
   "scripts": {
+    "website:build": "node website/build.mjs",
+    "website:test": "node --test website/build.test.mjs && yarn workspace @topo/site exec playwright test --config ../../website/playwright.config.mjs",
     "build": "node scripts/run-workspaces.mjs build && node scripts/dependency-notices.mjs --site",
     "check": "yarn lint && yarn typecheck && yarn build && yarn test && yarn licenses:check",
     "lint": "eslint . --max-warnings 0",
@@ -25,9 +27,12 @@
     "topo": "node packages/cli/dist/main.js"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
     "@topo/eslint-config": "workspace:*",
     "@types/node": "^22",
     "eslint": "^9.39.5",
+    "marked": "^16.4.1",
+    "playwright-core": "^1.55.0",
     "typescript": "^7.0.2",
     "vite": "8.2.2",
     "vitest": "^5.0.0"

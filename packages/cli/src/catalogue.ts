@@ -1213,7 +1213,7 @@ export function renderCataloguePage(
     config,
     historyIncomplete,
     undefined,
-    `<main class="home-main" data-home>
+    `<main class="home-main" data-home tabindex="0" aria-label="Diagram home">
       <p data-home-error role="alert" hidden></p>
       <h1>${escapeHtml(title)}</h1><p>${escapeHtml(description)}</p>
       <h2>Diagram inventory</h2>
