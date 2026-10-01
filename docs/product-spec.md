@@ -11,7 +11,9 @@ This file is the maintained product intent. GitHub issues track bounded work and
 keep delivery history. The original MVP specification is preserved in
 [issue #40](https://github.com/jdylanmc/topo-code/issues/40). This version
 reconciles that specification with the product on `main` after
-[PR #71](https://github.com/jdylanmc/topo-code/pull/71).
+[PR #71](https://github.com/jdylanmc/topo-code/pull/71), the init-first
+[PR #84](https://github.com/jdylanmc/topo-code/pull/84), and supported Rust/Tauri
+[PR #85](https://github.com/jdylanmc/topo-code/pull/85), prepared for 0.2.0.
 
 The product now has one persistent Archify storybook shell. PR #71 intentionally
 removed the old PixiJS/WebGL repository explorer. Original clauses that required
@@ -24,8 +26,8 @@ same shell: structural packages/directories, files, and compiler declarations
 rendered as bounded Archify views. This replaces neither authored stories nor
 their renderer-neutral contract and does not restore WebGL.
 The approved init-first migration makes Home the default and Repository an
-explicit selection. This source/local-candidate change is unreleased; public
-npm 0.1.0 predates it.
+explicit selection. This is part of the 0.2.0 release contents; registry
+publication remains a separate release-owner action.
 
 ## People and core workflow
 
@@ -181,7 +183,7 @@ This table preserves the disposition of every numbered original requirement.
 | --- | --- |
 | **FR-01; AC-01** | Shipped: committed renderer-neutral stories and runtime anchor resolution. |
 | **FR-02; AC-13, AC-15** | Shipped adapter and atomic failure behavior. The requirement to retain a parallel WebGL renderer is superseded by PR #71. |
-| **FR-03; AC-05, AC-06** | Init-first source migration: branded Home and truthful unscanned empty state; scan/preview populate one categorized inventory. Public npm 0.1.0 predates it. The old explorer requirement remains superseded by PR #71. |
+| **FR-03; AC-05, AC-06** | Implemented for 0.2.0: branded Home and truthful unscanned empty state; scan/preview populate one categorized inventory. The old explorer requirement remains superseded by PR #71. |
 | **FR-04; AC-07** | Shipped through the existing serve command. |
 | **FR-05; NFR-04; AC-08** | Shipped host-agnostic static bundles. |
 | **FR-06; AC-11** | Partly shipped: bounded catalogue configuration. Broader composition/extensibility and the required manual walkthrough remain unresolved above. |
@@ -217,13 +219,14 @@ sketch canvas (**N-4**), manual JSON authoring (**N-5**), an unlisted renderer
 fork or font changes (**N-6**), rebuilt commodity diagramming infrastructure
 (**N-7**), heuristic coverage gates (**N-8**), or restoration of the retired
 WebGL explorer. It does not authorize publishing under the `archify` name.
-Rust/Tauri prototypes, Graphviz, plugin marketplaces and `.topo-view.json`
-remain outside the supported core story contract; this migration integrates none.
+Standalone Rust/Tauri prototypes, plugin marketplaces and `.topo-view.json`
+remain outside the supported contract. PR #85 adds bounded first-party
+Rust/Tauri analysis and explicit Graphviz technical workflows through normal
+commands; see [supported capabilities and limits](./rust-tauri.md).
 
-Further npm publication remains a release-owner step. The existing public
-0.1.0 does not contain the init-first migration. The local candidate
-CLI-plus-skills tarball, opt-in `topo init --skills`, exact renderer dependency,
-and clean installed-consumer regression are implemented; see
+Publication of 0.2.0 remains a release-owner step. Its CLI-plus-skills package,
+opt-in `topo init --skills`, unchanged exact renderer dependency, Home,
+Rust/Tauri support and clean installed-consumer regression are implemented; see
 [distribution](./npm-release.md). #57 is paused Unified Modeling
 Language work. #70 is the separately aligned repository exploration delivery.
 #74, #75, #76, and #77 cover

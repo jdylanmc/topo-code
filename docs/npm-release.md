@@ -1,16 +1,26 @@
 # npm distribution and release
 
 Issue [#13](https://github.com/jdylanmc/topo-code/issues/13) ships one practical
-CLI-plus-skills toolbelt, not a public SDK. Initial candidate versions:
+CLI-plus-skills toolbelt, not a public SDK. Versions for this release preparation:
 
-**Init-first Home is unreleased.** The already-public 0.1.0 predates this change.
-Locally built 0.1.0 candidate tarballs can prove the change without changing
-registry contents; do not republish that version or imply it contains this fix.
+**Topocode 0.2.0** adds init-first Home, minimal parser-backed Rust/Tauri,
+technical Graphviz workflows and the associated theme/evidence hardening.
+The public 0.1.0 release remains immutable. Preparation is not publication:
+the release owner must complete the normal GitHub-hosted OIDC flow and verify
+the public artifact before claiming availability.
 
 | npm package | Version | Upstream runtime |
 | --- | --- | --- |
 | `@jdylanmc/topo-archify` | 0.1.0 | Archify 3.0.0, `9286c3b9c2cef359e98586b420d769d87bcb163f` |
-| `@jdylanmc/topo-code` | 0.1.0 | exact dependency on `@jdylanmc/topo-archify@0.1.0` |
+| `@jdylanmc/topo-code` | 0.2.0 | exact dependency on `@jdylanmc/topo-archify@0.1.0` |
+
+After publication, consumers install only the public Topocode package; npm
+resolves the unchanged renderer dependency:
+
+```sh
+npm install --save-dev @jdylanmc/topo-code@0.2.0
+npm exec --no -- topo init . --skills
+```
 
 The renderer fork is https://github.com/jdylanmc/topo-archify. Its
 `integrations/topo-npm/release.json` records upstream version/commit and the
@@ -35,11 +45,11 @@ corepack yarn install --immutable
 node scripts/bootstrap-renderer.mjs /path/to/jdylanmc-topo-archify-0.1.0.tgz
 TOPO_BROWSER_TEST_PORT=41875 corepack yarn test:regression
 node scripts/pack.mjs dist
-node scripts/package-smoke.mjs dist/jdylanmc-topo-code-0.1.0.tgz /path/to/jdylanmc-topo-archify-0.1.0.tgz
+node scripts/package-smoke.mjs dist/jdylanmc-topo-code-0.2.0.tgz /path/to/jdylanmc-topo-archify-0.1.0.tgz
 ```
 
 The private adapter declares an exact required peer so Yarn can restore the
-development workspace before the first renderer publication. Yarn reports that
+development workspace independently of renderer registry access. Yarn reports that
 peer missing until bootstrap. Bootstrap performs a real isolated npm tarball
 install, verifies its identity/integrity, then copies it into this checkout's
 `node_modules`; it does not alter manifests/lockfiles, fake a registry, or use
@@ -67,7 +77,7 @@ External runtime dependencies remain declared. Consumers receive schemas, three
 portable skills and project instructions, example source-change fixtures and
 composed legal notices. Debug source maps and tests do not ship.
 
-The candidate includes optional native Rust parser dependencies, an explicitly
+Version 0.2.0 includes optional native Rust parser dependencies, an explicitly
 selected Tauri bridge and `@viz-js/viz@3.30.0` with the exact embedded Graphviz
 license exception. Installed `docs/rust-tauri.md` and `examples/rust-tauri/`
 cover mixed-language operation, technical authoring and cache-only recreation.
@@ -93,9 +103,10 @@ human approval. No schedule or auto-merge is configured. Creating the exact
 bootstrap tag described below is an explicit release action, not a routine push.
 
 Ordinary CI packs and tests; it neither handles npm secrets nor publishes. The
-Topocode CI workflow pins the renderer packaging commit, not a floating branch. For this
-coordinated first release that commit must be pushed before remote CI can fetch
-it. Update that ref deliberately for later renderer releases.
+Topocode CI workflow pins the renderer packaging commit, not a floating branch,
+and derives the Topocode tarball filename from `distribution/package.json`.
+Version 0.2.0 retains the existing renderer revision. Any later renderer ref
+change must be deliberate and available remotely before CI can fetch it.
 
 ## GitHub-hosted trusted publishing
 
@@ -123,7 +134,7 @@ and verify those exact bytes:
 Neither path uses a GitHub environment; leave npm's **Environment name blank**.
 
 The publish argument must be an explicit local path, such as
-`./dist/jdylanmc-topo-code-0.1.0.tgz`. npm can classify the bare
+`./dist/jdylanmc-topo-code-0.2.0.tgz`. npm can classify the bare
 `dist/filename.tgz` form as GitHub shorthand rather than a local file. Package
 regressions run the actual workflow arguments through credential-free,
 offline `npm publish --dry-run` and compare the consumed tarball's integrity.
@@ -142,7 +153,11 @@ has no OIDC permission; its tested artifact digest and Actions run remain eviden
 not a claim of npm provenance. Both paths disable lifecycle scripts during
 publication. Package repository URLs identify the actual downstream repositories.
 
-### First-package bootstrap from browser and GitHub Actions
+### Historical first-package bootstrap from browser and GitHub Actions
+
+The following 0.1.0 procedure is retained for the initial-publication record.
+It is **not** the 0.2.0 release path: the package already exists, and bootstrap
+must never be used as a fallback for missing or failed OIDC configuration.
 
 The operator can use npmjs.com in a browser even when this machine cannot reach
 the registry/CLI. No local npm authentication is needed. The **human enters the
@@ -228,13 +243,21 @@ Do not create a GitHub environment just for this workflow.
 
 ### Normal releases entirely through GitHub
 
-In **Actions**, select **Publish renderer to npm** in `topo-archify`, choose
-**Run workflow**, branch `main`, and the exact committed version (initially
-`0.1.0` before its first publication). Use `mode=verify` for a verification-only
-run. After independent review and established npm trust, use `mode=oidc` for a
-new, unpublished version. Normal OIDC never consults the bootstrap secret.
+For Topocode **0.2.0**, keep the already-published renderer **0.1.0** unchanged;
+do not republish it or start a renderer release. After independent review and
+normal merge of the release preparation, the authorized owner selects
+**Publish Topocode to npm** in `topo-code`, **Run workflow**, branch `main`,
+version `0.2.0`, and `mode=oidc`. `mode=verify` remains available for a
+verification-only run. The version must exactly match the committed
+`distribution/package.json`.
 
-Then use **Publish Topocode to npm** in `topo-code` in the same way. Its
+Established npm trusted-publisher configuration is a prerequisite. If it is
+missing or OIDC fails, stop and have the owner correct that configuration;
+do not use the historical bootstrap token. Normal OIDC never consults that
+secret. A future independently approved renderer upgrade follows its own
+versioned workflow rather than automatically following the Topocode version.
+
+The Topocode
 verification job deliberately fetches the exact renderer from **the public npm
 registry**, runs the full regression and installed consumer journey, and only
 then offers the Topocode artifact for publication. A missing renderer version
@@ -249,7 +272,8 @@ Published versions are immutable; never rerun an already-published version as
 an overwrite attempt. Retain the workflow run, source commit and artifact digest
 as release evidence. A post-publication check failure may occur after npm accepted
 the upload: investigate registry state rather than retrying publication blindly.
-No workflow has been dispatched, token handled or package published by the worker.
+Release preparation and local tarball tests do not establish publication;
+retain the successful hosted run and public-artifact verification as the receipt.
 
 Sources: [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/),
 [official source and current allowed-action requirements](https://github.com/npm/documentation/blob/main/content/packages-and-modules/securing-your-code/trusted-publishers.mdx),

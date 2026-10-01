@@ -5,20 +5,18 @@ project agent skills, schemas, prebuilt assets and notices. No hosted service or
 model invocation during scanning. The exact renderer dependency is
 `@jdylanmc/topo-archify@0.1.0`, containing pristine upstream Archify **3.0.0**.
 
+This source prepares **Topocode 0.2.0**. Once that version is published:
+
 ```sh
-npm install --save-dev /path/to/jdylanmc-topo-archify-0.1.0.tgz /path/to/jdylanmc-topo-code-0.1.0.tgz
+npm install --save-dev @jdylanmc/topo-code@0.2.0
 npm exec --no -- topo init . --skills
 npm exec --no -- topo serve .
 npm exec --no -- topo bundle . --output ./site-output --base-path /architecture/
 ```
 
-The init-first Home described here is **unreleased**. The already-public
-`@jdylanmc/topo-code@0.1.0` predates it; use a local candidate containing this
-change. No registry update or version bump is implied.
-
-Installing both tarballs in the same command satisfies the exact renderer
-dependency normally, without a fake registry, workspace links or source checkout.
-The install requires the other declared public npm dependencies.
+The public install resolves the exact unchanged renderer and other declared
+npm dependencies automatically, without paired tarballs or workspace links.
+Preparing this source/package does not itself establish registry availability.
 
 `--skills` is opt-in: creates `.agents/skills/topo`,
 `.agents/skills/topo-story-authoring`, `.agents/skills/topo-archify-maintenance`
@@ -47,13 +45,13 @@ provider-command surface, not part of scanning. Generated `.topo/cache` output
 is disposable; configuration and authored documents are not.
 
 Explicit first-party Rust/Tauri selection, technical decision/data workflows
-and hash-bound source evidence are supported by this unreleased candidate.
+and hash-bound source evidence are part of 0.2.0.
 Read `docs/rust-tauri.md` and the synthetic `examples/rust-tauri/` before
 configuring analysis or authoring technical stories. Rust/Tauri are parser-backed
 and partial, not Cargo/rust-analyzer semantics. Graphviz is an explicit bounded
 backend with its own receipts and complete EPL-2.0/source-availability notices,
 not a native-renderer fallback. App-owned themes also govern native default
-exports. None of these changes updates the already-published 0.1.0.
+exports. Version 0.1.0 remains immutable; 0.2.0 is a distinct minor release.
 
 Bundles are plain static files with notices; hosting, deployment and access
 control are yours. Runtime rendering does not download Archify or call a model.

@@ -38,9 +38,10 @@ Corepack, model service, account or renderer download is needed.
    Serve the output with a static server. Hosting, access control and uploading
    are separate owner decisions. Preserve all emitted license notices.
 
-The init-first home and Rust/Tauri support are unreleased source/local-candidate features; public
-npm 0.1.0 predates it. Use a candidate containing this change, not a claim that
-the existing registry version was updated.
+Init-first Home and Rust/Tauri require Topocode 0.2.0 or newer. After that
+release is published, install with `npm install --save-dev @jdylanmc/topo-code@0.2.0`.
+Release preparation is not proof of registry availability; never silently
+substitute the older 0.1.0 workflow.
 
 `topo enrich` is a separate, explicitly configured provider-command workflow for
 secondary commentary. It is not required for source-grounded story editing.
