@@ -69,6 +69,9 @@ describe("story document contract", () => {
     const validate = new Ajv2020({ strict: true }).compile(JSON.parse(await readFile(schemaPath, "utf8")));
     expect(validate(value)).toBe(true);
     expect(parseStoryDocument(JSON.stringify(value), "roles.topo.json").sections[0]?.semanticRole).toBe("source-analysis");
+    const sequence = { ...value, diagramFamily: "sequence" };
+    expect(validate(sequence)).toBe(true);
+    expect(parseStoryDocument(JSON.stringify(sequence), "roles.topo.json").sections[0]?.semanticRole).toBe("source-analysis");
     for (const invalid of [
       { ...value, diagramFamily: "workflow" },
       ...["", "Source analysis", 'bad"role', "constructor", "a".repeat(65)].map(semanticRole => ({

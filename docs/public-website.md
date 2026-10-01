@@ -88,7 +88,8 @@ related-story links remain available; published targets are validated.
 `story-to-screen.topo.json` now shows **From idea to architecture** as a native
 sequence: you ask the agent, the CLI supplies deterministic scan evidence, the
 agent interprets and authors, the CLI validates/previews, you review, and the
-cycle repeats. This is the documented collaboration workflow, not a call trace
+cycle repeats. The repository lifeline makes source reads and authorized story
+writes explicit. This is the documented collaboration workflow, not a call trace
 of one process. Scan never invokes the model; agent interpretation does not
 require the separate `topo enrich` command. Commits still require authorization.
 

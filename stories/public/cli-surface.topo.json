@@ -9,7 +9,7 @@
     "storyId": "internal-modules",
     "nodeId": "cli"
   },
-  "summary": "The command interface and five modules re-exported by @topo/cli's package root. Arrows mean bin/export/type/dependency references, not a call sequence. This is a private workspace boundary bundled into @jdylanmc/topo-code, not a separately published or stable public SDK. Implementation helpers are deliberately omitted.",
+  "summary": "The command interface and five modules re-exported by @topo/cli's package root. Arrows mean bin/export/type/dependency references, not a call sequence. This is a private workspace boundary bundled into @jdylanmc/topo-code, not a separately published or stable public SDK. Implementation helpers are deliberately omitted. Unlabelled spokes from the package box to API/utility boxes mean root exports; labelled edges distinguish other references.",
   "anchors": [
     {
       "id": "cli-manifest",
@@ -226,7 +226,7 @@
     {
       "id": "generation",
       "title": "Generation API",
-      "summary": "Graph and report artifacts",
+      "summary": "generateArtifacts / ingestReports",
       "body": "Root exports from pipeline.ts:\n\ngenerateArtifacts(root, graph, siteAssets, logicalArchitecture?, catalogue?) -> Promise<ArtifactGenerationResult>\ningestReports(root, inputPaths, siteAssets, expectedRevision?, catalogue?) -> Promise<ReportIngestionResult>\n\nArtifactGenerationResult: layout, optional dashboard, warnings.\nReportIngestionResult: dashboard, warnings.\n\nGeneration takes an already-supplied GraphDocument; do not confuse this API with the topo scan command. Referenced contracts include @topo/schema, @topo/graph and @topo/reports. BuiltCatalogue appears in signatures but is not itself a root re-export.",
       "anchorIds": [
         "cli-entry",
@@ -256,7 +256,7 @@
     {
       "id": "serving",
       "title": "Serving API",
-      "summary": "Server and local URL",
+      "summary": "serveSite / composeSiteData",
       "body": "Root exports from server.ts:\n\nserveSite(root, port?) -> Promise<{ server: Server; url: string }>\ncomposeSiteData(root, input) -> Promise<string | undefined>\n\nserveSite exposes a loopback HTTP server over the generated site; it does not author architecture. composeSiteData composes site data for consumers. Source-backed diagrams and website assets remain separate from these function signatures.",
       "anchorIds": [
         "cli-entry",
@@ -268,7 +268,7 @@
     {
       "id": "cli",
       "title": "@topo/cli",
-      "summary": "Package boundary",
+      "summary": "Exports the API groups",
       "body": "Two entry surfaces: the topo binary and the package-root index.ts barrel. The barrel re-exports server, bundle, pipeline, enrichment, and views.\n\nDeclared runtime module references:\n@topo/diagram-core: workspace:*\n@topo/enrichment: workspace:*\n@topo/graph: workspace:*\n@topo/languages: workspace:*\n@topo/modules: workspace:*\n@topo/reports: workspace:*\n@topo/scanner: workspace:*\n@topo/schema: workspace:*\n@topo/site: workspace:*\n@topo/story: workspace:*\n@topo/views: workspace:*\n@topo/workspace: workspace:*\n\nThe diagram singles out diagram-core so you can continue into its exposed rendering contract. Catalogue, snapshot, skills, and repository-generation helpers are not root exports and are not expanded here.",
       "anchorIds": [
         "cli-manifest",
@@ -279,7 +279,7 @@
     {
       "id": "bundling",
       "title": "Bundling API",
-      "summary": "Static output contract",
+      "summary": "bundleSite",
       "body": "Root exports from bundle.ts:\n\nbundleSite(rootInput, outputInput, options?) -> Promise<BundleSiteResult>\nBundleSiteOptions: optional basePath.\nBundleSiteResult: basePath, outputDirectory, siteDirectory.\n\nProduces a static site directory. Deployment, a domain, and publication approval are not implied by this API.",
       "anchorIds": [
         "cli-entry",
@@ -292,7 +292,7 @@
     {
       "id": "enrichment",
       "title": "Enrichment API",
-      "summary": "Explicit provider invocation",
+      "summary": "runEnrichment",
       "body": "Root exports from enrichment.ts:\n\nrunEnrichment(root, options?) -> Promise<EnrichmentRunResult>\nbuildEnrichmentPrompt(inputPath, outputPath, analysisHash, customPrompt?) -> string\nEnrichmentRunOptions: optional AbortSignal.\nEnrichmentRunResult: analysisHash and comments count.\n\nThis is the explicit configured provider-command workflow. It is not automatically called by scan, and it is not the same thing as an agent independently interpreting evidence while authoring a story.",
       "anchorIds": [
         "cli-entry",
@@ -306,7 +306,7 @@
     {
       "id": "views",
       "title": "Curated-view API",
-      "summary": "Views, saves and conflicts",
+      "summary": "buildCuratedViews / saveCuratedView",
       "body": "Root exports from views.ts:\n\nbuildCuratedViews; saveCuratedView; graphHash; parseSaveCuratedViewRequest;\nserializeCuratedViewsSnapshot; serializeCuratedViewDeltas;\ngraphFromSiteBundle; augmentSiteBundle.\n\nContracts: CuratedViewsBuild, CuratedViewConflictError, CuratedViewMetadataError. Save requests and returned snapshots use @topo/views types; graph inputs use @topo/schema.\n\nThis is the exposed path-based curated-view surface, not arbitrary diagram authoring or a private implementation map.",
       "anchorIds": [
         "cli-entry",
@@ -347,28 +347,23 @@
     },
     {
       "from": "cli",
-      "to": "generation",
-      "label": "exports"
+      "to": "generation"
     },
     {
       "from": "cli",
-      "to": "serving",
-      "label": "exports"
+      "to": "serving"
     },
     {
       "from": "cli",
-      "to": "bundling",
-      "label": "exports"
+      "to": "bundling"
     },
     {
       "from": "cli",
-      "to": "enrichment",
-      "label": "exports"
+      "to": "enrichment"
     },
     {
       "from": "cli",
-      "to": "views",
-      "label": "exports"
+      "to": "views"
     },
     {
       "from": "generation",

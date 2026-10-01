@@ -110,7 +110,7 @@
       },
       {
         "if": { "properties": { "sections": { "type": "array", "contains": { "type": "object", "properties": { "semanticRole": {} }, "required": ["semanticRole"] } } } },
-        "then": { "properties": { "diagramFamily": { "const": "architecture" } } }
+        "then": { "properties": { "diagramFamily": { "enum": ["architecture", "sequence"] } } }
       },
       {
         "if": { "properties": { "renderer": { "const": "graphviz" } }, "required": ["renderer"] },

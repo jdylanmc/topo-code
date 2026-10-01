@@ -440,7 +440,10 @@ const STORY_NAVIGATION_SCRIPT = `(() => {
     setFocus(nodeId);
   }
 
+  let navigating = false;
   function follow(link) {
+    if (navigating) return;
+    navigating = true;
     const sourceNodeId = link.getAttribute("data-source-node");
     if (sourceNodeId) {
       const current = new URL(window.location.href);

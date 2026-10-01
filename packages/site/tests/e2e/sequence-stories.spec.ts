@@ -416,7 +416,7 @@ test("Sequence final typography preserves wide participant titles", async ({
       await page.setViewportSize(viewport);
       await page.goto(`${url}/stories/${wideSequenceStory.id}/`);
       const viewer = page.frameLocator("[data-story-viewer]");
-      const diagram = viewer.locator('svg[role="img"]');
+      const diagram = viewer.locator('svg[data-topo-family="sequence"][role="group"]');
       for (const section of wideSequenceStory.sections) {
         await expect(diagram.getByText(section.body, { exact: true }))
           .toBeVisible();
@@ -524,7 +524,7 @@ test("Sequence stories remain readable in a plain-server bundle", async ({
         ).toBeVisible();
 
         const viewer = page.frameLocator("[data-story-viewer]");
-        const diagram = viewer.locator('svg[role="img"]');
+        const diagram = viewer.locator('svg[data-topo-family="sequence"][role="group"]');
         await expect(diagram).toBeVisible();
         const iframeScale = await page.locator("[data-story-viewer]").evaluate(
           (iframe) => {
@@ -821,7 +821,7 @@ test("integrated Sequence stories preserve titles, navigation, and exports", asy
         const controls = page.locator("details.story-details");
         const summary = controls.locator("summary");
         const viewer = page.frameLocator("[data-story-viewer]");
-        const diagram = viewer.locator('svg[role="img"]');
+        const diagram = viewer.locator('svg[data-topo-family="sequence"][role="group"]');
         const diagramLabels = [
           ...document.sections.map(({ title }) => title),
           ...document.connections.map(({ label }) => label),

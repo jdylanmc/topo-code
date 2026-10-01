@@ -319,8 +319,8 @@ function validateStoryDocument(value: unknown): string | undefined {
     if (sectionValue.semanticRole !== undefined &&
         (typeof sectionValue.semanticRole !== "string" ||
           !/^(?!constructor$)[a-z][a-z0-9-]{0,63}$/.test(sectionValue.semanticRole) ||
-          diagramFamily !== "architecture")) {
-      return `sections[${index}].semanticRole requires an architecture role slug`;
+          (diagramFamily !== "architecture" && diagramFamily !== "sequence"))) {
+      return `sections[${index}].semanticRole requires an architecture or sequence role slug`;
     }
     if (!uniqueStrings(sectionValue.anchorIds)) {
       return `sections[${index}].anchorIds must contain unique nonempty strings`;

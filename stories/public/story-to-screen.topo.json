@@ -48,6 +48,7 @@
     {
       "id": "user",
       "title": "You",
+      "semanticRole": "human",
       "body": "Set the question and scope. Review meaning, accuracy, and usefulness. Feedback starts another iteration; your approval, not a green check, accepts the architecture document.",
       "anchorIds": [
         "authoring-guide",
@@ -57,6 +58,7 @@
     {
       "id": "agent",
       "title": "Coding agent",
+      "semanticRole": "coding-agent",
       "body": "Read code and scan evidence, enrich the understanding, and author an anchored story. Repair diagnostics, preserve story identity, and commit only with authorization. Present the result for human review. Interpretation here does not require the separate topo enrich command.",
       "anchorIds": [
         "authoring-guide",
@@ -67,6 +69,7 @@
     {
       "id": "cli",
       "title": "Topocode CLI",
+      "semanticRole": "command-line-tool",
       "body": "Initialize and optionally scan the repository without calling a model. Validate drafts and render committed stories. serve supplies a local viewer; bundle supplies static files. These are separate invocations across the collaboration cycle, not one long-running call.",
       "anchorIds": [
         "cli-contract",
@@ -80,6 +83,7 @@
     {
       "id": "repository",
       "title": "Repository",
+      "semanticRole": "repository",
       "body": "Holds source code, configuration, and authored stories. The agent writes and commits the story; the CLI reads source and generates disposable cache/output. This is a file and Git boundary, not a separate hosted service.",
       "anchorIds": [
         "repository-workspace",

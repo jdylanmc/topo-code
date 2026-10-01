@@ -9,7 +9,7 @@
     "storyId": "internal-modules",
     "nodeId": "diagram-core"
   },
-  "summary": "The rendering module's exposed functions, shared input/output interfaces, and declared renderer dependencies. Arrows mean exports, contract references, or declared package dependencies—not private rendering steps. This private workspace API is bundled into @jdylanmc/topo-code; it is not a separately published stable SDK.",
+  "summary": "The rendering module's exposed functions, shared input/output interfaces, and declared renderer dependencies. Arrows mean exports, contract references, or declared package dependencies—not private rendering steps. This private workspace API is bundled into @jdylanmc/topo-code; it is not a separately published stable SDK. Unlabelled spokes from the package box to API/utility boxes mean root exports; labelled edges distinguish other references.",
   "anchors": [
     {
       "id": "cli-manifest",
@@ -39,28 +39,28 @@
       "id": "render-story",
       "path": "packages/diagram-core/src/index.ts",
       "language": "text",
-      "sha256": "637b738763f90aba463010c19626649e4d6703c49018a369167cb4b73568c45e",
+      "sha256": "c0436026fae0d1948637891469730dfcc88fa1bdd23ac019a1c9b977691c9776",
       "pattern": "export function renderStory(story: ResolvedStoryDocument): StoryArtifact | Promise<StoryArtifact> {"
     },
     {
       "id": "render-array",
       "path": "packages/diagram-core/src/index.ts",
       "language": "text",
-      "sha256": "637b738763f90aba463010c19626649e4d6703c49018a369167cb4b73568c45e",
+      "sha256": "c0436026fae0d1948637891469730dfcc88fa1bdd23ac019a1c9b977691c9776",
       "pattern": "export function renderArchitectureStories(\n  stories: readonly ResolvedStoryDocument[],\n  options: { readonly sourceEvidence?: \"native\" | \"wrapper\" } = {},\n): StoryArtifact[] {"
     },
     {
       "id": "render-stream",
       "path": "packages/diagram-core/src/index.ts",
       "language": "text",
-      "sha256": "637b738763f90aba463010c19626649e4d6703c49018a369167cb4b73568c45e",
+      "sha256": "c0436026fae0d1948637891469730dfcc88fa1bdd23ac019a1c9b977691c9776",
       "pattern": "export function* renderArchitectureStoryBatch(\n  stories: readonly ResolvedStoryDocument[],\n  options: { readonly sourceEvidence?: \"native\" | \"wrapper\" } = {},\n): Generator<StoryArtifact> {"
     },
     {
       "id": "width-helper",
       "path": "packages/diagram-core/src/index.ts",
       "language": "text",
-      "sha256": "637b738763f90aba463010c19626649e4d6703c49018a369167cb4b73568c45e",
+      "sha256": "c0436026fae0d1948637891469730dfcc88fa1bdd23ac019a1c9b977691c9776",
       "pattern": "export function architectureComponentWidth(\n  title: string,\n  sublabel = \"\",\n  finalTypography = false,\n): number {"
     },
     {
@@ -81,28 +81,28 @@
       "id": "resolved-story",
       "path": "packages/story/src/index.ts",
       "language": "text",
-      "sha256": "5e035e2eecfd25ad8451d0bf1d3dc84eae14f5e6e9b11700de2e006b970140da",
+      "sha256": "602b02bbafeac68b888b5b53690c5afb6475edbe2131aba8f1a21dfb6becfb27",
       "pattern": "export interface ResolvedStoryDocument {\n  readonly document: StoryDocument;\n  readonly documentPath: string;\n  readonly repositoryRoot: string;\n  readonly source: {\n    readonly revision: string;\n    readonly dirty: boolean;\n  };\n  readonly anchors: readonly ResolvedSourceAnchor[];\n}"
     },
     {
       "id": "story-artifact",
       "path": "packages/story/src/index.ts",
       "language": "text",
-      "sha256": "5e035e2eecfd25ad8451d0bf1d3dc84eae14f5e6e9b11700de2e006b970140da",
+      "sha256": "602b02bbafeac68b888b5b53690c5afb6475edbe2131aba8f1a21dfb6becfb27",
       "pattern": "export interface StoryArtifact {\n  readonly kind: \"html\";\n  readonly mediaType: \"text/html\";\n  readonly contents: string;\n  readonly assets?: Readonly<Record<string, string>>;\n  readonly renderer: {\n    readonly name: string;\n    readonly pin: string;\n    readonly sha256?: string;\n    readonly sourceOutputSha256?: string;\n    readonly outputSha256?: string;\n    readonly adaptation?: string;\n  };\n}"
     },
     {
       "id": "theme-export",
       "path": "packages/diagram-core/src/index.ts",
       "language": "text",
-      "sha256": "637b738763f90aba463010c19626649e4d6703c49018a369167cb4b73568c45e",
+      "sha256": "c0436026fae0d1948637891469730dfcc88fa1bdd23ac019a1c9b977691c9776",
       "pattern": "export { CORE_THEME_SCRIPT } from \"./theme.js\";"
     },
     {
       "id": "integrity-export",
       "path": "packages/diagram-core/src/index.ts",
       "language": "text",
-      "sha256": "637b738763f90aba463010c19626649e4d6703c49018a369167cb4b73568c45e",
+      "sha256": "c0436026fae0d1948637891469730dfcc88fa1bdd23ac019a1c9b977691c9776",
       "pattern": "export {\n  verifyArchifyIntegrity,\n  type ArchifyIntegrity,\n} from \"./integrity.js\";"
     }
   ],
@@ -142,7 +142,7 @@
     {
       "id": "batch",
       "title": "Architecture batch API",
-      "summary": "Array or generator result",
+      "summary": "renderArchitectureStories",
       "body": "renderArchitectureStories(stories, options?) -> StoryArtifact[]\nrenderArchitectureStoryBatch(stories, options?) -> Generator<StoryArtifact>\n\nInput: readonly ResolvedStoryDocument[]. The optional sourceEvidence mode is native or wrapper. These entry points accept Architecture stories; they are not general-purpose batching APIs for every diagram family.",
       "anchorIds": [
         "render-array",
@@ -153,7 +153,7 @@
     {
       "id": "diagram-core",
       "title": "@topo/diagram-core",
-      "summary": "Package-root exports",
+      "summary": "Exports the API groups",
       "body": "The root exports renderStory, renderArchitectureStories, renderArchitectureStoryBatch, verifyArchifyIntegrity, the ArchifyIntegrity type, architectureComponentWidth, and CORE_THEME_SCRIPT.\n\nIt references @topo/story for contracts, @jdylanmc/topo-archify as its native peer, and @viz-js/viz as a dependency. No bin entry is declared. Private helpers such as specification builders, renderGraphviz and viewer adaptation routines are intentionally not presented as public APIs.",
       "anchorIds": [
         "renderer-manifest",
@@ -217,23 +217,19 @@
   "connections": [
     {
       "from": "diagram-core",
-      "to": "render",
-      "label": "exports"
+      "to": "render"
     },
     {
       "from": "diagram-core",
-      "to": "batch",
-      "label": "exports"
+      "to": "batch"
     },
     {
       "from": "diagram-core",
-      "to": "integrity",
-      "label": "exports"
+      "to": "integrity"
     },
     {
       "from": "diagram-core",
-      "to": "utilities",
-      "label": "exports"
+      "to": "utilities"
     },
     {
       "from": "render",

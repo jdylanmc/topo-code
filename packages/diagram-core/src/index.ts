@@ -985,11 +985,9 @@ function sequenceSpec(
       column_fit: "spread",
       viewBox: layout.viewBox,
     },
-    participants: story.document.sections.map((section, index) => ({
+    participants: story.document.sections.map((section) => ({
       id: participantIds.get(section.id)!,
-      type: index === story.document.sections.length - 1
-        ? "frontend"
-        : "backend",
+      type: "backend",
       label: section.title,
       sublabel: layout.inlineBodyIds.has(section.id) ? section.body : "",
     })),
@@ -1396,18 +1394,19 @@ function serializeRendererInput(spec: { readonly meta: object }): string {
   }, null, 2)}\n`;
 }
 
-function adaptArchitectureSemantics(contents: string, document: StoryDocument): string {
-  const roles = new Map(document.sections.map(section => [componentId(section.id), section.semanticRole ?? "component"]));
+function adaptStorySemantics(contents: string, document: StoryDocument): string {
+  const fallback = document.diagramFamily === "sequence" ? "participant" : "component";
+  const roles = new Map(document.sections.map(section => [componentId(section.id), section.semanticRole ?? fallback]));
   const seen = new Set<string>();
   const adapted = contents.replace(/<g\b[^>]*\bdata-node-id="([^"]+)"[^>]*>/g, (tag, id: string) => {
     const role = roles.get(id);
     if (role === undefined) return tag;
     if (!/^(?!constructor$)[a-z][a-z0-9-]{0,63}$/.test(role)) throw new Error(`Invalid semantic role for ${id}`);
-    if (!/\bdata-node-kind="[^"]*"/.test(tag)) throw new Error(`Architecture node ${id} has no semantic metadata`);
+    if (!/\bdata-node-kind="[^"]*"/.test(tag)) throw new Error(`Story node ${id} has no semantic metadata`);
     seen.add(id);
     return tag.replace(/\bdata-node-kind="[^"]*"/, `data-node-kind="${role}"`);
   });
-  if (seen.size !== roles.size) throw new Error("Architecture semantic adaptation omitted an authored node");
+  if (seen.size !== roles.size) throw new Error("Story semantic adaptation omitted an authored node");
   const replacements: readonly [RegExp, string][] = [
     [/(<strong\b[^>]*id="semantic-lens-title"[^>]*>)[^<]*(<\/strong>)/,
       "$1Compare responsibilities$2"],
@@ -1429,12 +1428,22 @@ function improveStoryReadability(
     | "dataflow"
     | "lifecycle",
   dataflowLayout?: DataflowLayout,
-  sequenceFontSize?: number,
+  sequence?: SequenceLayout,
 ): string {
   const headEnd = "</head>";
   if (!contents.includes(headEnd)) {
     throw new Error(`Archify ${family} output is missing its closing head element`);
   }
+  if (family === "sequence" && sequence === undefined) throw new Error("Missing sequence readability layout");
+  const sequenceRatio = sequence === undefined ? undefined : sequence.viewBox[0] / sequence.viewBox[1];
+  const semanticControls = family === "architecture" || family === "sequence" ? `
+html[data-topo-app] .semantic-lens { width: min(34rem, calc(100% - 24px)); max-height: calc(100% - 16px); overflow: auto; }
+#semantic-lens-title { font-size: 1rem; }
+#semantic-lens .semantic-lens-instruction,
+#semantic-lens .semantic-lens-status,
+#semantic-lens .semantic-lens-actions button,
+#semantic-lens-kinds .semantic-lens-kind em { font-size: 0.8rem; line-height: 1.5; }
+#semantic-lens-kinds .semantic-lens-kind strong { font-size: 0.85rem; line-height: 1.4; white-space: normal; overflow: visible; overflow-wrap: anywhere; text-overflow: clip; }` : "";
   const rules = family === "architecture"
     ? `
 svg { max-height: 100vh; }
@@ -1443,14 +1452,7 @@ svg { max-height: 100vh; }
 svg [data-source-evidence-beacon] { display: none; }
 svg text[data-node-label],
 svg g[data-edge-from] > text { font-size: ${architectureFontSize}px; }
-svg text[data-detail="context"] { font-size: 17px; transform: translateY(12px); }
-html[data-topo-app] .semantic-lens { width: min(34rem, calc(100% - 24px)); max-height: calc(100% - 16px); overflow: auto; }
-#semantic-lens-title { font-size: 1rem; }
-#semantic-lens .semantic-lens-instruction,
-#semantic-lens .semantic-lens-status,
-#semantic-lens .semantic-lens-actions button,
-#semantic-lens-kinds .semantic-lens-kind em { font-size: 0.8rem; line-height: 1.5; }
-#semantic-lens-kinds .semantic-lens-kind strong { font-size: 0.85rem; line-height: 1.4; white-space: normal; overflow: visible; overflow-wrap: anywhere; text-overflow: clip; }`
+svg text[data-detail="context"] { font-size: 17px; transform: translateY(12px); }`
     : family === "workflow"
       ? `
 svg text[data-node-label],
@@ -1463,8 +1465,14 @@ svg g[data-edge-from] > text {
       : family === "sequence"
         ? `
 svg { max-height: 100vh; }
+@media (min-width: 1400px) and (min-height: 900px) {
+  html[data-topo-app] .container { max-width: min(calc(100vw - 64px), calc((100dvh - 172px) * ${sequenceRatio} + 48px)); }
+}
+@media (min-width: 1400px) and (min-height: 900px) and (max-height: 920px) {
+  html[data-topo-app] .container { max-width: min(calc(100vw - 64px), calc((100dvh - 156px) * ${sequenceRatio} + 32px)); }
+}
 svg text {
-  font-size: ${sequenceFontSize}px;
+  font-size: ${sequence?.fontSize}px;
 }
 .semantic-passport-detail {
   font-size: 0.875rem;
@@ -1486,7 +1494,7 @@ svg g[data-edge-from] > text {
   font-family: Arial, Helvetica, sans-serif;
   font-size: ${lifecycleFontSize}px;
 }`;
-  const style = `<style data-topo-story-readability>${rules}
+  const style = `<style data-topo-story-readability>${rules}${semanticControls}
 </style>`;
   const adjustedContents = family === "dataflow" && dataflowLayout
     ? dataflowLayout.flowLabelWidths.reduce((html, width, index) => {
@@ -1543,8 +1551,9 @@ svg g[data-edge-from] > text {
         return next;
       }, contents)
     : contents;
-  const accessibleContents = family === "architecture"
-    ? adjustedContents.replace(/(<svg\b(?=[^>]*data-diagram-type="architecture")[^>]*\brole=)"img"/, '$1"group"')
+  const accessibleContents = family === "architecture" || family === "sequence"
+    ? adjustedContents.replace(/<svg\b[^>]*\brole="img"[^>]*>/, tag =>
+        tag.replace('role="img"', 'role="group"').replace("<svg", `<svg data-topo-family="${family}"`))
     : adjustedContents;
   return accessibleContents.replace(headEnd, `${style}\n${headEnd}`);
 }
@@ -1585,7 +1594,7 @@ export function* renderArchitectureStoryBatch(
     }
     for (const [index, { output }] of jobs.entries()) {
       const sourceContents = readFileSync(output, "utf8");
-      const contents = adaptViewerTheme(adaptArchitectureSemantics(
+      const contents = adaptViewerTheme(adaptStorySemantics(
         improveStoryReadability(sourceContents, "architecture"), stories[index]!.document,
       ), stories[index]!.document);
       yield {
@@ -1665,10 +1674,10 @@ export function renderStory(story: ResolvedStoryDocument): StoryArtifact | Promi
       )
       : readFileSync(outputPath, "utf8");
     const readable = improveStoryReadability(
-      contents, family, adaptiveDataflowLayout, adaptiveSequenceLayout?.fontSize,
+      contents, family, adaptiveDataflowLayout, adaptiveSequenceLayout,
     );
-    const adapted = adaptViewerTheme(family === "architecture"
-      ? adaptArchitectureSemantics(readable, story.document)
+    const adapted = adaptViewerTheme(family === "architecture" || family === "sequence"
+      ? adaptStorySemantics(readable, story.document)
       : readable, story.document);
     return {
       kind: "html",
@@ -1680,7 +1689,7 @@ export function renderStory(story: ResolvedStoryDocument): StoryArtifact | Promi
         sha256: integrity.archiveSha256,
         sourceOutputSha256: outputHash(readFileSync(outputPath, "utf8")),
         outputSha256: outputHash(adapted),
-        adaptation: family === "architecture" ? "topocode-story-semantics-v2" : "topocode-readability-and-theme-v1",
+        adaptation: family === "architecture" || family === "sequence" ? "topocode-story-semantics-v2" : "topocode-readability-and-theme-v1",
       },
     };
   } catch (error) {

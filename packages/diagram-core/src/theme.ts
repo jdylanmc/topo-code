@@ -89,12 +89,15 @@ export function adaptViewerTheme(contents: string, document?: StoryDocument): st
   const storyId = ${JSON.stringify(document.id).replaceAll("<", "\\u003c")};
   if (window.parent !== window || !location.pathname.endsWith("/stories/" + storyId + "/viewer.html")) return;
   const targets = new Map(${JSON.stringify(drilldowns).replaceAll("<", "\\u003c")});
+  let navigating = false;
   function activate(event) {
+    if (navigating) return;
     if (event.type === "keyup" && event.key !== "Enter" && event.key !== " ") return;
     const node = event.target.closest?.("[data-node-id]");
     const id = node?.getAttribute("data-node-id");
     const target = targets.get(id);
     if (!target) return;
+    navigating = true;
     const destination = new URL("../" + encodeURIComponent(target.storyId) + "/", location.href);
     if (target.nodeId) destination.searchParams.set("focus", target.nodeId);
     destination.searchParams.set("from", storyId);

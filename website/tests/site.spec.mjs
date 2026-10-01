@@ -166,6 +166,8 @@ test("idea-to-architecture sequence shows the collaboration and review loop", as
   await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "story-to-screen");
   const flow = wrapper.frameLocator("[data-story-viewer]");
   await expect(flow.locator("svg g[data-node-id]")).toHaveCount(4);
+  expect(await flow.locator("svg g[data-node-id]").evaluateAll(nodes => nodes.map(node => node.dataset.nodeKind)))
+    .toEqual(["human", "coding-agent", "command-line-tool", "repository"]);
   await expect(flow.locator("svg")).toContainText("Review, refine, repeat");
   await expect(flow.locator("svg")).toContainText("Write interpreted story");
   await expect(flow.locator("svg")).toContainText("Commit with authorization");
@@ -182,7 +184,7 @@ test("collaboration sequence remains readable on desktop", async ({ page }) => {
     await page.setViewportSize({ width, height });
     await page.goto("demo/home/stories/story-to-screen/viewer.html");
     await page.evaluate(() => document.fonts.ready);
-    const metrics = await page.locator('svg[role="img"]').evaluate(svg => {
+    const metrics = await page.locator('svg[data-topo-family="sequence"]').evaluate(svg => {
       const scale = svg.getScreenCTM().a;
       const labels = [...svg.querySelectorAll("text")].filter(text => text.textContent.trim() && getComputedStyle(text).display !== "none");
       return {
@@ -207,6 +209,7 @@ test("curated maps fit desktop viewports with readable role captions", async ({ 
       await expect(diagram.locator("g[data-node-id]")).toHaveCount(count);
       const metrics = await diagram.evaluate(svg => {
         const scale = svg.getBoundingClientRect().width / svg.viewBox.baseVal.width;
+        const labels = [...svg.querySelectorAll("g[data-edge-from] > text")].map(text => text.getBoundingClientRect());
         return {
           overflowX: document.documentElement.scrollWidth > innerWidth,
           overflowY: document.documentElement.scrollHeight > innerHeight,
@@ -217,6 +220,9 @@ test("curated maps fit desktop viewports with readable role captions", async ({ 
             const caption = node.querySelector('text[data-detail="context"]')?.getBoundingClientRect();
             return title && caption && caption.top < title.bottom;
           }).length,
+          edgeLabelOverlaps: labels.flatMap((a, index) => labels.slice(index + 1).filter(b =>
+            Math.min(a.right, b.right) - Math.max(a.left, b.left) > 1 &&
+            Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1)).length,
         };
       });
 
@@ -250,6 +256,7 @@ test("curated maps fit desktop viewports with readable role captions", async ({ 
       });
       expect(metrics, `${id} at ${width}x${height}`).toMatchObject({ overflowX: false, overflowY: false, captionOverlaps: 0 });
       expect(metrics.captionFloor).toBeGreaterThanOrEqual(12);
+      if (id.endsWith("-surface")) expect(metrics.edgeLabelOverlaps).toBe(0);
     }
   }
 });
