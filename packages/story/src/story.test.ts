@@ -51,7 +51,7 @@ describe("story document contract", () => {
     expect(parseStoryDocument(JSON.stringify(value), "roles.topo.json").sections[0]?.semanticRole).toBe("source-analysis");
     for (const invalid of [
       { ...value, diagramFamily: "workflow" },
-      ...["", "Source analysis", 'bad"role', "a".repeat(65)].map(semanticRole => ({
+      ...["", "Source analysis", 'bad"role', "constructor", "a".repeat(65)].map(semanticRole => ({
         ...value, sections: [{ ...story.sections[0], semanticRole }],
       })),
     ]) {

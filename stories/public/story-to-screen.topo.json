@@ -48,21 +48,21 @@
       "path": "packages/story/src/index.ts",
       "language": "typescript",
       "symbol": "resolveStoryDocument",
-      "sha256": "427c477a3836c051b2ceedd4231e8e89f7fa77390803f6f963e7a725f4d35492"
+      "sha256": "f62fefd750bfcfddca1f8802fed2abb8cb0ca1519922bc4d4979623ce5450af7"
     },
     {
       "id": "resolve-anchor",
       "path": "packages/story/src/index.ts",
       "language": "typescript",
       "symbol": "resolveAnchor",
-      "sha256": "427c477a3836c051b2ceedd4231e8e89f7fa77390803f6f963e7a725f4d35492"
+      "sha256": "f62fefd750bfcfddca1f8802fed2abb8cb0ca1519922bc4d4979623ce5450af7"
     },
     {
       "id": "render-story",
       "path": "packages/diagram-core/src/index.ts",
       "language": "typescript",
       "symbol": "renderStory",
-      "sha256": "74cd40dfeb6c5decdf4ba7bcd9dfadad666610c0a0d11c6945497c6dded17939"
+      "sha256": "982de2989f0c2dcce89eaeeaa3bd2701068b6f0b37050e0b451f0b358822cde2"
     },
     {
       "id": "fresh-catalogue",

@@ -292,7 +292,7 @@ function validateStoryDocument(value: unknown): string | undefined {
     }
     if (sectionValue.semanticRole !== undefined &&
         (typeof sectionValue.semanticRole !== "string" ||
-          !/^[a-z][a-z0-9-]{0,63}$/.test(sectionValue.semanticRole) ||
+          !/^(?!constructor$)[a-z][a-z0-9-]{0,63}$/.test(sectionValue.semanticRole) ||
           diagramFamily !== "architecture")) {
       return `sections[${index}].semanticRole requires an architecture role slug`;
     }

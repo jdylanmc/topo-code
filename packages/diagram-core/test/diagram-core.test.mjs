@@ -130,6 +130,24 @@ test("renders a resolved story through the packaged Archify CLI", async (context
   assert.match(first.contents, /Checkout service/);
   assert.match(first.contents, /Export diagram/);
   assert.match(first.contents, />Present</);
+  assert.match(first.contents, /<g\b[^>]*data-node-kind="component"/);
+  assert.doesNotMatch(first.contents, /<g\b[^>]*data-node-kind="frontend"/);
+  const authoredRoles = {
+    ...story,
+    document: {
+      ...story.document,
+      sections: story.document.sections.map((section, index) => ({
+        ...section, semanticRole: index === 0 ? "source-analysis" : "command-orchestration",
+      })),
+    },
+  };
+  const roleArtifact = renderStory(authoredRoles);
+  assert.equal(roleArtifact.renderer.sourceOutputSha256, first.renderer.sourceOutputSha256);
+  assert.notEqual(roleArtifact.renderer.outputSha256, first.renderer.outputSha256);
+  assert.match(roleArtifact.contents, /<g\b[^>]*data-node-kind="source-analysis"/);
+  assert.match(roleArtifact.contents, /<g\b[^>]*data-node-kind="command-orchestration"/);
+  assert.equal(roleArtifact.renderer.adaptation, "topocode-story-semantics-v2");
+  assert.deepEqual(renderArchitectureStories([authoredRoles]), [roleArtifact]);
 
   const caller = path.join(repositoryRoot, "caller");
   await mkdir(caller);

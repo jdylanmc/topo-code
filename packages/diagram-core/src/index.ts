@@ -1402,7 +1402,7 @@ function adaptArchitectureSemantics(contents: string, document: StoryDocument): 
   const adapted = contents.replace(/<g\b[^>]*\bdata-node-id="([^"]+)"[^>]*>/g, (tag, id: string) => {
     const role = roles.get(id);
     if (role === undefined) return tag;
-    if (!/^[a-z][a-z0-9-]{0,63}$/.test(role)) throw new Error(`Invalid semantic role for ${id}`);
+    if (!/^(?!constructor$)[a-z][a-z0-9-]{0,63}$/.test(role)) throw new Error(`Invalid semantic role for ${id}`);
     if (!/\bdata-node-kind="[^"]*"/.test(tag)) throw new Error(`Architecture node ${id} has no semantic metadata`);
     seen.add(id);
     return tag.replace(/\bdata-node-kind="[^"]*"/, `data-node-kind="${role}"`);

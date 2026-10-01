@@ -115,6 +115,17 @@ test("semantic lenses classify responsibilities, preserve geometry, and compare 
       return [node.dataset.nodeId, bounds.x, bounds.y, bounds.width, bounds.height];
     }));
   const before = await geometry();
+  const exportSvg = async () => {
+    const download = page.waitForEvent("download");
+    await page.evaluate(() => Reflect.get(window, "Archify").exportMenu.run("svg"));
+    const stream = await (await download).createReadStream();
+    if (!stream) throw new Error("Missing native SVG export");
+    const chunks = [];
+    for await (const chunk of stream) chunks.push(chunk);
+    return Buffer.concat(chunks).toString();
+  };
+  const canonicalSvg = await exportSvg();
+  expect(canonicalSvg).toContain('data-node-kind="graph-shaping"');
   await page.locator("#btn-semantic-lens").click();
   const kinds = page.locator("#semantic-lens-kinds button");
   await expect(kinds).toHaveCount(6);
@@ -126,13 +137,14 @@ test("semantic lenses classify responsibilities, preserve geometry, and compare 
     await expect(page.locator(`#semantic-lens-kinds [data-kind="${kind}"] em`)).toHaveText(String(count));
   }
   await expect(page.locator(".semantic-lens-instruction")).toContainText("relationships drawn in this story");
-  await page.locator('[data-kind="command-orchestration"]').click();
-  await page.locator('[data-kind="source-analysis"]').click();
+  await page.locator('#semantic-lens-kinds [data-kind="command-orchestration"]').click();
+  await page.locator('#semantic-lens-kinds [data-kind="source-analysis"]').click();
   await expect(page.locator("#semantic-lens-status")).toContainText("1 direct relationship");
   const matched = await diagram.locator("[data-edge-from][data-edge-to][data-lens-match]").evaluateAll(edges =>
     [...new Set(edges.map(edge => `${edge.dataset.edgeFrom}->${edge.dataset.edgeTo}`))]);
   expect(matched).toEqual(["cli->languages"]);
   expect(await geometry()).toEqual(before);
+  expect(await exportSvg()).toBe(canonicalSvg);
   await page.reload();
   await expect(diagram).toHaveAttribute("data-lens-active", "command-orchestration source-analysis");
   expect(await geometry()).toEqual(before);
@@ -162,6 +174,25 @@ test("story-to-screen exposes actual phases, failure evidence, and module drillb
   await wrapper.locator("[data-return]").click();
   await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "story-to-screen");
   await expect(wrapper.locator('[data-section-evidence="cli"]')).toBeVisible();
+});
+
+test("execution lens remains readable without internal scrolling on desktop", async ({ page }) => {
+  for (const [width, height] of [[1440, 900], [1600, 1000], [1920, 1080], [2048, 1320]]) {
+    await page.setViewportSize({ width, height });
+    await page.goto("demo/home/stories/story-to-screen/viewer.html");
+    const metrics = await page.locator("svg").evaluate(svg => {
+      const scale = svg.getScreenCTM().a;
+      const main = document.querySelector("main");
+      return {
+        overflow: document.documentElement.scrollWidth > innerWidth ||
+          document.documentElement.scrollHeight > innerHeight ||
+          main.scrollWidth > main.clientWidth || main.scrollHeight > main.clientHeight,
+        textFloor: Math.min(...[...svg.querySelectorAll("text")].map(text => parseFloat(getComputedStyle(text).fontSize) * scale)),
+      };
+    });
+    expect(metrics.overflow).toBe(false);
+    expect(metrics.textFloor).toBeGreaterThanOrEqual(12);
+  }
 });
 
 test("curated maps fit desktop viewports with readable role captions", async ({ page }) => {
