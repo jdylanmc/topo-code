@@ -1,7 +1,9 @@
 # Rust, Tauri and technical stories
 
-This is supported **unreleased candidate** behavior of normal `topo` commands,
-not an experiment executable or a registry update. Node 22 and 24 are supported.
+This is supported **Topocode 0.2.0** behavior of normal `topo` commands,
+not an experiment executable. Node 22 and 24 are supported. After publication,
+install with `npm install --save-dev @jdylanmc/topo-code@0.2.0`; release
+preparation alone is not a registry-availability claim.
 The installed package includes this document, the story JSON Schema and
 `examples/rust-tauri/`; no development checkout or previous agent session is
 required.
@@ -67,7 +69,7 @@ and a source-order discriminator among identical headers, such as
 ordinals, not lines/columns. Named descendants, qualified anchors and Rust
 ownership edges survive unrelated comments/blank lines; positions and hashes
 still change as evidence. Adding or reordering structurally identical owners
-can change their ordinals. Old unreleased candidate anchors containing
+can change their ordinals. Pre-0.2.0 development anchors containing
 `@line:column` must be reconciled once against the corrected structural names.
 
 Tauri helper propagation requires an established scalar argument position.

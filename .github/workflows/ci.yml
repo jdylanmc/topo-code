@@ -42,8 +42,9 @@ jobs:
       - run: yarn test:regression
       - name: Verify the installed public toolbelt
         run: |
+          PACKAGE_FILE="jdylanmc-topo-code-$(node -p "require('./distribution/package.json').version").tgz"
           node scripts/pack.mjs dist
-          node scripts/package-smoke.mjs dist/jdylanmc-topo-code-0.1.0.tgz ../renderer/dist/jdylanmc-topo-archify-0.1.0.tgz
+          node scripts/package-smoke.mjs "dist/$PACKAGE_FILE" ../renderer/dist/jdylanmc-topo-archify-0.1.0.tgz
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: npm-candidates

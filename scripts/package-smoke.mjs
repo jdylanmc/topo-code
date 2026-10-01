@@ -9,6 +9,7 @@ import { createHash } from "node:crypto";
 
 const [topoTarball, rendererTarball, retainedDirectory] = process.argv.slice(2);
 if (!topoTarball || !rendererTarball) throw new Error("Usage: node scripts/package-smoke.mjs topo.tgz renderer.tgz [new-evidence-directory]");
+const expectedVersion = JSON.parse(await readFile(new URL("../distribution/package.json", import.meta.url), "utf8")).version;
 const root = retainedDirectory
   ? path.resolve(retainedDirectory)
   : await mkdtemp(path.join(tmpdir(), "topo-installed-consumer-"));
@@ -88,7 +89,7 @@ syncBuiltinESMExports();
 `);
   const manifest = JSON.parse(await readFile(path.join(installed, "package.json"), "utf8"));
   assert.equal(manifest.name, "@jdylanmc/topo-code");
-  assert.equal(manifest.version, "0.1.0");
+  assert.equal(manifest.version, expectedVersion);
   assert.equal(manifest.dependencies["@jdylanmc/topo-archify"], "0.1.0");
   assert.equal(manifest.scripts, undefined);
   assert.equal((await lstat(installed)).isSymbolicLink(), false);

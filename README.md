@@ -14,34 +14,34 @@ No hosted service, no telemetry, no account.
 
 Normal commands also support explicitly selected, parser-backed **Rust/Tauri**
 and snapshot-bound technical workflows with decisions, exact node/edge source
-evidence and an explicit Graphviz renderer. These capabilities are unreleased;
-the existing registry 0.1.0 is unchanged. See [supported configuration, portable
+evidence and an explicit Graphviz renderer in **Topocode 0.2.0**.
+See [supported configuration, portable
 examples and limits](./docs/rust-tauri.md).
 
 The goal is to put a software engineer in the human-in-the-loop position: every
 claim the tool makes about a codebase is backed by evidence you can follow, and
 everything a human adds is recorded as such.
 
-> **Status: Local preview.** The scan-to-site workflow, deterministic reports,
+> **Release preparation: 0.2.0.** The scan-to-site workflow, deterministic reports,
 > source-grounded stories, static analysis modules, optional AI commentary, and
 > pinned Archify 3.0.0 rendering are implemented. Topo is the storybook for
 > architects: the generated shell inventories every diagram while preserving
-> real Archify viewers. npm candidate packages and portable project skills are
-> available; registry publication remains a separate release-owner step.
+> real Archify viewers. This source prepares the next minor release; registry
+> publication remains a separate release-owner step.
 
 ## Install the toolbelt
 
-The public `@jdylanmc/topo-code@0.1.0` predates the init-first home described
-here. Use a locally built candidate tarball for this unreleased behavior; no
-version bump or publication is implied. After installing the candidate, run
+Once 0.2.0 is published, install the public package below. Its exact
+`@jdylanmc/topo-archify@0.1.0` dependency is installed automatically; no source
+checkout or paired tarball is required. Then run
 `npm exec --no -- topo init . --skills`. This adds project-local Topocode skills
 and instructions without replacing existing files. Read
 `.agents/skills/topo/SKILL.md`, serve, author/validate stories, preview and bundle
 using the installed CLI. Plain `topo init` creates the same site without skills.
-Install both candidate tarballs in one npm command:
+Version 0.2.0 adds init-first Home and the supported Rust/Tauri workflow:
 
 ```sh
-npm install --save-dev /path/to/jdylanmc-topo-archify-0.1.0.tgz /path/to/jdylanmc-topo-code-0.1.0.tgz
+npm install --save-dev @jdylanmc/topo-code@0.2.0
 npm exec --no -- topo init . --skills
 npm exec --no -- topo serve .
 ```
@@ -141,7 +141,8 @@ node /absolute/path/to/topo-code/packages/cli/dist/main.js scan "$PWD"
 ```
 
 Documentation uses `topo` as shorthand for that built entry point. The supported
-input for scanning is a local Git repository containing TypeScript/JavaScript.
+input for scanning is a local Git repository containing TypeScript/JavaScript,
+or explicitly selected Rust/Tauri source as described in the technical guide.
 Initialization and authored stories do not require scannable source. Unknown
 configuration, unresolved local/workspace imports and incomplete scans fail
 explicitly. An intentional `--allow-partial` preview is visibly non-authoritative

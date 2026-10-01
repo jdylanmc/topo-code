@@ -1,9 +1,55 @@
 # Changelog
 
-Notable changes are recorded here. Initial npm candidates are version 0.1.0;
-publication remains a separate release-owner action.
+Notable changes to the public Topocode package are recorded here. Renderer
+versions are independent; publication remains a separate release-owner action.
 
 ## Unreleased
+
+## 0.2.0 - 2026-09-30
+
+Release preparation date; npm publication is not implied by these notes.
+Changes since the published 0.1.0 baseline. The renderer remains
+`@jdylanmc/topo-archify@0.1.0` with pristine Archify 3.0.0.
+
+### Added
+
+- Create a ready-to-serve branded Home on plain or skills-enabled `topo init`,
+  including empty/unborn repositories. Reuse its categorized inventory across
+  Home and stories, retain selectable Repository exploration, and bundle
+  truthful unscanned sites. See #84.
+- Support minimal first-party Rust language and Tauri bridge selection through
+  normal commands, with deterministic parser-backed evidence, lexical ownership
+  and explicit partial/unresolved coverage. JS/TS remains the default; no Cargo,
+  proc-macro or model execution is introduced.
+- Add hash-bound technical Workflow stories with decision/data shapes, exact
+  node/edge excerpts and source-traced versus inferred connections. Explicit
+  Graphviz 16.0.0 has its own layout receipts and a narrowly pinned embedded
+  EPL-2.0 exception with full notices/source availability. See #85.
+- Include generic Rust/Tauri fixtures and installed authoring/operation guidance
+  for fresh contexts and cache recreation, without consumer application data.
+
+### Fixed
+
+- Share one app-owned theme across shell, evidence, authored/generated viewers,
+  focus navigation and native default exports without modifying renderer bytes.
+- Preserve Rust impl/trait methods through validated publication, preview and
+  bundle; structural owner identities keep named methods and qualified anchors
+  stable across comment-only moves.
+- Reject uncertain Tauri helper positions across spreads/rest bindings and
+  invalidate obsolete helpers after dot/computed-member writes while preserving
+  known scalar and unmodified-receiver controls.
+- Preserve renderer-owned evidence/specification assets and distinguish native
+  from adapted/shared-output hashes. Roll back reported replacement failures
+  and reject orphaned preview caches rather than publishing mixed generations.
+- Keep byte-pinned upstream license files unchanged through Windows-style Git
+  checkout conversion without weakening digest checks.
+
+## 0.1.0
+
+Initial public release baseline:
+[`6c7b5c9`](https://github.com/jdylanmc/topo-code/tree/6c7b5c926d54fadcae51c450edfb210cd6be38dc),
+tag `npm-bootstrap/v0.1.0-6c7b5c926d54fadcae51c450edfb210cd6be38dc`.
+The original preparation entries below are retained as historical notes.
 
 ### Renderer upgrade
 
@@ -22,26 +68,6 @@ publication remains a separate release-owner action.
   is implied. Refs #41.
 
 ### Added
-
-- Support explicit first-party Rust language and Tauri bridge selection through
-  normal scan/preview/bundle commands, retaining JS/TS defaults, deterministic
-  source identities, lexical ownership, per-plugin partial/unresolved evidence
-  and conservative shadowing/mutation handling. No Cargo, proc-macro or model
-  execution is introduced.
-- Add snapshot-bound technical Workflow stories with decision/data shapes,
-  exact node/edge excerpts and source-traced versus inferred connections.
-  Explicit Graphviz 16.0.0 rendering has engine-specific layout receipts and a
-  narrowly pinned embedded EPL-2.0 exception with full notices and source
-  availability. Native diagram families remain unchanged.
-- Ship generic Rust/Tauri fixtures, installed authoring/operation guidance and
-  transferable parser, rendering, theme, publication and regeneration findings.
-  No consumer application's authored diagrams or caches are included.
-
-- Create a ready-to-serve, branded diagram Home on plain or skills-enabled
-  `topo init`, including empty/unborn repositories without scanning. Reuse the
-  categorized inventory across Home and native story pages, keep Repository
-  exploration selectable and old deep links working, and bundle truthful
-  unscanned sites with notices. This is unreleased; public npm 0.1.0 is unchanged.
 
 - Add GitHub-only publication of verified tarballs: normal OIDC and explicit
   first-package bootstrap through version/commit-bound tags, with a UI-managed
@@ -141,22 +167,6 @@ publication remains a separate release-owner action.
   Installation does not activate orchestration or scheduled monitoring.
 
 ### Fixed
-
-- Retain Rust impl/trait methods through validated Repository publication,
-  preview, bundle and cache recreation. Structural impl/extern owner identities
-  keep named descendants and qualified anchors stable across comment-only moves.
-- Reject uncertain Tauri helper positions across spreads/rest bindings and
-  invalidate obsolete helpers after equivalent dot/computed-member writes,
-  while preserving known scalar and unmodified-receiver controls.
-- Preserve byte-pinned upstream license files through Git checkout conversion,
-  including Windows autocrlf, without weakening exact license digest gates.
-
-- Make shell, evidence, authored/generated viewers and native default exports
-  share one app-owned theme across focus navigation, stored preferences, media
-  changes and native actions without altering pristine renderer package bytes.
-- Preserve renderer-owned evidence/specification assets through scan and bundle,
-  distinguish native and adapted/shared-output hashes, and roll back reported
-  generation-replacement failures rather than leaving mixed generations.
 
 - Publish explicit local tarball paths so npm cannot interpret `dist/filename.tgz`
   as GitHub shorthand; verify both release modes with offline dry-run publication.

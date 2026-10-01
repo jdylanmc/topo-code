@@ -1,6 +1,6 @@
 {
   "name": "@jdylanmc/topo-code",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Local-first repository architecture storybook: topo CLI and portable agent skills.",
   "type": "module",
   "license": "MIT",
