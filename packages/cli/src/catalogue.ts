@@ -417,7 +417,7 @@ const STORY_NAVIGATION_SCRIPT = `(() => {
       evidence.hidden = edge !== null ? evidence.dataset.edgeEvidence !== edge :
         Boolean(focus) && evidence.dataset.edgeFrom !== focus && evidence.dataset.edgeTo !== focus;
     }
-    if (edge !== null || focus) document.querySelector(".story-details").open = true;
+    if (edge !== null || (focus && diagramFamily !== "sequence")) document.querySelector(".story-details").open = true;
   }
 
   function setFocus(nodeId) {

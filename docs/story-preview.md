@@ -42,6 +42,8 @@ The storybook displays a visible return link even when the child is opened
 directly. Navigation from another story takes precedence over this canonical
 parent, so nested drilldowns return to the actual caller. Returning or reloading
 a focused parent does not automatically drill in again.
+Sequence participant focus keeps the native details presentation; opening the
+storybook source panel remains explicit.
 
 Targets must exist in the selected catalogue, target nodes must exist, and parent
 cycles are rejected before rendering. Direct hosted `viewer.html` pages can enter

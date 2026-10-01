@@ -93,6 +93,8 @@ test("module details preserve complete dependencies and cross-story return navig
   await expect(frame.locator(".story-details")).toHaveAttribute("open", "");
   await expect(frame.locator('[data-section-evidence="languages"] > p')).toContainText("@topo/languages -> @topo/scanner [dependencies: workspace:*]");
   const link = frame.locator('a[data-cross-story][data-source-node="languages"]').filter({ hasText: "Code analysis" });
+  // Fixed in-frame details need the enclosing frame inside the outer viewport.
+  await page.locator("[data-demo]").scrollIntoViewIfNeeded();
   await link.click();
   await expect(frame.locator("body")).toHaveAttribute("data-story-id", "dependency-context");
   await expect(frame.locator('[data-section-evidence="analysis-consumers"] > p')).toContainText("optionalDependencies");
@@ -176,6 +178,9 @@ test("idea-to-architecture sequence shows the collaboration and review loop", as
   await expect(wrapper.locator("[data-return]")).toBeVisible();
   await wrapper.locator("[data-return]").click();
   await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "story-to-screen");
+  await expect(wrapper.locator('[data-node-id="cli"]')).toHaveAttribute("aria-current", "true");
+  await expect(wrapper.locator(".story-details")).not.toHaveAttribute("open", "");
+  await wrapper.locator(".story-details > summary").click();
   await expect(wrapper.locator('[data-section-evidence="cli"]')).toBeVisible();
 });
 
