@@ -56,7 +56,9 @@ The emitted bundle is copied unchanged, including notices and evidence receipts.
 No scanner or model is invoked. A local unpushed revision has local evidence;
 its GitHub source links become available only after that revision is published.
 
-`stories/public/internal-modules.topo.json` covers all fourteen private modules.
+`stories/public/internal-modules.topo.json` covers the thirteen private runtime
+modules; build-only `@topo/eslint-config` remains in the companion context, not
+the primary map.
 Its twelve visible arrows are a selected dependency spine; each node's narrative
 contains all declared incoming/outgoing internal dependencies (31 declarations).
 `dependency-context.topo.json` groups internal consumers and nineteen direct

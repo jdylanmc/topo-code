@@ -564,10 +564,12 @@ function archifySpec(
     const toIndex = sectionIndexById.get(connection.to)!;
     const from = cellOf(fromIndex);
     const to = cellOf(toIndex);
+    const neighbouringDiagonal = Math.abs(to.row - from.row) === 1 &&
+      Math.abs(to.column - from.column) === 1;
     if (
       Math.abs(to.row - from.row) +
           Math.abs(to.column - from.column) !==
-        1
+        1 && !neighbouringDiagonal
     ) {
       detourLaneByConnection.set(connectionIndex, detourLaneCount);
       detourLaneCount += 1;
@@ -763,8 +765,8 @@ function archifySpec(
           }),
     },
     components,
-    // Adjacent grid cells route directly; non-adjacent endpoints detour through
-    // a dedicated lane below the grid so an edge never crosses another node.
+    // Neighbouring cells use native routing and port spreading. Distant
+    // endpoints retain outside lanes to avoid unrelated nodes.
     connections: story.document.connections.map((connection, index) => {
       const fromIndex = sections.findIndex((s) => s.id === connection.from);
       const toIndex = sections.findIndex((s) => s.id === connection.to);
@@ -782,6 +784,9 @@ function archifySpec(
         ...(connection.label === undefined ? {} : { label: connection.label }),
       };
       const adjacent = Math.abs(deltaRow) + Math.abs(deltaColumn) === 1;
+      if (Math.abs(deltaRow) === 1 && Math.abs(deltaColumn) === 1) {
+        return base;
+      }
       if (adjacent) {
         const vertical = deltaRow !== 0;
         const horizontalLabelBelow = deltaColumn > 0;

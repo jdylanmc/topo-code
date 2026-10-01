@@ -184,6 +184,56 @@ test("package architecture renders a readable multi-row workspace map", async ({
   }
 });
 
+for (const reverse of [false, true]) {
+  test(`neighbouring diagonal route stays local without backtracking (${reverse ? "up" : "down"})`, async ({ page, repository, startSite }) => {
+    const ids = ["story", "diagram-core", "enrichment", "graph", "views", "site", "cli", "workspace", "reports", "languages", "modules", "eslint-config", "scanner", "schema"];
+    const from = reverse ? "reports" : "cli";
+    const to = reverse ? "cli" : "reports";
+    const storyPath = join(repository, "stories/diagonal.topo.json");
+    await mkdir(dirname(storyPath), { recursive: true });
+    await writeFile(storyPath, JSON.stringify({
+      schemaVersion: "1.0", diagramFamily: "architecture", classification: "capability-demo",
+      id: "diagonal", title: "Diagonal routing regression", summary: "Synthetic original fourteen-node layout; geometry only.",
+      anchors: [],
+      sections: ids.map(id => ({ id, title: `@topo/${id}`, body: "Routing fixture.", anchorIds: [] })),
+      connections: [
+        { from: "cli", to: "workspace" }, { from: "cli", to: "languages" },
+        { from: "cli", to: "diagram-core" }, { from: "cli", to: "site" },
+        { from, to },
+      ],
+    }));
+    await commit(repository, "Diagonal routing fixture", "stories");
+    await topo(repository, "init");
+    await topo(repository, "story", "preview", repository, storyPath);
+    await page.goto(`${await startSite()}/stories/diagonal/`);
+    const diagram = page.frameLocator("[data-story-viewer]").locator('svg[data-diagram-type="architecture"]');
+    await expect(diagram).toBeVisible();
+    const metrics = await diagram.evaluate((svg, { from, to }) => {
+      const route = svg.querySelector<SVGPathElement>(`path[data-edge-from="${from}"][data-edge-to="${to}"]`)!;
+      const boxes = [...svg.querySelectorAll<SVGGElement>("g[data-node-id]")].map(node => ({
+        id: node.dataset.nodeId,
+        box: node.querySelector<SVGRectElement>("rect:not(.c-mask)")!.getBoundingClientRect(),
+      }));
+      const source = boxes.find(node => node.id === from)!.box;
+      const target = boxes.find(node => node.id === to)!.box;
+      const sign = Math.sign(target.y - source.y);
+      const length = route.getTotalLength();
+      const points = Array.from({ length: 201 }, (_, index) =>
+        route.getPointAtLength(length * index / 200).matrixTransform(route.getScreenCTM()!));
+      return {
+        backtracks: points.slice(1).filter((point, index) => sign * (point.y - points[index]!.y) < -0.5).length,
+        outOfBounds: points.filter(point =>
+          point.y < Math.min(source.top, target.top) - 1 || point.y > Math.max(source.bottom, target.bottom) + 1 ||
+          point.x < Math.min(source.left, target.left) - 1 || point.x > Math.max(source.right, target.right) + 1).length,
+        nodeIntrusions: points.filter(point => boxes.some(node => node.id !== from && node.id !== to &&
+          point.x > node.box.left + 1 && point.x < node.box.right - 1 &&
+          point.y > node.box.top + 1 && point.y < node.box.bottom - 1)).length,
+      };
+    }, { from, to });
+    expect(metrics).toEqual({ backtracks: 0, outOfBounds: 0, nodeIntrusions: 0 });
+  });
+}
+
 test("converging Architecture relationships keep both labels readable", async ({
   page,
   repository,

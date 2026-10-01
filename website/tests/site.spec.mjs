@@ -31,7 +31,8 @@ for (const [palette, theme] of Object.entries(themes)) {
     await expect(frame.locator("html")).toHaveAttribute("data-website-palette", palette);
     await expect(frame.locator("html")).toHaveAttribute("data-theme", theme.mode);
     await expect(frame.locator("body")).toHaveAttribute("data-story-id", "internal-modules");
-    await expect(frame.frameLocator("[data-story-viewer]").locator("svg g[data-node-id]")).toHaveCount(14);
+    await expect(frame.frameLocator("[data-story-viewer]").locator("svg g[data-node-id]")).toHaveCount(13);
+    await expect(frame.frameLocator("[data-story-viewer]").locator('svg g[data-node-id="eslint-config"]')).toHaveCount(0);
     expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
     await page.getByRole("button", { name: "Expand demo" }).click();
     await expect(page.locator(".demo-stage")).toHaveClass(/expanded/);
@@ -105,7 +106,7 @@ test("module details preserve complete dependencies and cross-story return navig
 });
 
 test("curated maps fit desktop viewports with readable role captions", async ({ page }) => {
-  for (const [id, count] of [["internal-modules", 14], ["dependency-context", 10]]) {
+  for (const [id, count] of [["internal-modules", 13], ["dependency-context", 10]]) {
     for (const [width, height] of [[1440, 900], [1600, 1000], [1920, 1080], [2048, 1320]]) {
       await page.setViewportSize({ width, height });
       await page.goto(`demo/home/stories/${id}/viewer.html`);

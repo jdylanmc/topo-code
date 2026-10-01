@@ -4,7 +4,7 @@
   "classification": "source-grounded",
   "id": "internal-modules",
   "title": "Topocode internal modules",
-  "summary": "Fourteen private @topo/* workspaces. Arrows are selected direct dependencies from package manifests, arranged as a readable composition spine, not a complete edge drawing or runtime call graph. Select a module for every declared incoming/outgoing internal dependency and its responsibility. @topo/eslint-config is tooling; the other thirteen are bundled by @jdylanmc/topo-code. External context is a separate linked map.",
+  "summary": "Thirteen private @topo/* runtime modules bundled by @jdylanmc/topo-code. Arrows are selected direct dependencies from package manifests, arranged as a readable composition spine, not a complete edge drawing or runtime call graph. Select a module for every declared incoming/outgoing internal dependency and its responsibility. Build-only eslint-config is excluded from this view; tooling and external context live in the companion map.",
   "category": "Topocode",
   "anchors": [
     {
@@ -14,22 +14,40 @@
       "sha256": "996dc365b6c0bcdc3c4beaddb507c657cf97ee0412232c110f081013e0f7cfde"
     },
     {
+      "id": "packages-languages-package",
+      "path": "packages/languages/package.json",
+      "language": "text",
+      "sha256": "d3e3979ed95f8d0d293de2cd6bc6a8c77a7f28c429b02e386da7e035118f623d"
+    },
+    {
+      "id": "packages-scanner-package",
+      "path": "packages/scanner/package.json",
+      "language": "text",
+      "sha256": "3027a4fa118d19cd7fa2b165b728a642582b0f5e43d986a595ff25f276bfee48"
+    },
+    {
+      "id": "packages-schema-package",
+      "path": "packages/schema/package.json",
+      "language": "text",
+      "sha256": "2d6152ff84f0d5d72736905a3cd191d2a244c704f9d06cb39843c7bc7eb9a170"
+    },
+    {
+      "id": "packages-reports-package",
+      "path": "packages/reports/package.json",
+      "language": "text",
+      "sha256": "463d6841820655ca502e0e4eafb7ccc7e3c28700cbcfdcd5de7a6f2da13e73af"
+    },
+    {
+      "id": "packages-cli-package",
+      "path": "packages/cli/package.json",
+      "language": "text",
+      "sha256": "e1aaebf5b0fe115fe56a658b71022c849e25120794cdbd1b063ccda97c880086"
+    },
+    {
       "id": "packages-diagram-core-package",
       "path": "packages/diagram-core/package.json",
       "language": "text",
       "sha256": "8e4b7a111ad4234367bc49e0b7b4827e880f9d489ce136a79650923b86cd7386"
-    },
-    {
-      "id": "packages-enrichment-package",
-      "path": "packages/enrichment/package.json",
-      "language": "text",
-      "sha256": "45c6597b6b9490312313efe5f7b36a4c7bb4475c7be76b3322b0ddaf450006ca"
-    },
-    {
-      "id": "packages-graph-package",
-      "path": "packages/graph/package.json",
-      "language": "text",
-      "sha256": "4ca3e7b8842834077417e360037ebd9281333d5ea3f9d0c197f65367bb1ab7c1"
     },
     {
       "id": "packages-views-package",
@@ -44,28 +62,10 @@
       "sha256": "2e651e2869f1284464fda093c54d52ecc49a7f90594c7746facf03528df87a38"
     },
     {
-      "id": "packages-cli-package",
-      "path": "packages/cli/package.json",
-      "language": "text",
-      "sha256": "e1aaebf5b0fe115fe56a658b71022c849e25120794cdbd1b063ccda97c880086"
-    },
-    {
       "id": "packages-workspace-package",
       "path": "packages/workspace/package.json",
       "language": "text",
       "sha256": "02528f44aace1f01cff29eb9d1a3fc3c5b0beb1d456ba0876714012ff152bdd0"
-    },
-    {
-      "id": "packages-reports-package",
-      "path": "packages/reports/package.json",
-      "language": "text",
-      "sha256": "463d6841820655ca502e0e4eafb7ccc7e3c28700cbcfdcd5de7a6f2da13e73af"
-    },
-    {
-      "id": "packages-languages-package",
-      "path": "packages/languages/package.json",
-      "language": "text",
-      "sha256": "d3e3979ed95f8d0d293de2cd6bc6a8c77a7f28c429b02e386da7e035118f623d"
     },
     {
       "id": "packages-modules-package",
@@ -74,22 +74,16 @@
       "sha256": "d114052b1fedb9b0cca1fd70b84d8fb78b38afb3b83c87d66dab63bece2e9391"
     },
     {
-      "id": "tools-eslint-config-package",
-      "path": "tools/eslint-config/package.json",
+      "id": "packages-enrichment-package",
+      "path": "packages/enrichment/package.json",
       "language": "text",
-      "sha256": "3ffd0d483e9f8244ead246c249d8ce44d16ff5a811ddff77c910f0a92ed8b0b0"
+      "sha256": "45c6597b6b9490312313efe5f7b36a4c7bb4475c7be76b3322b0ddaf450006ca"
     },
     {
-      "id": "packages-scanner-package",
-      "path": "packages/scanner/package.json",
+      "id": "packages-graph-package",
+      "path": "packages/graph/package.json",
       "language": "text",
-      "sha256": "3027a4fa118d19cd7fa2b165b728a642582b0f5e43d986a595ff25f276bfee48"
-    },
-    {
-      "id": "packages-schema-package",
-      "path": "packages/schema/package.json",
-      "language": "text",
-      "sha256": "2d6152ff84f0d5d72736905a3cd191d2a244c704f9d06cb39843c7bc7eb9a170"
+      "sha256": "4ca3e7b8842834077417e360037ebd9281333d5ea3f9d0c197f65367bb1ab7c1"
     },
     {
       "id": "workspace-implementation",
@@ -131,7 +125,7 @@
       "id": "diagram-core-implementation",
       "path": "packages/diagram-core/src/index.ts",
       "language": "text",
-      "sha256": "9295d8199964470a9d100a4d85f72861ebf459daf8b2fd24c815acb321f57f20"
+      "sha256": "e9d6b08aadf59419ddc23af27099968362853c50ba31619b3bcfe46369341c95"
     },
     {
       "id": "languages-implementation",
@@ -168,12 +162,6 @@
       "path": "packages/story/src/index.ts",
       "language": "text",
       "sha256": "d784173750a1bf3f97f9fb8e33a3cf3b639f9c75af0878860031319c7874c3c9"
-    },
-    {
-      "id": "eslint-config-implementation",
-      "path": "tools/eslint-config/eslint.config.mjs",
-      "language": "text",
-      "sha256": "072ef908ea7fb4c740d9a885eaee5caad5497352769c50caa10b2b43026f5960"
     }
   ],
   "sections": [
@@ -181,47 +169,77 @@
       "id": "story",
       "title": "@topo/story",
       "summary": "Resolve story evidence",
-      "body": "Parses authored stories and resolves file/symbol/excerpt anchors against a source snapshot. Defines the renderer-neutral story contract.\n\nAll declared internal dependencies (not runtime calls):\n@topo/story -> @topo/languages [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/diagram-core -> @topo/story [dependencies: workspace:*]\n@topo/cli -> @topo/story [dependencies: workspace:*]\n\nStable drilldown identity: story. Module-specific detail maps will be curated later; there is no placeholder target.",
+      "body": "Parses authored stories and resolves file/symbol/excerpt anchors against a source snapshot. Defines the renderer-neutral story contract.\n\nAll declared internal dependencies (not runtime calls):\n@topo/story -> @topo/languages [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/cli -> @topo/story [dependencies: workspace:*]\n@topo/diagram-core -> @topo/story [dependencies: workspace:*]\n\nStable drilldown identity: story. Module-specific detail maps will be curated later; there is no placeholder target.",
       "anchorIds": [
         "packages-story-package",
         "story-implementation"
       ]
     },
     {
+      "id": "languages",
+      "title": "@topo/languages",
+      "summary": "Language composition",
+      "body": "Selects the first-party TypeScript/JavaScript scanner, partial Rust adapter, and Tauri bridge. Owns captured source inventory and language evidence; never runs a model or Cargo build.\n\nAll declared internal dependencies (not runtime calls):\n@topo/languages -> @topo/scanner [dependencies: workspace:*]\n@topo/languages -> @topo/schema [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/story -> @topo/languages [dependencies: workspace:*]\n@topo/cli -> @topo/languages [dependencies: workspace:*]\n\nStable drilldown identity: languages. Module-specific detail maps will be curated later; there is no placeholder target.",
+      "anchorIds": [
+        "packages-languages-package",
+        "languages-implementation"
+      ]
+    },
+    {
+      "id": "scanner",
+      "title": "@topo/scanner",
+      "summary": "TypeScript source facts",
+      "body": "Extracts TypeScript/JavaScript declarations, references, and graph evidence with the pinned compiler API and repository file-selection rules.\n\nAll declared internal dependencies (not runtime calls):\n@topo/scanner -> @topo/schema [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/languages -> @topo/scanner [dependencies: workspace:*]\n@topo/cli -> @topo/scanner [dependencies: workspace:*]\n\nStable drilldown identity: scanner. Module-specific detail maps will be curated later; there is no placeholder target.",
+      "anchorIds": [
+        "packages-scanner-package",
+        "scanner-implementation"
+      ]
+    },
+    {
+      "id": "schema",
+      "title": "@topo/schema",
+      "summary": "Shared data contracts",
+      "body": "Defines graph/artifact types, JSON schemas, validation, stable IDs, canonical serialization and compatibility rules.\n\nAll declared internal dependencies (not runtime calls):\nNo matching declarations.\n\nReferenced by internal modules:\n@topo/languages -> @topo/schema [dependencies: workspace:*]\n@topo/scanner -> @topo/schema [dependencies: workspace:*]\n@topo/reports -> @topo/schema [dependencies: workspace:*]\n@topo/cli -> @topo/schema [dependencies: workspace:*]\n@topo/views -> @topo/schema [dependencies: workspace:*]\n@topo/site -> @topo/schema [dependencies: workspace:*]\n@topo/workspace -> @topo/schema [dependencies: workspace:*]\n@topo/modules -> @topo/schema [dependencies: workspace:*]\n@topo/enrichment -> @topo/schema [dependencies: workspace:*]\n@topo/graph -> @topo/schema [dependencies: workspace:*]\n\nStable drilldown identity: schema. Module-specific detail maps will be curated later; there is no placeholder target.",
+      "anchorIds": [
+        "packages-schema-package",
+        "schema-implementation"
+      ]
+    },
+    {
+      "id": "reports",
+      "title": "@topo/reports",
+      "summary": "Normalize report evidence",
+      "body": "Parses normalized reports, checks them against graph evidence, and produces dashboard artifacts.\n\nAll declared internal dependencies (not runtime calls):\n@topo/reports -> @topo/schema [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/cli -> @topo/reports [dependencies: workspace:*]\n\nStable drilldown identity: reports. Module-specific detail maps will be curated later; there is no placeholder target.",
+      "anchorIds": [
+        "packages-reports-package",
+        "reports-implementation"
+      ]
+    },
+    {
+      "id": "cli",
+      "title": "@topo/cli",
+      "summary": "Compose the toolbelt",
+      "body": "Implements init, scan, story validation/preview, serving, bundling, ingestion, and explicit enrichment; generates Home and story navigation.\n\nAll declared internal dependencies (not runtime calls):\n@topo/cli -> @topo/diagram-core [dependencies: workspace:*]\n@topo/cli -> @topo/enrichment [dependencies: workspace:*]\n@topo/cli -> @topo/graph [dependencies: workspace:*]\n@topo/cli -> @topo/languages [dependencies: workspace:*]\n@topo/cli -> @topo/modules [dependencies: workspace:*]\n@topo/cli -> @topo/reports [dependencies: workspace:*]\n@topo/cli -> @topo/scanner [dependencies: workspace:*]\n@topo/cli -> @topo/schema [dependencies: workspace:*]\n@topo/cli -> @topo/site [dependencies: workspace:*]\n@topo/cli -> @topo/story [dependencies: workspace:*]\n@topo/cli -> @topo/views [dependencies: workspace:*]\n@topo/cli -> @topo/workspace [dependencies: workspace:*]\n\nReferenced by internal modules:\nNo matching declarations.\n\nStable drilldown identity: cli. Module-specific detail maps will be curated later; there is no placeholder target.",
+      "anchorIds": [
+        "packages-cli-package",
+        "cli-implementation"
+      ]
+    },
+    {
       "id": "diagram-core",
       "title": "@topo/diagram-core",
       "summary": "Render authored diagrams",
-      "body": "Adapts source-grounded stories to the pinned Archify renderer or explicit Graphviz backend; owns renderer integrity, output adaptation, and viewer theme/export behavior.\n\nAll declared internal dependencies (not runtime calls):\n@topo/diagram-core -> @topo/story [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/site -> @topo/diagram-core [devDependencies: workspace:*]\n@topo/cli -> @topo/diagram-core [dependencies: workspace:*]\n\nStable drilldown identity: diagram-core. Module-specific detail maps will be curated later; there is no placeholder target.",
+      "body": "Adapts source-grounded stories to the pinned Archify renderer or explicit Graphviz backend; owns renderer integrity, output adaptation, and viewer theme/export behavior.\n\nAll declared internal dependencies (not runtime calls):\n@topo/diagram-core -> @topo/story [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/cli -> @topo/diagram-core [dependencies: workspace:*]\n@topo/site -> @topo/diagram-core [devDependencies: workspace:*]\n\nStable drilldown identity: diagram-core. Module-specific detail maps will be curated later; there is no placeholder target.",
       "anchorIds": [
         "packages-diagram-core-package",
         "diagram-core-implementation"
       ]
     },
     {
-      "id": "enrichment",
-      "title": "@topo/enrichment",
-      "summary": "Inferred commentary data",
-      "body": "Parses and validates enrichment documents, reference membership and analysis hashes. The CLI, not this data package, executes the configured enrichment command.\n\nAll declared internal dependencies (not runtime calls):\n@topo/enrichment -> @topo/schema [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/site -> @topo/enrichment [dependencies: workspace:*]\n@topo/cli -> @topo/enrichment [dependencies: workspace:*]\n\nStable drilldown identity: enrichment. Module-specific detail maps will be curated later; there is no placeholder target.",
-      "anchorIds": [
-        "packages-enrichment-package",
-        "enrichment-implementation"
-      ]
-    },
-    {
-      "id": "graph",
-      "title": "@topo/graph",
-      "summary": "Project and lay out graphs",
-      "body": "Derives architecture, graph projections, aggregation, deterministic layout and layout deltas from validated source evidence.\n\nAll declared internal dependencies (not runtime calls):\n@topo/graph -> @topo/schema [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/views -> @topo/graph [dependencies: workspace:*]\n@topo/site -> @topo/graph [dependencies: workspace:*]\n@topo/cli -> @topo/graph [dependencies: workspace:*]\n@topo/modules -> @topo/graph [dependencies: workspace:*]\n\nStable drilldown identity: graph. Module-specific detail maps will be curated later; there is no placeholder target.",
-      "anchorIds": [
-        "packages-graph-package",
-        "graph-implementation"
-      ]
-    },
-    {
       "id": "views",
       "title": "@topo/views",
       "summary": "Curated view membership",
-      "body": "Resolves authored path-based views, review baselines, overrides and layout pins against graph evidence.\n\nAll declared internal dependencies (not runtime calls):\n@topo/views -> @topo/graph [dependencies: workspace:*]\n@topo/views -> @topo/schema [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/site -> @topo/views [dependencies: workspace:*]\n@topo/cli -> @topo/views [dependencies: workspace:*]\n\nStable drilldown identity: views. Module-specific detail maps will be curated later; there is no placeholder target.",
+      "body": "Resolves authored path-based views, review baselines, overrides and layout pins against graph evidence.\n\nAll declared internal dependencies (not runtime calls):\n@topo/views -> @topo/graph [dependencies: workspace:*]\n@topo/views -> @topo/schema [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/cli -> @topo/views [dependencies: workspace:*]\n@topo/site -> @topo/views [dependencies: workspace:*]\n\nStable drilldown identity: views. Module-specific detail maps will be curated later; there is no placeholder target.",
       "anchorIds": [
         "packages-views-package",
         "views-implementation"
@@ -238,16 +256,6 @@
       ]
     },
     {
-      "id": "cli",
-      "title": "@topo/cli",
-      "summary": "Compose the toolbelt",
-      "body": "Implements init, scan, story validation/preview, serving, bundling, ingestion, and explicit enrichment; generates Home and story navigation.\n\nAll declared internal dependencies (not runtime calls):\n@topo/cli -> @topo/diagram-core [dependencies: workspace:*]\n@topo/cli -> @topo/enrichment [dependencies: workspace:*]\n@topo/cli -> @topo/graph [dependencies: workspace:*]\n@topo/cli -> @topo/languages [dependencies: workspace:*]\n@topo/cli -> @topo/modules [dependencies: workspace:*]\n@topo/cli -> @topo/reports [dependencies: workspace:*]\n@topo/cli -> @topo/scanner [dependencies: workspace:*]\n@topo/cli -> @topo/schema [dependencies: workspace:*]\n@topo/cli -> @topo/site [dependencies: workspace:*]\n@topo/cli -> @topo/story [dependencies: workspace:*]\n@topo/cli -> @topo/views [dependencies: workspace:*]\n@topo/cli -> @topo/workspace [dependencies: workspace:*]\n\nReferenced by internal modules:\nNo matching declarations.\n\nStable drilldown identity: cli. Module-specific detail maps will be curated later; there is no placeholder target.",
-      "anchorIds": [
-        "packages-cli-package",
-        "cli-implementation"
-      ]
-    },
-    {
       "id": "workspace",
       "title": "@topo/workspace",
       "summary": "Config and publication",
@@ -258,63 +266,33 @@
       ]
     },
     {
-      "id": "reports",
-      "title": "@topo/reports",
-      "summary": "Normalize report evidence",
-      "body": "Parses normalized reports, checks them against graph evidence, and produces dashboard artifacts.\n\nAll declared internal dependencies (not runtime calls):\n@topo/reports -> @topo/schema [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/cli -> @topo/reports [dependencies: workspace:*]\n\nStable drilldown identity: reports. Module-specific detail maps will be curated later; there is no placeholder target.",
-      "anchorIds": [
-        "packages-reports-package",
-        "reports-implementation"
-      ]
-    },
-    {
-      "id": "languages",
-      "title": "@topo/languages",
-      "summary": "Language composition",
-      "body": "Selects the first-party TypeScript/JavaScript scanner, partial Rust adapter, and Tauri bridge. Owns captured source inventory and language evidence; never runs a model or Cargo build.\n\nAll declared internal dependencies (not runtime calls):\n@topo/languages -> @topo/scanner [dependencies: workspace:*]\n@topo/languages -> @topo/schema [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/story -> @topo/languages [dependencies: workspace:*]\n@topo/cli -> @topo/languages [dependencies: workspace:*]\n\nStable drilldown identity: languages. Module-specific detail maps will be curated later; there is no placeholder target.",
-      "anchorIds": [
-        "packages-languages-package",
-        "languages-implementation"
-      ]
-    },
-    {
       "id": "modules",
       "title": "@topo/modules",
       "summary": "Analysis overlays",
-      "body": "Composes the built-in degree and cycle contributions. These are graph overlays, not language plugins.\n\nAll declared internal dependencies (not runtime calls):\n@topo/modules -> @topo/graph [dependencies: workspace:*]\n@topo/modules -> @topo/schema [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/site -> @topo/modules [dependencies: workspace:*]\n@topo/cli -> @topo/modules [dependencies: workspace:*]\n\nStable drilldown identity: modules. Module-specific detail maps will be curated later; there is no placeholder target.",
+      "body": "Composes the built-in degree and cycle contributions. These are graph overlays, not language plugins.\n\nAll declared internal dependencies (not runtime calls):\n@topo/modules -> @topo/graph [dependencies: workspace:*]\n@topo/modules -> @topo/schema [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/cli -> @topo/modules [dependencies: workspace:*]\n@topo/site -> @topo/modules [dependencies: workspace:*]\n\nStable drilldown identity: modules. Module-specific detail maps will be curated later; there is no placeholder target.",
       "anchorIds": [
         "packages-modules-package",
         "modules-implementation"
       ]
     },
     {
-      "id": "eslint-config",
-      "title": "@topo/eslint-config",
-      "summary": "Shared lint policy",
-      "body": "Provides the repository ESLint correctness baseline and TypeScript parsing configuration. This tooling workspace is not bundled as a runtime module.\n\nAll declared internal dependencies (not runtime calls):\nNo matching declarations.\n\nReferenced by internal modules:\nNo matching declarations.\n\nStable drilldown identity: eslint-config. Module-specific detail maps will be curated later; there is no placeholder target.",
+      "id": "enrichment",
+      "title": "@topo/enrichment",
+      "summary": "Inferred commentary data",
+      "body": "Parses and validates enrichment documents, reference membership and analysis hashes. The CLI, not this data package, executes the configured enrichment command.\n\nAll declared internal dependencies (not runtime calls):\n@topo/enrichment -> @topo/schema [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/cli -> @topo/enrichment [dependencies: workspace:*]\n@topo/site -> @topo/enrichment [dependencies: workspace:*]\n\nStable drilldown identity: enrichment. Module-specific detail maps will be curated later; there is no placeholder target.",
       "anchorIds": [
-        "tools-eslint-config-package",
-        "eslint-config-implementation"
+        "packages-enrichment-package",
+        "enrichment-implementation"
       ]
     },
     {
-      "id": "scanner",
-      "title": "@topo/scanner",
-      "summary": "TypeScript source facts",
-      "body": "Extracts TypeScript/JavaScript declarations, references, and graph evidence with the pinned compiler API and repository file-selection rules.\n\nAll declared internal dependencies (not runtime calls):\n@topo/scanner -> @topo/schema [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/cli -> @topo/scanner [dependencies: workspace:*]\n@topo/languages -> @topo/scanner [dependencies: workspace:*]\n\nStable drilldown identity: scanner. Module-specific detail maps will be curated later; there is no placeholder target.",
+      "id": "graph",
+      "title": "@topo/graph",
+      "summary": "Project and lay out graphs",
+      "body": "Derives architecture, graph projections, aggregation, deterministic layout and layout deltas from validated source evidence.\n\nAll declared internal dependencies (not runtime calls):\n@topo/graph -> @topo/schema [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/cli -> @topo/graph [dependencies: workspace:*]\n@topo/views -> @topo/graph [dependencies: workspace:*]\n@topo/site -> @topo/graph [dependencies: workspace:*]\n@topo/modules -> @topo/graph [dependencies: workspace:*]\n\nStable drilldown identity: graph. Module-specific detail maps will be curated later; there is no placeholder target.",
       "anchorIds": [
-        "packages-scanner-package",
-        "scanner-implementation"
-      ]
-    },
-    {
-      "id": "schema",
-      "title": "@topo/schema",
-      "summary": "Shared data contracts",
-      "body": "Defines graph/artifact types, JSON schemas, validation, stable IDs, canonical serialization and compatibility rules.\n\nAll declared internal dependencies (not runtime calls):\nNo matching declarations.\n\nReferenced by internal modules:\n@topo/enrichment -> @topo/schema [dependencies: workspace:*]\n@topo/graph -> @topo/schema [dependencies: workspace:*]\n@topo/views -> @topo/schema [dependencies: workspace:*]\n@topo/site -> @topo/schema [dependencies: workspace:*]\n@topo/cli -> @topo/schema [dependencies: workspace:*]\n@topo/workspace -> @topo/schema [dependencies: workspace:*]\n@topo/reports -> @topo/schema [dependencies: workspace:*]\n@topo/languages -> @topo/schema [dependencies: workspace:*]\n@topo/modules -> @topo/schema [dependencies: workspace:*]\n@topo/scanner -> @topo/schema [dependencies: workspace:*]\n\nStable drilldown identity: schema. Module-specific detail maps will be curated later; there is no placeholder target.",
-      "anchorIds": [
-        "packages-schema-package",
-        "schema-implementation"
+        "packages-graph-package",
+        "graph-implementation"
       ]
     }
   ],

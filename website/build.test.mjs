@@ -60,7 +60,9 @@ test("curated module maps retain all manifest declarations and reject stale evid
   const main = JSON.parse(await readFile(path.join(root, "stories/public/internal-modules.topo.json"), "utf8"));
   const context = JSON.parse(await readFile(path.join(root, "stories/public/dependency-context.topo.json"), "utf8"));
   const internalNames = new Set(main.sections.map(section => section.title));
-  assert.equal(internalNames.size, 14);
+  assert.equal(internalNames.size, 13);
+  assert.equal(internalNames.has("@topo/eslint-config"), false);
+  const workspaceNames = new Set([...internalNames, "@topo/eslint-config"]);
   const externalNames = new Set();
   for (const anchor of context.anchors) {
     const manifest = JSON.parse(await readFile(path.join(root, anchor.path), "utf8"));
@@ -70,7 +72,7 @@ test("curated module maps retain all manifest declarations and reject stale evid
         if (internalNames.has(manifest.name) && internalNames.has(target)) {
           assert.ok(main.sections.find(section => section.title === manifest.name).body.includes(declaration));
           assert.ok(main.sections.find(section => section.title === target).body.includes(declaration));
-        } else if (!internalNames.has(target)) {
+        } else if (!workspaceNames.has(target)) {
           externalNames.add(target);
           assert.ok(context.sections.some(section => section.body.includes(declaration)), declaration);
         }
