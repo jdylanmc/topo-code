@@ -23,8 +23,12 @@ temporary theme selector have been removed.
 
 The marketing homepage embeds the live **From idea to architecture** story
 immediately after its introduction. Its "See it in action" link jumps to the
-demo, which reuses the generated storybook, Blueprint styling, drilldowns, and
-expand/restore controls. It is not a screenshot or a separately authored copy.
+demo, which embeds the generated `viewer.html` directly in its native presentation
+mode. Only the diagram, title, and viewer controls appear: no storybook sidebar
+or outer details wrapper. Focus, export, Blueprint theme ownership, and
+expand/restore remain live. "Open full storybook" supplies source details and
+module navigation; the separate Demo page keeps the full shell unchanged.
+It is not a screenshot or a separately authored copy.
 
 `SITE_BASE_PATH=/` builds for a later custom domain. The default is
 `/topo-code/`. Build-time path validation rejects traversal and malformed paths.

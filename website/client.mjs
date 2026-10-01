@@ -14,8 +14,9 @@ function applyTheme() {
   }
   refreshTerrain();
   const frame = document.querySelector("[data-demo]");
-  if (frame?.contentDocument?.querySelector("[data-topo-shell]")) {
-    const doc = frame.contentDocument;
+  const doc = frame?.contentDocument;
+  if (!doc || typeof frame.contentWindow?.topoSetTheme !== "function") return;
+  if (doc.querySelector("[data-topo-shell]")) {
     // Presentation-only styling for the embedded shell, not a renderer transformation.
     let stylesheet = doc.querySelector("[data-website-palette]");
     if (!stylesheet) {
@@ -29,8 +30,8 @@ function applyTheme() {
     for (const key of ["bg", "panel", "text", "muted", "accent", "line"]) {
       doc.documentElement.style.setProperty(`--${key}`, theme[key]);
     }
-    frame.contentWindow.topoSetTheme(theme.mode, false);
   }
+  frame.contentWindow.topoSetTheme(theme.mode, false);
 }
 
 applyTheme();

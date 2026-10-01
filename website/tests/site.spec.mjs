@@ -312,29 +312,50 @@ for (const [id, module, detailNode, boundary] of [
   });
 }
 
-test("homepage embeds the real collaboration sequence with working demo controls", async ({ page }, info) => {
+test("homepage embeds only the blueprint viewer and leaves full storybook navigation separate", async ({ page }, info) => {
   await page.goto("./");
   await page.getByRole("link", { name: "See it in action", exact: true }).click();
   await expect(page.getByRole("heading", { name: "From idea to architecture", exact: true })).toBeVisible();
-  const wrapper = page.frameLocator("[data-demo]");
-  await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "story-to-screen");
-  await expect(wrapper.locator("html")).toHaveAttribute("data-website-palette", "blueprint");
-  const viewer = wrapper.frameLocator("[data-story-viewer]");
+  const viewer = page.frameLocator("[data-demo]");
+  await expect(page.locator("[data-demo]")).toHaveAttribute("src", /\/story-to-screen\/viewer\.html\?present=1$/);
+  await expect(viewer.locator("[data-topo-shell], .catalogue-panel, .story-details, iframe")).toHaveCount(0);
+  await expect(viewer.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(viewer.locator("html")).toHaveAttribute("data-present", "true");
+  await expect(viewer.getByRole("heading", { name: "From idea to architecture", exact: true })).toBeVisible();
   await expect(viewer.locator('svg[data-topo-family="sequence"] g[data-node-id]')).toHaveCount(4);
   await expect(viewer.locator('svg[data-topo-family="sequence"]')).toContainText("Review, refine, repeat");
+  const containment = await viewer.locator('svg[data-topo-family="sequence"]').evaluate(svg => {
+    const transform = svg.getScreenCTM();
+    const text = [...svg.querySelectorAll("text")].filter(node => node.textContent.trim());
+    return {
+      uniformScale: Math.abs(transform.a - transform.d) < 0.0001 && transform.b === 0 && transform.c === 0,
+      allTextVisible: text.every(node => {
+        const bounds = node.getBoundingClientRect();
+        return bounds.left >= 0 && bounds.top >= 0 && bounds.right <= innerWidth && bounds.bottom <= innerHeight;
+      }),
+      fontFloor: Math.min(...text.map(node => parseFloat(getComputedStyle(node).fontSize) * transform.a)),
+    };
+  });
+  expect(containment.uniformScale).toBe(true);
+  expect(containment.allTextVisible).toBe(true);
+  expect(containment.fontFloor).toBeGreaterThanOrEqual(12);
   await page.locator("[data-demo]").scrollIntoViewIfNeeded();
   await page.screenshot({ path: info.outputPath("homepage-live-demo.png") });
   await page.getByRole("button", { name: "Expand demo", exact: true }).click();
   await expect(page.locator(".demo-stage")).toHaveClass(/expanded/);
   await viewer.locator('svg g[data-node-id="cli"]').click();
-  await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "cli-surface");
-  await wrapper.locator("[data-return]").click();
-  await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "story-to-screen");
+  await expect.poll(() => viewer.locator("html").evaluate(() => location.hash)).toContain("focus=cli");
+  await expect(viewer.locator("[data-topo-shell]")).toHaveCount(0);
+  await viewer.locator("#btn-theme").click();
+  await expect(viewer.locator("html")).toHaveAttribute("data-theme", "dark");
   await page.getByRole("button", { name: "Restore demo", exact: true }).click();
   await expect(page.locator(".demo-stage")).not.toHaveClass(/expanded/);
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await expect(page.getByRole("link", { name: "Open full storybook", exact: true })).toHaveAttribute("href", /\/demo\/home\/stories\/story-to-screen\/$/);
+  await page.getByRole("link", { name: "Open full storybook", exact: true }).click();
+  await expect(page.locator("[data-topo-shell]")).toBeVisible();
+  await expect(page.locator(".catalogue-panel")).toHaveCount(1);
 });
 
 test("retired theme preferences cannot override Blueprint", async ({ page }) => {
