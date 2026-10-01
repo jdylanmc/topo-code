@@ -1473,6 +1473,7 @@ svg { max-height: 100vh; }
 }
 @media (min-width: 1400px) and (min-height: 900px) and (max-height: 920px) {
   html[data-topo-app] .container { max-width: min(calc(100vw - 64px), calc((100dvh - 156px) * ${sequenceRatio} + 32px)); }
+  html[data-topo-app] .diagram-container { padding-bottom: 56px; }
 }
 svg text {
   font-size: ${sequence?.fontSize}px;

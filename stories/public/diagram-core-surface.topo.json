@@ -39,28 +39,28 @@
       "id": "render-story",
       "path": "packages/diagram-core/src/index.ts",
       "language": "text",
-      "sha256": "732d4a9e30086726ba3ddb27c06d7346a1fe7d606ed7877b812ef84ce893008d",
+      "sha256": "65e2c94e4c4be5dee870606ac10e108f10761e822ed6133eac5c2704cddc9b88",
       "pattern": "export function renderStory(story: ResolvedStoryDocument): StoryArtifact | Promise<StoryArtifact> {"
     },
     {
       "id": "render-array",
       "path": "packages/diagram-core/src/index.ts",
       "language": "text",
-      "sha256": "732d4a9e30086726ba3ddb27c06d7346a1fe7d606ed7877b812ef84ce893008d",
+      "sha256": "65e2c94e4c4be5dee870606ac10e108f10761e822ed6133eac5c2704cddc9b88",
       "pattern": "export function renderArchitectureStories(\n  stories: readonly ResolvedStoryDocument[],\n  options: { readonly sourceEvidence?: \"native\" | \"wrapper\" } = {},\n): StoryArtifact[] {"
     },
     {
       "id": "render-stream",
       "path": "packages/diagram-core/src/index.ts",
       "language": "text",
-      "sha256": "732d4a9e30086726ba3ddb27c06d7346a1fe7d606ed7877b812ef84ce893008d",
+      "sha256": "65e2c94e4c4be5dee870606ac10e108f10761e822ed6133eac5c2704cddc9b88",
       "pattern": "export function* renderArchitectureStoryBatch(\n  stories: readonly ResolvedStoryDocument[],\n  options: { readonly sourceEvidence?: \"native\" | \"wrapper\" } = {},\n): Generator<StoryArtifact> {"
     },
     {
       "id": "width-helper",
       "path": "packages/diagram-core/src/index.ts",
       "language": "text",
-      "sha256": "732d4a9e30086726ba3ddb27c06d7346a1fe7d606ed7877b812ef84ce893008d",
+      "sha256": "65e2c94e4c4be5dee870606ac10e108f10761e822ed6133eac5c2704cddc9b88",
       "pattern": "export function architectureComponentWidth(\n  title: string,\n  sublabel = \"\",\n  finalTypography = false,\n): number {"
     },
     {
@@ -95,14 +95,14 @@
       "id": "theme-export",
       "path": "packages/diagram-core/src/index.ts",
       "language": "text",
-      "sha256": "732d4a9e30086726ba3ddb27c06d7346a1fe7d606ed7877b812ef84ce893008d",
+      "sha256": "65e2c94e4c4be5dee870606ac10e108f10761e822ed6133eac5c2704cddc9b88",
       "pattern": "export { CORE_THEME_SCRIPT } from \"./theme.js\";"
     },
     {
       "id": "integrity-export",
       "path": "packages/diagram-core/src/index.ts",
       "language": "text",
-      "sha256": "732d4a9e30086726ba3ddb27c06d7346a1fe7d606ed7877b812ef84ce893008d",
+      "sha256": "65e2c94e4c4be5dee870606ac10e108f10761e822ed6133eac5c2704cddc9b88",
       "pattern": "export {\n  verifyArchifyIntegrity,\n  type ArchifyIntegrity,\n} from \"./integrity.js\";"
     }
   ],
