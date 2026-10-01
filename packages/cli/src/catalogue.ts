@@ -1096,8 +1096,8 @@ function renderShellPage(
       .story-context p { margin: 0; }
       .story-context .classification { flex: 0 0 auto; }
       .story-context [data-return] { margin-left: auto; }
-      .story-details ul { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 0.5rem; margin: 0; padding: 0 0.75rem 0.75rem; list-style: none; }
-      .story-details li { display: grid; gap: 0.35rem; padding: 0.65rem; background: #111c2e; border-radius: 0.5rem; }
+      .story-details ul { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr)); gap: 0.5rem; margin: 0; padding: 0 0.75rem 0.75rem; list-style: none; }
+      .story-details li { display: grid; align-content: start; min-width: 0; gap: 0.35rem; padding: 0.65rem; background: #111c2e; border-radius: 0.5rem; }
       .home-main { min-width: 0; min-height: 0; overflow: auto; padding: clamp(1.5rem, 4vw, 4rem); }
       .home-main > * { max-width: 64rem; }
       .home-main h1 { margin: 0 0 0.75rem; font-size: clamp(1.7rem, 3vw, 2.5rem); }

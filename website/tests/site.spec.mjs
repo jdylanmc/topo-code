@@ -168,9 +168,9 @@ test("idea-to-architecture sequence shows the collaboration and review loop", as
   await expect(flow.locator("svg g[data-node-id]")).toHaveCount(4);
   expect(await flow.locator("svg g[data-node-id]").evaluateAll(nodes => nodes.map(node => node.dataset.nodeKind)))
     .toEqual(["human", "coding-agent", "command-line-tool", "repository"]);
-  await expect(flow.locator("svg")).toContainText("Review, refine, repeat");
-  await expect(flow.locator("svg")).toContainText("Write interpreted story");
-  await expect(flow.locator("svg")).toContainText("Commit with authorization");
+  await expect(flow.locator('svg[data-topo-family="sequence"]')).toContainText("Review, refine, repeat");
+  await expect(flow.locator('svg[data-topo-family="sequence"]')).toContainText("Write interpreted story");
+  await expect(flow.locator('svg[data-topo-family="sequence"]')).toContainText("Commit with authorization");
   await flow.locator('svg g[data-node-id="cli"]').click();
   await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "cli-surface");
   await expect(wrapper.locator("[data-return]")).toBeVisible();
@@ -226,39 +226,40 @@ test("curated maps fit desktop viewports with readable role captions", async ({ 
         };
       });
 
-      test("module boxes drill into public surfaces with clear nested and direct returns", async ({ page }) => {
-        await page.goto("demo/");
-        const wrapper = page.frameLocator("[data-demo]");
-        await wrapper.getByLabel("Filter diagrams").fill("cli");
-        await wrapper.frameLocator("[data-story-viewer]").locator('svg g[data-node-id="cli"]').click();
-        await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "cli-surface");
-        await expect(wrapper.locator("[data-return]")).toBeVisible();
-        await expect(wrapper.locator("[data-return]")).toContainText("Topocode internal modules");
-        await expect(wrapper.frameLocator("[data-story-viewer]").locator("svg g[data-node-id]")).toHaveCount(9);
-        await wrapper.frameLocator("[data-story-viewer]").locator('svg g[data-node-id="diagram-core"]').click();
-        await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "diagram-core-surface");
-        await expect(wrapper.locator("[data-return]")).toContainText("@topo/cli: public surface");
-        await wrapper.locator("[data-return]").click();
-        await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "cli-surface");
-        await wrapper.frameLocator("[data-story-viewer]").locator("#btn-semantic-lens").click();
-        await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "cli-surface");
-        await wrapper.locator("[data-return]").click();
-        await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "internal-modules");
-        await page.goto("demo/home/stories/diagram-core-surface/");
-        await expect(page.locator("[data-return]")).toBeVisible();
-        await expect(page.locator("[data-return]")).toContainText("Topocode internal modules");
-        await page.reload();
-        await expect(page.locator("[data-return]")).toBeVisible();
-        await page.goto("demo/home/stories/internal-modules/viewer.html");
-        await page.locator('svg g[data-node-id="diagram-core"]').click();
-        await expect(page).toHaveURL(/stories\/diagram-core-surface\/\?from=internal-modules/);
-        await expect(page.locator("[data-return]")).toBeVisible();
-      });
       expect(metrics, `${id} at ${width}x${height}`).toMatchObject({ overflowX: false, overflowY: false, captionOverlaps: 0 });
       expect(metrics.captionFloor).toBeGreaterThanOrEqual(12);
       if (id.endsWith("-surface")) expect(metrics.edgeLabelOverlaps).toBe(0);
     }
   }
+});
+
+test("module boxes drill into public surfaces with clear nested and direct returns", async ({ page }) => {
+  await page.goto("demo/");
+  const wrapper = page.frameLocator("[data-demo]");
+  await wrapper.getByLabel("Filter diagrams").fill("cli");
+  await wrapper.frameLocator("[data-story-viewer]").locator('svg g[data-node-id="cli"]').click();
+  await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "cli-surface");
+  await expect(wrapper.locator("[data-return]")).toBeVisible();
+  await expect(wrapper.locator("[data-return]")).toContainText("Topocode internal modules");
+  await expect(wrapper.frameLocator("[data-story-viewer]").locator("svg g[data-node-id]")).toHaveCount(9);
+  await wrapper.frameLocator("[data-story-viewer]").locator('svg g[data-node-id="diagram-core"]').click();
+  await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "diagram-core-surface");
+  await expect(wrapper.locator("[data-return]")).toContainText("@topo/cli: public surface");
+  await wrapper.locator("[data-return]").click();
+  await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "cli-surface");
+  await wrapper.frameLocator("[data-story-viewer]").locator("#btn-semantic-lens").click();
+  await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "cli-surface");
+  await wrapper.locator("[data-return]").click();
+  await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "internal-modules");
+  await page.goto("demo/home/stories/diagram-core-surface/");
+  await expect(page.locator("[data-return]")).toBeVisible();
+  await expect(page.locator("[data-return]")).toContainText("Topocode internal modules");
+  await page.reload();
+  await expect(page.locator("[data-return]")).toBeVisible();
+  await page.goto("demo/home/stories/internal-modules/viewer.html");
+  await page.locator('svg g[data-node-id="diagram-core"]').click();
+  await expect(page).toHaveURL(/stories\/diagram-core-surface\/\?from=internal-modules/);
+  await expect(page.locator("[data-return]")).toBeVisible();
 });
 
 test("retired theme preferences cannot override Blueprint", async ({ page }) => {

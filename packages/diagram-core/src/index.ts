@@ -1466,7 +1466,10 @@ svg g[data-edge-from] > text {
         ? `
 svg { max-height: 100vh; }
 @media (min-width: 1400px) and (min-height: 900px) {
-  html[data-topo-app] .container { max-width: min(calc(100vw - 64px), calc((100dvh - 172px) * ${sequenceRatio} + 48px)); }
+  html[data-topo-app] .container {
+    min-width: min(calc(100vw - 64px), ${sequence === undefined ? 0 : sequence.viewBox[0] * sequenceReadability.targetEffectiveFontSize / sequence.fontSize + 50}px);
+    max-width: min(calc(100vw - 64px), calc((100dvh - 260px) * ${sequenceRatio} + 30px));
+  }
 }
 @media (min-width: 1400px) and (min-height: 900px) and (max-height: 920px) {
   html[data-topo-app] .container { max-width: min(calc(100vw - 64px), calc((100dvh - 156px) * ${sequenceRatio} + 32px)); }
