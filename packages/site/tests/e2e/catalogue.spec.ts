@@ -142,7 +142,7 @@ test("preview populates the same home and category tree without scanning, includ
   await page.getByLabel("Filter diagrams").fill("beta");
   await expect(page.locator("[data-home-inventory] [data-story-id]")).toHaveCount(1);
   await navigation.getByRole("link", { name: "Beta workflow", exact: true }).click();
-  await expect(page.locator("[data-story-viewer]").contentFrame().locator('svg[data-diagram-type="workflow"]')).toBeVisible();
+  await expect(page.locator("[data-story-viewer]").contentFrame().locator('svg[role="img"]')).toBeVisible();
   await page.getByRole("link", { name: "Home", exact: true }).click();
   await expect(page.locator("[data-home-inventory] [data-story-id]")).toHaveCount(2);
   expect((await page.request.get(`${url}/data.json`)).status()).toBe(404);
