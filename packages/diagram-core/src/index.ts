@@ -1506,7 +1506,10 @@ svg g[data-edge-from] > text {
         return next;
       }, contents)
     : contents;
-  return adjustedContents.replace(headEnd, `${style}\n${headEnd}`);
+  const accessibleContents = family === "architecture"
+    ? adjustedContents.replace(/(<svg\b(?=[^>]*data-diagram-type="architecture")[^>]*\brole=)"img"/, '$1"group"')
+    : adjustedContents;
+  return accessibleContents.replace(headEnd, `${style}\n${headEnd}`);
 }
 
 export function renderArchitectureStories(

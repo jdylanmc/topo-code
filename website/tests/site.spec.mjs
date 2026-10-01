@@ -75,7 +75,7 @@ for (const [palette, theme] of Object.entries(themes)) {
     const frame = page.frameLocator("[data-demo]");
     await expect(frame.locator("html")).toHaveAttribute("data-website-palette", "blueprint");
     await expect(frame.locator("[data-topo-theme]")).toBeHidden();
-    await frame.locator("body").press("t");
+    await frame.frameLocator("[data-story-viewer]").locator("#btn-theme").click();
     await expect(frame.locator("html")).toHaveAttribute("data-website-palette", "blueprint");
     await expect(frame.locator("html")).toHaveAttribute("data-theme", "dark");
     await expect(page.locator("[data-theme-status]")).toContainText("standalone Home");

@@ -35,7 +35,12 @@ export const CORE_THEME_SCRIPT = `(() => {
       if (frame.contentWindow && typeof frame.contentWindow.topoSetTheme === "function") frame.contentWindow.topoSetTheme(theme, false);
     }
   }
-  window.topoSetTheme = apply;
+  window.topoSetTheme = (theme, persist) => {
+    if (persist && window.parent !== window && typeof window.parent.topoSetTheme === "function") {
+      return window.parent.topoSetTheme(theme, persist);
+    }
+    apply(theme, persist);
+  };
   function toggle(event) {
     if (event) {
       event.preventDefault();

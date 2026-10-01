@@ -142,7 +142,7 @@ test("preview populates the same home and category tree without scanning, includ
   await page.getByLabel("Filter diagrams").fill("beta");
   await expect(page.locator("[data-home-inventory] [data-story-id]")).toHaveCount(1);
   await navigation.getByRole("link", { name: "Beta workflow", exact: true }).click();
-  await expect(page.locator("[data-story-viewer]").contentFrame().locator('svg[role="img"]')).toBeVisible();
+  await expect(page.locator("[data-story-viewer]").contentFrame().locator('svg[role="group"]')).toBeVisible();
   await page.getByRole("link", { name: "Home", exact: true }).click();
   await expect(page.locator("[data-home-inventory] [data-story-id]")).toHaveCount(2);
   expect((await page.request.get(`${url}/data.json`)).status()).toBe(404);
@@ -151,7 +151,7 @@ test("preview populates the same home and category tree without scanning, includ
   try {
     await page.goto(`${site.url}/docs/topo/`);
     await page.locator("[data-home-inventory] [data-story-id=alpha]").click();
-    await expect(page.locator("[data-story-viewer]").contentFrame().locator('svg[role="img"]')).toBeVisible();
+    await expect(page.locator("[data-story-viewer]").contentFrame().locator('svg[role="group"]')).toBeVisible();
     await page.getByRole("link", { name: "Home", exact: true }).click();
     await expect(page).toHaveURL(`${site.url}/docs/topo/`);
     expect((await page.request.get(`${site.url}/docs/topo/THIRD_PARTY_NOTICES.txt`)).status()).toBe(200);
