@@ -114,11 +114,16 @@ export async function build() {
   pages.set("index.html", shell("Architecture you can explain", "Home", `
 <section class="hero"><div><h1>Make your codebase make sense.</h1>
 <p class="lede">An architecture storybook for people building software with agents. Map one meaningful question at a time. Keep the explanation close to the code.</p>
-<div class="actions"><a class="button" href="${route("docs/")}">Get started</a><a href="${route("demo/")}">Explore Topocode's own maps</a></div></div>
+<div class="actions"><a class="button" href="${route("docs/")}">Get started</a><a href="#demo">See it in action</a></div></div>
 <div class="workbench"><h2>Start in your repository.</h2><p>Node.js 22+ and Git. No account or hosted service.</p>
 <pre><code data-install>${escapeHtml(install)}</code></pre><button data-copy>Copy install command</button><div class="status" data-copy-status role="status"></div>
 <pre><code>npx --no topo init . --skills
 npx --no topo serve .</code></pre><p>A working Home, before your first map.</p></div></section>
+<section id="demo" class="home-demo" aria-labelledby="home-demo-title">
+<h2 id="home-demo-title">From idea to architecture</h2>
+<p class="lede">A live Topocode diagram of the process itself: you ask, your agent investigates and authors, you review, and the explanation improves.</p>
+<section class="demo-stage" aria-label="Interactive Topocode demo"><div class="demo-toolbar"><button data-expand-demo aria-pressed="false">Expand demo</button><a href="${route("demo/home/stories/story-to-screen/")}">Open full storybook</a><a href="${route("demo/")}">Explore all maps</a></div><iframe data-demo title="From idea to architecture - interactive Topocode demo" src="${route("demo/home/stories/story-to-screen/")}" loading="lazy"></iframe></section>
+</section>
 <section class="flow" aria-label="How Topocode works"><div><h3>Read the implementation.</h3><p>Deterministic scanning supplies structural evidence. Your coding agent reads the source and helps explain what matters. Scanning never calls a model.</p></div><div><h3>Author the explanation.</h3><p>Trace a boundary, a request, a decision, or a lifecycle. Curate stories with your agent instead of accepting a wall of generated boxes.</p></div><div><h3>Keep the evidence.</h3><p>Follow claims back to source. Validate anchors, repair stale evidence, and share the storybook as static files.</p></div></section>
 <section class="section split"><div><h2>A map is an explanation, not an inventory.</h2><p>Fast-changing code needs more than another dependency graph. Topocode gives you a place to build and maintain a shared understanding: what a system does, why its boundaries matter, and what happens when things go wrong.</p><p>You and your agent own the narrative. Validation checks its structure and evidence; it does not certify that the explanation is complete.</p></div><div><h2>Useful today. Honest about limits.</h2><p>TypeScript and JavaScript analysis, source-grounded stories, a browsable Home, and static publishing. Version ${escapeHtml(version)} also supports explicitly selected, partial Rust and Tauri analysis.</p><p>No compiler-complete Rust semantics, runtime reachability guarantees, or automatic architectural truth.</p><a href="${route("docs/rust-tauri/")}">Read the support boundaries</a></div></section>`));
   for (const filename of docs) {

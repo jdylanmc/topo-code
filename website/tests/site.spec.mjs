@@ -312,6 +312,31 @@ for (const [id, module, detailNode, boundary] of [
   });
 }
 
+test("homepage embeds the real collaboration sequence with working demo controls", async ({ page }, info) => {
+  await page.goto("./");
+  await page.getByRole("link", { name: "See it in action", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "From idea to architecture", exact: true })).toBeVisible();
+  const wrapper = page.frameLocator("[data-demo]");
+  await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "story-to-screen");
+  await expect(wrapper.locator("html")).toHaveAttribute("data-website-palette", "blueprint");
+  const viewer = wrapper.frameLocator("[data-story-viewer]");
+  await expect(viewer.locator('svg[data-topo-family="sequence"] g[data-node-id]')).toHaveCount(4);
+  await expect(viewer.locator('svg[data-topo-family="sequence"]')).toContainText("Review, refine, repeat");
+  await page.locator("[data-demo]").scrollIntoViewIfNeeded();
+  await page.screenshot({ path: info.outputPath("homepage-live-demo.png") });
+  await page.getByRole("button", { name: "Expand demo", exact: true }).click();
+  await expect(page.locator(".demo-stage")).toHaveClass(/expanded/);
+  await viewer.locator('svg g[data-node-id="cli"]').click();
+  await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "cli-surface");
+  await wrapper.locator("[data-return]").click();
+  await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "story-to-screen");
+  await page.getByRole("button", { name: "Restore demo", exact: true }).click();
+  await expect(page.locator(".demo-stage")).not.toHaveClass(/expanded/);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await expect(page.getByRole("link", { name: "Open full storybook", exact: true })).toHaveAttribute("href", /\/demo\/home\/stories\/story-to-screen\/$/);
+});
+
 test("retired theme preferences cannot override Blueprint", async ({ page }) => {
   for (const retired of ["porcelain", "forest", "sandstone", "oxide", "aubergine", "graphite"]) {
     await page.goto("./");

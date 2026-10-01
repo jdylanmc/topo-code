@@ -21,6 +21,11 @@ generated files are never committed. The preview server is local only.
 The final visual direction is **Contour + Blueprint**. The comparison page and
 temporary theme selector have been removed.
 
+The marketing homepage embeds the live **From idea to architecture** story
+immediately after its introduction. Its "See it in action" link jumps to the
+demo, which reuses the generated storybook, Blueprint styling, drilldowns, and
+expand/restore controls. It is not a screenshot or a separately authored copy.
+
 `SITE_BASE_PATH=/` builds for a later custom domain. The default is
 `/topo-code/`. Build-time path validation rejects traversal and malformed paths.
 The website test suite exercises both deployment shapes.

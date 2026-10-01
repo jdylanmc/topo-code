@@ -16,7 +16,7 @@ function applyTheme() {
   const frame = document.querySelector("[data-demo]");
   if (frame?.contentDocument?.querySelector("[data-topo-shell]")) {
     const doc = frame.contentDocument;
-    // Presentation-only styling for the empty Home, not a renderer transformation.
+    // Presentation-only styling for the embedded shell, not a renderer transformation.
     let stylesheet = doc.querySelector("[data-website-palette]");
     if (!stylesheet) {
       stylesheet = doc.createElement("link");
