@@ -108,6 +108,7 @@
     {
       "id": "render-consumers",
       "title": "Rendering",
+      "semanticRole": "repository-consumers",
       "summary": "diagram-core",
       "body": "Internal/repository consumers grouped by responsibility:\n@jdylanmc/topo-code\n@topo/diagram-core\n\nDeclared references:\n@jdylanmc/topo-code -> @jdylanmc/topo-archify [dependencies: 0.1.0]\n@topo/diagram-core -> @viz-js/viz [dependencies: 3.30.0]\n@topo/diagram-core -> @jdylanmc/topo-archify [peerDependencies: 0.1.0]\n\nThis is a manifest view, not observed imports or runtime execution. Root topo-code is the development project; @jdylanmc/topo-code is the public distribution manifest.",
       "anchorIds": [
@@ -119,6 +120,7 @@
       "id": "render-dependencies",
       "title": "Archify and Graphviz",
       "summary": "Pinned render engines",
+      "semanticRole": "external-dependencies",
       "body": "Direct external dependencies grouped by role:\n@jdylanmc/topo-archify\n@viz-js/viz\n\nExact declarations and requested versions:\n@jdylanmc/topo-code -> @jdylanmc/topo-archify [dependencies: 0.1.0]\n@topo/diagram-core -> @viz-js/viz [dependencies: 3.30.0]\n@topo/diagram-core -> @jdylanmc/topo-archify [peerDependencies: 0.1.0]\n\nDependency kind is per declaration, not an inherent package property. typescript-compiler-api is an npm alias to typescript@6.0.3; the compiler used to build the repository is separate. Optional Rust packages stay optional. No transitive lockfile dependencies are shown.",
       "anchorIds": [
         "distribution-package",
@@ -128,6 +130,7 @@
     {
       "id": "analysis-consumers",
       "title": "Code analysis",
+      "semanticRole": "repository-consumers",
       "summary": "languages, scanner, story",
       "body": "Internal/repository consumers grouped by responsibility:\n@topo/languages\n@topo/scanner\n@topo/story\n\nDeclared references:\n@topo/story -> typescript-compiler-api [dependencies: npm:typescript@6.0.3]\n@topo/languages -> typescript-compiler-api [dependencies: npm:typescript@6.0.3]\n@topo/languages -> @ast-grep/lang-rust [optionalDependencies: 0.0.7]\n@topo/languages -> @ast-grep/napi [optionalDependencies: 0.45.3]\n@topo/languages -> @iarna/toml [optionalDependencies: 2.2.5]\n@topo/scanner -> typescript-compiler-api [dependencies: npm:typescript@6.0.3]\n\nThis is a manifest view, not observed imports or runtime execution. Root topo-code is the development project; @jdylanmc/topo-code is the public distribution manifest.",
       "anchorIds": [
@@ -140,6 +143,7 @@
       "id": "analysis-dependencies",
       "title": "Language parsing",
       "summary": "Compiler, Rust, TOML",
+      "semanticRole": "external-dependencies",
       "body": "Direct external dependencies grouped by role:\ntypescript-compiler-api\n@ast-grep/lang-rust\n@ast-grep/napi\n@iarna/toml\n\nExact declarations and requested versions:\n@topo/story -> typescript-compiler-api [dependencies: npm:typescript@6.0.3]\n@topo/languages -> typescript-compiler-api [dependencies: npm:typescript@6.0.3]\n@topo/languages -> @ast-grep/lang-rust [optionalDependencies: 0.0.7]\n@topo/languages -> @ast-grep/napi [optionalDependencies: 0.45.3]\n@topo/languages -> @iarna/toml [optionalDependencies: 2.2.5]\n@topo/scanner -> typescript-compiler-api [dependencies: npm:typescript@6.0.3]\n\nDependency kind is per declaration, not an inherent package property. typescript-compiler-api is an npm alias to typescript@6.0.3; the compiler used to build the repository is separate. Optional Rust packages stay optional. No transitive lockfile dependencies are shown.",
       "anchorIds": [
         "packages-story-package",
@@ -150,6 +154,7 @@
     {
       "id": "contracts-consumers",
       "title": "Schema contracts",
+      "semanticRole": "repository-consumers",
       "summary": "schema, story",
       "body": "Internal/repository consumers grouped by responsibility:\n@topo/schema\n@topo/story\n\nDeclared references:\n@topo/story -> ajv [devDependencies: 8.17.1]\n@topo/schema -> ajv [dependencies: 8.17.1]\n@topo/schema -> ajv-formats [dependencies: 3.0.1]\n\nThis is a manifest view, not observed imports or runtime execution. Root topo-code is the development project; @jdylanmc/topo-code is the public distribution manifest.",
       "anchorIds": [
@@ -161,6 +166,7 @@
       "id": "contracts-dependencies",
       "title": "JSON validation",
       "summary": "AJV and formats",
+      "semanticRole": "external-dependencies",
       "body": "Direct external dependencies grouped by role:\najv\najv-formats\n\nExact declarations and requested versions:\n@topo/story -> ajv [devDependencies: 8.17.1]\n@topo/schema -> ajv [dependencies: 8.17.1]\n@topo/schema -> ajv-formats [dependencies: 3.0.1]\n\nDependency kind is per declaration, not an inherent package property. typescript-compiler-api is an npm alias to typescript@6.0.3; the compiler used to build the repository is separate. Optional Rust packages stay optional. No transitive lockfile dependencies are shown.",
       "anchorIds": [
         "packages-story-package",
@@ -170,6 +176,7 @@
     {
       "id": "paths-consumers",
       "title": "Path selection",
+      "semanticRole": "repository-consumers",
       "summary": "scanner, views",
       "body": "Internal/repository consumers grouped by responsibility:\n@topo/scanner\n@topo/views\n\nDeclared references:\n@topo/scanner -> ignore [dependencies: ^7.0.0]\n@topo/views -> ignore [dependencies: ^7.0.0]\n\nThis is a manifest view, not observed imports or runtime execution. Root topo-code is the development project; @jdylanmc/topo-code is the public distribution manifest.",
       "anchorIds": [
@@ -181,6 +188,7 @@
       "id": "paths-dependencies",
       "title": "Ignore matching",
       "summary": "Repository path rules",
+      "semanticRole": "external-dependencies",
       "body": "Direct external dependencies grouped by role:\nignore\n\nExact declarations and requested versions:\n@topo/scanner -> ignore [dependencies: ^7.0.0]\n@topo/views -> ignore [dependencies: ^7.0.0]\n\nDependency kind is per declaration, not an inherent package property. typescript-compiler-api is an npm alias to typescript@6.0.3; the compiler used to build the repository is separate. Optional Rust packages stay optional. No transitive lockfile dependencies are shown.",
       "anchorIds": [
         "packages-scanner-package",
@@ -190,6 +198,7 @@
     {
       "id": "tooling-consumers",
       "title": "Build, test, docs",
+      "semanticRole": "repository-consumers",
       "summary": "All workspace packages",
       "body": "Internal/repository consumers grouped by responsibility:\n@topo/cli\n@topo/diagram-core\n@topo/enrichment\n@topo/eslint-config\n@topo/graph\n@topo/languages\n@topo/modules\n@topo/reports\n@topo/scanner\n@topo/schema\n@topo/site\n@topo/story\n@topo/views\n@topo/workspace\ntopo-code\n\nDeclared references:\ntopo-code -> @axe-core/playwright [devDependencies: ^4.10.2]\ntopo-code -> @types/node [devDependencies: ^22]\ntopo-code -> eslint [devDependencies: ^9.39.5]\ntopo-code -> marked [devDependencies: ^16.4.1]\ntopo-code -> playwright-core [devDependencies: ^1.55.0]\ntopo-code -> typescript [devDependencies: ^7.0.2]\ntopo-code -> vite [devDependencies: 8.2.2]\ntopo-code -> vitest [devDependencies: ^5.0.0]\n@topo/story -> @types/node [devDependencies: ^22]\n@topo/story -> typescript [devDependencies: ^7.0.2]\n@topo/story -> vite [devDependencies: 8.2.2]\n@topo/story -> vitest [devDependencies: ^5.0.0]\n@topo/languages -> @types/node [devDependencies: ^22]\n@topo/languages -> typescript [devDependencies: ^7.0.2]\n@topo/scanner -> @types/node [devDependencies: ^22.0.0]\n@topo/scanner -> typescript [devDependencies: ^7.0.2]\n@topo/scanner -> vite [devDependencies: 8.2.2]\n@topo/scanner -> vitest [devDependencies: ^5.0.0]\n@topo/schema -> @types/node [devDependencies: ^22]\n@topo/schema -> typescript [devDependencies: ^7.0.2]\n@topo/schema -> vite [devDependencies: 8.2.2]\n@topo/schema -> vitest [devDependencies: ^5.0.0]\n@topo/reports -> @types/node [devDependencies: ^22.20.1]\n@topo/reports -> typescript [devDependencies: ^7.0.2]\n@topo/reports -> vite [devDependencies: 8.2.2]\n@topo/reports -> vitest [devDependencies: ^5.0.0]\n@topo/cli -> @types/node [devDependencies: ^22.20.1]\n@topo/cli -> typescript [devDependencies: ^7.0.2]\n@topo/cli -> vite [devDependencies: 8.2.2]\n@topo/cli -> vitest [devDependencies: ^5.0.0]\n@topo/diagram-core -> @types/node [devDependencies: ^22]\n@topo/diagram-core -> typescript [devDependencies: ^7.0.2]\n@topo/views -> typescript [devDependencies: ^7.0.2]\n@topo/views -> vite [devDependencies: 8.2.2]\n@topo/views -> vitest [devDependencies: ^5.0.0]\n@topo/site -> @playwright/test [devDependencies: ^1.55.0]\n@topo/site -> @types/node [devDependencies: ^22.18.0]\n@topo/site -> typescript [devDependencies: ^7.0.2]\n@topo/site -> vite [devDependencies: 8.2.2]\n@topo/site -> vitest [devDependencies: ^5.0.0]\n@topo/workspace -> @types/node [devDependencies: ^22.20.1]\n@topo/workspace -> typescript [devDependencies: ^7.0.2]\n@topo/workspace -> vite [devDependencies: 8.2.2]\n@topo/workspace -> vitest [devDependencies: ^5.0.0]\n@topo/modules -> typescript [devDependencies: ^7.0.2]\n@topo/modules -> vite [devDependencies: 8.2.2]\n@topo/modules -> vitest [devDependencies: ^5.0.0]\n@topo/enrichment -> typescript [devDependencies: ^7.0.2]\n@topo/enrichment -> vite [devDependencies: 8.2.2]\n@topo/enrichment -> vitest [devDependencies: ^5.0.0]\n@topo/graph -> typescript [devDependencies: ^7.0.2]\n@topo/graph -> vite [devDependencies: 8.2.2]\n@topo/graph -> vitest [devDependencies: ^5.0.0]\n@topo/eslint-config -> @typescript-eslint/parser [dependencies: 8.70.0]\n@topo/eslint-config -> eslint [dependencies: ^9.39.5]\n@topo/eslint-config -> typescript [dependencies: 6.0.3]\n\nThis is a manifest view, not observed imports or runtime execution. Root topo-code is the development project; @jdylanmc/topo-code is the public distribution manifest.",
       "anchorIds": [
@@ -214,6 +223,7 @@
       "id": "tooling-dependencies",
       "title": "Development tools",
       "summary": "Build, lint, test, docs",
+      "semanticRole": "external-dependencies",
       "body": "Direct external dependencies grouped by role:\n@axe-core/playwright\n@playwright/test\n@types/node\n@typescript-eslint/parser\neslint\nmarked\nplaywright-core\ntypescript\nvite\nvitest\n\nExact declarations and requested versions:\ntopo-code -> @axe-core/playwright [devDependencies: ^4.10.2]\ntopo-code -> @types/node [devDependencies: ^22]\ntopo-code -> eslint [devDependencies: ^9.39.5]\ntopo-code -> marked [devDependencies: ^16.4.1]\ntopo-code -> playwright-core [devDependencies: ^1.55.0]\ntopo-code -> typescript [devDependencies: ^7.0.2]\ntopo-code -> vite [devDependencies: 8.2.2]\ntopo-code -> vitest [devDependencies: ^5.0.0]\n@topo/story -> @types/node [devDependencies: ^22]\n@topo/story -> typescript [devDependencies: ^7.0.2]\n@topo/story -> vite [devDependencies: 8.2.2]\n@topo/story -> vitest [devDependencies: ^5.0.0]\n@topo/languages -> @types/node [devDependencies: ^22]\n@topo/languages -> typescript [devDependencies: ^7.0.2]\n@topo/scanner -> @types/node [devDependencies: ^22.0.0]\n@topo/scanner -> typescript [devDependencies: ^7.0.2]\n@topo/scanner -> vite [devDependencies: 8.2.2]\n@topo/scanner -> vitest [devDependencies: ^5.0.0]\n@topo/schema -> @types/node [devDependencies: ^22]\n@topo/schema -> typescript [devDependencies: ^7.0.2]\n@topo/schema -> vite [devDependencies: 8.2.2]\n@topo/schema -> vitest [devDependencies: ^5.0.0]\n@topo/reports -> @types/node [devDependencies: ^22.20.1]\n@topo/reports -> typescript [devDependencies: ^7.0.2]\n@topo/reports -> vite [devDependencies: 8.2.2]\n@topo/reports -> vitest [devDependencies: ^5.0.0]\n@topo/cli -> @types/node [devDependencies: ^22.20.1]\n@topo/cli -> typescript [devDependencies: ^7.0.2]\n@topo/cli -> vite [devDependencies: 8.2.2]\n@topo/cli -> vitest [devDependencies: ^5.0.0]\n@topo/diagram-core -> @types/node [devDependencies: ^22]\n@topo/diagram-core -> typescript [devDependencies: ^7.0.2]\n@topo/views -> typescript [devDependencies: ^7.0.2]\n@topo/views -> vite [devDependencies: 8.2.2]\n@topo/views -> vitest [devDependencies: ^5.0.0]\n@topo/site -> @playwright/test [devDependencies: ^1.55.0]\n@topo/site -> @types/node [devDependencies: ^22.18.0]\n@topo/site -> typescript [devDependencies: ^7.0.2]\n@topo/site -> vite [devDependencies: 8.2.2]\n@topo/site -> vitest [devDependencies: ^5.0.0]\n@topo/workspace -> @types/node [devDependencies: ^22.20.1]\n@topo/workspace -> typescript [devDependencies: ^7.0.2]\n@topo/workspace -> vite [devDependencies: 8.2.2]\n@topo/workspace -> vitest [devDependencies: ^5.0.0]\n@topo/modules -> typescript [devDependencies: ^7.0.2]\n@topo/modules -> vite [devDependencies: 8.2.2]\n@topo/modules -> vitest [devDependencies: ^5.0.0]\n@topo/enrichment -> typescript [devDependencies: ^7.0.2]\n@topo/enrichment -> vite [devDependencies: 8.2.2]\n@topo/enrichment -> vitest [devDependencies: ^5.0.0]\n@topo/graph -> typescript [devDependencies: ^7.0.2]\n@topo/graph -> vite [devDependencies: 8.2.2]\n@topo/graph -> vitest [devDependencies: ^5.0.0]\n@topo/eslint-config -> @typescript-eslint/parser [dependencies: 8.70.0]\n@topo/eslint-config -> eslint [dependencies: ^9.39.5]\n@topo/eslint-config -> typescript [dependencies: 6.0.3]\n\nDependency kind is per declaration, not an inherent package property. typescript-compiler-api is an npm alias to typescript@6.0.3; the compiler used to build the repository is separate. Optional Rust packages stay optional. No transitive lockfile dependencies are shown.",
       "anchorIds": [
         "package",

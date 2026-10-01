@@ -59,6 +59,12 @@ test("original contour fallback is stable, finite, and bounded", () => {
 test("curated module maps retain all manifest declarations and reject stale evidence", async () => {
   const main = JSON.parse(await readFile(path.join(root, "stories/public/internal-modules.topo.json"), "utf8"));
   const context = JSON.parse(await readFile(path.join(root, "stories/public/dependency-context.topo.json"), "utf8"));
+  const roleCounts = {};
+  for (const section of main.sections) roleCounts[section.semanticRole] = (roleCounts[section.semanticRole] ?? 0) + 1;
+  assert.deepEqual(roleCounts, {
+    "contracts-and-evidence": 2, "source-analysis": 2, "supplemental-evidence": 2,
+    "command-orchestration": 2, "rendering-and-view-data": 2, "graph-shaping": 3,
+  });
   const internalNames = new Set(main.sections.map(section => section.title));
   assert.equal(internalNames.size, 13);
   assert.equal(internalNames.has("@topo/eslint-config"), false);
@@ -100,9 +106,10 @@ test("build only the curated story set for project Pages and custom-domain roots
       const home = await readFile(path.join(output, "demo/home/index.html"), "utf8");
       const state = JSON.parse(await readFile(path.join(output, "demo/home/site-state.json"), "utf8"));
       assert.match(home, /data-topo-shell/);
-      assert.equal((home.match(/data-kind="story"/g) ?? []).length, 2);
+      assert.equal((home.match(/data-kind="story"/g) ?? []).length, 3);
       assert.match(home, /Topocode internal modules/);
       assert.match(home, /Dependency context by role/);
+      assert.match(home, /Story to screen/);
       assert.doesNotMatch(home, /Workflow capability|topo-packages/);
       assert.match(JSON.stringify(state), /unscanned/);
       assert.match(await readFile(path.join(output, "index.html"), "utf8"), new RegExp(`${base}assets/client.mjs`));
@@ -110,6 +117,10 @@ test("build only the curated story set for project Pages and custom-domain roots
       assert.ok((await readFile(path.join(output, "demo/home/THIRD_PARTY_NOTICES.txt"), "utf8")).length > 100);
       const evidence = JSON.parse(await readFile(path.join(output, "demo/home/stories/dependency-context/evidence.json"), "utf8"));
       assert.equal(evidence.anchors.length, 16);
+      const flow = JSON.parse(await readFile(path.join(output, "demo/home/stories/story-to-screen/evidence.json"), "utf8"));
+      assert.equal(flow.connections.length, 13);
+      assert.ok(flow.connections.every(edge => edge.classification === "source-traced" && edge.anchorIds.length > 0));
+      assert.ok(flow.anchors.every(anchor => /^[a-f0-9]{64}$/.test(anchor.sha256)));
       if (base === "/") {
         const rootOutput = path.join(root, "dist/public-site-root");
         await rm(rootOutput, { recursive: true, force: true });

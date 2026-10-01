@@ -4,8 +4,8 @@
   "modules": [],
   "catalogue": {
     "title": "Topocode",
-    "description": "Start with the internal modules and their responsibilities, then explore dependency context by role. These maps cite the actual Topocode source and manifests.",
+    "description": "Explore module responsibilities with semantic lenses, inspect dependency context, or follow a story from preview request to generated browser files.",
     "accentColor": "#80d8ed",
-    "storyIds": ["internal-modules", "dependency-context"]
+    "storyIds": ["internal-modules", "dependency-context", "story-to-screen"]
   }
 }

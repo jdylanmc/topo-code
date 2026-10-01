@@ -48,7 +48,7 @@ development and release documents retain their separately labeled procedures.
 
 ## Curated source-backed demo
 
-Each build validates the two curated stories against the working source and
+Each build validates the three curated stories against the working source and
 requires their story/evidence files to be committed. It clones that exact local
 revision into a temporary repository, retains the real origin, applies the demo
 catalogue configuration, then runs the actual `topo init` and `topo bundle`.
@@ -67,7 +67,19 @@ kinds and requested versions in details. Neither map claims runtime calls or a
 transitive dependency inventory. Stable node IDs are reserved for future curated
 drilldowns; only real cross-story links are emitted.
 
-`catalogue.storyIds` selects exactly these two maps. Existing development stories
+The internal map's LENS groups modules into command orchestration, source
+analysis, contracts/evidence, graph shaping, rendering/view data, and supplemental
+evidence. These are authored responsibilities, not inferred frontend/backend
+types. Comparing two roles highlights only direct cross-role arrows drawn in
+this deliberately sparse map; the full declaration lists remain in node details.
+
+`story-to-screen.topo.json` traces the actual preview command through committed
+story loading, source snapshotting, evidence resolution, rendering, freshness
+checks, staged publication, and error/rollback paths. It explicitly uses Graphviz
+for branching control flow and preserves per-edge source evidence. Publication
+is rollback-capable, not crash-atomic. Preview does not launch a model or server.
+
+`catalogue.storyIds` selects exactly these three maps. Existing development stories
 and examples are preserved but excluded from the demo. Hash-bound evidence fails
 on source drift; it must be reassessed, not silently regenerated during builds.
 

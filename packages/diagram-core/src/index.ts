@@ -13,6 +13,7 @@ import type {
   ResolvedStoryDocument,
   StoryArtifact,
   StoryConnection,
+  StoryDocument,
 } from "@topo/story";
 import { cliPath as archifyCli } from "@jdylanmc/topo-archify";
 import { verifyArchifyIntegrity } from "./integrity.js";
@@ -647,9 +648,7 @@ function archifySpec(
     const { row, column } = cellOf(index);
     return {
       id: componentIds.get(section.id)!,
-      type: nativeSourceEvidence && index === sections.length - 1
-        ? "frontend" as const
-        : "backend" as const,
+      type: "backend" as const,
       label: section.title,
       sublabel,
       pos: [
@@ -1397,6 +1396,30 @@ function serializeRendererInput(spec: { readonly meta: object }): string {
   }, null, 2)}\n`;
 }
 
+function adaptArchitectureSemantics(contents: string, document: StoryDocument): string {
+  const roles = new Map(document.sections.map(section => [componentId(section.id), section.semanticRole ?? "component"]));
+  const seen = new Set<string>();
+  const adapted = contents.replace(/<g\b[^>]*\bdata-node-id="([^"]+)"[^>]*>/g, (tag, id: string) => {
+    const role = roles.get(id);
+    if (role === undefined) return tag;
+    if (!/^[a-z][a-z0-9-]{0,63}$/.test(role)) throw new Error(`Invalid semantic role for ${id}`);
+    if (!/\bdata-node-kind="[^"]*"/.test(tag)) throw new Error(`Architecture node ${id} has no semantic metadata`);
+    seen.add(id);
+    return tag.replace(/\bdata-node-kind="[^"]*"/, `data-node-kind="${role}"`);
+  });
+  if (seen.size !== roles.size) throw new Error("Architecture semantic adaptation omitted an authored node");
+  const replacements: readonly [RegExp, string][] = [
+    [/(<strong\b[^>]*id="semantic-lens-title"[^>]*>)[^<]*(<\/strong>)/,
+      "$1Compare responsibilities$2"],
+    [/(<p\b[^>]*class="semantic-lens-instruction"[^>]*>)[^<]*(<\/p>)/,
+      "$1Choose up to two authored roles. Highlight only the relationships drawn in this story: not runtime traffic, transitive impact, or the complete dependency graph. One role includes connected peers; two compare direct cross-role arrows.$2"],
+  ];
+  return replacements.reduce((html, [pattern, replacement]) => {
+    if (!pattern.test(html)) throw new Error("Pinned semantic lens presentation seam is missing");
+    return html.replace(pattern, replacement);
+  }, adapted);
+}
+
 function improveStoryReadability(
   contents: string,
   family:
@@ -1553,9 +1576,11 @@ export function* renderArchitectureStoryBatch(
         manifest,
       ], { cwd: directory, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, stdio: ["ignore", "pipe", "pipe"] });
     }
-    for (const { output } of jobs) {
+    for (const [index, { output }] of jobs.entries()) {
       const sourceContents = readFileSync(output, "utf8");
-      const contents = adaptViewerTheme(improveStoryReadability(sourceContents, "architecture"));
+      const contents = adaptViewerTheme(adaptArchitectureSemantics(
+        improveStoryReadability(sourceContents, "architecture"), stories[index]!.document,
+      ));
       yield {
         kind: "html",
         mediaType: "text/html",
@@ -1566,7 +1591,7 @@ export function* renderArchitectureStoryBatch(
           sha256: integrity.archiveSha256,
           sourceOutputSha256: outputHash(sourceContents),
           outputSha256: outputHash(contents),
-          adaptation: "topocode-readability-and-theme-v1",
+          adaptation: "topocode-story-semantics-v2",
         },
       };
     }
@@ -1632,9 +1657,12 @@ export function renderStory(story: ResolvedStoryDocument): StoryArtifact | Promi
         adaptiveSequenceLayout!,
       )
       : readFileSync(outputPath, "utf8");
-    const adapted = adaptViewerTheme(improveStoryReadability(
+    const readable = improveStoryReadability(
       contents, family, adaptiveDataflowLayout, adaptiveSequenceLayout?.fontSize,
-    ));
+    );
+    const adapted = adaptViewerTheme(family === "architecture"
+      ? adaptArchitectureSemantics(readable, story.document)
+      : readable);
     return {
       kind: "html",
       mediaType: "text/html",
@@ -1645,7 +1673,7 @@ export function renderStory(story: ResolvedStoryDocument): StoryArtifact | Promi
         sha256: integrity.archiveSha256,
         sourceOutputSha256: outputHash(readFileSync(outputPath, "utf8")),
         outputSha256: outputHash(adapted),
-        adaptation: "topocode-readability-and-theme-v1",
+        adaptation: family === "architecture" ? "topocode-story-semantics-v2" : "topocode-readability-and-theme-v1",
       },
     };
   } catch (error) {

@@ -105,6 +105,65 @@ test("module details preserve complete dependencies and cross-story return navig
   await expect(frame.frameLocator("[data-story-viewer]").locator("svg g[data-node-id]")).toHaveCount(10);
 });
 
+test("semantic lenses classify responsibilities, preserve geometry, and compare only drawn arrows", async ({ page }) => {
+  await page.goto("demo/home/stories/internal-modules/viewer.html");
+  await page.evaluate(() => document.fonts.ready);
+  const diagram = page.locator('svg[data-diagram-type="architecture"]');
+  const geometry = () => diagram.locator("g[data-node-id]").evaluateAll(nodes =>
+    nodes.map(node => {
+      const bounds = node.getBBox();
+      return [node.dataset.nodeId, bounds.x, bounds.y, bounds.width, bounds.height];
+    }));
+  const before = await geometry();
+  await page.locator("#btn-semantic-lens").click();
+  const kinds = page.locator("#semantic-lens-kinds button");
+  await expect(kinds).toHaveCount(6);
+  await expect(page.locator('#semantic-lens-kinds [data-kind="backend"], #semantic-lens-kinds [data-kind="frontend"]')).toHaveCount(0);
+  for (const [kind, count] of Object.entries({
+    "command-orchestration": 2, "source-analysis": 2, "contracts-and-evidence": 2,
+    "graph-shaping": 3, "rendering-and-view-data": 2, "supplemental-evidence": 2,
+  })) {
+    await expect(page.locator(`#semantic-lens-kinds [data-kind="${kind}"] em`)).toHaveText(String(count));
+  }
+  await expect(page.locator(".semantic-lens-instruction")).toContainText("relationships drawn in this story");
+  await page.locator('[data-kind="command-orchestration"]').click();
+  await page.locator('[data-kind="source-analysis"]').click();
+  await expect(page.locator("#semantic-lens-status")).toContainText("1 direct relationship");
+  const matched = await diagram.locator("[data-edge-from][data-edge-to][data-lens-match]").evaluateAll(edges =>
+    [...new Set(edges.map(edge => `${edge.dataset.edgeFrom}->${edge.dataset.edgeTo}`))]);
+  expect(matched).toEqual(["cli->languages"]);
+  expect(await geometry()).toEqual(before);
+  await page.reload();
+  await expect(diagram).toHaveAttribute("data-lens-active", "command-orchestration source-analysis");
+  expect(await geometry()).toEqual(before);
+  await page.locator("#btn-semantic-lens").click();
+  await page.locator("#semantic-lens-clear").click();
+  await expect(diagram).not.toHaveAttribute("data-lens-active");
+  expect(await geometry()).toEqual(before);
+});
+
+test("story-to-screen exposes actual phases, failure evidence, and module drillbacks", async ({ page }) => {
+  await page.goto("demo/");
+  await page.getByRole("link", { name: "Story to screen", exact: true }).click();
+  const wrapper = page.frameLocator("[data-demo]");
+  await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "story-to-screen");
+  const flow = wrapper.frameLocator("[data-story-viewer]");
+  await expect(flow.locator("svg g[data-node-id]")).toHaveCount(9);
+  await expect(flow.locator("svg g[data-edge-index]")).toHaveCount(13);
+  await flow.locator('svg g[data-node-id="rollback"]').click();
+  await expect(wrapper.locator('[data-section-evidence="rollback"] > p')).toContainText("not crash-atomicity");
+  await expect(wrapper.locator('[data-section-evidence="rollback"]')).toContainText("AggregateError");
+  await flow.locator('svg g[data-node-id="cli"]').click();
+  const back = wrapper.locator('a[data-cross-story][data-source-node="cli"]')
+    .filter({ hasText: "Topocode internal modules: @topo/cli" });
+  await back.click();
+  await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "internal-modules");
+  await expect(wrapper.locator("[data-return]")).toBeVisible();
+  await wrapper.locator("[data-return]").click();
+  await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "story-to-screen");
+  await expect(wrapper.locator('[data-section-evidence="cli"]')).toBeVisible();
+});
+
 test("curated maps fit desktop viewports with readable role captions", async ({ page }) => {
   for (const [id, count] of [["internal-modules", 13], ["dependency-context", 10]]) {
     for (const [width, height] of [[1440, 900], [1600, 1000], [1920, 1080], [2048, 1320]]) {

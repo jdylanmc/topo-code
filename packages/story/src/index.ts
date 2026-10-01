@@ -19,6 +19,7 @@ export interface StorySection {
   readonly title: string;
   readonly body: string;
   readonly summary?: string;
+  readonly semanticRole?: string;
   readonly anchorIds: readonly string[];
   readonly kind?: "step" | "decision" | "data";
 }
@@ -277,7 +278,7 @@ function validateStoryDocument(value: unknown): string | undefined {
   const sectionIds = new Set<string>();
   for (const [index, sectionValue] of value.sections.entries()) {
     if (!isRecord(sectionValue)) return `sections[${index}] must be an object`;
-    const keys = exactKeys(sectionValue, ["id", "title", "body", "anchorIds"], ["kind", "summary"]);
+    const keys = exactKeys(sectionValue, ["id", "title", "body", "anchorIds"], ["kind", "summary", "semanticRole"]);
     if (keys) return `sections[${index}] ${keys}`;
     if (sectionValue.kind !== undefined && (!["step", "decision", "data"].includes(String(sectionValue.kind)) || value.renderer !== "graphviz")) return `sections[${index}].kind requires the explicit graphviz backend`;
     if (!nonemptyString(sectionValue.id)) return `sections[${index}].id must be nonempty`;
@@ -288,6 +289,12 @@ function validateStoryDocument(value: unknown): string | undefined {
     if (sectionValue.summary !== undefined &&
         (!nonemptyString(sectionValue.summary) || diagramFamily !== "architecture")) {
       return `sections[${index}].summary requires a nonempty architecture caption`;
+    }
+    if (sectionValue.semanticRole !== undefined &&
+        (typeof sectionValue.semanticRole !== "string" ||
+          !/^[a-z][a-z0-9-]{0,63}$/.test(sectionValue.semanticRole) ||
+          diagramFamily !== "architecture")) {
+      return `sections[${index}].semanticRole requires an architecture role slug`;
     }
     if (!uniqueStrings(sectionValue.anchorIds)) {
       return `sections[${index}].anchorIds must contain unique nonempty strings`;

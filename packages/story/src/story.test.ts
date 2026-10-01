@@ -43,6 +43,23 @@ function validStory(): StoryDocument {
 }
 
 describe("story document contract", () => {
+  it("validates authored architecture roles in both schema and parser", async () => {
+    const story = validStory();
+    const value = { ...story, sections: [{ ...story.sections[0], semanticRole: "source-analysis" }] };
+    const validate = new Ajv2020({ strict: true }).compile(JSON.parse(await readFile(schemaPath, "utf8")));
+    expect(validate(value)).toBe(true);
+    expect(parseStoryDocument(JSON.stringify(value), "roles.topo.json").sections[0]?.semanticRole).toBe("source-analysis");
+    for (const invalid of [
+      { ...value, diagramFamily: "workflow" },
+      ...["", "Source analysis", 'bad"role', "a".repeat(65)].map(semanticRole => ({
+        ...value, sections: [{ ...story.sections[0], semanticRole }],
+      })),
+    ]) {
+      expect(validate(invalid)).toBe(false);
+      expect(() => parseStoryDocument(JSON.stringify(invalid), "roles.topo.json")).toThrow();
+    }
+  });
+
   it("supports concise architecture captions without replacing full narrative or evidence", async () => {
     const story = validStory();
     const value = { ...story, sections: [{ ...story.sections[0], summary: "Charge an order" }] };

@@ -125,7 +125,7 @@
       "id": "diagram-core-implementation",
       "path": "packages/diagram-core/src/index.ts",
       "language": "text",
-      "sha256": "e9d6b08aadf59419ddc23af27099968362853c50ba31619b3bcfe46369341c95"
+      "sha256": "74cd40dfeb6c5decdf4ba7bcd9dfadad666610c0a0d11c6945497c6dded17939"
     },
     {
       "id": "languages-implementation",
@@ -161,7 +161,7 @@
       "id": "story-implementation",
       "path": "packages/story/src/index.ts",
       "language": "text",
-      "sha256": "d784173750a1bf3f97f9fb8e33a3cf3b639f9c75af0878860031319c7874c3c9"
+      "sha256": "427c477a3836c051b2ceedd4231e8e89f7fa77390803f6f963e7a725f4d35492"
     }
   ],
   "sections": [
@@ -169,6 +169,7 @@
       "id": "story",
       "title": "@topo/story",
       "summary": "Resolve story evidence",
+      "semanticRole": "contracts-and-evidence",
       "body": "Parses authored stories and resolves file/symbol/excerpt anchors against a source snapshot. Defines the renderer-neutral story contract.\n\nAll declared internal dependencies (not runtime calls):\n@topo/story -> @topo/languages [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/cli -> @topo/story [dependencies: workspace:*]\n@topo/diagram-core -> @topo/story [dependencies: workspace:*]\n\nStable drilldown identity: story. Module-specific detail maps will be curated later; there is no placeholder target.",
       "anchorIds": [
         "packages-story-package",
@@ -179,6 +180,7 @@
       "id": "languages",
       "title": "@topo/languages",
       "summary": "Language composition",
+      "semanticRole": "source-analysis",
       "body": "Selects the first-party TypeScript/JavaScript scanner, partial Rust adapter, and Tauri bridge. Owns captured source inventory and language evidence; never runs a model or Cargo build.\n\nAll declared internal dependencies (not runtime calls):\n@topo/languages -> @topo/scanner [dependencies: workspace:*]\n@topo/languages -> @topo/schema [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/story -> @topo/languages [dependencies: workspace:*]\n@topo/cli -> @topo/languages [dependencies: workspace:*]\n\nStable drilldown identity: languages. Module-specific detail maps will be curated later; there is no placeholder target.",
       "anchorIds": [
         "packages-languages-package",
@@ -189,6 +191,7 @@
       "id": "scanner",
       "title": "@topo/scanner",
       "summary": "TypeScript source facts",
+      "semanticRole": "source-analysis",
       "body": "Extracts TypeScript/JavaScript declarations, references, and graph evidence with the pinned compiler API and repository file-selection rules.\n\nAll declared internal dependencies (not runtime calls):\n@topo/scanner -> @topo/schema [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/languages -> @topo/scanner [dependencies: workspace:*]\n@topo/cli -> @topo/scanner [dependencies: workspace:*]\n\nStable drilldown identity: scanner. Module-specific detail maps will be curated later; there is no placeholder target.",
       "anchorIds": [
         "packages-scanner-package",
@@ -199,6 +202,7 @@
       "id": "schema",
       "title": "@topo/schema",
       "summary": "Shared data contracts",
+      "semanticRole": "contracts-and-evidence",
       "body": "Defines graph/artifact types, JSON schemas, validation, stable IDs, canonical serialization and compatibility rules.\n\nAll declared internal dependencies (not runtime calls):\nNo matching declarations.\n\nReferenced by internal modules:\n@topo/languages -> @topo/schema [dependencies: workspace:*]\n@topo/scanner -> @topo/schema [dependencies: workspace:*]\n@topo/reports -> @topo/schema [dependencies: workspace:*]\n@topo/cli -> @topo/schema [dependencies: workspace:*]\n@topo/views -> @topo/schema [dependencies: workspace:*]\n@topo/site -> @topo/schema [dependencies: workspace:*]\n@topo/workspace -> @topo/schema [dependencies: workspace:*]\n@topo/modules -> @topo/schema [dependencies: workspace:*]\n@topo/enrichment -> @topo/schema [dependencies: workspace:*]\n@topo/graph -> @topo/schema [dependencies: workspace:*]\n\nStable drilldown identity: schema. Module-specific detail maps will be curated later; there is no placeholder target.",
       "anchorIds": [
         "packages-schema-package",
@@ -209,6 +213,7 @@
       "id": "reports",
       "title": "@topo/reports",
       "summary": "Normalize report evidence",
+      "semanticRole": "supplemental-evidence",
       "body": "Parses normalized reports, checks them against graph evidence, and produces dashboard artifacts.\n\nAll declared internal dependencies (not runtime calls):\n@topo/reports -> @topo/schema [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/cli -> @topo/reports [dependencies: workspace:*]\n\nStable drilldown identity: reports. Module-specific detail maps will be curated later; there is no placeholder target.",
       "anchorIds": [
         "packages-reports-package",
@@ -219,6 +224,7 @@
       "id": "cli",
       "title": "@topo/cli",
       "summary": "Compose the toolbelt",
+      "semanticRole": "command-orchestration",
       "body": "Implements init, scan, story validation/preview, serving, bundling, ingestion, and explicit enrichment; generates Home and story navigation.\n\nAll declared internal dependencies (not runtime calls):\n@topo/cli -> @topo/diagram-core [dependencies: workspace:*]\n@topo/cli -> @topo/enrichment [dependencies: workspace:*]\n@topo/cli -> @topo/graph [dependencies: workspace:*]\n@topo/cli -> @topo/languages [dependencies: workspace:*]\n@topo/cli -> @topo/modules [dependencies: workspace:*]\n@topo/cli -> @topo/reports [dependencies: workspace:*]\n@topo/cli -> @topo/scanner [dependencies: workspace:*]\n@topo/cli -> @topo/schema [dependencies: workspace:*]\n@topo/cli -> @topo/site [dependencies: workspace:*]\n@topo/cli -> @topo/story [dependencies: workspace:*]\n@topo/cli -> @topo/views [dependencies: workspace:*]\n@topo/cli -> @topo/workspace [dependencies: workspace:*]\n\nReferenced by internal modules:\nNo matching declarations.\n\nStable drilldown identity: cli. Module-specific detail maps will be curated later; there is no placeholder target.",
       "anchorIds": [
         "packages-cli-package",
@@ -229,6 +235,7 @@
       "id": "diagram-core",
       "title": "@topo/diagram-core",
       "summary": "Render authored diagrams",
+      "semanticRole": "rendering-and-view-data",
       "body": "Adapts source-grounded stories to the pinned Archify renderer or explicit Graphviz backend; owns renderer integrity, output adaptation, and viewer theme/export behavior.\n\nAll declared internal dependencies (not runtime calls):\n@topo/diagram-core -> @topo/story [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/cli -> @topo/diagram-core [dependencies: workspace:*]\n@topo/site -> @topo/diagram-core [devDependencies: workspace:*]\n\nStable drilldown identity: diagram-core. Module-specific detail maps will be curated later; there is no placeholder target.",
       "anchorIds": [
         "packages-diagram-core-package",
@@ -239,6 +246,7 @@
       "id": "views",
       "title": "@topo/views",
       "summary": "Curated view membership",
+      "semanticRole": "graph-shaping",
       "body": "Resolves authored path-based views, review baselines, overrides and layout pins against graph evidence.\n\nAll declared internal dependencies (not runtime calls):\n@topo/views -> @topo/graph [dependencies: workspace:*]\n@topo/views -> @topo/schema [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/cli -> @topo/views [dependencies: workspace:*]\n@topo/site -> @topo/views [dependencies: workspace:*]\n\nStable drilldown identity: views. Module-specific detail maps will be curated later; there is no placeholder target.",
       "anchorIds": [
         "packages-views-package",
@@ -249,6 +257,7 @@
       "id": "site",
       "title": "@topo/site",
       "summary": "Validate site data",
+      "semanticRole": "rendering-and-view-data",
       "body": "Owns the site-data contract, artifact loading checks, notices, and browser regressions. It is not the marketing website or the generated shell implementation.\n\nAll declared internal dependencies (not runtime calls):\n@topo/site -> @topo/enrichment [dependencies: workspace:*]\n@topo/site -> @topo/graph [dependencies: workspace:*]\n@topo/site -> @topo/modules [dependencies: workspace:*]\n@topo/site -> @topo/schema [dependencies: workspace:*]\n@topo/site -> @topo/views [dependencies: workspace:*]\n@topo/site -> @topo/diagram-core [devDependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/cli -> @topo/site [dependencies: workspace:*]\n\nStable drilldown identity: site. Module-specific detail maps will be curated later; there is no placeholder target.",
       "anchorIds": [
         "packages-site-package",
@@ -259,6 +268,7 @@
       "id": "workspace",
       "title": "@topo/workspace",
       "summary": "Config and publication",
+      "semanticRole": "command-orchestration",
       "body": "Owns .topo configuration, safe authored/generated file access, workspace locking, and publication transactions.\n\nAll declared internal dependencies (not runtime calls):\n@topo/workspace -> @topo/schema [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/cli -> @topo/workspace [dependencies: workspace:*]\n\nStable drilldown identity: workspace. Module-specific detail maps will be curated later; there is no placeholder target.",
       "anchorIds": [
         "packages-workspace-package",
@@ -269,6 +279,7 @@
       "id": "modules",
       "title": "@topo/modules",
       "summary": "Analysis overlays",
+      "semanticRole": "graph-shaping",
       "body": "Composes the built-in degree and cycle contributions. These are graph overlays, not language plugins.\n\nAll declared internal dependencies (not runtime calls):\n@topo/modules -> @topo/graph [dependencies: workspace:*]\n@topo/modules -> @topo/schema [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/cli -> @topo/modules [dependencies: workspace:*]\n@topo/site -> @topo/modules [dependencies: workspace:*]\n\nStable drilldown identity: modules. Module-specific detail maps will be curated later; there is no placeholder target.",
       "anchorIds": [
         "packages-modules-package",
@@ -279,6 +290,7 @@
       "id": "enrichment",
       "title": "@topo/enrichment",
       "summary": "Inferred commentary data",
+      "semanticRole": "supplemental-evidence",
       "body": "Parses and validates enrichment documents, reference membership and analysis hashes. The CLI, not this data package, executes the configured enrichment command.\n\nAll declared internal dependencies (not runtime calls):\n@topo/enrichment -> @topo/schema [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/cli -> @topo/enrichment [dependencies: workspace:*]\n@topo/site -> @topo/enrichment [dependencies: workspace:*]\n\nStable drilldown identity: enrichment. Module-specific detail maps will be curated later; there is no placeholder target.",
       "anchorIds": [
         "packages-enrichment-package",
@@ -289,6 +301,7 @@
       "id": "graph",
       "title": "@topo/graph",
       "summary": "Project and lay out graphs",
+      "semanticRole": "graph-shaping",
       "body": "Derives architecture, graph projections, aggregation, deterministic layout and layout deltas from validated source evidence.\n\nAll declared internal dependencies (not runtime calls):\n@topo/graph -> @topo/schema [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/cli -> @topo/graph [dependencies: workspace:*]\n@topo/views -> @topo/graph [dependencies: workspace:*]\n@topo/site -> @topo/graph [dependencies: workspace:*]\n@topo/modules -> @topo/graph [dependencies: workspace:*]\n\nStable drilldown identity: graph. Module-specific detail maps will be curated later; there is no placeholder target.",
       "anchorIds": [
         "packages-graph-package",

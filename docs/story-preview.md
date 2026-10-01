@@ -16,6 +16,19 @@ caption field.
 This caption is an unreleased repository-build capability, not part of the
 published npm 0.2.0 story contract.
 
+Architecture sections can also author `semanticRole`, a lowercase hyphenated
+slug such as `"source-analysis"`. The native LENS control groups those explicit
+roles and compares only arrows actually drawn in the story. It does not infer
+runtime traffic, transitive impact, or omitted dependencies. Missing roles are
+neutral `"component"` entries, never a frontend/backend guess based on position.
+This is also an unreleased repository-build capability.
+
+Topocode adapts the emitted viewer's documented `data-node-kind` metadata before
+runtime initialization, preserving geometry and the pinned renderer files.
+Architecture receipts identify `topocode-story-semantics-v2` and distinguish
+native output hashes from adapted output hashes. Active lens selection remains
+viewer-only; the authored semantic roles are durable diagram metadata.
+
 Native Architecture cards show at most three compact source links, matching the
 pinned renderer's schema. Topocode still validates every section anchor and
 retains all of them in the story evidence panel and `evidence.json`; grouped

@@ -46,6 +46,7 @@
           "title": { "type": "string", "minLength": 1 },
           "body": { "type": "string", "minLength": 1 },
           "summary": { "type": "string", "minLength": 1 },
+          "semanticRole": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,63}$" },
           "kind": { "enum": ["step", "decision", "data"] },
           "anchorIds": {
             "type": "array",
@@ -87,6 +88,10 @@
   "allOf": [
       {
         "if": { "properties": { "sections": { "type": "array", "contains": { "type": "object", "properties": { "summary": {} }, "required": ["summary"] } } } },
+        "then": { "properties": { "diagramFamily": { "const": "architecture" } } }
+      },
+      {
+        "if": { "properties": { "sections": { "type": "array", "contains": { "type": "object", "properties": { "semanticRole": {} }, "required": ["semanticRole"] } } } },
         "then": { "properties": { "diagramFamily": { "const": "architecture" } } }
       },
       {
