@@ -104,6 +104,35 @@ test("module details preserve complete dependencies and cross-story return navig
   await expect(frame.frameLocator("[data-story-viewer]").locator("svg g[data-node-id]")).toHaveCount(10);
 });
 
+test("curated maps fit desktop viewports with readable role captions", async ({ page }) => {
+  for (const [id, count] of [["internal-modules", 14], ["dependency-context", 10]]) {
+    for (const [width, height] of [[1440, 900], [1600, 1000], [1920, 1080], [2048, 1320]]) {
+      await page.setViewportSize({ width, height });
+      await page.goto(`demo/home/stories/${id}/viewer.html`);
+      await page.evaluate(() => document.fonts.ready);
+      const diagram = page.locator('svg[data-diagram-type="architecture"]');
+      await expect(diagram).toBeVisible();
+      await expect(diagram.locator("g[data-node-id]")).toHaveCount(count);
+      const metrics = await diagram.evaluate(svg => {
+        const scale = svg.getBoundingClientRect().width / svg.viewBox.baseVal.width;
+        return {
+          overflowX: document.documentElement.scrollWidth > innerWidth,
+          overflowY: document.documentElement.scrollHeight > innerHeight,
+          captionFloor: Math.min(...[...svg.querySelectorAll('text[data-detail="context"]')]
+            .map(text => parseFloat(getComputedStyle(text).fontSize) * scale)),
+          captionOverlaps: [...svg.querySelectorAll("g[data-node-id]")].filter(node => {
+            const title = node.querySelector("text[data-node-label]")?.getBoundingClientRect();
+            const caption = node.querySelector('text[data-detail="context"]')?.getBoundingClientRect();
+            return title && caption && caption.top < title.bottom;
+          }).length,
+        };
+      });
+      expect(metrics, `${id} at ${width}x${height}`).toMatchObject({ overflowX: false, overflowY: false, captionOverlaps: 0 });
+      expect(metrics.captionFloor).toBeGreaterThanOrEqual(12);
+    }
+  }
+});
+
 test("retired theme preferences cannot override Blueprint", async ({ page }) => {
   for (const retired of ["porcelain", "forest", "sandstone", "oxide", "aubergine", "graphite"]) {
     await page.goto("./");

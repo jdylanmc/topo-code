@@ -13,6 +13,8 @@ Architecture sections may include a short `summary` caption (for example,
 primary source filename. The full `body` narrative and source anchors remain
 available in the evidence panel. Other diagram families do not accept this
 caption field.
+This caption is an unreleased repository-build capability, not part of the
+published npm 0.2.0 story contract.
 
 Native Architecture cards show at most three compact source links, matching the
 pinned renderer's schema. Topocode still validates every section anchor and

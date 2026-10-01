@@ -61,6 +61,8 @@ publishes no stories. Unknown IDs and duplicates fail rather than silently
 dropping a requested map. Source validation/rendering applies to selected
 stories, and cross-story navigation includes only the published set. This is
 publication selection, not deletion of the repository's other stories.
+`storyIds` is an unreleased repository-build option; npm 0.2.0 still publishes
+the complete committed inventory.
 
 Add only desired presentation and authored-category overrides to
 `.topo/config.json`:

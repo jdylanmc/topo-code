@@ -1411,7 +1411,7 @@ function improveStoryReadability(
     ? `
 svg { max-height: 100vh; }
 /* The story shell supplies the node index and full source details. */
-.reader-rail { display: none; }
+.reader-rail { display: none !important; }
 svg [data-source-evidence-beacon] { display: none; }
 svg text[data-node-label],
 svg g[data-edge-from] > text { font-size: ${architectureFontSize}px; }
