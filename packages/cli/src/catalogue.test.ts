@@ -149,6 +149,7 @@ describe("generated catalogue", () => {
   it("includes a source-grounded Workflow story for the authoring loop", async () => {
     const stories = await buildCatalogueStories(repositoryRoot);
     const workflow = stories.find(({ document }) =>
+      document.id === "story-authoring-workflow" &&
       document.diagramFamily === "workflow" &&
       document.classification !== "capability-demo"
     );
