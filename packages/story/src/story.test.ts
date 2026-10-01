@@ -43,6 +43,22 @@ function validStory(): StoryDocument {
 }
 
 describe("story document contract", () => {
+  it("supports concise architecture captions without replacing full narrative or evidence", async () => {
+    const story = validStory();
+    const value = { ...story, sections: [{ ...story.sections[0], summary: "Charge an order" }] };
+    const schema = JSON.parse(await readFile(schemaPath, "utf8"));
+    const validate = new Ajv2020({ strict: true }).compile(schema);
+    expect(validate(value)).toBe(true);
+    expect(parseStoryDocument(JSON.stringify(value), "caption.topo.json").sections[0]?.summary).toBe("Charge an order");
+    for (const invalid of [
+      { ...value, diagramFamily: "workflow" },
+      { ...value, sections: [{ ...story.sections[0], summary: "" }] },
+    ]) {
+      expect(validate(invalid)).toBe(false);
+      expect(() => parseStoryDocument(JSON.stringify(invalid), "caption.topo.json")).toThrow();
+    }
+  });
+
   it("accepts an optional catalogue category", () => {
     expect(parseStoryDocument(
       JSON.stringify(validStory()),

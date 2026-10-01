@@ -55,6 +55,13 @@ retain their independent data contracts.
 
 ## Configuration
 
+For a curated publication, `catalogue.storyIds` selects an explicit subset of
+committed stories. Omit it to retain the complete inventory; `[]` deliberately
+publishes no stories. Unknown IDs and duplicates fail rather than silently
+dropping a requested map. Source validation/rendering applies to selected
+stories, and cross-story navigation includes only the published set. This is
+publication selection, not deletion of the repository's other stories.
+
 Add only desired presentation and authored-category overrides to
 `.topo/config.json`:
 
@@ -67,6 +74,7 @@ Add only desired presentation and authored-category overrides to
     "title": "System tours",
     "description": "Choose a guided path.",
     "accentColor": "#ff5500",
+    "storyIds": ["checkout"],
     "categoryOrder": ["Critical paths", "Operations"],
     "storyCategories": {
       "checkout": "Critical paths"

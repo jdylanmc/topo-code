@@ -1,0 +1,308 @@
+{
+  "schemaVersion": "1.0",
+  "diagramFamily": "architecture",
+  "classification": "source-grounded",
+  "id": "dependency-context",
+  "title": "Dependency context by role",
+  "summary": "A companion to the internal-module map. Internal consumers and 19 direct external package names are grouped into five roles, rather than drawing 102 arrows. Select a role for every declaring manifest, dependency/dev/peer/optional kind, and requested version. This includes root tooling and the public distribution manifest; it is not a transitive dependency inventory.",
+  "category": "Topocode",
+  "anchors": [
+    {
+      "id": "package",
+      "path": "package.json",
+      "language": "text",
+      "sha256": "33000f4207c9aac395f97011d417c6e715d6cb7d8d82f5601399b7ffd8f44884"
+    },
+    {
+      "id": "distribution-package",
+      "path": "distribution/package.json",
+      "language": "text",
+      "sha256": "db65f3f51df0e796b8af677a51e0021504798a092c052b775d78788ec335e5f4"
+    },
+    {
+      "id": "packages-workspace-package",
+      "path": "packages/workspace/package.json",
+      "language": "text",
+      "sha256": "02528f44aace1f01cff29eb9d1a3fc3c5b0beb1d456ba0876714012ff152bdd0"
+    },
+    {
+      "id": "packages-reports-package",
+      "path": "packages/reports/package.json",
+      "language": "text",
+      "sha256": "463d6841820655ca502e0e4eafb7ccc7e3c28700cbcfdcd5de7a6f2da13e73af"
+    },
+    {
+      "id": "packages-cli-package",
+      "path": "packages/cli/package.json",
+      "language": "text",
+      "sha256": "e1aaebf5b0fe115fe56a658b71022c849e25120794cdbd1b063ccda97c880086"
+    },
+    {
+      "id": "packages-site-package",
+      "path": "packages/site/package.json",
+      "language": "text",
+      "sha256": "2e651e2869f1284464fda093c54d52ecc49a7f90594c7746facf03528df87a38"
+    },
+    {
+      "id": "packages-views-package",
+      "path": "packages/views/package.json",
+      "language": "text",
+      "sha256": "9c5d8a09b49c1c34f037deaaa3a03c17369cceb375f4f5a7cbe232b76054fab4"
+    },
+    {
+      "id": "packages-modules-package",
+      "path": "packages/modules/package.json",
+      "language": "text",
+      "sha256": "d114052b1fedb9b0cca1fd70b84d8fb78b38afb3b83c87d66dab63bece2e9391"
+    },
+    {
+      "id": "packages-diagram-core-package",
+      "path": "packages/diagram-core/package.json",
+      "language": "text",
+      "sha256": "8e4b7a111ad4234367bc49e0b7b4827e880f9d489ce136a79650923b86cd7386"
+    },
+    {
+      "id": "packages-languages-package",
+      "path": "packages/languages/package.json",
+      "language": "text",
+      "sha256": "d3e3979ed95f8d0d293de2cd6bc6a8c77a7f28c429b02e386da7e035118f623d"
+    },
+    {
+      "id": "packages-scanner-package",
+      "path": "packages/scanner/package.json",
+      "language": "text",
+      "sha256": "3027a4fa118d19cd7fa2b165b728a642582b0f5e43d986a595ff25f276bfee48"
+    },
+    {
+      "id": "packages-schema-package",
+      "path": "packages/schema/package.json",
+      "language": "text",
+      "sha256": "2d6152ff84f0d5d72736905a3cd191d2a244c704f9d06cb39843c7bc7eb9a170"
+    },
+    {
+      "id": "packages-enrichment-package",
+      "path": "packages/enrichment/package.json",
+      "language": "text",
+      "sha256": "45c6597b6b9490312313efe5f7b36a4c7bb4475c7be76b3322b0ddaf450006ca"
+    },
+    {
+      "id": "packages-graph-package",
+      "path": "packages/graph/package.json",
+      "language": "text",
+      "sha256": "4ca3e7b8842834077417e360037ebd9281333d5ea3f9d0c197f65367bb1ab7c1"
+    },
+    {
+      "id": "packages-story-package",
+      "path": "packages/story/package.json",
+      "language": "text",
+      "sha256": "996dc365b6c0bcdc3c4beaddb507c657cf97ee0412232c110f081013e0f7cfde"
+    },
+    {
+      "id": "tools-eslint-config-package",
+      "path": "tools/eslint-config/package.json",
+      "language": "text",
+      "sha256": "3ffd0d483e9f8244ead246c249d8ce44d16ff5a811ddff77c910f0a92ed8b0b0"
+    }
+  ],
+  "sections": [
+    {
+      "id": "render-consumers",
+      "title": "Rendering",
+      "summary": "diagram-core",
+      "body": "Internal/repository consumers grouped by responsibility:\n@jdylanmc/topo-code\n@topo/diagram-core\n\nDeclared references:\n@jdylanmc/topo-code -> @jdylanmc/topo-archify [dependencies: 0.1.0]\n@topo/diagram-core -> @viz-js/viz [dependencies: 3.30.0]\n@topo/diagram-core -> @jdylanmc/topo-archify [peerDependencies: 0.1.0]\n\nThis is a manifest view, not observed imports or runtime execution. Root topo-code is the development project; @jdylanmc/topo-code is the public distribution manifest.",
+      "anchorIds": [
+        "distribution-package",
+        "packages-diagram-core-package"
+      ]
+    },
+    {
+      "id": "render-dependencies",
+      "title": "Archify and Graphviz",
+      "summary": "Pinned render engines",
+      "body": "Direct external dependencies grouped by role:\n@jdylanmc/topo-archify\n@viz-js/viz\n\nExact declarations and requested versions:\n@jdylanmc/topo-code -> @jdylanmc/topo-archify [dependencies: 0.1.0]\n@topo/diagram-core -> @viz-js/viz [dependencies: 3.30.0]\n@topo/diagram-core -> @jdylanmc/topo-archify [peerDependencies: 0.1.0]\n\nDependency kind is per declaration, not an inherent package property. typescript-compiler-api is an npm alias to typescript@6.0.3; the compiler used to build the repository is separate. Optional Rust packages stay optional. No transitive lockfile dependencies are shown.",
+      "anchorIds": [
+        "distribution-package",
+        "packages-diagram-core-package"
+      ]
+    },
+    {
+      "id": "analysis-consumers",
+      "title": "Code analysis",
+      "summary": "languages, scanner, story",
+      "body": "Internal/repository consumers grouped by responsibility:\n@topo/languages\n@topo/scanner\n@topo/story\n\nDeclared references:\n@topo/languages -> typescript-compiler-api [dependencies: npm:typescript@6.0.3]\n@topo/languages -> @ast-grep/lang-rust [optionalDependencies: 0.0.7]\n@topo/languages -> @ast-grep/napi [optionalDependencies: 0.45.3]\n@topo/languages -> @iarna/toml [optionalDependencies: 2.2.5]\n@topo/scanner -> typescript-compiler-api [dependencies: npm:typescript@6.0.3]\n@topo/story -> typescript-compiler-api [dependencies: npm:typescript@6.0.3]\n\nThis is a manifest view, not observed imports or runtime execution. Root topo-code is the development project; @jdylanmc/topo-code is the public distribution manifest.",
+      "anchorIds": [
+        "packages-languages-package",
+        "packages-scanner-package",
+        "packages-story-package"
+      ]
+    },
+    {
+      "id": "analysis-dependencies",
+      "title": "Language parsing",
+      "summary": "Compiler, Rust, TOML",
+      "body": "Direct external dependencies grouped by role:\ntypescript-compiler-api\n@ast-grep/lang-rust\n@ast-grep/napi\n@iarna/toml\n\nExact declarations and requested versions:\n@topo/languages -> typescript-compiler-api [dependencies: npm:typescript@6.0.3]\n@topo/languages -> @ast-grep/lang-rust [optionalDependencies: 0.0.7]\n@topo/languages -> @ast-grep/napi [optionalDependencies: 0.45.3]\n@topo/languages -> @iarna/toml [optionalDependencies: 2.2.5]\n@topo/scanner -> typescript-compiler-api [dependencies: npm:typescript@6.0.3]\n@topo/story -> typescript-compiler-api [dependencies: npm:typescript@6.0.3]\n\nDependency kind is per declaration, not an inherent package property. typescript-compiler-api is an npm alias to typescript@6.0.3; the compiler used to build the repository is separate. Optional Rust packages stay optional. No transitive lockfile dependencies are shown.",
+      "anchorIds": [
+        "packages-languages-package",
+        "packages-scanner-package",
+        "packages-story-package"
+      ]
+    },
+    {
+      "id": "contracts-consumers",
+      "title": "Schema contracts",
+      "summary": "schema, story",
+      "body": "Internal/repository consumers grouped by responsibility:\n@topo/schema\n@topo/story\n\nDeclared references:\n@topo/schema -> ajv [dependencies: 8.17.1]\n@topo/schema -> ajv-formats [dependencies: 3.0.1]\n@topo/story -> ajv [devDependencies: 8.17.1]\n\nThis is a manifest view, not observed imports or runtime execution. Root topo-code is the development project; @jdylanmc/topo-code is the public distribution manifest.",
+      "anchorIds": [
+        "packages-schema-package",
+        "packages-story-package"
+      ]
+    },
+    {
+      "id": "contracts-dependencies",
+      "title": "JSON validation",
+      "summary": "AJV and formats",
+      "body": "Direct external dependencies grouped by role:\najv\najv-formats\n\nExact declarations and requested versions:\n@topo/schema -> ajv [dependencies: 8.17.1]\n@topo/schema -> ajv-formats [dependencies: 3.0.1]\n@topo/story -> ajv [devDependencies: 8.17.1]\n\nDependency kind is per declaration, not an inherent package property. typescript-compiler-api is an npm alias to typescript@6.0.3; the compiler used to build the repository is separate. Optional Rust packages stay optional. No transitive lockfile dependencies are shown.",
+      "anchorIds": [
+        "packages-schema-package",
+        "packages-story-package"
+      ]
+    },
+    {
+      "id": "paths-consumers",
+      "title": "Path selection",
+      "summary": "scanner, views",
+      "body": "Internal/repository consumers grouped by responsibility:\n@topo/scanner\n@topo/views\n\nDeclared references:\n@topo/views -> ignore [dependencies: ^7.0.0]\n@topo/scanner -> ignore [dependencies: ^7.0.0]\n\nThis is a manifest view, not observed imports or runtime execution. Root topo-code is the development project; @jdylanmc/topo-code is the public distribution manifest.",
+      "anchorIds": [
+        "packages-views-package",
+        "packages-scanner-package"
+      ]
+    },
+    {
+      "id": "paths-dependencies",
+      "title": "Ignore matching",
+      "summary": "Repository path rules",
+      "body": "Direct external dependencies grouped by role:\nignore\n\nExact declarations and requested versions:\n@topo/views -> ignore [dependencies: ^7.0.0]\n@topo/scanner -> ignore [dependencies: ^7.0.0]\n\nDependency kind is per declaration, not an inherent package property. typescript-compiler-api is an npm alias to typescript@6.0.3; the compiler used to build the repository is separate. Optional Rust packages stay optional. No transitive lockfile dependencies are shown.",
+      "anchorIds": [
+        "packages-views-package",
+        "packages-scanner-package"
+      ]
+    },
+    {
+      "id": "tooling-consumers",
+      "title": "Build, test, docs",
+      "summary": "All workspace packages",
+      "body": "Internal/repository consumers grouped by responsibility:\n@topo/cli\n@topo/diagram-core\n@topo/enrichment\n@topo/eslint-config\n@topo/graph\n@topo/languages\n@topo/modules\n@topo/reports\n@topo/scanner\n@topo/schema\n@topo/site\n@topo/story\n@topo/views\n@topo/workspace\ntopo-code\n\nDeclared references:\ntopo-code -> @axe-core/playwright [devDependencies: ^4.10.2]\ntopo-code -> @types/node [devDependencies: ^22]\ntopo-code -> eslint [devDependencies: ^9.39.5]\ntopo-code -> marked [devDependencies: ^16.4.1]\ntopo-code -> playwright-core [devDependencies: ^1.55.0]\ntopo-code -> typescript [devDependencies: ^7.0.2]\ntopo-code -> vite [devDependencies: 8.2.2]\ntopo-code -> vitest [devDependencies: ^5.0.0]\n@topo/workspace -> @types/node [devDependencies: ^22.20.1]\n@topo/workspace -> typescript [devDependencies: ^7.0.2]\n@topo/workspace -> vite [devDependencies: 8.2.2]\n@topo/workspace -> vitest [devDependencies: ^5.0.0]\n@topo/reports -> @types/node [devDependencies: ^22.20.1]\n@topo/reports -> typescript [devDependencies: ^7.0.2]\n@topo/reports -> vite [devDependencies: 8.2.2]\n@topo/reports -> vitest [devDependencies: ^5.0.0]\n@topo/cli -> @types/node [devDependencies: ^22.20.1]\n@topo/cli -> typescript [devDependencies: ^7.0.2]\n@topo/cli -> vite [devDependencies: 8.2.2]\n@topo/cli -> vitest [devDependencies: ^5.0.0]\n@topo/site -> @playwright/test [devDependencies: ^1.55.0]\n@topo/site -> @types/node [devDependencies: ^22.18.0]\n@topo/site -> typescript [devDependencies: ^7.0.2]\n@topo/site -> vite [devDependencies: 8.2.2]\n@topo/site -> vitest [devDependencies: ^5.0.0]\n@topo/views -> typescript [devDependencies: ^7.0.2]\n@topo/views -> vite [devDependencies: 8.2.2]\n@topo/views -> vitest [devDependencies: ^5.0.0]\n@topo/modules -> typescript [devDependencies: ^7.0.2]\n@topo/modules -> vite [devDependencies: 8.2.2]\n@topo/modules -> vitest [devDependencies: ^5.0.0]\n@topo/diagram-core -> @types/node [devDependencies: ^22]\n@topo/diagram-core -> typescript [devDependencies: ^7.0.2]\n@topo/languages -> @types/node [devDependencies: ^22]\n@topo/languages -> typescript [devDependencies: ^7.0.2]\n@topo/scanner -> @types/node [devDependencies: ^22.0.0]\n@topo/scanner -> typescript [devDependencies: ^7.0.2]\n@topo/scanner -> vite [devDependencies: 8.2.2]\n@topo/scanner -> vitest [devDependencies: ^5.0.0]\n@topo/schema -> @types/node [devDependencies: ^22]\n@topo/schema -> typescript [devDependencies: ^7.0.2]\n@topo/schema -> vite [devDependencies: 8.2.2]\n@topo/schema -> vitest [devDependencies: ^5.0.0]\n@topo/enrichment -> typescript [devDependencies: ^7.0.2]\n@topo/enrichment -> vite [devDependencies: 8.2.2]\n@topo/enrichment -> vitest [devDependencies: ^5.0.0]\n@topo/graph -> typescript [devDependencies: ^7.0.2]\n@topo/graph -> vite [devDependencies: 8.2.2]\n@topo/graph -> vitest [devDependencies: ^5.0.0]\n@topo/story -> @types/node [devDependencies: ^22]\n@topo/story -> typescript [devDependencies: ^7.0.2]\n@topo/story -> vite [devDependencies: 8.2.2]\n@topo/story -> vitest [devDependencies: ^5.0.0]\n@topo/eslint-config -> @typescript-eslint/parser [dependencies: 8.70.0]\n@topo/eslint-config -> eslint [dependencies: ^9.39.5]\n@topo/eslint-config -> typescript [dependencies: 6.0.3]\n\nThis is a manifest view, not observed imports or runtime execution. Root topo-code is the development project; @jdylanmc/topo-code is the public distribution manifest.",
+      "anchorIds": [
+        "package",
+        "packages-workspace-package",
+        "packages-reports-package",
+        "packages-cli-package",
+        "packages-site-package",
+        "packages-views-package",
+        "packages-modules-package",
+        "packages-diagram-core-package",
+        "packages-languages-package",
+        "packages-scanner-package",
+        "packages-schema-package",
+        "packages-enrichment-package",
+        "packages-graph-package",
+        "packages-story-package",
+        "tools-eslint-config-package"
+      ]
+    },
+    {
+      "id": "tooling-dependencies",
+      "title": "Development tools",
+      "summary": "Build, lint, test, docs",
+      "body": "Direct external dependencies grouped by role:\n@axe-core/playwright\n@playwright/test\n@types/node\n@typescript-eslint/parser\neslint\nmarked\nplaywright-core\ntypescript\nvite\nvitest\n\nExact declarations and requested versions:\ntopo-code -> @axe-core/playwright [devDependencies: ^4.10.2]\ntopo-code -> @types/node [devDependencies: ^22]\ntopo-code -> eslint [devDependencies: ^9.39.5]\ntopo-code -> marked [devDependencies: ^16.4.1]\ntopo-code -> playwright-core [devDependencies: ^1.55.0]\ntopo-code -> typescript [devDependencies: ^7.0.2]\ntopo-code -> vite [devDependencies: 8.2.2]\ntopo-code -> vitest [devDependencies: ^5.0.0]\n@topo/workspace -> @types/node [devDependencies: ^22.20.1]\n@topo/workspace -> typescript [devDependencies: ^7.0.2]\n@topo/workspace -> vite [devDependencies: 8.2.2]\n@topo/workspace -> vitest [devDependencies: ^5.0.0]\n@topo/reports -> @types/node [devDependencies: ^22.20.1]\n@topo/reports -> typescript [devDependencies: ^7.0.2]\n@topo/reports -> vite [devDependencies: 8.2.2]\n@topo/reports -> vitest [devDependencies: ^5.0.0]\n@topo/cli -> @types/node [devDependencies: ^22.20.1]\n@topo/cli -> typescript [devDependencies: ^7.0.2]\n@topo/cli -> vite [devDependencies: 8.2.2]\n@topo/cli -> vitest [devDependencies: ^5.0.0]\n@topo/site -> @playwright/test [devDependencies: ^1.55.0]\n@topo/site -> @types/node [devDependencies: ^22.18.0]\n@topo/site -> typescript [devDependencies: ^7.0.2]\n@topo/site -> vite [devDependencies: 8.2.2]\n@topo/site -> vitest [devDependencies: ^5.0.0]\n@topo/views -> typescript [devDependencies: ^7.0.2]\n@topo/views -> vite [devDependencies: 8.2.2]\n@topo/views -> vitest [devDependencies: ^5.0.0]\n@topo/modules -> typescript [devDependencies: ^7.0.2]\n@topo/modules -> vite [devDependencies: 8.2.2]\n@topo/modules -> vitest [devDependencies: ^5.0.0]\n@topo/diagram-core -> @types/node [devDependencies: ^22]\n@topo/diagram-core -> typescript [devDependencies: ^7.0.2]\n@topo/languages -> @types/node [devDependencies: ^22]\n@topo/languages -> typescript [devDependencies: ^7.0.2]\n@topo/scanner -> @types/node [devDependencies: ^22.0.0]\n@topo/scanner -> typescript [devDependencies: ^7.0.2]\n@topo/scanner -> vite [devDependencies: 8.2.2]\n@topo/scanner -> vitest [devDependencies: ^5.0.0]\n@topo/schema -> @types/node [devDependencies: ^22]\n@topo/schema -> typescript [devDependencies: ^7.0.2]\n@topo/schema -> vite [devDependencies: 8.2.2]\n@topo/schema -> vitest [devDependencies: ^5.0.0]\n@topo/enrichment -> typescript [devDependencies: ^7.0.2]\n@topo/enrichment -> vite [devDependencies: 8.2.2]\n@topo/enrichment -> vitest [devDependencies: ^5.0.0]\n@topo/graph -> typescript [devDependencies: ^7.0.2]\n@topo/graph -> vite [devDependencies: 8.2.2]\n@topo/graph -> vitest [devDependencies: ^5.0.0]\n@topo/story -> @types/node [devDependencies: ^22]\n@topo/story -> typescript [devDependencies: ^7.0.2]\n@topo/story -> vite [devDependencies: 8.2.2]\n@topo/story -> vitest [devDependencies: ^5.0.0]\n@topo/eslint-config -> @typescript-eslint/parser [dependencies: 8.70.0]\n@topo/eslint-config -> eslint [dependencies: ^9.39.5]\n@topo/eslint-config -> typescript [dependencies: 6.0.3]\n\nDependency kind is per declaration, not an inherent package property. typescript-compiler-api is an npm alias to typescript@6.0.3; the compiler used to build the repository is separate. Optional Rust packages stay optional. No transitive lockfile dependencies are shown.",
+      "anchorIds": [
+        "package",
+        "packages-workspace-package",
+        "packages-reports-package",
+        "packages-cli-package",
+        "packages-site-package",
+        "packages-views-package",
+        "packages-modules-package",
+        "packages-diagram-core-package",
+        "packages-languages-package",
+        "packages-scanner-package",
+        "packages-schema-package",
+        "packages-enrichment-package",
+        "packages-graph-package",
+        "packages-story-package",
+        "tools-eslint-config-package"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": "render-consumers",
+      "to": "render-dependencies",
+      "label": "manifest declarations",
+      "classification": "source-traced",
+      "rationale": "Each grouped arrow represents only the exact 3 declarations listed in both endpoint details; kind and version are preserved.",
+      "anchorIds": [
+        "distribution-package",
+        "packages-diagram-core-package"
+      ]
+    },
+    {
+      "from": "analysis-consumers",
+      "to": "analysis-dependencies",
+      "label": "manifest declarations",
+      "classification": "source-traced",
+      "rationale": "Each grouped arrow represents only the exact 6 declarations listed in both endpoint details; kind and version are preserved.",
+      "anchorIds": [
+        "packages-languages-package",
+        "packages-scanner-package",
+        "packages-story-package"
+      ]
+    },
+    {
+      "from": "contracts-consumers",
+      "to": "contracts-dependencies",
+      "label": "manifest declarations",
+      "classification": "source-traced",
+      "rationale": "Each grouped arrow represents only the exact 3 declarations listed in both endpoint details; kind and version are preserved.",
+      "anchorIds": [
+        "packages-schema-package",
+        "packages-story-package"
+      ]
+    },
+    {
+      "from": "paths-consumers",
+      "to": "paths-dependencies",
+      "label": "manifest declarations",
+      "classification": "source-traced",
+      "rationale": "Each grouped arrow represents only the exact 2 declarations listed in both endpoint details; kind and version are preserved.",
+      "anchorIds": [
+        "packages-views-package",
+        "packages-scanner-package"
+      ]
+    },
+    {
+      "from": "tooling-consumers",
+      "to": "tooling-dependencies",
+      "label": "manifest declarations",
+      "classification": "source-traced",
+      "rationale": "Each grouped arrow represents only the exact 56 declarations listed in both endpoint details; kind and version are preserved.",
+      "anchorIds": [
+        "package",
+        "packages-workspace-package",
+        "packages-reports-package",
+        "packages-cli-package",
+        "packages-site-package",
+        "packages-views-package",
+        "packages-modules-package",
+        "packages-diagram-core-package",
+        "packages-languages-package",
+        "packages-scanner-package",
+        "packages-schema-package",
+        "packages-enrichment-package",
+        "packages-graph-package",
+        "packages-story-package",
+        "tools-eslint-config-package"
+      ]
+    }
+  ]
+}

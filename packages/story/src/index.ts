@@ -18,6 +18,7 @@ export interface StorySection {
   readonly id: string;
   readonly title: string;
   readonly body: string;
+  readonly summary?: string;
   readonly anchorIds: readonly string[];
   readonly kind?: "step" | "decision" | "data";
 }
@@ -276,7 +277,7 @@ function validateStoryDocument(value: unknown): string | undefined {
   const sectionIds = new Set<string>();
   for (const [index, sectionValue] of value.sections.entries()) {
     if (!isRecord(sectionValue)) return `sections[${index}] must be an object`;
-    const keys = exactKeys(sectionValue, ["id", "title", "body", "anchorIds"], ["kind"]);
+    const keys = exactKeys(sectionValue, ["id", "title", "body", "anchorIds"], ["kind", "summary"]);
     if (keys) return `sections[${index}] ${keys}`;
     if (sectionValue.kind !== undefined && (!["step", "decision", "data"].includes(String(sectionValue.kind)) || value.renderer !== "graphviz")) return `sections[${index}].kind requires the explicit graphviz backend`;
     if (!nonemptyString(sectionValue.id)) return `sections[${index}].id must be nonempty`;
@@ -284,6 +285,10 @@ function validateStoryDocument(value: unknown): string | undefined {
     sectionIds.add(sectionValue.id);
     if (!nonemptyString(sectionValue.title)) return `sections[${index}].title must be nonempty`;
     if (!nonemptyString(sectionValue.body)) return `sections[${index}].body must be nonempty`;
+    if (sectionValue.summary !== undefined &&
+        (!nonemptyString(sectionValue.summary) || diagramFamily !== "architecture")) {
+      return `sections[${index}].summary requires a nonempty architecture caption`;
+    }
     if (!uniqueStrings(sectionValue.anchorIds)) {
       return `sections[${index}].anchorIds must contain unique nonempty strings`;
     }

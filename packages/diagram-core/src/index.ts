@@ -514,9 +514,9 @@ function archifySpec(
     const primary = sectionAnchors[0];
     // Short, legible sublabel (a code reference), never the full narrative body:
     // Archify enforces a per-component minimum-legibility width.
-    const sublabel = primary === undefined || !nativeSourceEvidence
+    const sublabel = section.summary ?? (primary === undefined || !nativeSourceEvidence
       ? ""
-      : primary.symbol ?? primary.path.split("/").pop() ?? primary.path;
+      : primary.symbol ?? primary.path.split("/").pop() ?? primary.path);
     const width = architectureComponentWidth(section.title, sublabel, !nativeSourceEvidence);
     return { section, sectionAnchors, sublabel, width };
   });

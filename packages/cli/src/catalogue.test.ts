@@ -94,6 +94,30 @@ afterEach(async () => {
 });
 
 describe("generated catalogue", () => {
+  it("curates an explicit story set and rejects unknown selections", async () => {
+    const root = await repository();
+    await addStory(root, "stories/one.topo.json", "one", "One");
+    await addStory(root, "stories/two.topo.json", "two", "Two");
+    await commit(root);
+    const config = await loadConfig(root);
+    const select = async (storyIds: string[]) => writeFile(
+      join(root, ".topo/config.json"),
+      JSON.stringify({ ...config, catalogue: { storyIds } }),
+    );
+    const renderer = {
+      async render() {
+        return { kind: "html" as const, mediaType: "text/html" as const, contents: "<html></html>", renderer: { name: "test", pin: "1" } };
+      },
+    };
+    expect((await buildCatalogueStories(root, renderer)).map(story => story.document.id)).toEqual(["one", "two"]);
+    await select(["two"]);
+    expect((await buildCatalogueStories(root, renderer)).map(story => story.document.id)).toEqual(["two"]);
+    await select([]);
+    expect(await buildCatalogueStories(root, renderer)).toEqual([]);
+    await select(["missing"]);
+    await expect(buildCatalogueStories(root, renderer)).rejects.toThrow("Unknown catalogue storyIds: missing");
+  });
+
   it("makes the empty Home scroll region keyboard-accessible", () => {
     expect(renderCataloguePage([], undefined)).toContain(
       '<main class="home-main" data-home tabindex="0" aria-label="Diagram home">',

@@ -45,6 +45,7 @@
           "id": { "type": "string", "minLength": 1 },
           "title": { "type": "string", "minLength": 1 },
           "body": { "type": "string", "minLength": 1 },
+          "summary": { "type": "string", "minLength": 1 },
           "kind": { "enum": ["step", "decision", "data"] },
           "anchorIds": {
             "type": "array",
@@ -84,6 +85,10 @@
     }
   },
   "allOf": [
+      {
+        "if": { "properties": { "sections": { "type": "array", "contains": { "type": "object", "properties": { "summary": {} }, "required": ["summary"] } } } },
+        "then": { "properties": { "diagramFamily": { "const": "architecture" } } }
+      },
       {
         "if": { "properties": { "renderer": { "const": "graphviz" } }, "required": ["renderer"] },
         "then": {

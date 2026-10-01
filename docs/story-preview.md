@@ -8,6 +8,12 @@ is matched within that symbol; without a symbol, it is matched within the
 explicit file. Source line ranges and excerpts are resolved from the current
 working tree at preview time and are never stored in the authored document.
 
+Architecture sections may include a short `summary` caption (for example,
+`"Config and publication"`). It appears beneath the node title instead of the
+primary source filename. The full `body` narrative and source anchors remain
+available in the evidence panel. Other diagram families do not accept this
+caption field.
+
 The optional `diagramFamily` selects `architecture`, `workflow`, `sequence`,
 `dataflow`, or `lifecycle`; omission retains the legacy Architecture behavior.
 Sequence and Dataflow connections require a nonempty `label` because their

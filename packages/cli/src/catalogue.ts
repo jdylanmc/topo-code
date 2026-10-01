@@ -259,12 +259,22 @@ export async function buildCatalogue(
     ])
   ).stdout.trim() === "true";
   const paths = await committedStoryPaths(root);
-  const documents = await Promise.all(paths.map(async (documentPath) => {
-    await assertUnchanged(root, documentPath);
+  const selectedIds = (await loadConfig(root)).catalogue?.storyIds;
+  const candidates = await Promise.all(paths.map(async (documentPath) => {
     const document = parseStoryDocument(
       await readCommittedStory(root, documentPath),
       documentPath,
     );
+    return { document, documentPath };
+  }));
+  if (selectedIds !== undefined) {
+    const missing = selectedIds.filter((id) => !candidates.some(({ document }) => document.id === id));
+    if (missing.length) throw new Error(`Unknown catalogue storyIds: ${missing.join(", ")}`);
+  }
+  const documents = await Promise.all(candidates
+    .filter(({ document }) => selectedIds === undefined || selectedIds.includes(document.id))
+    .map(async ({ document, documentPath }) => {
+    await assertUnchanged(root, documentPath);
     return {
       document,
       documentPath,
