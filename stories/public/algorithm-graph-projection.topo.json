@@ -9,7 +9,7 @@
     "storyId": "internal-modules",
     "nodeId": "graph"
   },
-  "summary": "The reusable @topo/graph projection-session path. Local code and indexed data collaborate to show a smaller view while retaining evidence membership. Directory/cycle derivation is an input preparation step, not rerun by every projection. This is not Archify/Graphviz layout, the separately built Repository page index, or the hand-curated module map.",
+  "summary": "The @topo/graph layout session requests a projection because it needs the visible graph before placing nodes. Local code and indexed data reduce the view while retaining evidence membership. Directory/cycle derivation is an input preparation step, not rerun by every projection. Coordinate placement follows the returned projection and is outside this diagram. This is not Archify/Graphviz layout, the separate Repository page index, or the hand-curated module map.",
   "anchors": [
     {
       "id": "session-client",
@@ -98,9 +98,9 @@
   "sections": [
     {
       "id": "caller",
-      "title": "Caller",
-      "semanticRole": "projection-client",
-      "body": "A consumer such as createLayoutSession supplies a validated graph and its derived architecture, then calls session.project(options). The one-shot projectGraph/layoutGraphWithArchitecture path uses the same projection core without retaining a session.\n\nChanging the view does not rescan source or choose screen coordinates. Layout is downstream of the returned projection.",
+      "title": "Layout session",
+      "semanticRole": "layout-session",
+      "body": "@topo/graph.createLayoutSession prepares the view data needed to place nodes. It creates a projection session once, then calls session.project(options) for each layout request. The returned visible entities and relationships are passed to layoutProjection to compute coordinates.\n\nThis diagram shows that initiating layout unit asking for membership and relationships, not the downstream coordinate-placement algorithm. The one-shot layoutGraphWithArchitecture path uses the same projection core without retaining a session.",
       "anchorIds": [
         "session-client",
         "one-shot-client",
@@ -147,12 +147,12 @@
     {
       "from": "caller",
       "to": "index",
-      "label": "Graph and derived architecture",
+      "label": "Prepare a graph for layout",
       "anchorIds": [
         "session-client",
         "session"
       ],
-      "rationale": "createLayoutSession creates a projection session from existing graph and architecture data.",
+      "rationale": "createLayoutSession supplies graph and derived architecture to createProjectionSession so repeated layout requests can reuse indexed evidence.",
       "classification": "source-traced"
     },
     {
@@ -170,12 +170,13 @@
     {
       "from": "caller",
       "to": "projection",
-      "label": "Scope and collapse options",
+      "label": "Select the visible graph",
       "anchorIds": [
+        "session-client",
         "session",
         "project"
       ],
-      "rationale": "session.project invokes projectIndexedGraph using the captured index.",
+      "rationale": "The layout request passes scope and collapse options through session.project to obtain the graph that should be placed.",
       "classification": "source-traced"
     },
     {
@@ -238,23 +239,24 @@
     {
       "from": "caller",
       "to": "projection",
-      "label": "Expand or collapse; project again",
+      "label": "Reproject after scope changes",
       "anchorIds": [
         "session",
         "session-client"
       ],
-      "rationale": "A reusable session can project another option set over the same captured input.",
+      "rationale": "Another layout request can project a different scope/collapse option set over the same indexed input.",
       "classification": "source-traced"
     },
     {
       "from": "projection",
       "to": "caller",
-      "label": "New view of the same snapshot",
+      "label": "Updated inputs for node placement",
       "anchorIds": [
+        "session-client",
         "session",
         "project"
       ],
-      "rationale": "The result changes presentation scope while retaining provenance to the original graph. Refresh the session for new source evidence.",
+      "rationale": "Return a new visible view with provenance to the same source graph. The layout session then uses it for coordinate placement; refresh the session for new source evidence.",
       "classification": "source-traced",
       "variant": "return"
     }

@@ -110,6 +110,10 @@ services or runtime telemetry:
 The scanner, story, and graph boxes drill into these sequences. Each has a
 canonical return to its module, complete source anchors, and per-message
 rationale. Lifelines denote local code/API/data boundaries, not new services.
+Each starts with a named logical initiator and its goal: `@topo/languages`
+requests code evidence, the CLI story validator checks draft evidence, and the
+graph layout session requests a visible graph before placing nodes. Avoid generic
+"Caller" lifelines that conceal why the algorithm is being invoked.
 
 `catalogue.storyIds` selects exactly these eight maps. Existing development stories
 and examples are preserved but excluded from the demo. Hash-bound evidence fails

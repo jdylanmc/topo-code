@@ -9,7 +9,7 @@
     "storyId": "internal-modules",
     "nodeId": "story"
   },
-  "summary": "The snapshot-backed CLI path binds authored anchors to exact current source. The diagram follows one anchor; resolution repeats for every anchor. Snapshot is a local reader/captured map, and Parser is local language lookup—not another service. Digest checks apply when a hash is supplied; symbol and snippet checks are optional according to the anchor. Rendering/publication are outside this view.",
+  "summary": "The CLI story validator initiates this sequence to validate a draft against its current source. The diagram follows one anchor; resolution repeats for every anchor. Snapshot is a local reader/captured map, and Parser is local language lookup—not another service. Digest checks apply when a hash is supplied; symbol and snippet checks are optional according to the anchor. Rendering/publication are outside this draft-validation path.",
   "anchors": [
     {
       "id": "validate",
@@ -17,20 +17,6 @@
       "language": "typescript",
       "symbol": "validateStory",
       "sha256": "d6f60cad448f66c60c94f6a2f611f52617958a45c0e78eb5fad0e08285e1de58"
-    },
-    {
-      "id": "catalogue",
-      "path": "packages/cli/src/catalogue.ts",
-      "language": "typescript",
-      "symbol": "buildCatalogue",
-      "sha256": "f9a15c78eaa48770f9dfc64ce33545677d24765720db1d6f81c23f62592afbbb"
-    },
-    {
-      "id": "freshness",
-      "path": "packages/cli/src/catalogue.ts",
-      "language": "typescript",
-      "symbol": "assertCatalogueCurrent",
-      "sha256": "f9a15c78eaa48770f9dfc64ce33545677d24765720db1d6f81c23f62592afbbb"
     },
     {
       "id": "capture",
@@ -91,13 +77,11 @@
   "sections": [
     {
       "id": "caller",
-      "title": "CLI caller",
-      "semanticRole": "validation-client",
-      "body": "validateStory and catalogue construction capture the referenced source and pass a loader into resolveStoryDocument. They later compare the snapshot and relevant Git state again. The catalogue may render between resolution and the final check; this diagram deliberately omits rendering.\n\nThese are explicit checkpoints, not a continuously held source-code lock. Resolving anchors does not establish the explanation's semantic truth.",
+      "title": "Story validator",
+      "semanticRole": "story-validation",
+      "body": "The CLI's validateStory operation, invoked by topo story validate, needs to establish whether a draft's anchors still identify current code. It checks the draft structure, captures referenced files, delegates anchor resolution, then rechecks bytes and Git state before returning the resolved document.\n\nThis is draft validation, not rendering or publication. These are explicit checkpoints, not a continuously held source-code lock. Valid anchors do not establish the explanation's semantic truth.",
       "anchorIds": [
-        "validate",
-        "catalogue",
-        "freshness"
+        "validate"
       ]
     },
     {
@@ -138,13 +122,12 @@
     {
       "from": "caller",
       "to": "snapshot",
-      "label": "Capture referenced source",
+      "label": "Capture draft evidence",
       "anchorIds": [
         "validate",
-        "catalogue",
         "capture"
       ],
-      "rationale": "The CLI captures the source files referenced by the selected authored document(s).",
+      "rationale": "The story validator captures the draft's referenced source so all of its anchors can be checked against one consistent set of bytes.",
       "classification": "source-traced"
     },
     {
@@ -162,13 +145,12 @@
     {
       "from": "caller",
       "to": "resolver",
-      "label": "Resolve story with snapshot loader",
+      "label": "Validate anchors against the snapshot",
       "anchorIds": [
         "validate",
-        "catalogue",
         "resolve-document"
       ],
-      "rationale": "The caller passes a loader that reads the captured map, preventing different anchors from silently reading different snapshots.",
+      "rationale": "validateStory supplies the captured-map loader to resolveStoryDocument, preventing different anchors from silently reading different snapshots.",
       "classification": "source-traced"
     },
     {
@@ -177,8 +159,7 @@
       "label": "Load this anchor's file",
       "anchorIds": [
         "resolve-document",
-        "validate",
-        "catalogue"
+        "validate"
       ],
       "rationale": "resolveStoryDocument invokes the supplied loader for each anchor. This is a local map read.",
       "classification": "source-traced"
@@ -234,13 +215,12 @@
     {
       "from": "caller",
       "to": "snapshot",
-      "label": "Recheck bytes before use",
+      "label": "Confirm draft evidence is current",
       "anchorIds": [
         "validate",
-        "freshness",
         "assert-snapshot"
       ],
-      "rationale": "The CLI rereads the captured paths at its post-resolution or pre-publication checkpoint; it also checks repository state.",
+      "rationale": "After resolution, validateStory rereads the captured paths, then compares repository revision, dirty state and fingerprint before returning.",
       "classification": "source-traced"
     },
     {
@@ -249,9 +229,9 @@
       "label": "Unchanged source or stale error",
       "anchorIds": [
         "assert-snapshot",
-        "freshness"
+        "validate"
       ],
-      "rationale": "Changed bytes or repository state refuse the operation. No output is published by this algorithm itself.",
+      "rationale": "Changed bytes refuse validation; the validator also rejects changed Git state. This operation does not publish output.",
       "classification": "source-traced",
       "variant": "return"
     }

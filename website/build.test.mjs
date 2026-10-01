@@ -108,16 +108,19 @@ test("module surface narratives cover actual root exports with signature-only fu
   }
 });
 
-test("core algorithm sequences retain trace evidence and module parents", async () => {
-  for (const [id, module] of [
-    ["algorithm-evidence-extraction", "scanner"],
-    ["algorithm-anchor-resolution", "story"],
-    ["algorithm-graph-projection", "graph"],
+test("core algorithm sequences retain trace evidence, purposeful initiators and module parents", async () => {
+  for (const [id, module, initiator, purpose] of [
+    ["algorithm-evidence-extraction", "scanner", "@topo/languages", "Extract code evidence"],
+    ["algorithm-anchor-resolution", "story", "Story validator", "Capture draft evidence"],
+    ["algorithm-graph-projection", "graph", "Layout session", "Prepare a graph for layout"],
   ]) {
     const document = JSON.parse(await readFile(path.join(root, `stories/public/${id}.topo.json`), "utf8"));
     assert.equal(document.diagramFamily, "sequence");
     assert.equal(document.sections.length, 4);
     assert.equal(document.connections.length, 10);
+    assert.equal(document.sections[0].title, initiator);
+    assert.equal(document.connections[0].from, document.sections[0].id);
+    assert.equal(document.connections[0].label, purpose);
     assert.deepEqual(document.parent, { storyId: "internal-modules", nodeId: module });
     assert.ok(document.anchors.every(anchor => /^[a-f0-9]{64}$/.test(anchor.sha256)));
     const ids = new Set(document.anchors.map(anchor => anchor.id));

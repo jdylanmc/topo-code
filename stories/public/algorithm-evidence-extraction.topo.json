@@ -77,9 +77,9 @@
   "sections": [
     {
       "id": "caller",
-      "title": "Caller",
-      "semanticRole": "scan-client",
-      "body": "The language-composition layer invokes the TypeScript scanner adapter when selected. This view focuses on that scanner, not the separate partial Rust/Tauri adapters. The result carries graphs, diagnostics, metrics and an authoritative/partial flag; no model is called.",
+      "title": "@topo/languages",
+      "semanticRole": "language-composition",
+      "body": "scanProject owns language-capability composition. It requests TypeScript/JavaScript code evidence from the selected scanner adapter so it can build the repository's analysis result. This is the real initiating module, not an unspecified caller.\n\nThe returned graphs, diagnostics, metrics and authoritative/partial flag feed that composition. Separate Rust/Tauri adapters are outside this view. No model is invoked.",
       "anchorIds": [
         "composition",
         "scan"
@@ -126,12 +126,12 @@
     {
       "from": "caller",
       "to": "scanner",
-      "label": "Repository and scan options",
+      "label": "Extract code evidence",
       "anchorIds": [
         "composition",
         "scan"
       ],
-      "rationale": "scanProject delegates through the TypeScript scanner adapter; scanRepository parses and validates its options.",
+      "rationale": "@topo/languages.scanProject requests TypeScript/JavaScript evidence through the scanner adapter; scanRepository parses and validates the supplied repository and options.",
       "classification": "source-traced"
     },
     {
