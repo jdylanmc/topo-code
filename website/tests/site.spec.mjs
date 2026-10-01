@@ -129,6 +129,11 @@ test("semantic lenses classify responsibilities, preserve geometry, and compare 
   await page.locator("#btn-semantic-lens").click();
   const kinds = page.locator("#semantic-lens-kinds button");
   await expect(kinds).toHaveCount(6);
+  const legibility = await kinds.locator("strong").evaluateAll(labels => labels.map(label => ({
+    fontSize: parseFloat(getComputedStyle(label).fontSize),
+    truncated: label.scrollWidth > label.clientWidth || label.scrollHeight > label.clientHeight,
+  })));
+  expect(legibility.every(label => label.fontSize >= 12 && !label.truncated)).toBe(true);
   await expect(page.locator('#semantic-lens-kinds [data-kind="backend"], #semantic-lens-kinds [data-kind="frontend"]')).toHaveCount(0);
   for (const [kind, count] of Object.entries({
     "command-orchestration": 2, "source-analysis": 2, "contracts-and-evidence": 2,

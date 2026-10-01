@@ -1443,7 +1443,14 @@ svg { max-height: 100vh; }
 svg [data-source-evidence-beacon] { display: none; }
 svg text[data-node-label],
 svg g[data-edge-from] > text { font-size: ${architectureFontSize}px; }
-svg text[data-detail="context"] { font-size: 17px; transform: translateY(12px); }`
+svg text[data-detail="context"] { font-size: 17px; transform: translateY(12px); }
+html[data-topo-app] .semantic-lens { width: min(34rem, calc(100% - 24px)); max-height: calc(100% - 16px); overflow: auto; }
+#semantic-lens-title { font-size: 1rem; }
+#semantic-lens .semantic-lens-instruction,
+#semantic-lens .semantic-lens-status,
+#semantic-lens .semantic-lens-actions button,
+#semantic-lens-kinds .semantic-lens-kind em { font-size: 0.8rem; line-height: 1.5; }
+#semantic-lens-kinds .semantic-lens-kind strong { font-size: 0.85rem; line-height: 1.4; white-space: normal; overflow: visible; overflow-wrap: anywhere; text-overflow: clip; }`
     : family === "workflow"
       ? `
 svg text[data-node-label],
