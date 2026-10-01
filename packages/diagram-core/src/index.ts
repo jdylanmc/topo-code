@@ -1410,10 +1410,12 @@ function improveStoryReadability(
   const rules = family === "architecture"
     ? `
 svg { max-height: 100vh; }
+/* The story shell supplies the node index and full source details. */
+.reader-rail { display: none; }
 svg [data-source-evidence-beacon] { display: none; }
 svg text[data-node-label],
 svg g[data-edge-from] > text { font-size: ${architectureFontSize}px; }
-svg text[data-detail="context"] { font-size: 16px; transform: translateY(12px); }`
+svg text[data-detail="context"] { font-size: 17px; transform: translateY(12px); }`
     : family === "workflow"
       ? `
 svg text[data-node-label],

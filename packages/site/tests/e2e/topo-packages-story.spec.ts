@@ -162,7 +162,7 @@ test("package architecture renders a readable multi-row workspace map", async ({
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(`${url}/stories/topo-packages/`);
     const diagram = page.frameLocator("[data-story-viewer]")
-      .locator('svg[role="img"]');
+      .locator('svg[data-diagram-type="architecture"][role="group"]');
     await expect(diagram).toBeVisible();
 
     const rows = await diagram.locator("g[data-node-id] > rect:not(.c-mask)")
@@ -262,7 +262,7 @@ test("converging Architecture relationships keep both labels readable", async ({
     await page.setViewportSize({ width: 1024, height: 768 });
     await page.goto(`${url}/stories/converging/`);
     const diagram = page.frameLocator("[data-story-viewer]")
-      .locator('svg[role="img"]');
+      .locator('svg[data-diagram-type="architecture"][role="group"]');
     await expect(diagram).toBeVisible();
     const labels = diagram.locator("g[data-edge-from] > text");
     await expect(labels).toHaveCount(2);
@@ -376,7 +376,7 @@ async function verifyRaggedArchitectureScenario(
           `${url}/stories/chain-${labelSet.id}-${sectionCount}/`,
         );
         const frame = page.frameLocator("[data-story-viewer]");
-        const diagram = frame.locator('svg[role="img"]');
+        const diagram = frame.locator('svg[data-diagram-type="architecture"][role="group"]');
         await expect(diagram).toBeVisible();
         await expect(diagram.locator("g[data-node-id]")).toHaveCount(sectionCount);
         await expect(diagram.locator("g[data-edge-from]"))
@@ -944,7 +944,7 @@ test("actual package story stays readable from a plain static bundle", async ({
       await expect(shell).toHaveAttribute("data-navigation-collapsed", "false");
 
       const frame = page.frameLocator("[data-story-viewer]");
-      const diagram = frame.locator('svg[role="img"]');
+      const diagram = frame.locator('svg[data-diagram-type="architecture"][role="group"]');
       await expect(diagram).toBeVisible();
       await expect(diagram.locator("g[data-node-id]"))
         .toHaveCount(fixture.workspaces.length);
