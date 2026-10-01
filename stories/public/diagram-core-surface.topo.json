@@ -1,0 +1,264 @@
+{
+  "schemaVersion": "1.0",
+  "diagramFamily": "architecture",
+  "classification": "source-grounded",
+  "id": "diagram-core-surface",
+  "title": "@topo/diagram-core: public surface",
+  "category": "Module surfaces",
+  "parent": {
+    "storyId": "internal-modules",
+    "nodeId": "diagram-core"
+  },
+  "summary": "The rendering module's exposed functions, shared input/output interfaces, and declared renderer dependencies. Arrows mean exports, contract references, or declared package dependencies—not private rendering steps. This private workspace API is bundled into @jdylanmc/topo-code; it is not a separately published stable SDK.",
+  "anchors": [
+    {
+      "id": "cli-manifest",
+      "path": "packages/cli/package.json",
+      "language": "text",
+      "sha256": "e1aaebf5b0fe115fe56a658b71022c849e25120794cdbd1b063ccda97c880086"
+    },
+    {
+      "id": "cli-entry",
+      "path": "packages/cli/src/index.ts",
+      "language": "text",
+      "sha256": "d05f2184becf9a468e04fc3ca8945f277001108c67de0f1ff33c562972e5c28d"
+    },
+    {
+      "id": "renderer-manifest",
+      "path": "packages/diagram-core/package.json",
+      "language": "text",
+      "sha256": "8e4b7a111ad4234367bc49e0b7b4827e880f9d489ce136a79650923b86cd7386"
+    },
+    {
+      "id": "story-manifest",
+      "path": "packages/story/package.json",
+      "language": "text",
+      "sha256": "996dc365b6c0bcdc3c4beaddb507c657cf97ee0412232c110f081013e0f7cfde"
+    },
+    {
+      "id": "render-story",
+      "path": "packages/diagram-core/src/index.ts",
+      "language": "text",
+      "sha256": "637b738763f90aba463010c19626649e4d6703c49018a369167cb4b73568c45e",
+      "pattern": "export function renderStory(story: ResolvedStoryDocument): StoryArtifact | Promise<StoryArtifact> {"
+    },
+    {
+      "id": "render-array",
+      "path": "packages/diagram-core/src/index.ts",
+      "language": "text",
+      "sha256": "637b738763f90aba463010c19626649e4d6703c49018a369167cb4b73568c45e",
+      "pattern": "export function renderArchitectureStories(\n  stories: readonly ResolvedStoryDocument[],\n  options: { readonly sourceEvidence?: \"native\" | \"wrapper\" } = {},\n): StoryArtifact[] {"
+    },
+    {
+      "id": "render-stream",
+      "path": "packages/diagram-core/src/index.ts",
+      "language": "text",
+      "sha256": "637b738763f90aba463010c19626649e4d6703c49018a369167cb4b73568c45e",
+      "pattern": "export function* renderArchitectureStoryBatch(\n  stories: readonly ResolvedStoryDocument[],\n  options: { readonly sourceEvidence?: \"native\" | \"wrapper\" } = {},\n): Generator<StoryArtifact> {"
+    },
+    {
+      "id": "width-helper",
+      "path": "packages/diagram-core/src/index.ts",
+      "language": "text",
+      "sha256": "637b738763f90aba463010c19626649e4d6703c49018a369167cb4b73568c45e",
+      "pattern": "export function architectureComponentWidth(\n  title: string,\n  sublabel = \"\",\n  finalTypography = false,\n): number {"
+    },
+    {
+      "id": "verify",
+      "path": "packages/diagram-core/src/integrity.ts",
+      "language": "text",
+      "sha256": "ccc71499fd0f35ec47eefda19f21d62b5ac9e419110cca65b24f954b05419f19",
+      "pattern": "export function verifyArchifyIntegrity(): ArchifyIntegrity {"
+    },
+    {
+      "id": "integrity-type",
+      "path": "packages/diagram-core/src/integrity.ts",
+      "language": "text",
+      "sha256": "ccc71499fd0f35ec47eefda19f21d62b5ac9e419110cca65b24f954b05419f19",
+      "pattern": "export type ArchifyIntegrity = RuntimeIntegrity;"
+    },
+    {
+      "id": "resolved-story",
+      "path": "packages/story/src/index.ts",
+      "language": "text",
+      "sha256": "5e035e2eecfd25ad8451d0bf1d3dc84eae14f5e6e9b11700de2e006b970140da",
+      "pattern": "export interface ResolvedStoryDocument {\n  readonly document: StoryDocument;\n  readonly documentPath: string;\n  readonly repositoryRoot: string;\n  readonly source: {\n    readonly revision: string;\n    readonly dirty: boolean;\n  };\n  readonly anchors: readonly ResolvedSourceAnchor[];\n}"
+    },
+    {
+      "id": "story-artifact",
+      "path": "packages/story/src/index.ts",
+      "language": "text",
+      "sha256": "5e035e2eecfd25ad8451d0bf1d3dc84eae14f5e6e9b11700de2e006b970140da",
+      "pattern": "export interface StoryArtifact {\n  readonly kind: \"html\";\n  readonly mediaType: \"text/html\";\n  readonly contents: string;\n  readonly assets?: Readonly<Record<string, string>>;\n  readonly renderer: {\n    readonly name: string;\n    readonly pin: string;\n    readonly sha256?: string;\n    readonly sourceOutputSha256?: string;\n    readonly outputSha256?: string;\n    readonly adaptation?: string;\n  };\n}"
+    },
+    {
+      "id": "theme-export",
+      "path": "packages/diagram-core/src/index.ts",
+      "language": "text",
+      "sha256": "637b738763f90aba463010c19626649e4d6703c49018a369167cb4b73568c45e",
+      "pattern": "export { CORE_THEME_SCRIPT } from \"./theme.js\";"
+    },
+    {
+      "id": "integrity-export",
+      "path": "packages/diagram-core/src/index.ts",
+      "language": "text",
+      "sha256": "637b738763f90aba463010c19626649e4d6703c49018a369167cb4b73568c45e",
+      "pattern": "export {\n  verifyArchifyIntegrity,\n  type ArchifyIntegrity,\n} from \"./integrity.js\";"
+    }
+  ],
+  "sections": [
+    {
+      "id": "archify",
+      "title": "@jdylanmc/topo-archify",
+      "summary": "Pinned peer dependency",
+      "body": "Declared peer: @jdylanmc/topo-archify@0.1.0. This package supplies the pinned native Archify runtime. Consumers meet the peer requirement; it is not a child module re-exported by diagram-core.",
+      "anchorIds": [
+        "renderer-manifest"
+      ],
+      "semanticRole": "module-reference"
+    },
+    {
+      "id": "render",
+      "title": "Single-story API",
+      "summary": "renderStory",
+      "body": "renderStory(story: ResolvedStoryDocument) -> StoryArtifact | Promise<StoryArtifact>.\n\nInput is already resolved source evidence, not raw repository scanning or an unvalidated JSON draft. The return can be synchronous or asynchronous, so callers can await it uniformly. The story's renderer selection controls the backend; this view deliberately does not expand private layout or rendering algorithms.",
+      "anchorIds": [
+        "render-story"
+      ],
+      "semanticRole": "public-interface"
+    },
+    {
+      "id": "contracts",
+      "title": "@topo/story",
+      "summary": "Resolved input and artifact",
+      "body": "Referenced interfaces:\n\nResolvedStoryDocument: authored document, document path, repository root, source revision/dirty state, and resolved anchors.\n\nStoryArtifact: HTML kind/media type, contents, optional backend assets, and renderer identity/provenance (including original/adapted output hashes when supplied).\n\nThese interfaces belong to @topo/story; diagram-core consumes/returns them. The legacy RenderInput / Artifact declarations in types.ts are not re-exported by diagram-core's package-root index.",
+      "anchorIds": [
+        "resolved-story",
+        "story-artifact",
+        "story-manifest"
+      ],
+      "semanticRole": "data-contract"
+    },
+    {
+      "id": "batch",
+      "title": "Architecture batch API",
+      "summary": "Array or generator result",
+      "body": "renderArchitectureStories(stories, options?) -> StoryArtifact[]\nrenderArchitectureStoryBatch(stories, options?) -> Generator<StoryArtifact>\n\nInput: readonly ResolvedStoryDocument[]. The optional sourceEvidence mode is native or wrapper. These entry points accept Architecture stories; they are not general-purpose batching APIs for every diagram family.",
+      "anchorIds": [
+        "render-array",
+        "render-stream"
+      ],
+      "semanticRole": "public-interface"
+    },
+    {
+      "id": "diagram-core",
+      "title": "@topo/diagram-core",
+      "summary": "Package-root exports",
+      "body": "The root exports renderStory, renderArchitectureStories, renderArchitectureStoryBatch, verifyArchifyIntegrity, the ArchifyIntegrity type, architectureComponentWidth, and CORE_THEME_SCRIPT.\n\nIt references @topo/story for contracts, @jdylanmc/topo-archify as its native peer, and @viz-js/viz as a dependency. No bin entry is declared. Private helpers such as specification builders, renderGraphviz and viewer adaptation routines are intentionally not presented as public APIs.",
+      "anchorIds": [
+        "renderer-manifest",
+        "render-story",
+        "render-array",
+        "render-stream",
+        "verify",
+        "integrity-type",
+        "width-helper",
+        "theme-export"
+      ],
+      "semanticRole": "module-boundary"
+    },
+    {
+      "id": "integrity",
+      "title": "Integrity API",
+      "summary": "verifyArchifyIntegrity",
+      "body": "verifyArchifyIntegrity() -> ArchifyIntegrity.\n\nThe root also re-exports the ArchifyIntegrity type, an alias of the renderer package's RuntimeIntegrity contract. This reports verified runtime identity/inventory; it does not certify the correctness of an authored architecture explanation.",
+      "anchorIds": [
+        "verify",
+        "integrity-type",
+        "integrity-export"
+      ],
+      "semanticRole": "public-interface"
+    },
+    {
+      "id": "cli",
+      "title": "@topo/cli",
+      "summary": "Declared runtime consumer",
+      "body": "The CLI manifest declares @topo/diagram-core as a runtime workspace dependency. This is the consumer boundary you drilled through—not an assertion that every CLI function directly calls a renderer.\n\nClick to return to the CLI's exposed surface.",
+      "anchorIds": [
+        "cli-manifest"
+      ],
+      "semanticRole": "module-reference",
+      "drilldown": {
+        "storyId": "cli-surface"
+      }
+    },
+    {
+      "id": "utilities",
+      "title": "Exported utilities",
+      "summary": "Width helper and theme script",
+      "body": "architectureComponentWidth(title, sublabel?, finalTypography?) -> number.\nCORE_THEME_SCRIPT -> string.\n\nThese are current root exports supporting integration and presentation. They are exposed helpers, not separate renderer backends or an invitation to depend on private implementation functions.",
+      "anchorIds": [
+        "width-helper",
+        "theme-export"
+      ],
+      "semanticRole": "public-interface"
+    },
+    {
+      "id": "graphviz",
+      "title": "@viz-js/viz",
+      "summary": "Graphviz dependency",
+      "body": "Declared dependency: @viz-js/viz@3.30.0. It supplies Graphviz for explicitly selected technical workflows. It is not a silent fallback when native Archify rendering fails, and its artifacts have separate provenance.",
+      "anchorIds": [
+        "renderer-manifest"
+      ],
+      "semanticRole": "module-reference"
+    }
+  ],
+  "connections": [
+    {
+      "from": "diagram-core",
+      "to": "render",
+      "label": "exports"
+    },
+    {
+      "from": "diagram-core",
+      "to": "batch",
+      "label": "exports"
+    },
+    {
+      "from": "diagram-core",
+      "to": "integrity",
+      "label": "exports"
+    },
+    {
+      "from": "diagram-core",
+      "to": "utilities",
+      "label": "exports"
+    },
+    {
+      "from": "render",
+      "to": "contracts",
+      "label": "uses types"
+    },
+    {
+      "from": "batch",
+      "to": "contracts",
+      "label": "uses types"
+    },
+    {
+      "from": "diagram-core",
+      "to": "archify",
+      "label": "peer"
+    },
+    {
+      "from": "diagram-core",
+      "to": "graphviz",
+      "label": "dependency"
+    },
+    {
+      "from": "cli",
+      "to": "diagram-core",
+      "label": "depends on"
+    }
+  ]
+}

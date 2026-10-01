@@ -29,6 +29,26 @@ Architecture receipts identify `topocode-story-semantics-v2` and distinguish
 native output hashes from adapted output hashes. Active lens selection remains
 viewer-only; the authored semantic roles are durable diagram metadata.
 
+## Explicit module drilldowns
+
+An authored section can declare `"drilldown": { "storyId": "cli-surface" }`.
+Clicking that node opens the child story's overview; add `nodeId` only when a
+particular destination node should be focused. This explicit destination wins
+over automatically discovered shared-evidence links. Other related stories and
+source evidence remain available in details.
+
+A child can declare `"parent": { "storyId": "internal-modules", "nodeId": "cli" }`.
+The storybook displays a visible return link even when the child is opened
+directly. Navigation from another story takes precedence over this canonical
+parent, so nested drilldowns return to the actual caller. Returning or reloading
+a focused parent does not automatically drill in again.
+
+Targets must exist in the selected catalogue, target nodes must exist, and parent
+cycles are rejected before rendering. Direct hosted `viewer.html` pages can enter
+their child storybook routes; a downloaded isolated HTML file does not pretend
+to contain other diagrams. These are unreleased repository-build capabilities,
+not options in the published npm 0.2.0 schema.
+
 Native Architecture cards show at most three compact source links, matching the
 pinned renderer's schema. Topocode still validates every section anchor and
 retains all of them in the story evidence panel and `evidence.json`; grouped

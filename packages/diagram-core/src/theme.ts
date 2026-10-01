@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import type { StoryDocument, StoryTarget } from "@topo/story";
 
 // The native renderer's documented ?theme= and data-theme seams remain intact.
 // One application preference wins over renderer storage and OS media queries.
@@ -74,9 +75,37 @@ export const CORE_THEME_SCRIPT = `(() => {
   });
 })();`;
 
-export function adaptViewerTheme(contents: string): string {
+export function adaptViewerTheme(contents: string, document?: StoryDocument): string {
   if (!/<head\b[^>]*>/i.test(contents)) throw new Error("Renderer output has no head for the core theme integration");
-  return contents.replace(/<head\b[^>]*>/i, (head) => `${head}\n<script data-topo-theme-owner>${CORE_THEME_SCRIPT}</script>`);
+  const drilldowns: [string, StoryTarget][] = [];
+  for (const section of document?.sections ?? []) {
+    if (!section.drilldown) continue;
+    if (!/^[a-z0-9][a-z0-9-]*$/.test(section.drilldown.storyId)) throw new Error("Invalid standalone drilldown target");
+    drilldowns.push([section.id, section.drilldown]);
+  }
+  const navigation = document === undefined || drilldowns.length === 0 ? "" : `
+<script data-topo-standalone-navigation>
+(() => {
+  const storyId = ${JSON.stringify(document.id).replaceAll("<", "\\u003c")};
+  if (window.parent !== window || !location.pathname.endsWith("/stories/" + storyId + "/viewer.html")) return;
+  const targets = new Map(${JSON.stringify(drilldowns).replaceAll("<", "\\u003c")});
+  function activate(event) {
+    if (event.type === "keyup" && event.key !== "Enter" && event.key !== " ") return;
+    const node = event.target.closest?.("[data-node-id]");
+    const id = node?.getAttribute("data-node-id");
+    const target = targets.get(id);
+    if (!target) return;
+    const destination = new URL("../" + encodeURIComponent(target.storyId) + "/", location.href);
+    if (target.nodeId) destination.searchParams.set("focus", target.nodeId);
+    destination.searchParams.set("from", storyId);
+    destination.searchParams.set("fromFocus", id);
+    setTimeout(() => location.assign(destination.href));
+  }
+  document.addEventListener("click", activate);
+  document.addEventListener("keyup", activate);
+})();
+</script>`;
+  return contents.replace(/<head\b[^>]*>/i, (head) => `${head}\n<script data-topo-theme-owner>${CORE_THEME_SCRIPT}</script>${navigation}`);
 }
 
 export function outputHash(contents: string): string {

@@ -1587,7 +1587,7 @@ export function* renderArchitectureStoryBatch(
       const sourceContents = readFileSync(output, "utf8");
       const contents = adaptViewerTheme(adaptArchitectureSemantics(
         improveStoryReadability(sourceContents, "architecture"), stories[index]!.document,
-      ));
+      ), stories[index]!.document);
       yield {
         kind: "html",
         mediaType: "text/html",
@@ -1669,7 +1669,7 @@ export function renderStory(story: ResolvedStoryDocument): StoryArtifact | Promi
     );
     const adapted = adaptViewerTheme(family === "architecture"
       ? adaptArchitectureSemantics(readable, story.document)
-      : readable);
+      : readable, story.document);
     return {
       kind: "html",
       mediaType: "text/html",

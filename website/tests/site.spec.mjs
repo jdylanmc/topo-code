@@ -89,17 +89,17 @@ test("module details preserve complete dependencies and cross-story return navig
   await page.goto("demo/");
   const frame = page.frameLocator("[data-demo]");
   const viewer = frame.frameLocator("[data-story-viewer]");
-  await viewer.locator('svg g[data-node-id="cli"]').click();
+  await viewer.locator('svg g[data-node-id="languages"]').click();
   await expect(frame.locator(".story-details")).toHaveAttribute("open", "");
-  await expect(frame.locator('[data-section-evidence="cli"] > p')).toContainText("@topo/cli -> @topo/schema [dependencies: workspace:*]");
-  const link = frame.locator('a[data-cross-story][data-source-node="cli"]').filter({ hasText: "Build, test, docs" });
+  await expect(frame.locator('[data-section-evidence="languages"] > p')).toContainText("@topo/languages -> @topo/scanner [dependencies: workspace:*]");
+  const link = frame.locator('a[data-cross-story][data-source-node="languages"]').filter({ hasText: "Code analysis" });
   await link.click();
   await expect(frame.locator("body")).toHaveAttribute("data-story-id", "dependency-context");
-  await expect(frame.locator('[data-section-evidence="tooling-consumers"] > p')).toContainText("devDependencies");
+  await expect(frame.locator('[data-section-evidence="analysis-consumers"] > p')).toContainText("optionalDependencies");
   await expect(frame.locator("[data-return]")).toBeVisible();
   await frame.locator("[data-return]").click();
   await expect(frame.locator("body")).toHaveAttribute("data-story-id", "internal-modules");
-  await expect(frame.locator('[data-section-evidence="cli"]')).toBeVisible();
+  await expect(frame.locator('[data-section-evidence="languages"]')).toBeVisible();
   await page.getByRole("link", { name: "Dependency context", exact: true }).click();
   await expect(frame.locator("body")).toHaveAttribute("data-story-id", "dependency-context");
   await expect(frame.frameLocator("[data-story-viewer]").locator("svg g[data-node-id]")).toHaveCount(10);
@@ -159,40 +159,36 @@ test("semantic lenses classify responsibilities, preserve geometry, and compare 
   expect(await geometry()).toEqual(before);
 });
 
-test("story-to-screen exposes actual phases, failure evidence, and module drillbacks", async ({ page }) => {
+test("idea-to-architecture sequence shows the collaboration and review loop", async ({ page }) => {
   await page.goto("demo/");
-  await page.getByRole("link", { name: "Story to screen", exact: true }).click();
+  await page.getByRole("link", { name: "Idea to architecture", exact: true }).click();
   const wrapper = page.frameLocator("[data-demo]");
   await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "story-to-screen");
   const flow = wrapper.frameLocator("[data-story-viewer]");
-  await expect(flow.locator("svg g[data-node-id]")).toHaveCount(9);
-  await expect(flow.locator("svg g[data-edge-index]")).toHaveCount(13);
-  await flow.locator('svg g[data-node-id="rollback"]').click();
-  await expect(wrapper.locator('[data-section-evidence="rollback"] > p')).toContainText("not crash-atomicity");
-  await expect(wrapper.locator('[data-section-evidence="rollback"]')).toContainText("AggregateError");
+  await expect(flow.locator("svg g[data-node-id]")).toHaveCount(3);
+  await expect(flow.locator("svg")).toContainText("Review, refine, repeat");
+  await expect(flow.locator("svg")).toContainText("Interpret; author anchored story");
+  await expect(flow.locator("svg")).toContainText("Commit with authorization");
   await flow.locator('svg g[data-node-id="cli"]').click();
-  const back = wrapper.locator('a[data-cross-story][data-source-node="cli"]')
-    .filter({ hasText: "Topocode internal modules: @topo/cli" });
-  await back.click();
-  await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "internal-modules");
+  await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "cli-surface");
   await expect(wrapper.locator("[data-return]")).toBeVisible();
   await wrapper.locator("[data-return]").click();
   await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "story-to-screen");
   await expect(wrapper.locator('[data-section-evidence="cli"]')).toBeVisible();
 });
 
-test("execution lens remains readable without internal scrolling on desktop", async ({ page }) => {
+test("collaboration sequence remains readable on desktop", async ({ page }) => {
   for (const [width, height] of [[1440, 900], [1600, 1000], [1920, 1080], [2048, 1320]]) {
     await page.setViewportSize({ width, height });
     await page.goto("demo/home/stories/story-to-screen/viewer.html");
-    const metrics = await page.locator("svg").evaluate(svg => {
+    await page.evaluate(() => document.fonts.ready);
+    const metrics = await page.locator('svg[role="img"]').evaluate(svg => {
       const scale = svg.getScreenCTM().a;
-      const main = document.querySelector("main");
+      const labels = [...svg.querySelectorAll("text")].filter(text => text.textContent.trim() && getComputedStyle(text).display !== "none");
       return {
         overflow: document.documentElement.scrollWidth > innerWidth ||
-          document.documentElement.scrollHeight > innerHeight ||
-          main.scrollWidth > main.clientWidth || main.scrollHeight > main.clientHeight,
-        textFloor: Math.min(...[...svg.querySelectorAll("text")].map(text => parseFloat(getComputedStyle(text).fontSize) * scale)),
+          document.documentElement.scrollHeight > innerHeight,
+        textFloor: Math.min(...labels.map(text => parseFloat(getComputedStyle(text).fontSize) * scale)),
       };
     });
     expect(metrics.overflow).toBe(false);
@@ -201,7 +197,7 @@ test("execution lens remains readable without internal scrolling on desktop", as
 });
 
 test("curated maps fit desktop viewports with readable role captions", async ({ page }) => {
-  for (const [id, count] of [["internal-modules", 13], ["dependency-context", 10]]) {
+  for (const [id, count] of [["internal-modules", 13], ["dependency-context", 10], ["cli-surface", 9], ["diagram-core-surface", 9]]) {
     for (const [width, height] of [[1440, 900], [1600, 1000], [1920, 1080], [2048, 1320]]) {
       await page.setViewportSize({ width, height });
       await page.goto(`demo/home/stories/${id}/viewer.html`);
@@ -222,6 +218,35 @@ test("curated maps fit desktop viewports with readable role captions", async ({ 
             return title && caption && caption.top < title.bottom;
           }).length,
         };
+      });
+
+      test("module boxes drill into public surfaces with clear nested and direct returns", async ({ page }) => {
+        await page.goto("demo/");
+        const wrapper = page.frameLocator("[data-demo]");
+        await wrapper.getByLabel("Filter diagrams").fill("cli");
+        await wrapper.frameLocator("[data-story-viewer]").locator('svg g[data-node-id="cli"]').click();
+        await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "cli-surface");
+        await expect(wrapper.locator("[data-return]")).toBeVisible();
+        await expect(wrapper.locator("[data-return]")).toContainText("Topocode internal modules");
+        await expect(wrapper.frameLocator("[data-story-viewer]").locator("svg g[data-node-id]")).toHaveCount(9);
+        await wrapper.frameLocator("[data-story-viewer]").locator('svg g[data-node-id="diagram-core"]').click();
+        await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "diagram-core-surface");
+        await expect(wrapper.locator("[data-return]")).toContainText("@topo/cli: public surface");
+        await wrapper.locator("[data-return]").click();
+        await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "cli-surface");
+        await wrapper.frameLocator("[data-story-viewer]").locator("#btn-semantic-lens").click();
+        await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "cli-surface");
+        await wrapper.locator("[data-return]").click();
+        await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "internal-modules");
+        await page.goto("demo/home/stories/diagram-core-surface/");
+        await expect(page.locator("[data-return]")).toBeVisible();
+        await expect(page.locator("[data-return]")).toContainText("Topocode internal modules");
+        await page.reload();
+        await expect(page.locator("[data-return]")).toBeVisible();
+        await page.goto("demo/home/stories/internal-modules/viewer.html");
+        await page.locator('svg g[data-node-id="diagram-core"]').click();
+        await expect(page).toHaveURL(/stories\/diagram-core-surface\/\?from=internal-modules/);
+        await expect(page.locator("[data-return]")).toBeVisible();
       });
       expect(metrics, `${id} at ${width}x${height}`).toMatchObject({ overflowX: false, overflowY: false, captionOverlaps: 0 });
       expect(metrics.captionFloor).toBeGreaterThanOrEqual(12);

@@ -125,7 +125,7 @@
       "id": "diagram-core-implementation",
       "path": "packages/diagram-core/src/index.ts",
       "language": "text",
-      "sha256": "93578683a1fd4986b4fabd91b142ac75cac06d356ac5e7347c7317d271d12d2c"
+      "sha256": "637b738763f90aba463010c19626649e4d6703c49018a369167cb4b73568c45e"
     },
     {
       "id": "languages-implementation",
@@ -161,7 +161,7 @@
       "id": "story-implementation",
       "path": "packages/story/src/index.ts",
       "language": "text",
-      "sha256": "f62fefd750bfcfddca1f8802fed2abb8cb0ca1519922bc4d4979623ce5450af7"
+      "sha256": "5e035e2eecfd25ad8451d0bf1d3dc84eae14f5e6e9b11700de2e006b970140da"
     }
   ],
   "sections": [
@@ -225,22 +225,28 @@
       "title": "@topo/cli",
       "summary": "Compose the toolbelt",
       "semanticRole": "command-orchestration",
-      "body": "Implements init, scan, story validation/preview, serving, bundling, ingestion, and explicit enrichment; generates Home and story navigation.\n\nAll declared internal dependencies (not runtime calls):\n@topo/cli -> @topo/diagram-core [dependencies: workspace:*]\n@topo/cli -> @topo/enrichment [dependencies: workspace:*]\n@topo/cli -> @topo/graph [dependencies: workspace:*]\n@topo/cli -> @topo/languages [dependencies: workspace:*]\n@topo/cli -> @topo/modules [dependencies: workspace:*]\n@topo/cli -> @topo/reports [dependencies: workspace:*]\n@topo/cli -> @topo/scanner [dependencies: workspace:*]\n@topo/cli -> @topo/schema [dependencies: workspace:*]\n@topo/cli -> @topo/site [dependencies: workspace:*]\n@topo/cli -> @topo/story [dependencies: workspace:*]\n@topo/cli -> @topo/views [dependencies: workspace:*]\n@topo/cli -> @topo/workspace [dependencies: workspace:*]\n\nReferenced by internal modules:\nNo matching declarations.\n\nStable drilldown identity: cli. Module-specific detail maps will be curated later; there is no placeholder target.",
+      "body": "Implements init, scan, story validation/preview, serving, bundling, ingestion, and explicit enrichment; generates Home and story navigation.\n\nAll declared internal dependencies (not runtime calls):\n@topo/cli -> @topo/diagram-core [dependencies: workspace:*]\n@topo/cli -> @topo/enrichment [dependencies: workspace:*]\n@topo/cli -> @topo/graph [dependencies: workspace:*]\n@topo/cli -> @topo/languages [dependencies: workspace:*]\n@topo/cli -> @topo/modules [dependencies: workspace:*]\n@topo/cli -> @topo/reports [dependencies: workspace:*]\n@topo/cli -> @topo/scanner [dependencies: workspace:*]\n@topo/cli -> @topo/schema [dependencies: workspace:*]\n@topo/cli -> @topo/site [dependencies: workspace:*]\n@topo/cli -> @topo/story [dependencies: workspace:*]\n@topo/cli -> @topo/views [dependencies: workspace:*]\n@topo/cli -> @topo/workspace [dependencies: workspace:*]\n\nReferenced by internal modules:\nNo matching declarations.\n\nStable drilldown identity: cli. Open this module's public-surface diagram to inspect its exposed interfaces and references.",
       "anchorIds": [
         "packages-cli-package",
         "cli-implementation"
-      ]
+      ],
+      "drilldown": {
+        "storyId": "cli-surface"
+      }
     },
     {
       "id": "diagram-core",
       "title": "@topo/diagram-core",
       "summary": "Render authored diagrams",
       "semanticRole": "rendering-and-view-data",
-      "body": "Adapts source-grounded stories to the pinned Archify renderer or explicit Graphviz backend; owns renderer integrity, output adaptation, and viewer theme/export behavior.\n\nAll declared internal dependencies (not runtime calls):\n@topo/diagram-core -> @topo/story [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/cli -> @topo/diagram-core [dependencies: workspace:*]\n@topo/site -> @topo/diagram-core [devDependencies: workspace:*]\n\nStable drilldown identity: diagram-core. Module-specific detail maps will be curated later; there is no placeholder target.",
+      "body": "Adapts source-grounded stories to the pinned Archify renderer or explicit Graphviz backend; owns renderer integrity, output adaptation, and viewer theme/export behavior.\n\nAll declared internal dependencies (not runtime calls):\n@topo/diagram-core -> @topo/story [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/cli -> @topo/diagram-core [dependencies: workspace:*]\n@topo/site -> @topo/diagram-core [devDependencies: workspace:*]\n\nStable drilldown identity: diagram-core. Open this module's public-surface diagram to inspect its exposed interfaces and references.",
       "anchorIds": [
         "packages-diagram-core-package",
         "diagram-core-implementation"
-      ]
+      ],
+      "drilldown": {
+        "storyId": "diagram-core-surface"
+      }
     },
     {
       "id": "views",

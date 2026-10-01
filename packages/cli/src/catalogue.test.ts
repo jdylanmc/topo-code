@@ -94,6 +94,47 @@ afterEach(async () => {
 });
 
 describe("generated catalogue", () => {
+  it("binds explicit drilldowns and parents only to real published targets", async () => {
+    const root = await repository();
+    await addStory(root, "stories/overview.topo.json", "overview", "Overview");
+    await addStory(root, "stories/details.topo.json", "details", "Details");
+    const overviewPath = join(root, "stories/overview.topo.json");
+    const detailPath = join(root, "stories/details.topo.json");
+    const overview = JSON.parse(await readFile(overviewPath, "utf8"));
+    const detail = JSON.parse(await readFile(detailPath, "utf8"));
+    overview.sections[0].drilldown = { storyId: "details" };
+    detail.parent = { storyId: "overview", nodeId: "section" };
+    const save = async () => {
+      await writeFile(overviewPath, JSON.stringify(overview));
+      await writeFile(detailPath, JSON.stringify(detail));
+      await commit(root);
+    };
+    const renderer = {
+      async render() {
+        return { kind: "html" as const, mediaType: "text/html" as const, contents: "<html></html>", renderer: { name: "fixture", pin: "1" } };
+      },
+    };
+    await save();
+    const catalogue = await buildCatalogue(root, renderer);
+    await writeBuiltCatalogue(root, catalogue, undefined);
+    const rendered = await readFile(join(root, ".topo/cache/site/stories/overview/index.html"), "utf8");
+    expect(rendered).toContain("data-drilldown");
+    expect(rendered).toContain('../details/?from=overview&amp;fromFocus=section');
+    expect(await readFile(join(root, ".topo/cache/site/stories/details/index.html"), "utf8"))
+      .toContain('data-parent-story="overview" data-parent-node="section"');
+    overview.sections[0].drilldown = { storyId: "missing" };
+    await save();
+    await expect(buildCatalogue(root, renderer)).rejects.toThrow("not in the selected catalogue");
+    overview.sections[0].drilldown = { storyId: "details", nodeId: "missing" };
+    await save();
+    await expect(buildCatalogue(root, renderer)).rejects.toThrow("unknown target node");
+    overview.sections[0].drilldown = { storyId: "details" };
+    overview.parent = { storyId: "details", nodeId: "section" };
+    await save();
+    await expect(buildCatalogue(root, renderer)).rejects.toThrow("cyclic story parents");
+    expect(await readFile(join(root, ".topo/cache/site/stories/overview/index.html"), "utf8")).toBe(rendered);
+  });
+
   it("curates an explicit story set and rejects unknown selections", async () => {
     const root = await repository();
     await addStory(root, "stories/one.topo.json", "one", "One");

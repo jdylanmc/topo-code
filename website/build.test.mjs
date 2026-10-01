@@ -93,6 +93,21 @@ test("curated module maps retain all manifest declarations and reject stale evid
   ), /stale-source/);
 });
 
+test("module surface narratives cover actual root exports with signature-only function evidence", async () => {
+  for (const [id, modulePath] of [["cli-surface", "../packages/cli/dist/index.js"], ["diagram-core-surface", "../packages/diagram-core/dist/index.js"]]) {
+    const document = JSON.parse(await readFile(path.join(root, `stories/public/${id}.topo.json`), "utf8"));
+    const publicModule = await import(modulePath);
+    const narrative = document.sections.map(section => section.body).join("\n");
+    for (const name of Object.keys(publicModule)) assert.ok(narrative.includes(name), `${id} must cover ${name}`);
+    for (const evidence of document.anchors.filter(anchor => anchor.pattern?.startsWith("export") && anchor.pattern.includes("function "))) {
+      assert.ok(evidence.pattern.trimEnd().endsWith("{"));
+      assert.doesNotMatch(evidence.pattern, /\bawait\s|\breturn\s/);
+    }
+    assert.equal(document.parent.storyId, "internal-modules");
+    assert.equal(document.sections.length, 9);
+  }
+});
+
 test("build only the curated story set for project Pages and custom-domain roots", async () => {
   const original = process.env.SITE_BASE_PATH;
   try {
@@ -106,10 +121,12 @@ test("build only the curated story set for project Pages and custom-domain roots
       const home = await readFile(path.join(output, "demo/home/index.html"), "utf8");
       const state = JSON.parse(await readFile(path.join(output, "demo/home/site-state.json"), "utf8"));
       assert.match(home, /data-topo-shell/);
-      assert.equal((home.match(/data-kind="story"/g) ?? []).length, 3);
+      assert.equal((home.match(/data-kind="story"/g) ?? []).length, 5);
       assert.match(home, /Topocode internal modules/);
       assert.match(home, /Dependency context by role/);
-      assert.match(home, /Story to screen/);
+      assert.match(home, /From idea to architecture/);
+      assert.match(home, /@topo\/cli: public surface/);
+      assert.match(home, /@topo\/diagram-core: public surface/);
       assert.doesNotMatch(home, /Workflow capability|topo-packages/);
       assert.match(JSON.stringify(state), /unscanned/);
       assert.match(await readFile(path.join(output, "index.html"), "utf8"), new RegExp(`${base}assets/client.mjs`));
@@ -118,8 +135,9 @@ test("build only the curated story set for project Pages and custom-domain roots
       const evidence = JSON.parse(await readFile(path.join(output, "demo/home/stories/dependency-context/evidence.json"), "utf8"));
       assert.equal(evidence.anchors.length, 16);
       const flow = JSON.parse(await readFile(path.join(output, "demo/home/stories/story-to-screen/evidence.json"), "utf8"));
-      assert.equal(flow.connections.length, 13);
-      assert.ok(flow.connections.every(edge => edge.classification === "source-traced" && edge.anchorIds.length > 0));
+      assert.equal(flow.connections.length, 11);
+      assert.equal(flow.connections.at(-1).label, "Review, refine, repeat");
+      assert.ok(flow.connections.every(edge => edge.label));
       assert.ok(flow.anchors.every(anchor => /^[a-f0-9]{64}$/.test(anchor.sha256)));
       if (base === "/") {
         const rootOutput = path.join(root, "dist/public-site-root");

@@ -43,6 +43,26 @@ function validStory(): StoryDocument {
 }
 
 describe("story document contract", () => {
+  it("accepts explicit drilldown and parent targets and rejects malformed navigation", async () => {
+    const story = validStory();
+    const value = {
+      ...story, parent: { storyId: "overview", nodeId: "checkout" },
+      sections: [{ ...story.sections[0], drilldown: { storyId: "details" } }],
+    };
+    const validate = new Ajv2020({ strict: true }).compile(JSON.parse(await readFile(schemaPath, "utf8")));
+    expect(validate(value)).toBe(true);
+    expect(parseStoryDocument(JSON.stringify(value), "navigation.topo.json").parent).toEqual(value.parent);
+    for (const invalid of [
+      { ...value, parent: { storyId: "overview" } },
+      { ...value, parent: { storyId: "../escape", nodeId: "checkout" } },
+      ...[null, { storyId: "details", nodeId: "" }, { storyId: "details", url: "https://example.test" }]
+        .map(drilldown => ({ ...value, sections: [{ ...story.sections[0], drilldown }] })),
+    ]) {
+      expect(validate(invalid)).toBe(false);
+      expect(() => parseStoryDocument(JSON.stringify(invalid), "navigation.topo.json")).toThrow();
+    }
+  });
+
   it("validates authored architecture roles in both schema and parser", async () => {
     const story = validStory();
     const value = { ...story, sections: [{ ...story.sections[0], semanticRole: "source-analysis" }] };

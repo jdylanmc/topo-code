@@ -105,7 +105,7 @@ document.getElementById("export-svg").addEventListener("click",()=>{
  const link=document.createElement("a");link.href=url;link.download="topocode-flow.svg";link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 });
 </script></body></html>`;
-  const contents = adaptViewerTheme(native);
+  const contents = adaptViewerTheme(native, document);
   const validation = { engine: "Graphviz", engineVersion: viz.graphvizVersion, package: "@viz-js/viz@3.30.0",
     checks: ["dot layout succeeded without diagnostics", "every authored node retained", "every authored edge retained", "finite positive layout bounds", "nodes contained within layout", "node boxes do not overlap"],
     bounds,

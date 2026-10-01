@@ -48,7 +48,7 @@ development and release documents retain their separately labeled procedures.
 
 ## Curated source-backed demo
 
-Each build validates the three curated stories against the working source and
+Each build validates the five curated stories against the working source and
 requires their story/evidence files to be committed. It clones that exact local
 revision into a temporary repository, retains the real origin, applies the demo
 catalogue configuration, then runs the actual `topo init` and `topo bundle`.
@@ -73,13 +73,26 @@ evidence. These are authored responsibilities, not inferred frontend/backend
 types. Comparing two roles highlights only direct cross-role arrows drawn in
 this deliberately sparse map; the full declaration lists remain in node details.
 
-`story-to-screen.topo.json` traces the actual preview command through committed
-story loading, source snapshotting, evidence resolution, rendering, freshness
-checks, staged publication, and error/rollback paths. It explicitly uses Graphviz
-for branching control flow and preserves per-edge source evidence. Publication
-is rollback-capable, not crash-atomic. Preview does not launch a model or server.
+`cli-surface.topo.json` and `diagram-core-surface.topo.json` are child boundary
+views, not implementation walkthroughs. They show the command/package entry
+points, exported modules/functions/interfaces, and selected declared references.
+CLI's command binary is distinct from its root barrel exports. Only the
+renderer root's actual exports are shown, not every exported symbol in its
+source tree. These remain private workspace interfaces, not a stable public SDK.
 
-`catalogue.storyIds` selects exactly these three maps. Existing development stories
+Explicit node `drilldown` targets connect the module map to both children and
+the CLI's renderer reference to diagram-core. A child `parent` declaration
+provides a return link even after direct opening. Source evidence and other
+related-story links remain available; published targets are validated.
+
+`story-to-screen.topo.json` now shows **From idea to architecture** as a native
+sequence: you ask the agent, the CLI supplies deterministic scan evidence, the
+agent interprets and authors, the CLI validates/previews, you review, and the
+cycle repeats. This is the documented collaboration workflow, not a call trace
+of one process. Scan never invokes the model; agent interpretation does not
+require the separate `topo enrich` command. Commits still require authorization.
+
+`catalogue.storyIds` selects exactly these five maps. Existing development stories
 and examples are preserved but excluded from the demo. Hash-bound evidence fails
 on source drift; it must be reassessed, not silently regenerated during builds.
 

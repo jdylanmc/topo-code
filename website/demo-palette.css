@@ -4,6 +4,7 @@
 :root[data-website-palette] .catalogue-panel,
 :root[data-website-palette] .catalogue-panel::before,
 :root[data-website-palette] .brand-row,
+:root[data-website-palette] .story-breadcrumb,
 :root[data-website-palette] input,
 :root[data-website-palette] select,
 :root[data-website-palette] button { background: var(--panel); color: var(--text); border-color: var(--line); }

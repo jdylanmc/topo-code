@@ -1,407 +1,136 @@
 {
   "schemaVersion": "1.0",
-  "renderer": "graphviz",
-  "diagramFamily": "workflow",
+  "diagramFamily": "sequence",
   "classification": "source-grounded",
   "id": "story-to-screen",
-  "title": "Story to screen",
-  "summary": "Follow topo story preview from committed story intent to generated browser files. These arrows are an authored trace of actual calls, data handoffs, and error propagation—not package dependencies or compiler-derived control flow. The selected catalogue is rendered as a set; individual stories resolve/render in parallel. Preview launches neither a model nor a browser/server.",
+  "title": "From idea to architecture",
   "category": "Topocode",
+  "summary": "One human-agent collaboration cycle, grounded in Topocode's documented workflow—not a trace of one CLI process. The CLI supplies deterministic evidence and objective checks; the agent interprets and authors; you judge whether the explanation is meaningful. Feedback loops back to interpretation/authoring, and source changes may require another scan. Scan is useful here but not a prerequisite for authored stories.",
   "anchors": [
     {
-      "id": "preview-command",
-      "path": "packages/cli/src/main.ts",
-      "language": "typescript",
-      "symbol": "runCli",
-      "sha256": "777350607d51e97214906d4106025f8b8d50200dfee93703e5ff16d22f3ed767"
+      "id": "authoring-guide",
+      "path": "docs/story-authoring.md",
+      "language": "text",
+      "sha256": "effa3dfed08ab628b5d9f5b4a35a21f9f40dcf355beba8037b9ec453ed3fddb5"
     },
     {
-      "id": "catalogue",
-      "path": "packages/cli/src/catalogue.ts",
-      "language": "typescript",
-      "symbol": "buildCatalogue",
-      "sha256": "a9b4f4b9145c69cbd818f7efa36253a6ce9056e88c191512448b50cef344cb28"
+      "id": "agent-skill",
+      "path": ".agents/skills/topo-story-authoring/SKILL.md",
+      "language": "text",
+      "sha256": "c1725116905afd2e3387d4d934da5e102fff7da69e18cc8d955c815157cac35f"
     },
     {
-      "id": "default-renderer",
-      "path": "packages/cli/src/catalogue.ts",
-      "language": "typescript",
-      "symbol": "defaultRenderer",
-      "sha256": "a9b4f4b9145c69cbd818f7efa36253a6ce9056e88c191512448b50cef344cb28"
+      "id": "cli-contract",
+      "path": "docs/cli.md",
+      "language": "text",
+      "sha256": "42d611b4bf7b2c033927bc714de5d34f7a83ec732f824d3f937a15af42cba8f1"
     },
     {
-      "id": "snapshot",
-      "path": "packages/cli/src/source-snapshot.ts",
-      "language": "typescript",
-      "symbol": "captureSourceSnapshot",
-      "sha256": "5027a3c3ad3b16ebafd3eec698d5f5c9a8b1b211d2a8b71cf2d89dd53602feb6"
-    },
-    {
-      "id": "stable-read",
-      "path": "packages/cli/src/source-snapshot.ts",
-      "language": "typescript",
-      "symbol": "readStableSource",
-      "sha256": "5027a3c3ad3b16ebafd3eec698d5f5c9a8b1b211d2a8b71cf2d89dd53602feb6"
-    },
-    {
-      "id": "resolve-story",
-      "path": "packages/story/src/index.ts",
-      "language": "typescript",
-      "symbol": "resolveStoryDocument",
-      "sha256": "f62fefd750bfcfddca1f8802fed2abb8cb0ca1519922bc4d4979623ce5450af7"
-    },
-    {
-      "id": "resolve-anchor",
-      "path": "packages/story/src/index.ts",
-      "language": "typescript",
-      "symbol": "resolveAnchor",
-      "sha256": "f62fefd750bfcfddca1f8802fed2abb8cb0ca1519922bc4d4979623ce5450af7"
-    },
-    {
-      "id": "render-story",
-      "path": "packages/diagram-core/src/index.ts",
-      "language": "typescript",
-      "symbol": "renderStory",
-      "sha256": "93578683a1fd4986b4fabd91b142ac75cac06d356ac5e7347c7317d271d12d2c"
-    },
-    {
-      "id": "fresh-catalogue",
-      "path": "packages/cli/src/catalogue.ts",
-      "language": "typescript",
-      "symbol": "assertCatalogueCurrent",
-      "sha256": "a9b4f4b9145c69cbd818f7efa36253a6ce9056e88c191512448b50cef344cb28"
-    },
-    {
-      "id": "fresh-snapshot",
-      "path": "packages/cli/src/source-snapshot.ts",
-      "language": "typescript",
-      "symbol": "assertSourceSnapshot",
-      "sha256": "5027a3c3ad3b16ebafd3eec698d5f5c9a8b1b211d2a8b71cf2d89dd53602feb6"
-    },
-    {
-      "id": "publish-entry",
-      "path": "packages/cli/src/catalogue.ts",
-      "language": "typescript",
-      "symbol": "writeBuiltCatalogue",
-      "sha256": "a9b4f4b9145c69cbd818f7efa36253a6ce9056e88c191512448b50cef344cb28"
-    },
-    {
-      "id": "publish-wrapper",
-      "path": "packages/cli/src/catalogue.ts",
-      "language": "typescript",
-      "symbol": "writeCatalogue",
-      "sha256": "a9b4f4b9145c69cbd818f7efa36253a6ce9056e88c191512448b50cef344cb28"
-    },
-    {
-      "id": "publish-files",
-      "path": "packages/cli/src/catalogue.ts",
-      "language": "typescript",
-      "symbol": "publishCatalogue",
-      "sha256": "a9b4f4b9145c69cbd818f7efa36253a6ce9056e88c191512448b50cef344cb28"
-    },
-    {
-      "id": "write-lock",
-      "path": "packages/workspace/src/index.ts",
-      "language": "typescript",
-      "symbol": "withWorkspaceLock",
-      "sha256": "df2c638987c1f8c0f27e12ad2f5463d8246767a219800d3fc3d1490889dd0253"
-    },
-    {
-      "id": "transaction",
-      "path": "packages/workspace/src/index.ts",
-      "language": "typescript",
-      "symbol": "withGeneratedTransaction",
-      "sha256": "df2c638987c1f8c0f27e12ad2f5463d8246767a219800d3fc3d1490889dd0253"
-    },
-    {
-      "id": "generated-write",
-      "path": "packages/workspace/src/index.ts",
-      "language": "typescript",
-      "symbol": "writeGenerated",
-      "sha256": "df2c638987c1f8c0f27e12ad2f5463d8246767a219800d3fc3d1490889dd0253"
+      "id": "enrichment-boundary",
+      "path": "docs/enrichment.md",
+      "language": "text",
+      "sha256": "7618a97ed64f81aab129188f9e11213a4d05586797a4173d34474908625b235f"
     },
     {
       "id": "cli-manifest",
       "path": "packages/cli/package.json",
       "language": "text",
       "sha256": "e1aaebf5b0fe115fe56a658b71022c849e25120794cdbd1b063ccda97c880086"
-    },
-    {
-      "id": "story-manifest",
-      "path": "packages/story/package.json",
-      "language": "text",
-      "sha256": "996dc365b6c0bcdc3c4beaddb507c657cf97ee0412232c110f081013e0f7cfde"
-    },
-    {
-      "id": "diagram-core-manifest",
-      "path": "packages/diagram-core/package.json",
-      "language": "text",
-      "sha256": "8e4b7a111ad4234367bc49e0b7b4827e880f9d489ce136a79650923b86cd7386"
-    },
-    {
-      "id": "workspace-manifest",
-      "path": "packages/workspace/package.json",
-      "language": "text",
-      "sha256": "02528f44aace1f01cff29eb9d1a3fc3c5b0beb1d456ba0876714012ff152bdd0"
     }
   ],
   "sections": [
     {
+      "id": "user",
+      "title": "You",
+      "body": "Set the question and scope. Review meaning, accuracy, and usefulness. Feedback starts another iteration; your approval, not a green check, accepts the architecture document.",
+      "anchorIds": [
+        "authoring-guide",
+        "agent-skill"
+      ]
+    },
+    {
+      "id": "agent",
+      "title": "Coding agent",
+      "body": "Read code and scan evidence, enrich the understanding, and author an anchored story. Repair diagnostics, preserve story identity, and commit only with authorization. Present the result for human review. Interpretation here does not require the separate topo enrich command.",
+      "anchorIds": [
+        "authoring-guide",
+        "agent-skill",
+        "enrichment-boundary"
+      ]
+    },
+    {
       "id": "cli",
-      "title": "Request preview",
-      "kind": "step",
+      "title": "Topocode CLI",
+      "body": "Initialize and optionally scan the repository without calling a model. Validate drafts and render committed stories. serve supplies a local viewer; bundle supplies static files. These are separate invocations across the collaboration cycle, not one long-running call.",
       "anchorIds": [
-        "preview-command",
+        "cli-contract",
+        "authoring-guide",
         "cli-manifest"
       ],
-      "body": "Owner: @topo/cli, runCli.\n\nInput: topo story preview <repository> <story>. Check argument count and the initialized cache/site/index.html before doing work. The requested path is checked for membership AFTER buildCatalogue returns; it does not restrict rendering to one story.\n\nStories must be committed and unchanged. Repository source may be dirty; successful preview warns that evidence describes the working tree. No scanner or model is invoked by this branch."
-    },
-    {
-      "id": "snapshot",
-      "title": "Load stories + snapshot",
-      "kind": "step",
-      "anchorIds": [
-        "catalogue",
-        "snapshot",
-        "stable-read",
-        "cli-manifest"
-      ],
-      "body": "Owner: @topo/cli.\n\nCapture Git revision, status/diff fingerprint and history depth. Read committed stories, apply catalogue.storyIds when configured, and reject changed selected story documents. Capture each distinct referenced source file once.\n\nThe stable reader rejects escaped paths, symlinks, non-files, replaced files, or files changing during a read. A missing file is recorded as absent and rejected during anchor resolution. This is a bounded source snapshot, not a compiler build."
-    },
-    {
-      "id": "story",
-      "title": "Resolve evidence",
-      "kind": "step",
-      "anchorIds": [
-        "resolve-story",
-        "resolve-anchor",
-        "catalogue",
-        "story-manifest"
-      ],
-      "body": "Owner: @topo/story.\n\nFor each selected story, resolve every source anchor from the captured bytes. When a SHA-256 is authored, compare the whole file. Resolve requested symbols and exact excerpts; derive current line ranges and evidence text.\n\nMissing files/symbols/patterns, ambiguous patterns, and stale hashes fail explicitly. Successful resolution proves structure and evidence existence, not the narrative's truth or completeness."
-    },
-    {
-      "id": "diagram-core",
-      "title": "Render each story",
-      "kind": "step",
-      "anchorIds": [
-        "default-renderer",
-        "catalogue",
-        "render-story",
-        "diagram-core-manifest"
-      ],
-      "body": "Owner: @topo/diagram-core.\n\nThe catalogue's default renderer delegates to renderStory. An explicit graphviz story selects Graphviz; otherwise the adapter verifies the pinned Archify runtime, builds its typed specification, calls native deliver, and applies Topocode's viewer adaptations.\n\nReturn HTML, renderer provenance, and backend-owned assets in memory. The catalogue adds source evidence and renderer receipts. Promise.all runs resolution/rendering per selected story; one rejected story prevents publication of the set."
-    },
-    {
-      "id": "freshness",
-      "title": "Still current and selected?",
-      "kind": "decision",
-      "anchorIds": [
-        "fresh-catalogue",
-        "fresh-snapshot",
-        "catalogue",
-        "preview-command",
-        "publish-entry"
-      ],
-      "body": "Owner: @topo/cli.\n\nAfter rendering, reread anchor files and compare Git revision, dirty state, and the status/diff fingerprint. runCli then checks that the requested story is in the built catalogue. writeBuiltCatalogue checks freshness again before acquiring the workspace lock.\n\nChanged evidence or a missing selected story refuses publication. These are explicit pre-publication checks, not a continuously held source-code lock."
-    },
-    {
-      "id": "workspace",
-      "title": "Stage + replace output",
-      "kind": "step",
-      "anchorIds": [
-        "publish-entry",
-        "publish-wrapper",
-        "publish-files",
-        "write-lock",
-        "transaction",
-        "generated-write",
-        "workspace-manifest"
-      ],
-      "body": "Owners: @topo/cli composes output; @topo/workspace controls publication.\n\nAcquire the workspace write lock. Inside withGeneratedTransaction, generate Home, story wrappers, viewer HTML, navigation/theme scripts, evidence and renderer assets; queue obsolete generated files for retirement.\n\nwriteGenerated collects bytes in the transaction. Prepare staged files/backups and check destination contents before replacing files. Authored stories and repository source are not rewritten. Lock acquisition and preparation failures stop before replacing the generation."
-    },
-    {
-      "id": "screen",
-      "title": "Ready to browse",
-      "kind": "data",
-      "anchorIds": [
-        "publish-files",
-        "generated-write",
-        "preview-command"
-      ],
-      "body": "Output: .topo/cache/site/ contains the refreshed selected catalogue, rendered viewers, source evidence, and provenance.\n\nThe CLI prints the selected story's generated path and a topo serve instruction. It does NOT launch a server or browser. An already-running local server can show the new generation after refresh; static hosting is a separate topo bundle/deployment step.\n\nGenerated cache is disposable. Committed stories, configuration, and repository source remain the durable inputs."
-    },
-    {
-      "id": "refused",
-      "title": "Stop before publication",
-      "kind": "step",
-      "anchorIds": [
-        "preview-command",
-        "catalogue",
-        "stable-read",
-        "resolve-anchor",
-        "render-story",
-        "fresh-catalogue",
-        "write-lock",
-        "transaction"
-      ],
-      "body": "An input, snapshot, anchor, renderer, freshness, selection, lock, or preparation error propagates as failure. Do not label it as a successful preview or replace existing viewer content with plausible fallback output.\n\nThese branches occur before replacing the generation. Fix the reported cause, then run preview again. Temporary locks/staging are not a promise that no transient filesystem activity occurred."
-    },
-    {
-      "id": "rollback",
-      "title": "Attempt rollback",
-      "kind": "step",
-      "anchorIds": [
-        "transaction",
-        "workspace-manifest"
-      ],
-      "body": "Owner: @topo/workspace.\n\nOn a reported replacement error, walk already-committed replacements in reverse and restore backups (or remove newly created files). The original error is rethrown.\n\nRollback can itself fail: report an AggregateError and preserve rollback files for repair. This is rollback-capable publication, not crash-atomicity and not an unconditional guarantee that the prior generation survived."
+      "drilldown": {
+        "storyId": "cli-surface"
+      }
     }
   ],
   "connections": [
     {
-      "from": "cli",
-      "to": "snapshot",
-      "label": "initialized",
-      "anchorIds": [
-        "preview-command",
-        "catalogue"
-      ],
-      "rationale": "The preview branch checks the site and awaits buildCatalogue(root).",
-      "classification": "source-traced"
+      "from": "user",
+      "to": "agent",
+      "label": "Question, scope and intent"
+    },
+    {
+      "from": "agent",
+      "to": "cli",
+      "label": "Initialize; scan source"
     },
     {
       "from": "cli",
-      "to": "refused",
-      "label": "bad request / no site",
-      "anchorIds": [
-        "preview-command"
-      ],
-      "rationale": "Argument and site-index preconditions throw before catalogue generation.",
-      "classification": "source-traced"
+      "to": "agent",
+      "label": "Graph, evidence, diagnostics",
+      "variant": "return"
     },
     {
-      "from": "snapshot",
-      "to": "story",
-      "label": "captured bytes",
-      "anchorIds": [
-        "catalogue",
-        "snapshot",
-        "resolve-story"
-      ],
-      "rationale": "The captured snapshot loader is passed to resolveStoryDocument for each selected document.",
-      "classification": "source-traced"
+      "from": "agent",
+      "to": "agent",
+      "label": "Interpret; author anchored story"
     },
     {
-      "from": "snapshot",
-      "to": "refused",
-      "label": "invalid or unstable input",
-      "anchorIds": [
-        "catalogue",
-        "stable-read"
-      ],
-      "rationale": "Committed-story/config/path/read failures reject catalogue construction.",
-      "classification": "source-traced"
+      "from": "agent",
+      "to": "cli",
+      "label": "Validate the draft"
     },
     {
-      "from": "story",
-      "to": "diagram-core",
-      "label": "resolved story",
-      "anchorIds": [
-        "catalogue",
-        "default-renderer"
-      ],
-      "rationale": "Each resolved document is awaited before renderer.render(resolved) is called.",
-      "classification": "source-traced"
+      "from": "cli",
+      "to": "agent",
+      "label": "Anchor results; repair feedback",
+      "variant": "return"
     },
     {
-      "from": "story",
-      "to": "refused",
-      "label": "missing / stale anchor",
-      "anchorIds": [
-        "resolve-story",
-        "resolve-anchor"
-      ],
-      "rationale": "Anchor failures reject that story's Promise and prevent the catalogue from reaching publication.",
-      "classification": "source-traced"
+      "from": "agent",
+      "to": "agent",
+      "label": "Commit with authorization"
     },
     {
-      "from": "diagram-core",
-      "to": "freshness",
-      "label": "all artifacts ready",
-      "anchorIds": [
-        "catalogue",
-        "fresh-catalogue"
-      ],
-      "rationale": "After every render succeeds and duplicate IDs are checked, buildCatalogue calls assertCatalogueCurrent.",
-      "classification": "source-traced"
+      "from": "agent",
+      "to": "cli",
+      "label": "Preview; serve or bundle"
     },
     {
-      "from": "diagram-core",
-      "to": "refused",
-      "label": "renderer failure",
-      "anchorIds": [
-        "render-story",
-        "catalogue"
-      ],
-      "rationale": "Backend errors and unsupported artifact types reject catalogue construction; no fallback viewer is published.",
-      "classification": "source-traced"
+      "from": "cli",
+      "to": "agent",
+      "label": "Diagram and source evidence",
+      "variant": "return"
     },
     {
-      "from": "freshness",
-      "to": "workspace",
-      "label": "yes",
-      "anchorIds": [
-        "preview-command",
-        "publish-entry"
-      ],
-      "rationale": "A current catalogue containing the requested story is passed through the second freshness check into the workspace lock and publication.",
-      "classification": "source-traced"
+      "from": "agent",
+      "to": "user",
+      "label": "Present architecture document",
+      "variant": "return"
     },
     {
-      "from": "freshness",
-      "to": "refused",
-      "label": "no",
-      "anchorIds": [
-        "fresh-catalogue",
-        "fresh-snapshot",
-        "preview-command"
-      ],
-      "rationale": "Changed anchor bytes/Git state or missing requested membership throws instead of publishing stale output.",
-      "classification": "source-traced"
-    },
-    {
-      "from": "workspace",
-      "to": "screen",
-      "label": "replacement succeeds",
-      "anchorIds": [
-        "transaction",
-        "publish-files",
-        "preview-command"
-      ],
-      "rationale": "After successful generated publication, runCli prints the rendered story and serve instruction.",
-      "classification": "source-traced"
-    },
-    {
-      "from": "workspace",
-      "to": "refused",
-      "label": "lock / preparation error",
-      "anchorIds": [
-        "write-lock",
-        "transaction"
-      ],
-      "rationale": "A busy lock or failed preparation does not reach the replacement loop.",
-      "classification": "source-traced"
-    },
-    {
-      "from": "workspace",
-      "to": "rollback",
-      "label": "replacement error",
-      "anchorIds": [
-        "transaction"
-      ],
-      "rationale": "Reported failures in the replacement loop restore already-committed files in reverse; incomplete rollback is explicitly reported.",
-      "classification": "source-traced"
+      "from": "user",
+      "to": "agent",
+      "label": "Review, refine, repeat"
     }
   ]
 }

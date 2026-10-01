@@ -1,0 +1,384 @@
+{
+  "schemaVersion": "1.0",
+  "diagramFamily": "architecture",
+  "classification": "source-grounded",
+  "id": "cli-surface",
+  "title": "@topo/cli: public surface",
+  "category": "Module surfaces",
+  "parent": {
+    "storyId": "internal-modules",
+    "nodeId": "cli"
+  },
+  "summary": "The command interface and five modules re-exported by @topo/cli's package root. Arrows mean bin/export/type/dependency references, not a call sequence. This is a private workspace boundary bundled into @jdylanmc/topo-code, not a separately published or stable public SDK. Implementation helpers are deliberately omitted.",
+  "anchors": [
+    {
+      "id": "cli-manifest",
+      "path": "packages/cli/package.json",
+      "language": "text",
+      "sha256": "e1aaebf5b0fe115fe56a658b71022c849e25120794cdbd1b063ccda97c880086"
+    },
+    {
+      "id": "cli-entry",
+      "path": "packages/cli/src/index.ts",
+      "language": "text",
+      "sha256": "d05f2184becf9a468e04fc3ca8945f277001108c67de0f1ff33c562972e5c28d"
+    },
+    {
+      "id": "renderer-manifest",
+      "path": "packages/diagram-core/package.json",
+      "language": "text",
+      "sha256": "8e4b7a111ad4234367bc49e0b7b4827e880f9d489ce136a79650923b86cd7386"
+    },
+    {
+      "id": "story-manifest",
+      "path": "packages/story/package.json",
+      "language": "text",
+      "sha256": "996dc365b6c0bcdc3c4beaddb507c657cf97ee0412232c110f081013e0f7cfde"
+    },
+    {
+      "id": "commands",
+      "path": "packages/cli/src/main.ts",
+      "language": "text",
+      "sha256": "777350607d51e97214906d4106025f8b8d50200dfee93703e5ff16d22f3ed767",
+      "pattern": "HELP = `Topocode: local, deterministic repository maps\n\n  topo init [repository] [--skills]\n  topo scan [repository] [--allow-partial] [--responsibilities path]\n  topo ingest <repository> <report.json> [more.json ...]\n  topo enrich [repository]\n  topo preview <repository> <story>\n  topo story validate <repository> <story>\n  topo story preview <repository> <story>\n  topo serve [repository] [--port 4173]\n  topo bundle [repository] [--output directory] [--base-path /path/]\n\nRequires a Git repository and Node.js 22 or newer.\nScan is strict by default. --allow-partial publishes a visibly incomplete\npreview and exits 2; it never turns partial evidence into success.\nServe binds only to 127.0.0.1. Config and authored metadata are never overwritten.\nInit creates a ready-to-serve diagram home without scanning or opening a browser.\nScan adds repository exploration; story preview refreshes all committed stories.\n`"
+    },
+    {
+      "id": "generate",
+      "path": "packages/cli/src/pipeline.ts",
+      "language": "text",
+      "sha256": "b6b9d1952ea8dcbfec2c5e8f5fcdb5ee8e94ed6ad2f50bf45550e6a491cc9077",
+      "pattern": "export async function generateArtifacts(\n  root: string,\n  graph: GraphDocument,\n  siteAssets: string,\n  logicalArchitecture?: LogicalArchitectureDocument,\n  catalogue?: BuiltCatalogue,\n): Promise<ArtifactGenerationResult> {"
+    },
+    {
+      "id": "generation-result",
+      "path": "packages/cli/src/pipeline.ts",
+      "language": "text",
+      "sha256": "b6b9d1952ea8dcbfec2c5e8f5fcdb5ee8e94ed6ad2f50bf45550e6a491cc9077",
+      "pattern": "export interface ArtifactGenerationResult {\n  layout: LayoutResult;\n  dashboard: DashboardDocument | null;\n  warnings: string[];\n}"
+    },
+    {
+      "id": "ingest",
+      "path": "packages/cli/src/pipeline.ts",
+      "language": "text",
+      "sha256": "b6b9d1952ea8dcbfec2c5e8f5fcdb5ee8e94ed6ad2f50bf45550e6a491cc9077",
+      "pattern": "export async function ingestReports(\n  root: string,\n  inputPaths: string[],\n  siteAssets: string,\n  expectedRevision?: string,\n  catalogue?: BuiltCatalogue,\n): Promise<ReportIngestionResult> {"
+    },
+    {
+      "id": "ingest-result",
+      "path": "packages/cli/src/pipeline.ts",
+      "language": "text",
+      "sha256": "b6b9d1952ea8dcbfec2c5e8f5fcdb5ee8e94ed6ad2f50bf45550e6a491cc9077",
+      "pattern": "export interface ReportIngestionResult {\n  dashboard: DashboardDocument;\n  warnings: string[];\n}"
+    },
+    {
+      "id": "serve",
+      "path": "packages/cli/src/server.ts",
+      "language": "text",
+      "sha256": "559e9541d7b2edb97785d6a85a4b43bbc815c80e7341c6e8bad4a5cc55ef74cc",
+      "pattern": "export async function serveSite(root: string, port = 4173): Promise<{ server: Server; url: string }> {"
+    },
+    {
+      "id": "compose",
+      "path": "packages/cli/src/server.ts",
+      "language": "text",
+      "sha256": "559e9541d7b2edb97785d6a85a4b43bbc815c80e7341c6e8bad4a5cc55ef74cc",
+      "pattern": "export async function composeSiteData(\n  root: string,\n  input: unknown,\n): Promise<string | undefined> {"
+    },
+    {
+      "id": "bundle",
+      "path": "packages/cli/src/bundle.ts",
+      "language": "text",
+      "sha256": "9c5a44ea81e049ae47eb0e5fa87a47133613b08ff3cec037c6d735e3e38015a9",
+      "pattern": "export async function bundleSite(\n  rootInput: string,\n  outputInput: string,\n  options: BundleSiteOptions = {},\n): Promise<BundleSiteResult> {"
+    },
+    {
+      "id": "bundle-options",
+      "path": "packages/cli/src/bundle.ts",
+      "language": "text",
+      "sha256": "9c5a44ea81e049ae47eb0e5fa87a47133613b08ff3cec037c6d735e3e38015a9",
+      "pattern": "export interface BundleSiteOptions {\n  readonly basePath?: string;\n}"
+    },
+    {
+      "id": "bundle-result",
+      "path": "packages/cli/src/bundle.ts",
+      "language": "text",
+      "sha256": "9c5a44ea81e049ae47eb0e5fa87a47133613b08ff3cec037c6d735e3e38015a9",
+      "pattern": "export interface BundleSiteResult {\n  readonly basePath: string;\n  readonly outputDirectory: string;\n  readonly siteDirectory: string;\n}"
+    },
+    {
+      "id": "enrich",
+      "path": "packages/cli/src/enrichment.ts",
+      "language": "text",
+      "sha256": "44de5f5ab2fdefaa1c08e89143489552e5f5019cac3d4f7bb0a096f7f90e09d4",
+      "pattern": "export async function runEnrichment(\n  root: string,\n  options: EnrichmentRunOptions = {},\n): Promise<EnrichmentRunResult> {"
+    },
+    {
+      "id": "enrich-prompt",
+      "path": "packages/cli/src/enrichment.ts",
+      "language": "text",
+      "sha256": "44de5f5ab2fdefaa1c08e89143489552e5f5019cac3d4f7bb0a096f7f90e09d4",
+      "pattern": "export function buildEnrichmentPrompt(\n  inputPath: string,\n  outputPath: string,\n  analysisHash: string,\n  customPrompt?: string,\n): string {"
+    },
+    {
+      "id": "enrich-options",
+      "path": "packages/cli/src/enrichment.ts",
+      "language": "text",
+      "sha256": "44de5f5ab2fdefaa1c08e89143489552e5f5019cac3d4f7bb0a096f7f90e09d4",
+      "pattern": "export interface EnrichmentRunOptions {\n  signal?: AbortSignal;\n}"
+    },
+    {
+      "id": "enrich-result",
+      "path": "packages/cli/src/enrichment.ts",
+      "language": "text",
+      "sha256": "44de5f5ab2fdefaa1c08e89143489552e5f5019cac3d4f7bb0a096f7f90e09d4",
+      "pattern": "export interface EnrichmentRunResult {\n  analysisHash: string;\n  comments: number;\n}"
+    },
+    {
+      "id": "view-build",
+      "path": "packages/cli/src/views.ts",
+      "language": "text",
+      "sha256": "03d66cbba1d8436bdb263a7cf6dbf6e014a0138a97cf9bc4e01ca94f7fd967da",
+      "pattern": "export async function buildCuratedViews(\n  root: string,\n  graph: GraphDocument,\n): Promise<CuratedViewsBuild> {"
+    },
+    {
+      "id": "view-save",
+      "path": "packages/cli/src/views.ts",
+      "language": "text",
+      "sha256": "03d66cbba1d8436bdb263a7cf6dbf6e014a0138a97cf9bc4e01ca94f7fd967da",
+      "pattern": "export async function saveCuratedView(\n  root: string,\n  request: SaveCuratedViewRequest,\n  loadGraph: () => Promise<GraphDocument>,\n): Promise<CuratedViewsSnapshot> {"
+    },
+    {
+      "id": "view-result",
+      "path": "packages/cli/src/views.ts",
+      "language": "text",
+      "sha256": "03d66cbba1d8436bdb263a7cf6dbf6e014a0138a97cf9bc4e01ca94f7fd967da",
+      "pattern": "export interface CuratedViewsBuild {\n  snapshot: CuratedViewsSnapshot;\n  evaluations: Array<{\n    id: string;\n    evaluation: CuratedViewEvaluation;\n  }>;\n}"
+    },
+    {
+      "id": "view-parse",
+      "path": "packages/cli/src/views.ts",
+      "language": "text",
+      "sha256": "03d66cbba1d8436bdb263a7cf6dbf6e014a0138a97cf9bc4e01ca94f7fd967da",
+      "pattern": "export function parseSaveCuratedViewRequest(input: unknown): SaveCuratedViewRequest {"
+    },
+    {
+      "id": "view-hash",
+      "path": "packages/cli/src/views.ts",
+      "language": "text",
+      "sha256": "03d66cbba1d8436bdb263a7cf6dbf6e014a0138a97cf9bc4e01ca94f7fd967da",
+      "pattern": "export function graphHash(graph: GraphDocument): string {"
+    },
+    {
+      "id": "view-snapshot",
+      "path": "packages/cli/src/views.ts",
+      "language": "text",
+      "sha256": "03d66cbba1d8436bdb263a7cf6dbf6e014a0138a97cf9bc4e01ca94f7fd967da",
+      "pattern": "export function serializeCuratedViewsSnapshot(snapshot: CuratedViewsSnapshot): string {"
+    },
+    {
+      "id": "view-deltas",
+      "path": "packages/cli/src/views.ts",
+      "language": "text",
+      "sha256": "03d66cbba1d8436bdb263a7cf6dbf6e014a0138a97cf9bc4e01ca94f7fd967da",
+      "pattern": "export function serializeCuratedViewDeltas(build: CuratedViewsBuild): string {"
+    },
+    {
+      "id": "view-extract",
+      "path": "packages/cli/src/views.ts",
+      "language": "text",
+      "sha256": "03d66cbba1d8436bdb263a7cf6dbf6e014a0138a97cf9bc4e01ca94f7fd967da",
+      "pattern": "export function graphFromSiteBundle(input: unknown): GraphDocument {"
+    },
+    {
+      "id": "view-augment",
+      "path": "packages/cli/src/views.ts",
+      "language": "text",
+      "sha256": "03d66cbba1d8436bdb263a7cf6dbf6e014a0138a97cf9bc4e01ca94f7fd967da",
+      "pattern": "export function augmentSiteBundle(input: unknown, snapshot: CuratedViewsSnapshot): string {"
+    },
+    {
+      "id": "view-conflict",
+      "path": "packages/cli/src/views.ts",
+      "language": "text",
+      "sha256": "03d66cbba1d8436bdb263a7cf6dbf6e014a0138a97cf9bc4e01ca94f7fd967da",
+      "pattern": "export class CuratedViewConflictError extends Error {}"
+    },
+    {
+      "id": "view-metadata",
+      "path": "packages/cli/src/views.ts",
+      "language": "text",
+      "sha256": "03d66cbba1d8436bdb263a7cf6dbf6e014a0138a97cf9bc4e01ca94f7fd967da",
+      "pattern": "export class CuratedViewMetadataError extends Error {}"
+    }
+  ],
+  "sections": [
+    {
+      "id": "commands",
+      "title": "topo commands",
+      "summary": "Human and agent entry",
+      "body": "The manifest exposes topo -> dist/main.js.\n\nCommands: init, scan, story validate, story preview (and preview), serve, bundle, ingest, enrich.\n\nInputs: repository paths, authored stories, report files, and documented options. Outputs: diagnostics, generated storybook files, local URLs, and static bundles. scan supplies deterministic evidence; it does not invoke a model. runCli is exported by main.ts but is NOT re-exported from the package root.",
+      "anchorIds": [
+        "cli-manifest",
+        "commands"
+      ],
+      "semanticRole": "command-interface"
+    },
+    {
+      "id": "generation",
+      "title": "Generation API",
+      "summary": "Graph and report artifacts",
+      "body": "Root exports from pipeline.ts:\n\ngenerateArtifacts(root, graph, siteAssets, logicalArchitecture?, catalogue?) -> Promise<ArtifactGenerationResult>\ningestReports(root, inputPaths, siteAssets, expectedRevision?, catalogue?) -> Promise<ReportIngestionResult>\n\nArtifactGenerationResult: layout, optional dashboard, warnings.\nReportIngestionResult: dashboard, warnings.\n\nGeneration takes an already-supplied GraphDocument; do not confuse this API with the topo scan command. Referenced contracts include @topo/schema, @topo/graph and @topo/reports. BuiltCatalogue appears in signatures but is not itself a root re-export.",
+      "anchorIds": [
+        "cli-entry",
+        "generate",
+        "generation-result",
+        "ingest",
+        "ingest-result"
+      ],
+      "semanticRole": "public-interface"
+    },
+    {
+      "id": "contracts",
+      "title": "Referenced contracts",
+      "summary": "Types, not re-exports",
+      "body": "The exposed functions reference GraphDocument and LogicalArchitectureDocument (@topo/schema), LayoutResult (@topo/graph), DashboardDocument (@topo/reports), CuratedViewsSnapshot / SaveCuratedViewRequest (@topo/views), Node's Server, and AbortSignal.\n\nThese are signature dependencies, not claims that @topo/cli re-exports all those types. Named result/option interfaces defined in the five exported modules are root exports.",
+      "anchorIds": [
+        "generate",
+        "generation-result",
+        "ingest-result",
+        "view-save",
+        "view-result",
+        "serve",
+        "enrich-options"
+      ],
+      "semanticRole": "data-contract"
+    },
+    {
+      "id": "serving",
+      "title": "Serving API",
+      "summary": "Server and local URL",
+      "body": "Root exports from server.ts:\n\nserveSite(root, port?) -> Promise<{ server: Server; url: string }>\ncomposeSiteData(root, input) -> Promise<string | undefined>\n\nserveSite exposes a loopback HTTP server over the generated site; it does not author architecture. composeSiteData composes site data for consumers. Source-backed diagrams and website assets remain separate from these function signatures.",
+      "anchorIds": [
+        "cli-entry",
+        "serve",
+        "compose"
+      ],
+      "semanticRole": "public-interface"
+    },
+    {
+      "id": "cli",
+      "title": "@topo/cli",
+      "summary": "Package boundary",
+      "body": "Two entry surfaces: the topo binary and the package-root index.ts barrel. The barrel re-exports server, bundle, pipeline, enrichment, and views.\n\nDeclared runtime module references:\n@topo/diagram-core: workspace:*\n@topo/enrichment: workspace:*\n@topo/graph: workspace:*\n@topo/languages: workspace:*\n@topo/modules: workspace:*\n@topo/reports: workspace:*\n@topo/scanner: workspace:*\n@topo/schema: workspace:*\n@topo/site: workspace:*\n@topo/story: workspace:*\n@topo/views: workspace:*\n@topo/workspace: workspace:*\n\nThe diagram singles out diagram-core so you can continue into its exposed rendering contract. Catalogue, snapshot, skills, and repository-generation helpers are not root exports and are not expanded here.",
+      "anchorIds": [
+        "cli-manifest",
+        "cli-entry"
+      ],
+      "semanticRole": "module-boundary"
+    },
+    {
+      "id": "bundling",
+      "title": "Bundling API",
+      "summary": "Static output contract",
+      "body": "Root exports from bundle.ts:\n\nbundleSite(rootInput, outputInput, options?) -> Promise<BundleSiteResult>\nBundleSiteOptions: optional basePath.\nBundleSiteResult: basePath, outputDirectory, siteDirectory.\n\nProduces a static site directory. Deployment, a domain, and publication approval are not implied by this API.",
+      "anchorIds": [
+        "cli-entry",
+        "bundle",
+        "bundle-options",
+        "bundle-result"
+      ],
+      "semanticRole": "public-interface"
+    },
+    {
+      "id": "enrichment",
+      "title": "Enrichment API",
+      "summary": "Explicit provider invocation",
+      "body": "Root exports from enrichment.ts:\n\nrunEnrichment(root, options?) -> Promise<EnrichmentRunResult>\nbuildEnrichmentPrompt(inputPath, outputPath, analysisHash, customPrompt?) -> string\nEnrichmentRunOptions: optional AbortSignal.\nEnrichmentRunResult: analysisHash and comments count.\n\nThis is the explicit configured provider-command workflow. It is not automatically called by scan, and it is not the same thing as an agent independently interpreting evidence while authoring a story.",
+      "anchorIds": [
+        "cli-entry",
+        "enrich",
+        "enrich-prompt",
+        "enrich-options",
+        "enrich-result"
+      ],
+      "semanticRole": "public-interface"
+    },
+    {
+      "id": "views",
+      "title": "Curated-view API",
+      "summary": "Views, saves and conflicts",
+      "body": "Root exports from views.ts:\n\nbuildCuratedViews; saveCuratedView; graphHash; parseSaveCuratedViewRequest;\nserializeCuratedViewsSnapshot; serializeCuratedViewDeltas;\ngraphFromSiteBundle; augmentSiteBundle.\n\nContracts: CuratedViewsBuild, CuratedViewConflictError, CuratedViewMetadataError. Save requests and returned snapshots use @topo/views types; graph inputs use @topo/schema.\n\nThis is the exposed path-based curated-view surface, not arbitrary diagram authoring or a private implementation map.",
+      "anchorIds": [
+        "cli-entry",
+        "view-build",
+        "view-save",
+        "view-result",
+        "view-parse",
+        "view-hash",
+        "view-snapshot",
+        "view-deltas",
+        "view-extract",
+        "view-augment",
+        "view-conflict",
+        "view-metadata"
+      ],
+      "semanticRole": "public-interface"
+    },
+    {
+      "id": "diagram-core",
+      "title": "@topo/diagram-core",
+      "summary": "Rendering dependency",
+      "body": "A declared workspace dependency of @topo/cli. It exposes renderers that consume resolved stories and return HTML artifacts with provenance.\n\nClick to open its public-surface diagram. This is a dependency reference, not a claim that the CLI barrel re-exports diagram-core's APIs.",
+      "anchorIds": [
+        "cli-manifest",
+        "renderer-manifest"
+      ],
+      "semanticRole": "module-reference",
+      "drilldown": {
+        "storyId": "diagram-core-surface"
+      }
+    }
+  ],
+  "connections": [
+    {
+      "from": "cli",
+      "to": "commands",
+      "label": "bin"
+    },
+    {
+      "from": "cli",
+      "to": "generation",
+      "label": "exports"
+    },
+    {
+      "from": "cli",
+      "to": "serving",
+      "label": "exports"
+    },
+    {
+      "from": "cli",
+      "to": "bundling",
+      "label": "exports"
+    },
+    {
+      "from": "cli",
+      "to": "enrichment",
+      "label": "exports"
+    },
+    {
+      "from": "cli",
+      "to": "views",
+      "label": "exports"
+    },
+    {
+      "from": "generation",
+      "to": "contracts",
+      "label": "uses types"
+    },
+    {
+      "from": "cli",
+      "to": "diagram-core",
+      "label": "depends on"
+    }
+  ]
+}

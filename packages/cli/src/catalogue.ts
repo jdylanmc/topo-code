@@ -8,6 +8,7 @@ import {
   parseStoryDocument,
   resolveStoryDocument,
   type StoryDocument,
+  type StoryTarget,
   type StoryRenderer,
   type ResolvedSourceAnchor,
   type StoryArtifact,
@@ -281,6 +282,7 @@ export async function buildCatalogue(
       history: await storyHistory(root, documentPath, historyIncomplete),
     };
   }));
+  validateStoryTargets(documents.map(({ document }) => document));
   const snapshot = await captureSourceSnapshot(
     root,
     documents.flatMap(({ document }) =>
@@ -363,8 +365,36 @@ interface StoryLink {
   readonly sourceNodeId: string;
   readonly targetStoryId: string;
   readonly targetStoryTitle: string;
-  readonly targetNodeId: string;
-  readonly targetNodeTitle: string;
+  readonly targetNodeId?: string;
+  readonly targetNodeTitle?: string;
+  readonly primary?: boolean;
+}
+
+function validateStoryTargets(documents: readonly StoryDocument[]): void {
+  const byId = new Map<string, StoryDocument>();
+  for (const document of documents) {
+    if (byId.has(document.id)) throw new Error(`Duplicate story id: ${document.id}`);
+    byId.set(document.id, document);
+  }
+  const check = (source: string, target: StoryTarget) => {
+    const destination = byId.get(target.storyId);
+    if (!destination) throw new Error(`${source}: navigation target ${target.storyId} is not in the selected catalogue`);
+    if (target.storyId === source) throw new Error(`${source}: navigation target must be another story`);
+    if (target.nodeId !== undefined && !destination.sections.some(section => section.id === target.nodeId)) {
+      throw new Error(`${source}: unknown target node ${target.storyId}/${target.nodeId}`);
+    }
+  };
+  for (const document of documents) {
+    if (document.parent) check(document.id, document.parent);
+    for (const section of document.sections) if (section.drilldown) check(document.id, section.drilldown);
+    const ancestors = new Set([document.id]);
+    let parent = document.parent;
+    while (parent) {
+      if (ancestors.has(parent.storyId)) throw new Error(`${document.id}: cyclic story parents`);
+      ancestors.add(parent.storyId);
+      parent = byId.get(parent.storyId)?.parent;
+    }
+  }
 }
 
 const CAPABILITY_CATEGORY = "Diagram capabilities";
@@ -430,14 +460,23 @@ const STORY_NAVIGATION_SCRIPT = `(() => {
   }
 
   const returnLink = document.querySelector("[data-return]");
-  const from = params.get("from");
-  const fromFocus = params.get("fromFocus");
-  if (returnLink instanceof HTMLAnchorElement && from && fromFocus) {
-    const source = document.querySelector('[data-story-id="' + CSS.escape(from) + '"]');
-    if (source instanceof HTMLAnchorElement) {
-      returnLink.hidden = false;
-      returnLink.textContent = "Return to " + source.textContent;
-      returnLink.href = "../" + encodeURIComponent(from) + "/?focus=" + encodeURIComponent(fromFocus);
+  if (returnLink instanceof HTMLAnchorElement) {
+    const targets = [
+      [params.get("from"), params.get("fromFocus")],
+      [returnLink.dataset.parentStory, returnLink.dataset.parentNode],
+    ];
+    for (const [from, fromFocus] of targets) {
+      if (!from || !fromFocus) continue;
+      const inventory = document.querySelector("template[data-catalogue-data]");
+      const source = document.querySelector('[data-story-id="' + CSS.escape(from) + '"]') ||
+        (inventory instanceof HTMLTemplateElement ? inventory.content.querySelector('a[data-id="' + CSS.escape(from) + '"]') : null);
+      if (source instanceof HTMLAnchorElement) {
+        returnLink.hidden = false;
+        returnLink.textContent = "Return to " + (source.dataset.title || source.textContent);
+        returnLink.href = "../" + encodeURIComponent(from) + "/?focus=" + encodeURIComponent(fromFocus);
+        document.querySelector("[data-story-breadcrumb]").hidden = false;
+        break;
+      }
     }
   }
 
@@ -447,7 +486,7 @@ const STORY_NAVIGATION_SCRIPT = `(() => {
     if (!child || !childDocument) return;
     const currentParams = new URLSearchParams(window.location.search);
     showEvidence(currentParams.get("focus") || "", currentParams.get("edge"));
-    const syncSelectedNode = () => {
+    const syncSelectedNode = (activatedNodeId) => {
       const selected = new URLSearchParams(child.location.hash.replace(/^#/, ""));
       const edge = selected.get("edge");
       if (edge !== null && document.querySelector('[data-edge-evidence="' + CSS.escape(edge) + '"]')) {
@@ -466,12 +505,21 @@ const STORY_NAVIGATION_SCRIPT = `(() => {
       current.searchParams.set("focus", focus);
       window.history.replaceState(null, "", current);
       showEvidence(focus, null);
-      if (diagramFamily !== "sequence" && candidates.length === 1) {
-        follow(candidates[0]);
+      if (activatedNodeId === focus) {
+        const primary = candidates.find(link => link.hasAttribute("data-drilldown"));
+        if (primary) follow(primary);
+        else if (diagramFamily !== "sequence" && candidates.length === 1) follow(candidates[0]);
       }
     };
-    childDocument.addEventListener("click", () => setTimeout(syncSelectedNode));
-    childDocument.addEventListener("keyup", () => setTimeout(syncSelectedNode));
+    childDocument.addEventListener("click", event => {
+      const node = event.target.closest?.("[data-node-id]");
+      setTimeout(() => syncSelectedNode(node?.getAttribute("data-node-id")));
+    });
+    childDocument.addEventListener("keyup", event => {
+      const node = event.target.closest?.("[data-node-id]");
+      const activate = event.key === "Enter" || event.key === " ";
+      setTimeout(() => syncSelectedNode(activate ? node?.getAttribute("data-node-id") : undefined));
+    });
   });
 
   setFocus(params.get("focus") || "");
@@ -829,11 +877,21 @@ function storyLinks(stories: readonly CatalogueStory[]): Map<string, StoryLink[]
     const links: StoryLink[] = [];
     const seen = new Set<string>();
     for (const section of document.sections) {
+      if (section.drilldown) {
+        const target = stories.find(story => story.document.id === section.drilldown!.storyId)?.document;
+        if (!target) throw new Error(`${document.id}: missing drilldown story ${section.drilldown.storyId}`);
+        const node = target.sections.find(node => node.id === section.drilldown!.nodeId);
+        if (section.drilldown.nodeId !== undefined && !node) throw new Error(`${document.id}: missing drilldown node ${section.drilldown.nodeId}`);
+        links.push({
+          sourceNodeId: section.id, targetStoryId: target.id, targetStoryTitle: target.title, primary: true,
+          ...(node ? { targetNodeId: node.id, targetNodeTitle: node.title } : {}),
+        });
+      }
       for (const anchorId of section.anchorIds) {
         const anchor = anchors.get(anchorId);
         if (!anchor) continue;
         for (const target of destinations.get(anchorKey(anchor)) ?? []) {
-          if (target.storyId === document.id) continue;
+          if (target.storyId === document.id || target.storyId === section.drilldown?.storyId) continue;
           const key = `${section.id}\0${target.storyId}\0${target.nodeId}`;
           if (seen.has(key)) continue;
           seen.add(key);
@@ -874,7 +932,7 @@ export function renderStoryWrapper(
 
   const nodes = story.document.sections.map((section) => {
     const crossLinks = (linksByNode.get(section.id) ?? []).map((link) =>
-      `<a data-cross-story data-source-node="${escapeHtml(section.id)}" href="../${encodeURIComponent(link.targetStoryId)}/?focus=${encodeURIComponent(link.targetNodeId)}&amp;from=${encodeURIComponent(story.document.id)}&amp;fromFocus=${encodeURIComponent(section.id)}">Open ${escapeHtml(link.targetStoryTitle)}: ${escapeHtml(link.targetNodeTitle)}</a>`,
+      `<a data-cross-story${link.primary ? " data-drilldown" : ""} data-source-node="${escapeHtml(section.id)}" href="../${encodeURIComponent(link.targetStoryId)}/?${link.targetNodeId === undefined ? "" : `focus=${encodeURIComponent(link.targetNodeId)}&amp;`}from=${encodeURIComponent(story.document.id)}&amp;fromFocus=${encodeURIComponent(section.id)}">Open ${escapeHtml(link.targetStoryTitle)}${link.targetNodeTitle === undefined ? "" : `: ${escapeHtml(link.targetNodeTitle)}`}</a>`,
     ).join("");
     const evidence = (story.anchors ?? []).filter((anchor) => section.anchorIds.includes(anchor.id)).map((anchor) =>
       `<figure><figcaption>${escapeHtml(anchor.path)}:${anchor.location.startLine}-${anchor.location.endLine}</figcaption><pre>${escapeHtml(anchor.excerpt)}</pre></figure>`).join("");
@@ -891,13 +949,15 @@ export function renderStoryWrapper(
     return `<div data-edge-evidence="${index}" data-edge-from="${escapeHtml(edge.from)}" data-edge-to="${escapeHtml(edge.to)}"><p><a href="?edge=${index}">${escapeHtml(edge.classification)}: ${escapeHtml(edge.label ?? `${edge.from} to ${edge.to}`)}</a></p><p>${escapeHtml(edge.rationale!)}</p>${excerpts}</div>`;
   }).join("");
   return renderShellPage(stories, config, historyIncomplete, story, `\
+    <nav class="story-breadcrumb" data-story-breadcrumb aria-label="Diagram context" hidden>
+      <a data-return data-parent-story="${escapeHtml(story.document.parent?.storyId ?? "")}" data-parent-node="${escapeHtml(story.document.parent?.nodeId ?? "")}" hidden></a>
+    </nav>
     <iframe data-story-viewer title="${escapeHtml(story.document.title)} rendered story" src="viewer.html"></iframe>
     <details class="story-details">
       <summary>Story navigation and details</summary>
       <div class="story-context">
         <p class="classification">${classificationLabel}</p>
         <p>${escapeHtml(story.document.summary)}</p>
-        <a data-return hidden></a>
       </div>
       <ul>${nodes}</ul>${edges}
     </details>`, repository);
@@ -1017,7 +1077,12 @@ function renderShellPage(
       .story-links a[aria-current="page"] { background: #17324d; color: white; box-shadow: inset 3px 0 var(--accent); font-weight: 700; }
       .catalogue-empty { margin: 0; padding: 1rem 0.65rem; color: #a9b7ca; line-height: 1.5; }
       .catalogue-footer { grid-row: 6; padding: 0.7rem 0.85rem; border-top: 1px solid #29364a; color: #7f8da1; font-size: 0.75rem; }
-      .story-main { display: grid; grid-template-rows: minmax(0, 1fr) auto; min-width: 0; min-height: 0; background: #f8fafc; }
+      .story-main { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-width: 0; min-height: 0; background: #f8fafc; }
+      .story-main > iframe { grid-row: 2; }
+      .story-main > .story-details { grid-row: 3; }
+      .story-breadcrumb { grid-row: 1; padding: 0.5rem 0.85rem; border-bottom: 1px solid #29364a; background: #0b1524; font-size: 0.875rem; overflow-wrap: anywhere; }
+      .story-breadcrumb[hidden] { display: none; }
+      :root[data-theme="light"] .story-breadcrumb { background: #e6eef7; border-color: #a0b6cc; }
       .classification { color: #a9b7ca; font-size: 0.9rem; font-weight: 600; }
       a { color: #7dd3fc; }
       [data-node-id][aria-current="true"] { color: white; font-weight: bold; }
@@ -1089,7 +1154,6 @@ function renderShellPage(
         .story-main, .home-main, .repository-main { grid-column: 2; grid-row: 1; }
         .home-main { padding-left: 4.5rem; }
         .repository-toolbar { padding-left: 3.75rem; }
-        .story-main { grid-template-rows: minmax(0, 1fr); }
         .story-details { position: fixed; z-index: 4; top: auto; right: auto; bottom: 0; left: 0; width: 14rem; max-height: min(70vh, 36rem); border: 1px solid #29364a; border-radius: 0 0.5rem 0 0; box-shadow: 0 0.4rem 1.2rem rgb(0 0 0 / 35%); }
         .story-details summary { padding: 0.35rem 0.65rem; }
         .story-details summary { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1118,7 +1182,6 @@ function renderShellPage(
         .catalogue-footer { display: block; }
         [data-navigation-collapsed="true"] .brand-row { flex-basis: auto; border-right: 0; }
         .story-main, .home-main, .repository-main { grid-column: 2; grid-row: 1; }
-        .story-main { grid-template-rows: minmax(0, 1fr); }
         .story-details { position: fixed; z-index: 4; top: auto; right: auto; bottom: 0; left: 0; width: 14rem; max-height: min(70vh, 36rem); border: 1px solid #29364a; border-radius: 0 0.5rem 0 0; box-shadow: 0 0.4rem 1.2rem rgb(0 0 0 / 35%); }
         .story-details summary { padding: 0.35rem 0.65rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .story-context { display: grid; }
