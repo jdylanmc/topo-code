@@ -1,0 +1,240 @@
+{
+  "schemaVersion": "1.0",
+  "diagramFamily": "sequence",
+  "classification": "source-grounded",
+  "id": "algorithm-evidence-extraction",
+  "title": "Compiler-backed evidence extraction",
+  "category": "Core algorithms",
+  "parent": {
+    "storyId": "internal-modules",
+    "nodeId": "scanner"
+  },
+  "summary": "The TypeScript/JavaScript scan path: repository inputs become a deterministic file/import graph and compiler-backed semantic facts. Lifelines are local code/API boundaries, not separate services. Repeated per-file/import/declaration work is compressed into single exchanges. Failures stop the path unless explicitly permitted partial evidence is returned. This does not infer the right conceptual architecture or runtime behavior.",
+  "anchors": [
+    {
+      "id": "composition",
+      "path": "packages/languages/src/index.ts",
+      "language": "typescript",
+      "symbol": "scanProject",
+      "sha256": "03fb7ff8ece428bf9279a4360735a3dcf6d0e871cb5c3c8684f627dc1aab7592"
+    },
+    {
+      "id": "scan",
+      "path": "packages/scanner/src/typescript-scanner.ts",
+      "language": "typescript",
+      "symbol": "scanRepository",
+      "sha256": "7c51e70b264d3ff387404dda119f7aef4a30b12881ee3699fe4b5a21d2008ce8"
+    },
+    {
+      "id": "configured",
+      "path": "packages/scanner/src/typescript-scanner.ts",
+      "language": "typescript",
+      "symbol": "loadConfiguredSources",
+      "sha256": "7c51e70b264d3ff387404dda119f7aef4a30b12881ee3699fe4b5a21d2008ce8"
+    },
+    {
+      "id": "source-record",
+      "path": "packages/scanner/src/typescript-scanner.ts",
+      "language": "typescript",
+      "symbol": "createSourceRecord",
+      "sha256": "7c51e70b264d3ff387404dda119f7aef4a30b12881ee3699fe4b5a21d2008ce8"
+    },
+    {
+      "id": "workspace-resolution",
+      "path": "packages/scanner/src/typescript-scanner.ts",
+      "language": "typescript",
+      "symbol": "resolveWorkspaceModuleName",
+      "sha256": "7c51e70b264d3ff387404dda119f7aef4a30b12881ee3699fe4b5a21d2008ce8"
+    },
+    {
+      "id": "semantic",
+      "path": "packages/scanner/src/semantic.ts",
+      "language": "typescript",
+      "symbol": "extractLogicalArchitecture",
+      "sha256": "ff530e01801814e92abbf2b9bff7f4a30b4b03104e6ef13c893f07b877d26571"
+    },
+    {
+      "id": "canonical-symbol",
+      "path": "packages/scanner/src/semantic.ts",
+      "language": "typescript",
+      "symbol": "canonicalSymbol",
+      "sha256": "ff530e01801814e92abbf2b9bff7f4a30b4b03104e6ef13c893f07b877d26571"
+    },
+    {
+      "id": "relationship-kind",
+      "path": "packages/scanner/src/semantic.ts",
+      "language": "typescript",
+      "symbol": "relationshipKind",
+      "sha256": "ff530e01801814e92abbf2b9bff7f4a30b4b03104e6ef13c893f07b877d26571"
+    },
+    {
+      "id": "scanner-manifest",
+      "path": "packages/scanner/package.json",
+      "language": "text",
+      "sha256": "3027a4fa118d19cd7fa2b165b728a642582b0f5e43d986a595ff25f276bfee48"
+    }
+  ],
+  "sections": [
+    {
+      "id": "caller",
+      "title": "Caller",
+      "semanticRole": "scan-client",
+      "body": "The language-composition layer invokes the TypeScript scanner adapter when selected. This view focuses on that scanner, not the separate partial Rust/Tauri adapters. The result carries graphs, diagnostics, metrics and an authoritative/partial flag; no model is called.",
+      "anchorIds": [
+        "composition",
+        "scan"
+      ]
+    },
+    {
+      "id": "scanner",
+      "title": "Scanner",
+      "semanticRole": "evidence-extraction",
+      "body": "scanRepository inventories files, compiler configs and workspaces; captures source text/fingerprints; and resolves imports. Topocode maps compiler-selected outputs to source, distinguishes local/workspace/external/assets, consolidates duplicate import evidence, sorts canonical output, and applies quality gates before the semantic pass.\n\nUnresolved local/workspace imports are diagnostics, not guessed edges. Strict failure stops the scan; explicitly allowed partial output remains marked partial. The scanner returns evidence, not a finished architecture narrative.",
+      "anchorIds": [
+        "scan",
+        "configured",
+        "source-record",
+        "workspace-resolution",
+        "scanner-manifest"
+      ]
+    },
+    {
+      "id": "compiler",
+      "title": "TypeScript API",
+      "semanticRole": "compiler-api",
+      "body": "In-process compiler APIs supply parsed configuration, syntax trees, module resolution and type/symbol information. The scanner's workspace-aware host and source mappings constrain how those results are used. TypeScript does not classify Topocode's graph quality or invent responsibility groups.",
+      "anchorIds": [
+        "configured",
+        "source-record",
+        "workspace-resolution",
+        "semantic"
+      ]
+    },
+    {
+      "id": "semantic",
+      "title": "Semantic pass",
+      "semanticRole": "semantic-extraction",
+      "body": "extractLogicalArchitecture builds a compiler program using per-file options and already-resolved import mappings. It canonicalizes aliases, identifies declarations, signatures and members, then walks identifiers to record static relationships and their locations.\n\nResponsibility assignments come from an explicit proposal, not automatic architectural inference. Missing proposals and unassigned entities stay visible. Static references are not runtime reachability.",
+      "anchorIds": [
+        "semantic",
+        "canonical-symbol",
+        "relationship-kind"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": "caller",
+      "to": "scanner",
+      "label": "Repository and scan options",
+      "anchorIds": [
+        "composition",
+        "scan"
+      ],
+      "rationale": "scanProject delegates through the TypeScript scanner adapter; scanRepository parses and validates its options.",
+      "classification": "source-traced"
+    },
+    {
+      "from": "scanner",
+      "to": "compiler",
+      "label": "Parse configs and source files",
+      "anchorIds": [
+        "configured",
+        "source-record"
+      ],
+      "rationale": "Configured source loading and source-record construction use TypeScript configuration and parsing APIs.",
+      "classification": "source-traced"
+    },
+    {
+      "from": "compiler",
+      "to": "scanner",
+      "label": "Compiler options and syntax trees",
+      "anchorIds": [
+        "configured",
+        "source-record"
+      ],
+      "rationale": "Compiler results feed Topocode source records; file fingerprints and evidence are assembled by Topocode.",
+      "classification": "source-traced",
+      "variant": "return"
+    },
+    {
+      "from": "scanner",
+      "to": "compiler",
+      "label": "Resolve imports and workspace exports",
+      "anchorIds": [
+        "scan",
+        "workspace-resolution"
+      ],
+      "rationale": "For each import, use compiler resolution and the supported workspace-aware resolution path where applicable.",
+      "classification": "source-traced"
+    },
+    {
+      "from": "compiler",
+      "to": "scanner",
+      "label": "Resolved target or missing result",
+      "anchorIds": [
+        "scan",
+        "workspace-resolution"
+      ],
+      "rationale": "Topocode classifies the returned target, maps generated outputs to source where unambiguous, and records diagnostics for unresolved local/workspace imports.",
+      "classification": "source-traced",
+      "variant": "return"
+    },
+    {
+      "from": "scanner",
+      "to": "semantic",
+      "label": "Quality-gated graph and source set",
+      "anchorIds": [
+        "scan",
+        "semantic"
+      ],
+      "rationale": "After constructing and validating canonical file/import evidence and applying strict/partial quality gates, scanRepository invokes extractLogicalArchitecture.",
+      "classification": "source-traced"
+    },
+    {
+      "from": "semantic",
+      "to": "compiler",
+      "label": "Build program; query symbols",
+      "anchorIds": [
+        "semantic",
+        "canonical-symbol"
+      ],
+      "rationale": "The semantic pass creates a program/checker and queries exports, declarations, types, aliases and identifier targets.",
+      "classification": "source-traced"
+    },
+    {
+      "from": "compiler",
+      "to": "semantic",
+      "label": "Declarations and symbol resolutions",
+      "anchorIds": [
+        "semantic",
+        "relationship-kind"
+      ],
+      "rationale": "Topocode turns compiler facts into stable semantic entities and static relationships with source locations.",
+      "classification": "source-traced",
+      "variant": "return"
+    },
+    {
+      "from": "semantic",
+      "to": "scanner",
+      "label": "Semantic facts and assignment status",
+      "anchorIds": [
+        "semantic"
+      ],
+      "rationale": "Return the logical-architecture document, including explicit proposed/unassigned responsibility information and diagnostics.",
+      "classification": "source-traced",
+      "variant": "return"
+    },
+    {
+      "from": "scanner",
+      "to": "caller",
+      "label": "Graphs, diagnostics and quality",
+      "anchorIds": [
+        "scan"
+      ],
+      "rationale": "Return ScanResult. A refused scan throws instead; partial evidence never becomes an authoritative success claim.",
+      "classification": "source-traced",
+      "variant": "return"
+    }
+  ]
+}

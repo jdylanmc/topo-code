@@ -48,7 +48,7 @@ development and release documents retain their separately labeled procedures.
 
 ## Curated source-backed demo
 
-Each build validates the five curated stories against the working source and
+Each build validates the eight curated stories against the working source and
 requires their story/evidence files to be committed. It clones that exact local
 revision into a temporary repository, retains the real origin, applies the demo
 catalogue configuration, then runs the actual `topo init` and `topo bundle`.
@@ -93,7 +93,25 @@ writes explicit. This is the documented collaboration workflow, not a call trace
 of one process. Scan never invokes the model; agent interpretation does not
 require the separate `topo enrich` command. Commits still require authorization.
 
-`catalogue.storyIds` selects exactly these five maps. Existing development stories
+Three algorithm sequences add implementation-level explanations without inventing
+services or runtime telemetry:
+
+- `algorithm-evidence-extraction`: TypeScript/JavaScript scan, compiler resolution,
+  deterministic graph construction, and the semantic pass. Missing assignments
+  remain unassigned; no architecture is invented.
+- `algorithm-anchor-resolution`: the CLI's captured-source path through exact
+  anchor resolution and freshness checks. Optional digests, first-name
+  TypeScript AST lookup, exact patterns, and refusal conditions stay explicit.
+- `algorithm-graph-projection`: reusable indexed projection and directed edge
+  aggregation with hidden-edge accounting. Tarjan cycle groups are prepared
+  upstream, not recalculated for every view. This is distinct from rendering,
+  Repository page generation, and the manually authored module map.
+
+The scanner, story, and graph boxes drill into these sequences. Each has a
+canonical return to its module, complete source anchors, and per-message
+rationale. Lifelines denote local code/API/data boundaries, not new services.
+
+`catalogue.storyIds` selects exactly these eight maps. Existing development stories
 and examples are preserved but excluded from the demo. Hash-bound evidence fails
 on source drift; it must be reassessed, not silently regenerated during builds.
 

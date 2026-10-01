@@ -268,6 +268,39 @@ test("module boxes drill into public surfaces with clear nested and direct retur
   await expect(page.locator("[data-return]")).toBeVisible();
 });
 
+for (const [id, module, detailNode, boundary] of [
+  ["algorithm-evidence-extraction", "scanner", "semantic", "runtime reachability"],
+  ["algorithm-anchor-resolution", "story", "resolver", "no fuzzy matching"],
+  ["algorithm-graph-projection", "graph", "aggregation", "83% of represented edge weight"],
+]) {
+  test(`${id}: readable source-backed sequence with module drill-in and return`, async ({ page }) => {
+    for (const [width, height] of [[1440, 900], [1600, 1000], [1920, 1080], [2048, 1320]]) {
+      await page.setViewportSize({ width, height });
+      await page.goto(`demo/home/stories/${id}/viewer.html`);
+      await page.evaluate(() => document.fonts.ready);
+      const diagram = page.locator('svg[data-topo-family="sequence"]');
+      await expect(diagram.locator("g[data-node-id]")).toHaveCount(4);
+      const metrics = await diagram.evaluate(svg => ({
+        overflow: document.documentElement.scrollWidth > innerWidth || document.documentElement.scrollHeight > innerHeight,
+        fontFloor: Math.min(...[...svg.querySelectorAll("text")].filter(text => text.textContent.trim())
+          .map(text => parseFloat(getComputedStyle(text).fontSize) * svg.getScreenCTM().a)),
+      }));
+      expect(metrics.overflow).toBe(false);
+      expect(metrics.fontFloor).toBeGreaterThanOrEqual(12);
+    }
+    await page.goto("demo/home/stories/internal-modules/");
+    await page.frameLocator("[data-story-viewer]").locator(`svg g[data-node-id="${module}"]`).click();
+    await expect(page.locator("body")).toHaveAttribute("data-story-id", id);
+    await expect(page.locator("[data-return]")).toBeVisible();
+    await page.frameLocator("[data-story-viewer]").locator(`svg g[data-node-id="${detailNode}"]`).click();
+    await page.locator(".story-details > summary").click();
+    await expect(page.locator(`[data-section-evidence="${detailNode}"] > p`)).toContainText(boundary);
+    await page.locator("[data-return]").click();
+    await expect(page.locator("body")).toHaveAttribute("data-story-id", "internal-modules");
+    await expect(page.locator(`[data-node-id="${module}"]`)).toHaveAttribute("aria-current", "true");
+  });
+}
+
 test("retired theme preferences cannot override Blueprint", async ({ page }) => {
   for (const retired of ["porcelain", "forest", "sandstone", "oxide", "aubergine", "graphite"]) {
     await page.goto("./");

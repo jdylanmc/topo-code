@@ -108,6 +108,25 @@ test("module surface narratives cover actual root exports with signature-only fu
   }
 });
 
+test("core algorithm sequences retain trace evidence and module parents", async () => {
+  for (const [id, module] of [
+    ["algorithm-evidence-extraction", "scanner"],
+    ["algorithm-anchor-resolution", "story"],
+    ["algorithm-graph-projection", "graph"],
+  ]) {
+    const document = JSON.parse(await readFile(path.join(root, `stories/public/${id}.topo.json`), "utf8"));
+    assert.equal(document.diagramFamily, "sequence");
+    assert.equal(document.sections.length, 4);
+    assert.equal(document.connections.length, 10);
+    assert.deepEqual(document.parent, { storyId: "internal-modules", nodeId: module });
+    assert.ok(document.anchors.every(anchor => /^[a-f0-9]{64}$/.test(anchor.sha256)));
+    const ids = new Set(document.anchors.map(anchor => anchor.id));
+    assert.ok(document.connections.every(edge =>
+      edge.from !== edge.to && edge.classification === "source-traced" &&
+      edge.rationale && edge.anchorIds.length && edge.anchorIds.every(id => ids.has(id))));
+  }
+});
+
 test("build only the curated story set for project Pages and custom-domain roots", async () => {
   const original = process.env.SITE_BASE_PATH;
   try {
@@ -121,12 +140,15 @@ test("build only the curated story set for project Pages and custom-domain roots
       const home = await readFile(path.join(output, "demo/home/index.html"), "utf8");
       const state = JSON.parse(await readFile(path.join(output, "demo/home/site-state.json"), "utf8"));
       assert.match(home, /data-topo-shell/);
-      assert.equal((home.match(/data-kind="story"/g) ?? []).length, 5);
+      assert.equal((home.match(/data-kind="story"/g) ?? []).length, 8);
       assert.match(home, /Topocode internal modules/);
       assert.match(home, /Dependency context by role/);
       assert.match(home, /From idea to architecture/);
       assert.match(home, /@topo\/cli: public surface/);
       assert.match(home, /@topo\/diagram-core: public surface/);
+      assert.match(home, /Compiler-backed evidence extraction/);
+      assert.match(home, /Source-anchor resolution and freshness/);
+      assert.match(home, /Graph projection and edge aggregation/);
       assert.doesNotMatch(home, /Workflow capability|topo-packages/);
       assert.match(JSON.stringify(state), /unscanned/);
       assert.match(await readFile(path.join(output, "index.html"), "utf8"), new RegExp(`${base}assets/client.mjs`));

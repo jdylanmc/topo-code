@@ -170,11 +170,14 @@
       "title": "@topo/story",
       "summary": "Resolve story evidence",
       "semanticRole": "contracts-and-evidence",
-      "body": "Parses authored stories and resolves file/symbol/excerpt anchors against a source snapshot. Defines the renderer-neutral story contract.\n\nAll declared internal dependencies (not runtime calls):\n@topo/story -> @topo/languages [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/cli -> @topo/story [dependencies: workspace:*]\n@topo/diagram-core -> @topo/story [dependencies: workspace:*]\n\nStable drilldown identity: story. Module-specific detail maps will be curated later; there is no placeholder target.",
+      "body": "Parses authored stories and resolves file/symbol/excerpt anchors against a source snapshot. Defines the renderer-neutral story contract.\n\nAll declared internal dependencies (not runtime calls):\n@topo/story -> @topo/languages [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/cli -> @topo/story [dependencies: workspace:*]\n@topo/diagram-core -> @topo/story [dependencies: workspace:*]\n\nStable drilldown identity: story. Open the source-backed sequence for this module's core algorithm.",
       "anchorIds": [
         "packages-story-package",
         "story-implementation"
-      ]
+      ],
+      "drilldown": {
+        "storyId": "algorithm-anchor-resolution"
+      }
     },
     {
       "id": "languages",
@@ -192,11 +195,14 @@
       "title": "@topo/scanner",
       "summary": "TypeScript source facts",
       "semanticRole": "source-analysis",
-      "body": "Extracts TypeScript/JavaScript declarations, references, and graph evidence with the pinned compiler API and repository file-selection rules.\n\nAll declared internal dependencies (not runtime calls):\n@topo/scanner -> @topo/schema [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/languages -> @topo/scanner [dependencies: workspace:*]\n@topo/cli -> @topo/scanner [dependencies: workspace:*]\n\nStable drilldown identity: scanner. Module-specific detail maps will be curated later; there is no placeholder target.",
+      "body": "Extracts TypeScript/JavaScript declarations, references, and graph evidence with the pinned compiler API and repository file-selection rules.\n\nAll declared internal dependencies (not runtime calls):\n@topo/scanner -> @topo/schema [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/languages -> @topo/scanner [dependencies: workspace:*]\n@topo/cli -> @topo/scanner [dependencies: workspace:*]\n\nStable drilldown identity: scanner. Open the source-backed sequence for this module's core algorithm.",
       "anchorIds": [
         "packages-scanner-package",
         "scanner-implementation"
-      ]
+      ],
+      "drilldown": {
+        "storyId": "algorithm-evidence-extraction"
+      }
     },
     {
       "id": "schema",
@@ -308,11 +314,14 @@
       "title": "@topo/graph",
       "summary": "Project and lay out graphs",
       "semanticRole": "graph-shaping",
-      "body": "Derives architecture, graph projections, aggregation, deterministic layout and layout deltas from validated source evidence.\n\nAll declared internal dependencies (not runtime calls):\n@topo/graph -> @topo/schema [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/cli -> @topo/graph [dependencies: workspace:*]\n@topo/views -> @topo/graph [dependencies: workspace:*]\n@topo/site -> @topo/graph [dependencies: workspace:*]\n@topo/modules -> @topo/graph [dependencies: workspace:*]\n\nStable drilldown identity: graph. Module-specific detail maps will be curated later; there is no placeholder target.",
+      "body": "Derives architecture, graph projections, aggregation, deterministic layout and layout deltas from validated source evidence.\n\nAll declared internal dependencies (not runtime calls):\n@topo/graph -> @topo/schema [dependencies: workspace:*]\n\nReferenced by internal modules:\n@topo/cli -> @topo/graph [dependencies: workspace:*]\n@topo/views -> @topo/graph [dependencies: workspace:*]\n@topo/site -> @topo/graph [dependencies: workspace:*]\n@topo/modules -> @topo/graph [dependencies: workspace:*]\n\nStable drilldown identity: graph. Open the source-backed sequence for this module's core algorithm.",
       "anchorIds": [
         "packages-graph-package",
         "graph-implementation"
-      ]
+      ],
+      "drilldown": {
+        "storyId": "algorithm-graph-projection"
+      }
     }
   ],
   "connections": [
