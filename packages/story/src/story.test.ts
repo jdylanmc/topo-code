@@ -43,6 +43,77 @@ function validStory(): StoryDocument {
 }
 
 describe("story document contract", () => {
+  it("accepts explicit sequence spacing only with a bounded sequence contract", async () => {
+    const value = { ...validStory(), diagramFamily: "sequence", sequenceLayout: { minimumParticipantGap: 220 } };
+    const validate = new Ajv2020({ strict: true }).compile(JSON.parse(await readFile(schemaPath, "utf8")));
+    expect(validate(value)).toBe(true);
+    expect(parseStoryDocument(JSON.stringify(value), "wide.topo.json").sequenceLayout).toEqual({ minimumParticipantGap: 220 });
+    for (const invalid of [
+      { ...value, diagramFamily: "architecture" },
+      ...[{}, null, { minimumParticipantGap: 107 }, { minimumParticipantGap: 220.5 }, { minimumParticipantGap: "220" },
+        { minimumParticipantGap: 220, width: 1000 }].map(sequenceLayout => ({ ...value, sequenceLayout })),
+    ]) {
+      expect(validate(invalid)).toBe(false);
+      expect(() => parseStoryDocument(JSON.stringify(invalid), "wide.topo.json")).toThrow();
+    }
+  });
+
+  it("accepts explicit drilldown and parent targets and rejects malformed navigation", async () => {
+    const story = validStory();
+    const value = {
+      ...story, parent: { storyId: "overview", nodeId: "checkout" },
+      sections: [{ ...story.sections[0], drilldown: { storyId: "details" } }],
+    };
+    const validate = new Ajv2020({ strict: true }).compile(JSON.parse(await readFile(schemaPath, "utf8")));
+    expect(validate(value)).toBe(true);
+    expect(parseStoryDocument(JSON.stringify(value), "navigation.topo.json").parent).toEqual(value.parent);
+    for (const invalid of [
+      { ...value, parent: { storyId: "overview" } },
+      { ...value, parent: { storyId: "../escape", nodeId: "checkout" } },
+      ...[null, { storyId: "details", nodeId: "" }, { storyId: "details", url: "https://example.test" }]
+        .map(drilldown => ({ ...value, sections: [{ ...story.sections[0], drilldown }] })),
+    ]) {
+      expect(validate(invalid)).toBe(false);
+      expect(() => parseStoryDocument(JSON.stringify(invalid), "navigation.topo.json")).toThrow();
+    }
+  });
+
+  it("validates authored architecture roles in both schema and parser", async () => {
+    const story = validStory();
+    const value = { ...story, sections: [{ ...story.sections[0], semanticRole: "source-analysis" }] };
+    const validate = new Ajv2020({ strict: true }).compile(JSON.parse(await readFile(schemaPath, "utf8")));
+    expect(validate(value)).toBe(true);
+    expect(parseStoryDocument(JSON.stringify(value), "roles.topo.json").sections[0]?.semanticRole).toBe("source-analysis");
+    const sequence = { ...value, diagramFamily: "sequence" };
+    expect(validate(sequence)).toBe(true);
+    expect(parseStoryDocument(JSON.stringify(sequence), "roles.topo.json").sections[0]?.semanticRole).toBe("source-analysis");
+    for (const invalid of [
+      { ...value, diagramFamily: "workflow" },
+      ...["", "Source analysis", 'bad"role', "constructor", "a".repeat(65)].map(semanticRole => ({
+        ...value, sections: [{ ...story.sections[0], semanticRole }],
+      })),
+    ]) {
+      expect(validate(invalid)).toBe(false);
+      expect(() => parseStoryDocument(JSON.stringify(invalid), "roles.topo.json")).toThrow();
+    }
+  });
+
+  it("supports concise architecture captions without replacing full narrative or evidence", async () => {
+    const story = validStory();
+    const value = { ...story, sections: [{ ...story.sections[0], summary: "Charge an order" }] };
+    const schema = JSON.parse(await readFile(schemaPath, "utf8"));
+    const validate = new Ajv2020({ strict: true }).compile(schema);
+    expect(validate(value)).toBe(true);
+    expect(parseStoryDocument(JSON.stringify(value), "caption.topo.json").sections[0]?.summary).toBe("Charge an order");
+    for (const invalid of [
+      { ...value, diagramFamily: "workflow" },
+      { ...value, sections: [{ ...story.sections[0], summary: "" }] },
+    ]) {
+      expect(validate(invalid)).toBe(false);
+      expect(() => parseStoryDocument(JSON.stringify(invalid), "caption.topo.json")).toThrow();
+    }
+  });
+
   it("accepts an optional catalogue category", () => {
     expect(parseStoryDocument(
       JSON.stringify(validStory()),

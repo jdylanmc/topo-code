@@ -14,7 +14,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { buildCatalogueStories } from "./catalogue.js";
 
 const repositoryRoot = fileURLToPath(new URL("../../../", import.meta.url));
@@ -102,6 +102,11 @@ afterEach(async () => {
 });
 
 describe("Topocode package story", () => {
+  let stories: Awaited<ReturnType<typeof buildCatalogueStories>>;
+  beforeAll(async () => {
+    stories = await buildCatalogueStories(repositoryRoot);
+  }, 60_000);
+
   it("validates an exact file-scoped manifest pattern without a symbol", async () => {
     const root = await mkdtemp(join(tmpdir(), "topo-file-pattern-"));
     directories.push(root);
@@ -166,7 +171,6 @@ describe("Topocode package story", () => {
       manifests.set(manifest.name, { path, manifest });
     }
 
-    const stories = await buildCatalogueStories(repositoryRoot);
     const packageStory = stories.find(({ document }) =>
       document.id === "topo-packages"
     );

@@ -86,10 +86,10 @@ test("technical branches retain geometry, exact edge evidence, Home links and ca
   expect(svgText).not.toContain("prefers-color-scheme");
   expect(svgText).toContain("rgb(");
   await page.goto(`${url}/stories/snapshot/?focus=choose`);
-  await page.locator(".story-details > summary").click();
+  await expect(page.locator(".story-details")).toHaveAttribute("open", "");
   await page.locator('[data-cross-story][data-source-node="choose"]').click();
   await expect(page).toHaveURL(/snapshot-overview.*focus=handler/);
-  await page.locator(".story-details > summary").click();
+  await expect(page.locator(".story-details")).toHaveAttribute("open", "");
   await page.locator("[data-return]").click();
   await expect(page).toHaveURL(/snapshot\/.*focus=choose/);
   const index = JSON.parse(await readFile(join(repository, ".topo/cache/site/repository.json"), "utf8"));

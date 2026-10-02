@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "1.0",
+  "repositoryId": "topocode",
+  "modules": [],
+  "catalogue": {
+    "title": "Topocode",
+    "description": "Explore module responsibilities, drill into the CLI and renderer's exposed interfaces, or follow the human-agent loop from an idea to a reviewed architecture document.",
+    "accentColor": "#80d8ed",
+    "storyIds": ["internal-modules", "dependency-context", "story-to-screen", "cli-surface", "diagram-core-surface", "algorithm-evidence-extraction", "algorithm-anchor-resolution", "algorithm-graph-projection"]
+  }
+}

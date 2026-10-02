@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import type { StoryDocument, StoryTarget } from "@topo/story";
+import { storyNodeIds } from "./node-ids.js";
 
 // The native renderer's documented ?theme= and data-theme seams remain intact.
 // One application preference wins over renderer storage and OS media queries.
@@ -35,7 +37,12 @@ export const CORE_THEME_SCRIPT = `(() => {
       if (frame.contentWindow && typeof frame.contentWindow.topoSetTheme === "function") frame.contentWindow.topoSetTheme(theme, false);
     }
   }
-  window.topoSetTheme = apply;
+  window.topoSetTheme = (theme, persist) => {
+    if (persist && window.parent !== window && typeof window.parent.topoSetTheme === "function") {
+      return window.parent.topoSetTheme(theme, persist);
+    }
+    apply(theme, persist);
+  };
   function toggle(event) {
     if (event) {
       event.preventDefault();
@@ -69,9 +76,54 @@ export const CORE_THEME_SCRIPT = `(() => {
   });
 })();`;
 
-export function adaptViewerTheme(contents: string): string {
+export function adaptViewerTheme(
+  contents: string,
+  document?: StoryDocument,
+  renderer?: "archify" | "graphviz",
+): string {
   if (!/<head\b[^>]*>/i.test(contents)) throw new Error("Renderer output has no head for the core theme integration");
-  return contents.replace(/<head\b[^>]*>/i, (head) => `${head}\n<script data-topo-theme-owner>${CORE_THEME_SCRIPT}</script>`);
+  const drilldowns: [string, StoryTarget][] = [];
+  for (const section of document?.sections ?? []) {
+    if (!section.drilldown) continue;
+    if (!/^[a-z0-9][a-z0-9-]*$/.test(section.drilldown.storyId)) throw new Error("Invalid standalone drilldown target");
+    drilldowns.push([section.id, section.drilldown]);
+  }
+  const identities = document === undefined ? [] : storyNodeIds(document, renderer);
+  const navigation = document === undefined ||
+    (drilldowns.length === 0 && identities.every(([authored, native]) => authored === native)) ? "" : `
+<script data-topo-standalone-navigation>
+(() => {
+  const nodeIds = new Map(${JSON.stringify(identities).replaceAll("<", "\\u003c")});
+  const authoredIds = new Map([...nodeIds].map(([authored, native]) => [native, authored]));
+  const selection = new URLSearchParams(location.hash.slice(1));
+  const focus = selection.get("focus");
+  if (nodeIds.has(focus) && nodeIds.get(focus) !== focus) {
+    selection.set("focus", nodeIds.get(focus));
+    history.replaceState(null, "", location.pathname + location.search + "#" + selection);
+  }
+  const storyId = ${JSON.stringify(document.id).replaceAll("<", "\\u003c")};
+  if (window.parent !== window || !location.pathname.endsWith("/stories/" + storyId + "/viewer.html")) return;
+  const targets = new Map(${JSON.stringify(drilldowns).replaceAll("<", "\\u003c")});
+  let navigating = false;
+  function activate(event) {
+    if (navigating) return;
+    if (event.type === "keyup" && event.key !== "Enter" && event.key !== " ") return;
+    const node = event.target.closest?.("[data-node-id]");
+    const id = authoredIds.get(node?.getAttribute("data-node-id"));
+    const target = targets.get(id);
+    if (!target) return;
+    navigating = true;
+    const destination = new URL("../" + encodeURIComponent(target.storyId) + "/", location.href);
+    if (target.nodeId) destination.searchParams.set("focus", target.nodeId);
+    destination.searchParams.set("from", storyId);
+    destination.searchParams.set("fromFocus", id);
+    setTimeout(() => location.assign(destination.href));
+  }
+  document.addEventListener("click", activate);
+  document.addEventListener("keyup", activate);
+})();
+</script>`;
+  return contents.replace(/<head\b[^>]*>/i, (head) => `${head}\n<script data-topo-theme-owner>${CORE_THEME_SCRIPT}</script>${navigation}`);
 }
 
 export function outputHash(contents: string): string {

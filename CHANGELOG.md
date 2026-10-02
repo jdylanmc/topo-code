@@ -5,6 +5,30 @@ versions are independent; publication remains a separate release-owner action.
 
 ## Unreleased
 
+### Added
+
+- Add the public static website with repository-backed documentation, installation
+  guidance, a curated roadmap, and a live diagram demonstrating the scan-to-review
+  collaboration. GitHub Actions validates changes and deploys main to GitHub Pages.
+  See #74 and #75.
+- Add eight source-backed self-documentation stories, including module interfaces
+  and algorithm sequences, with explicit drilldowns and visible return navigation.
+- Let authors select a published story subset, add short Architecture captions and
+  semantic responsibility roles, and request wider Sequence participant spacing.
+  These repository-build capabilities are not yet in the npm 0.2.0 release.
+
+### Fixed
+
+- Keep default Architecture source captions readable across sidebar breakpoints
+  without changing authored summary styling. Reserve space for open evidence
+  rather than covering diagram titles or navigation controls.
+- Preserve the actual caller through nested story returns and reloads, and keep
+  drilldown/focus navigation working for all legal authored section IDs across
+  native and Graphviz viewers.
+- Keep adjacent diagonal Architecture routes local instead of taking unnecessary
+  detours. Preserve readable captions, interactive accessibility, nested theme
+  ownership, and source evidence while leaving the pinned renderer unchanged.
+
 ## 0.2.0 - 2026-09-30
 
 Release preparation date; npm publication is not implied by these notes.

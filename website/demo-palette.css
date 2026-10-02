@@ -1,0 +1,26 @@
+/* Website-owned empty Home presentation; generated demo bytes stay intact. */
+:root[data-website-palette] [data-topo-theme] { display: none; }
+:root[data-website-palette] body { background: var(--bg); color: var(--text); }
+:root[data-website-palette] .catalogue-panel,
+:root[data-website-palette] .catalogue-panel::before,
+:root[data-website-palette] .brand-row,
+:root[data-website-palette] .story-breadcrumb,
+:root[data-website-palette] input,
+:root[data-website-palette] select,
+:root[data-website-palette] button { background: var(--panel); color: var(--text); border-color: var(--line); }
+:root[data-website-palette] a,
+:root[data-website-palette] .brand-identity a,
+:root[data-website-palette] .site-navigation a { color: var(--accent); }
+:root[data-website-palette] .home-main p,
+:root[data-website-palette] .home-main li,
+:root[data-website-palette] .catalogue-controls label,
+:root[data-website-palette] .site-title,
+:root[data-website-palette] .catalogue-empty,
+:root[data-website-palette] .catalogue-footer { color: var(--muted); }
+:root[data-website-palette] h1,
+:root[data-website-palette] h2,
+:root[data-website-palette] .home-main code,
+:root[data-website-palette] .brand-row strong { color: var(--text); }
+:root[data-website-palette] [data-shell-status] { color: var(--accent); }
+:root[data-website-palette] .site-navigation [aria-current="page"],
+:root[data-website-palette] .site-navigation a:hover { background: var(--bg); color: var(--accent); }

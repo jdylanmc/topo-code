@@ -13,12 +13,15 @@ import type {
   ResolvedStoryDocument,
   StoryArtifact,
   StoryConnection,
+  StoryDocument,
 } from "@topo/story";
 import { cliPath as archifyCli } from "@jdylanmc/topo-archify";
 import { verifyArchifyIntegrity } from "./integrity.js";
 import { adaptViewerTheme, outputHash } from "./theme.js";
 import { renderGraphviz } from "./graphviz.js";
+import { componentId } from "./node-ids.js";
 export { CORE_THEME_SCRIPT } from "./theme.js";
+export { storyNodeIds } from "./node-ids.js";
 
 export {
   verifyArchifyIntegrity,
@@ -264,12 +267,6 @@ function stableId(prefix: string, value: string): string {
   return `${prefix}_${hash}`;
 }
 
-function componentId(sectionId: string): string {
-  return /^[a-zA-Z][a-zA-Z0-9_-]*$/.test(sectionId)
-    ? sectionId
-    : stableId("component", sectionId);
-}
-
 // Match the pinned renderer's text-unit model before deciding whether prose
 // can remain inline at the final readable font size.
 const fullwidthCharacter =
@@ -329,7 +326,7 @@ function sequenceLayout(story: ResolvedStoryDocument): SequenceLayout {
       sequenceReadability.sideMargin * 2,
     sequenceReadability.sideMargin +
       requiredParticipantWidth +
-      (participantCount - 1) * sequenceReadability.minimumParticipantGap +
+      (participantCount - 1) * (story.document.sequenceLayout?.minimumParticipantGap ?? sequenceReadability.minimumParticipantGap) +
       sequenceReadability.rightMargin,
   );
   const messageYs = story.document.connections.map((_, index) =>
@@ -514,9 +511,9 @@ function archifySpec(
     const primary = sectionAnchors[0];
     // Short, legible sublabel (a code reference), never the full narrative body:
     // Archify enforces a per-component minimum-legibility width.
-    const sublabel = primary === undefined || !nativeSourceEvidence
+    const sublabel = section.summary ?? (primary === undefined || !nativeSourceEvidence
       ? ""
-      : primary.symbol ?? primary.path.split("/").pop() ?? primary.path;
+      : primary.symbol ?? primary.path.split("/").pop() ?? primary.path);
     const width = architectureComponentWidth(section.title, sublabel, !nativeSourceEvidence);
     return { section, sectionAnchors, sublabel, width };
   });
@@ -564,10 +561,12 @@ function archifySpec(
     const toIndex = sectionIndexById.get(connection.to)!;
     const from = cellOf(fromIndex);
     const to = cellOf(toIndex);
+    const neighbouringDiagonal = Math.abs(to.row - from.row) === 1 &&
+      Math.abs(to.column - from.column) === 1;
     if (
       Math.abs(to.row - from.row) +
           Math.abs(to.column - from.column) !==
-        1
+        1 && !neighbouringDiagonal
     ) {
       detourLaneByConnection.set(connectionIndex, detourLaneCount);
       detourLaneCount += 1;
@@ -645,9 +644,7 @@ function archifySpec(
     const { row, column } = cellOf(index);
     return {
       id: componentIds.get(section.id)!,
-      type: nativeSourceEvidence && index === sections.length - 1
-        ? "frontend" as const
-        : "backend" as const,
+      type: "backend" as const,
       label: section.title,
       sublabel,
       pos: [
@@ -658,7 +655,9 @@ function archifySpec(
       ...(sectionAnchors.length === 0 || !nativeSourceEvidence
         ? {}
         : {
-            sources: sectionAnchors.map((anchor) => ({
+            // Native cards allow three links; the story wrapper retains every
+            // validated anchor and its excerpt in the full evidence panel.
+            sources: sectionAnchors.slice(0, 3).map((anchor) => ({
               path: anchor.path,
               line: anchor.location.startLine,
               end_line: anchor.location.endLine,
@@ -761,8 +760,8 @@ function archifySpec(
           }),
     },
     components,
-    // Adjacent grid cells route directly; non-adjacent endpoints detour through
-    // a dedicated lane below the grid so an edge never crosses another node.
+    // Neighbouring cells use native routing and port spreading. Distant
+    // endpoints retain outside lanes to avoid unrelated nodes.
     connections: story.document.connections.map((connection, index) => {
       const fromIndex = sections.findIndex((s) => s.id === connection.from);
       const toIndex = sections.findIndex((s) => s.id === connection.to);
@@ -780,6 +779,9 @@ function archifySpec(
         ...(connection.label === undefined ? {} : { label: connection.label }),
       };
       const adjacent = Math.abs(deltaRow) + Math.abs(deltaColumn) === 1;
+      if (Math.abs(deltaRow) === 1 && Math.abs(deltaColumn) === 1) {
+        return base;
+      }
       if (adjacent) {
         const vertical = deltaRow !== 0;
         const horizontalLabelBelow = deltaColumn > 0;
@@ -979,11 +981,9 @@ function sequenceSpec(
       column_fit: "spread",
       viewBox: layout.viewBox,
     },
-    participants: story.document.sections.map((section, index) => ({
+    participants: story.document.sections.map((section) => ({
       id: participantIds.get(section.id)!,
-      type: index === story.document.sections.length - 1
-        ? "frontend"
-        : "backend",
+      type: "backend",
       label: section.title,
       sublabel: layout.inlineBodyIds.has(section.id) ? section.body : "",
     })),
@@ -1390,6 +1390,35 @@ function serializeRendererInput(spec: { readonly meta: object }): string {
   }, null, 2)}\n`;
 }
 
+function adaptStorySemantics(contents: string, document: StoryDocument): string {
+  const fallback = document.diagramFamily === "sequence" ? "participant" : "component";
+  const roles = new Map(document.sections.map(section => [componentId(section.id), section.semanticRole ?? fallback]));
+  const summaries = new Set(document.sections
+    .filter(section => section.summary !== undefined)
+    .map(section => componentId(section.id)));
+  const seen = new Set<string>();
+  const adapted = contents.replace(/<g\b[^>]*\bdata-node-id="([^"]+)"[^>]*>/g, (tag, id: string) => {
+    const role = roles.get(id);
+    if (role === undefined) return tag;
+    if (!/^(?!constructor$)[a-z][a-z0-9-]{0,63}$/.test(role)) throw new Error(`Invalid semantic role for ${id}`);
+    if (!/\bdata-node-kind="[^"]*"/.test(tag)) throw new Error(`Story node ${id} has no semantic metadata`);
+    seen.add(id);
+    const annotated = tag.replace(/\bdata-node-kind="[^"]*"/, `data-node-kind="${role}"`);
+    return summaries.has(id) ? annotated.replace("<g", '<g data-topo-caption="summary"') : annotated;
+  });
+  if (seen.size !== roles.size) throw new Error("Story semantic adaptation omitted an authored node");
+  const replacements: readonly [RegExp, string][] = [
+    [/(<strong\b[^>]*id="semantic-lens-title"[^>]*>)[^<]*(<\/strong>)/,
+      "$1Compare responsibilities$2"],
+    [/(<p\b[^>]*class="semantic-lens-instruction"[^>]*>)[^<]*(<\/p>)/,
+      "$1Choose up to two authored roles. Highlight only the relationships drawn in this story: not runtime traffic, transitive impact, or the complete dependency graph. One role includes connected peers; two compare direct cross-role arrows.$2"],
+  ];
+  return replacements.reduce((html, [pattern, replacement]) => {
+    if (!pattern.test(html)) throw new Error("Pinned semantic lens presentation seam is missing");
+    return html.replace(pattern, replacement);
+  }, adapted);
+}
+
 function improveStoryReadability(
   contents: string,
   family:
@@ -1399,19 +1428,34 @@ function improveStoryReadability(
     | "dataflow"
     | "lifecycle",
   dataflowLayout?: DataflowLayout,
-  sequenceFontSize?: number,
+  sequence?: SequenceLayout,
 ): string {
   const headEnd = "</head>";
   if (!contents.includes(headEnd)) {
     throw new Error(`Archify ${family} output is missing its closing head element`);
   }
+  if (family === "sequence" && sequence === undefined) throw new Error("Missing sequence readability layout");
+  const sequenceRatio = sequence === undefined ? undefined : sequence.viewBox[0] / sequence.viewBox[1];
+  const semanticControls = family === "architecture" || family === "sequence" ? `
+html[data-topo-app] .semantic-lens { width: min(34rem, calc(100% - 24px)); max-height: calc(100% - 16px); overflow: auto; }
+#semantic-lens-title { font-size: 1rem; }
+#semantic-lens .semantic-lens-instruction,
+#semantic-lens .semantic-lens-status,
+#semantic-lens .semantic-lens-actions button,
+#semantic-lens-kinds .semantic-lens-kind em { font-size: 0.8rem; line-height: 1.5; }
+#semantic-lens-kinds .semantic-lens-kind strong { font-size: 0.85rem; line-height: 1.4; white-space: normal; overflow: visible; overflow-wrap: anywhere; text-overflow: clip; }` : "";
   const rules = family === "architecture"
     ? `
 svg { max-height: 100vh; }
+/* The story shell supplies the node index and full source details. */
+.reader-rail { display: none !important; }
 svg [data-source-evidence-beacon] { display: none; }
 svg text[data-node-label],
 svg text[data-detail="context"],
-svg g[data-edge-from] > text { font-size: ${architectureFontSize}px; }`
+svg g[data-edge-from] > text { font-size: ${architectureFontSize}px; }
+/* Native caption baselines are only 16 units below titles. */
+svg text[data-detail="context"] { transform: translateY(20px); }
+svg [data-topo-caption="summary"] text[data-detail="context"] { font-size: 17px; transform: translateY(12px); }`
     : family === "workflow"
       ? `
 svg text[data-node-label],
@@ -1424,8 +1468,19 @@ svg g[data-edge-from] > text {
       : family === "sequence"
         ? `
 svg { max-height: 100vh; }
+.reader-rail { display: none !important; }
+@media (min-width: 1400px) and (min-height: 900px) {
+  html[data-topo-app] .container {
+    min-width: min(calc(100vw - 64px), ${sequence === undefined ? 0 : sequence.viewBox[0] * sequenceReadability.targetEffectiveFontSize / sequence.fontSize + 50}px);
+    max-width: min(calc(100vw - 64px), calc((100dvh - 260px) * ${sequenceRatio} + 30px));
+  }
+}
+@media (min-width: 1400px) and (min-height: 900px) and (max-height: 920px) {
+  html[data-topo-app] .container { max-width: min(calc(100vw - 64px), calc((100dvh - 156px) * ${sequenceRatio} + 32px)); }
+  html[data-topo-app] .diagram-container { padding-bottom: 56px; }
+}
 svg text {
-  font-size: ${sequenceFontSize}px;
+  font-size: ${sequence?.fontSize}px;
 }
 .semantic-passport-detail {
   font-size: 0.875rem;
@@ -1447,7 +1502,7 @@ svg g[data-edge-from] > text {
   font-family: Arial, Helvetica, sans-serif;
   font-size: ${lifecycleFontSize}px;
 }`;
-  const style = `<style data-topo-story-readability>${rules}
+  const style = `<style data-topo-story-readability>${rules}${semanticControls}
 </style>`;
   const adjustedContents = family === "dataflow" && dataflowLayout
     ? dataflowLayout.flowLabelWidths.reduce((html, width, index) => {
@@ -1504,7 +1559,11 @@ svg g[data-edge-from] > text {
         return next;
       }, contents)
     : contents;
-  return adjustedContents.replace(headEnd, `${style}\n${headEnd}`);
+  const accessibleContents = family === "architecture" || family === "sequence"
+    ? adjustedContents.replace(/<svg\b[^>]*\brole="img"[^>]*>/, tag =>
+        tag.replace('role="img"', 'role="group"').replace("<svg", `<svg data-topo-family="${family}"`))
+    : adjustedContents;
+  return accessibleContents.replace(headEnd, `${style}\n${headEnd}`);
 }
 
 export function renderArchitectureStories(
@@ -1541,9 +1600,11 @@ export function* renderArchitectureStoryBatch(
         manifest,
       ], { cwd: directory, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, stdio: ["ignore", "pipe", "pipe"] });
     }
-    for (const { output } of jobs) {
+    for (const [index, { output }] of jobs.entries()) {
       const sourceContents = readFileSync(output, "utf8");
-      const contents = adaptViewerTheme(improveStoryReadability(sourceContents, "architecture"));
+      const contents = adaptViewerTheme(adaptStorySemantics(
+        improveStoryReadability(sourceContents, "architecture"), stories[index]!.document,
+      ), stories[index]!.document, "archify");
       yield {
         kind: "html",
         mediaType: "text/html",
@@ -1554,7 +1615,7 @@ export function* renderArchitectureStoryBatch(
           sha256: integrity.archiveSha256,
           sourceOutputSha256: outputHash(sourceContents),
           outputSha256: outputHash(contents),
-          adaptation: "topocode-readability-and-theme-v1",
+          adaptation: "topocode-story-semantics-v2",
         },
       };
     }
@@ -1620,9 +1681,12 @@ export function renderStory(story: ResolvedStoryDocument): StoryArtifact | Promi
         adaptiveSequenceLayout!,
       )
       : readFileSync(outputPath, "utf8");
-    const adapted = adaptViewerTheme(improveStoryReadability(
-      contents, family, adaptiveDataflowLayout, adaptiveSequenceLayout?.fontSize,
-    ));
+    const readable = improveStoryReadability(
+      contents, family, adaptiveDataflowLayout, adaptiveSequenceLayout,
+    );
+    const adapted = adaptViewerTheme(family === "architecture" || family === "sequence"
+      ? adaptStorySemantics(readable, story.document)
+      : readable, story.document);
     return {
       kind: "html",
       mediaType: "text/html",
@@ -1633,7 +1697,7 @@ export function renderStory(story: ResolvedStoryDocument): StoryArtifact | Promi
         sha256: integrity.archiveSha256,
         sourceOutputSha256: outputHash(readFileSync(outputPath, "utf8")),
         outputSha256: outputHash(adapted),
-        adaptation: "topocode-readability-and-theme-v1",
+        adaptation: family === "architecture" || family === "sequence" ? "topocode-story-semantics-v2" : "topocode-readability-and-theme-v1",
       },
     };
   } catch (error) {

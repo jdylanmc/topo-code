@@ -1,12 +1,16 @@
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { buildCatalogueStories } from "./catalogue.js";
 
 const repositoryRoot = fileURLToPath(new URL("../../../", import.meta.url));
 
 describe("Sequence capability demo", () => {
+  let stories: Awaited<ReturnType<typeof buildCatalogueStories>>;
+  beforeAll(async () => {
+    stories = await buildCatalogueStories(repositoryRoot);
+  }, 60_000);
+
   it("renders a visibly separate native return message", async () => {
-    const stories = await buildCatalogueStories(repositoryRoot);
     const story = stories.find(({ document }) =>
       document.id === "sequence-capability"
     );

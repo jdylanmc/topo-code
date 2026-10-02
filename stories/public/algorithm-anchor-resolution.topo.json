@@ -1,0 +1,239 @@
+{
+  "schemaVersion": "1.0",
+  "diagramFamily": "sequence",
+  "classification": "source-grounded",
+  "id": "algorithm-anchor-resolution",
+  "title": "Source-anchor resolution and freshness",
+  "category": "Core algorithms",
+  "parent": {
+    "storyId": "internal-modules",
+    "nodeId": "story"
+  },
+  "summary": "The CLI story validator initiates this sequence to validate a draft against its current source. The diagram follows one anchor; resolution repeats for every anchor. Snapshot is a local reader/captured map, and Parser is local language lookup—not another service. Digest checks apply when a hash is supplied; symbol and snippet checks are optional according to the anchor. Rendering/publication are outside this draft-validation path.",
+  "anchors": [
+    {
+      "id": "validate",
+      "path": "packages/cli/src/story-validation.ts",
+      "language": "typescript",
+      "symbol": "validateStory",
+      "sha256": "d6f60cad448f66c60c94f6a2f611f52617958a45c0e78eb5fad0e08285e1de58"
+    },
+    {
+      "id": "capture",
+      "path": "packages/cli/src/source-snapshot.ts",
+      "language": "typescript",
+      "symbol": "captureSourceSnapshot",
+      "sha256": "5027a3c3ad3b16ebafd3eec698d5f5c9a8b1b211d2a8b71cf2d89dd53602feb6"
+    },
+    {
+      "id": "stable-read",
+      "path": "packages/cli/src/source-snapshot.ts",
+      "language": "typescript",
+      "symbol": "readStableSource",
+      "sha256": "5027a3c3ad3b16ebafd3eec698d5f5c9a8b1b211d2a8b71cf2d89dd53602feb6"
+    },
+    {
+      "id": "assert-snapshot",
+      "path": "packages/cli/src/source-snapshot.ts",
+      "language": "typescript",
+      "symbol": "assertSourceSnapshot",
+      "sha256": "5027a3c3ad3b16ebafd3eec698d5f5c9a8b1b211d2a8b71cf2d89dd53602feb6"
+    },
+    {
+      "id": "resolve-document",
+      "path": "packages/story/src/index.ts",
+      "language": "typescript",
+      "symbol": "resolveStoryDocument",
+      "sha256": "1df6ad0e6be95db8727430ceca42e983ac093d93eed44d90fea083f98b95d965"
+    },
+    {
+      "id": "resolve-anchor",
+      "path": "packages/story/src/index.ts",
+      "language": "typescript",
+      "symbol": "resolveAnchor",
+      "sha256": "1df6ad0e6be95db8727430ceca42e983ac093d93eed44d90fea083f98b95d965"
+    },
+    {
+      "id": "symbol-range",
+      "path": "packages/story/src/index.ts",
+      "language": "typescript",
+      "symbol": "findSymbolRange",
+      "sha256": "1df6ad0e6be95db8727430ceca42e983ac093d93eed44d90fea083f98b95d965"
+    },
+    {
+      "id": "rust-symbol",
+      "path": "packages/languages/src/index.ts",
+      "language": "typescript",
+      "symbol": "resolveRustSymbol",
+      "sha256": "03fb7ff8ece428bf9279a4360735a3dcf6d0e871cb5c3c8684f627dc1aab7592"
+    },
+    {
+      "id": "story-manifest",
+      "path": "packages/story/package.json",
+      "language": "text",
+      "sha256": "996dc365b6c0bcdc3c4beaddb507c657cf97ee0412232c110f081013e0f7cfde"
+    }
+  ],
+  "sections": [
+    {
+      "id": "caller",
+      "title": "Story validator",
+      "semanticRole": "story-validation",
+      "body": "The CLI's validateStory operation, invoked by topo story validate, needs to establish whether a draft's anchors still identify current code. It checks the draft structure, captures referenced files, delegates anchor resolution, then rechecks bytes and Git state before returning the resolved document.\n\nThis is draft validation, not rendering or publication. These are explicit checkpoints, not a continuously held source-code lock. Valid anchors do not establish the explanation's semantic truth.",
+      "anchorIds": [
+        "validate"
+      ]
+    },
+    {
+      "id": "snapshot",
+      "title": "Source snapshot",
+      "semanticRole": "source-snapshot",
+      "body": "captureSourceSnapshot deduplicates and sorts paths, then reads regular files with path, symlink, inode and modification checks. The captured map provides bytes (or absence) to the resolver.\n\nassertSourceSnapshot rereads and compares those bytes. Source changing during capture or after capture causes an explicit error. The reader/map are grouped as a data boundary, not a network service.",
+      "anchorIds": [
+        "capture",
+        "stable-read",
+        "assert-snapshot"
+      ]
+    },
+    {
+      "id": "resolver",
+      "title": "Anchor resolver",
+      "semanticRole": "evidence-resolution",
+      "body": "resolveStoryDocument checks each path and refuses absent source. resolveAnchor checks a supplied whole-file SHA-256 BEFORE parsing, establishes a file or symbol scope, then finds the exact authored pattern and derives current lines/excerpts.\n\nUnscoped patterns must be unique. Missing symbols/patterns and stale hashes are errors. There is no fuzzy matching or automatic repair of renamed/moved code. Without a pattern, the selected file/symbol range is returned.",
+      "anchorIds": [
+        "resolve-document",
+        "resolve-anchor",
+        "story-manifest"
+      ]
+    },
+    {
+      "id": "parser",
+      "title": "Language lookup",
+      "semanticRole": "language-lookup",
+      "body": "TypeScript/JavaScript anchors use an AST walk for the first declaration with the requested identifier; this is not the full type-checker resolution used by scanning. Rust delegates to its lexical/parser-backed symbol resolver. Text anchors do not accept symbol lookup.\n\nThe parser returns syntax/range information. Exact snippet matching and final source locations belong to the anchor resolver.",
+      "anchorIds": [
+        "resolve-anchor",
+        "symbol-range",
+        "rust-symbol"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": "caller",
+      "to": "snapshot",
+      "label": "Capture draft evidence",
+      "anchorIds": [
+        "validate",
+        "capture"
+      ],
+      "rationale": "The story validator captures the draft's referenced source so all of its anchors can be checked against one consistent set of bytes.",
+      "classification": "source-traced"
+    },
+    {
+      "from": "snapshot",
+      "to": "caller",
+      "label": "Captured bytes or read error",
+      "anchorIds": [
+        "capture",
+        "stable-read"
+      ],
+      "rationale": "Return a stable map; invalid/unstable paths throw. Missing files are represented as absent until resolution rejects them.",
+      "classification": "source-traced",
+      "variant": "return"
+    },
+    {
+      "from": "caller",
+      "to": "resolver",
+      "label": "Validate anchors against the snapshot",
+      "anchorIds": [
+        "validate",
+        "resolve-document"
+      ],
+      "rationale": "validateStory supplies the captured-map loader to resolveStoryDocument, preventing different anchors from silently reading different snapshots.",
+      "classification": "source-traced"
+    },
+    {
+      "from": "resolver",
+      "to": "snapshot",
+      "label": "Load this anchor's file",
+      "anchorIds": [
+        "resolve-document",
+        "validate"
+      ],
+      "rationale": "resolveStoryDocument invokes the supplied loader for each anchor. This is a local map read.",
+      "classification": "source-traced"
+    },
+    {
+      "from": "snapshot",
+      "to": "resolver",
+      "label": "Source bytes or absence",
+      "anchorIds": [
+        "resolve-document"
+      ],
+      "rationale": "Absent source is rejected as missing-file before resolveAnchor proceeds.",
+      "classification": "source-traced",
+      "variant": "return"
+    },
+    {
+      "from": "resolver",
+      "to": "parser",
+      "label": "If hash passes: parse and scope",
+      "anchorIds": [
+        "resolve-anchor",
+        "symbol-range",
+        "rust-symbol"
+      ],
+      "rationale": "A supplied digest is checked first. Parse the source and locate the requested symbol when present; otherwise retain whole-file scope.",
+      "classification": "source-traced"
+    },
+    {
+      "from": "parser",
+      "to": "resolver",
+      "label": "Syntax and optional symbol range",
+      "anchorIds": [
+        "resolve-anchor",
+        "symbol-range",
+        "rust-symbol"
+      ],
+      "rationale": "The resolver applies the exact pattern inside that scope and derives the resulting excerpt and line positions.",
+      "classification": "source-traced",
+      "variant": "return"
+    },
+    {
+      "from": "resolver",
+      "to": "caller",
+      "label": "Resolved anchors or explicit refusal",
+      "anchorIds": [
+        "resolve-document",
+        "resolve-anchor"
+      ],
+      "rationale": "Success returns resolved evidence; hash/symbol/pattern failures throw rather than manufacturing an anchor.",
+      "classification": "source-traced",
+      "variant": "return"
+    },
+    {
+      "from": "caller",
+      "to": "snapshot",
+      "label": "Confirm draft evidence is current",
+      "anchorIds": [
+        "validate",
+        "assert-snapshot"
+      ],
+      "rationale": "After resolution, validateStory rereads the captured paths, then compares repository revision, dirty state and fingerprint before returning.",
+      "classification": "source-traced"
+    },
+    {
+      "from": "snapshot",
+      "to": "caller",
+      "label": "Unchanged source or stale error",
+      "anchorIds": [
+        "assert-snapshot",
+        "validate"
+      ],
+      "rationale": "Changed bytes refuse validation; the validator also rejects changed Git state. This operation does not publish output.",
+      "classification": "source-traced",
+      "variant": "return"
+    }
+  ]
+}

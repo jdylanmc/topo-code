@@ -1,0 +1,264 @@
+{
+  "schemaVersion": "1.0",
+  "diagramFamily": "sequence",
+  "classification": "source-grounded",
+  "id": "algorithm-graph-projection",
+  "title": "Graph projection and edge aggregation",
+  "category": "Core algorithms",
+  "parent": {
+    "storyId": "internal-modules",
+    "nodeId": "graph"
+  },
+  "summary": "The @topo/graph layout session requests a projection because it needs the visible graph before placing nodes. Local code and indexed data reduce the view while retaining evidence membership. Directory/cycle derivation is an input preparation step, not rerun by every projection. Coordinate placement follows the returned projection and is outside this diagram. This is not Archify/Graphviz layout, the separate Repository page index, or the hand-curated module map.",
+  "anchors": [
+    {
+      "id": "session-client",
+      "path": "packages/graph/src/layout.ts",
+      "language": "typescript",
+      "symbol": "createLayoutSession",
+      "sha256": "73c8e21e141dac10322d72934688ff2628ef6fc779e4c87a4f17e66c95e59954"
+    },
+    {
+      "id": "one-shot-client",
+      "path": "packages/graph/src/layout.ts",
+      "language": "typescript",
+      "symbol": "layoutGraphWithArchitecture",
+      "sha256": "73c8e21e141dac10322d72934688ff2628ef6fc779e4c87a4f17e66c95e59954"
+    },
+    {
+      "id": "session",
+      "path": "packages/graph/src/project.ts",
+      "language": "typescript",
+      "symbol": "createProjectionSession",
+      "sha256": "be3c37761d187a6101a7af56e8cabe35155067f616fd1e5f55a35d43b0e65638"
+    },
+    {
+      "id": "index",
+      "path": "packages/graph/src/project.ts",
+      "language": "typescript",
+      "symbol": "indexGraph",
+      "sha256": "be3c37761d187a6101a7af56e8cabe35155067f616fd1e5f55a35d43b0e65638"
+    },
+    {
+      "id": "project",
+      "path": "packages/graph/src/project.ts",
+      "language": "typescript",
+      "symbol": "projectIndexedGraph",
+      "sha256": "be3c37761d187a6101a7af56e8cabe35155067f616fd1e5f55a35d43b0e65638"
+    },
+    {
+      "id": "one-shot",
+      "path": "packages/graph/src/project.ts",
+      "language": "typescript",
+      "symbol": "projectGraph",
+      "sha256": "be3c37761d187a6101a7af56e8cabe35155067f616fd1e5f55a35d43b0e65638"
+    },
+    {
+      "id": "options",
+      "path": "packages/graph/src/project.ts",
+      "language": "typescript",
+      "symbol": "validateOptions",
+      "sha256": "be3c37761d187a6101a7af56e8cabe35155067f616fd1e5f55a35d43b0e65638"
+    },
+    {
+      "id": "aggregate",
+      "path": "packages/graph/src/derive.ts",
+      "language": "typescript",
+      "symbol": "aggregateDirectedEdges",
+      "sha256": "a5f4bf3d7ace95b095d27cefa8d6237a030d5e626bb24d68f8f7aac25b17ea11"
+    },
+    {
+      "id": "derive",
+      "path": "packages/graph/src/derive.ts",
+      "language": "typescript",
+      "symbol": "deriveArchitecture",
+      "sha256": "a5f4bf3d7ace95b095d27cefa8d6237a030d5e626bb24d68f8f7aac25b17ea11"
+    },
+    {
+      "id": "coverage-policy",
+      "path": "packages/graph/src/derive.ts",
+      "language": "typescript",
+      "symbol": "SPARSE_EDGE_COVERAGE",
+      "sha256": "a5f4bf3d7ace95b095d27cefa8d6237a030d5e626bb24d68f8f7aac25b17ea11"
+    },
+    {
+      "id": "cycles",
+      "path": "packages/graph/src/derive.ts",
+      "language": "typescript",
+      "symbol": "stronglyConnectedSets",
+      "sha256": "a5f4bf3d7ace95b095d27cefa8d6237a030d5e626bb24d68f8f7aac25b17ea11"
+    },
+    {
+      "id": "graph-manifest",
+      "path": "packages/graph/package.json",
+      "language": "text",
+      "sha256": "4ca3e7b8842834077417e360037ebd9281333d5ea3f9d0c197f65367bb1ab7c1"
+    }
+  ],
+  "sections": [
+    {
+      "id": "caller",
+      "title": "Layout session",
+      "semanticRole": "layout-session",
+      "body": "@topo/graph.createLayoutSession prepares the view data needed to place nodes. It creates a projection session once, then calls session.project(options) for each layout request. The returned visible entities and relationships are passed to layoutProjection to compute coordinates.\n\nThis diagram shows that initiating layout unit asking for membership and relationships, not the downstream coordinate-placement algorithm. The one-shot layoutGraphWithArchitecture path uses the same projection core without retaining a session.",
+      "anchorIds": [
+        "session-client",
+        "one-shot-client",
+        "one-shot"
+      ]
+    },
+    {
+      "id": "index",
+      "title": "Indexed snapshot",
+      "semanticRole": "projection-index",
+      "body": "createProjectionSession copies the fields needed for projection, validates graph/architecture identity, and indexes nodes, directory ancestors, cycle groups and spine-edge IDs. The returned session closes over that index and exposes a frozen graph reference.\n\nThe architecture input was prepared earlier by deriveArchitecture. Its cycle grouping uses Tarjan-style strongly connected components; that detection is not called anew for every expand/collapse request.",
+      "anchorIds": [
+        "session",
+        "index",
+        "derive",
+        "cycles",
+        "graph-manifest"
+      ]
+    },
+    {
+      "id": "projection",
+      "title": "Projection",
+      "semanticRole": "graph-projection",
+      "body": "projectIndexedGraph validates options and requested member/cycle IDs. For each included node, choose its collapsed cycle representative, otherwise its first closed directory ancestor, otherwise itself. External exclusions are explicit.\n\nBuild visible entities and containers, ask for directed aggregates, and separately account for original edges whose endpoints collapse inside the same visible group. IDs/order remain stable for the same inputs and options.",
+      "anchorIds": [
+        "project",
+        "options"
+      ]
+    },
+    {
+      "id": "aggregation",
+      "title": "Edge aggregation",
+      "semanticRole": "edge-aggregation",
+      "body": "aggregateDirectedEdges maps every original edge through the representative map, groups equal directed endpoint pairs, and retains original edge IDs, directions, types and weights. Opposite directions remain distinct. Same-representative edges are accounted for by Projection instead of drawn as misleading cross-group arrows.\n\nOptional sparse selection retains weighted coverage plus spine edges; the default policy is 83% of represented edge weight, not 83% of nodes. It is not a minimum spanning tree or automatic community/architecture discovery.",
+      "anchorIds": [
+        "aggregate",
+        "derive",
+        "project",
+        "coverage-policy"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": "caller",
+      "to": "index",
+      "label": "Prepare a graph for layout",
+      "anchorIds": [
+        "session-client",
+        "session"
+      ],
+      "rationale": "createLayoutSession supplies graph and derived architecture to createProjectionSession so repeated layout requests can reuse indexed evidence.",
+      "classification": "source-traced"
+    },
+    {
+      "from": "index",
+      "to": "caller",
+      "label": "Reusable projection session",
+      "anchorIds": [
+        "session",
+        "index"
+      ],
+      "rationale": "The session captures its projection index and returns graphRef plus project(options).",
+      "classification": "source-traced",
+      "variant": "return"
+    },
+    {
+      "from": "caller",
+      "to": "projection",
+      "label": "Select the visible graph",
+      "anchorIds": [
+        "session-client",
+        "session",
+        "project"
+      ],
+      "rationale": "The layout request passes scope and collapse options through session.project to obtain the graph that should be placed.",
+      "classification": "source-traced"
+    },
+    {
+      "from": "projection",
+      "to": "index",
+      "label": "Read nodes, ancestors and cycles",
+      "anchorIds": [
+        "project",
+        "index"
+      ],
+      "rationale": "The projection reads local indexed maps; this arrow is a data dependency, not a service call.",
+      "classification": "source-traced"
+    },
+    {
+      "from": "index",
+      "to": "projection",
+      "label": "Indexed membership and hierarchy",
+      "anchorIds": [
+        "index",
+        "project"
+      ],
+      "rationale": "Use those maps to choose a visible representative for each included node.",
+      "classification": "source-traced",
+      "variant": "return"
+    },
+    {
+      "from": "projection",
+      "to": "aggregation",
+      "label": "Original edges + representatives",
+      "anchorIds": [
+        "project",
+        "aggregate"
+      ],
+      "rationale": "aggregateDirectedEdges receives original edges, the representative map, spine IDs and the sparse coverage policy.",
+      "classification": "source-traced"
+    },
+    {
+      "from": "aggregation",
+      "to": "projection",
+      "label": "Directed aggregates + provenance",
+      "anchorIds": [
+        "aggregate",
+        "project"
+      ],
+      "rationale": "Return weighted, deterministically ordered aggregates. sparseEdgesOnly is applied by the projection when requested.",
+      "classification": "source-traced",
+      "variant": "return"
+    },
+    {
+      "from": "projection",
+      "to": "caller",
+      "label": "Visible view + hidden-edge accounting",
+      "anchorIds": [
+        "project"
+      ],
+      "rationale": "Return GraphProjection with visible entities/containers/edges and explicit collapsed-edge and excluded-external accounting.",
+      "classification": "source-traced",
+      "variant": "return"
+    },
+    {
+      "from": "caller",
+      "to": "projection",
+      "label": "Reproject after scope changes",
+      "anchorIds": [
+        "session",
+        "session-client"
+      ],
+      "rationale": "Another layout request can project a different scope/collapse option set over the same indexed input.",
+      "classification": "source-traced"
+    },
+    {
+      "from": "projection",
+      "to": "caller",
+      "label": "Updated inputs for node placement",
+      "anchorIds": [
+        "session-client",
+        "session",
+        "project"
+      ],
+      "rationale": "Return a new visible view with provenance to the same source graph. The layout session then uses it for coordinate placement; refresh the session for new source evidence.",
+      "classification": "source-traced",
+      "variant": "return"
+    }
+  ]
+}

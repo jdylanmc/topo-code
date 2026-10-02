@@ -12,40 +12,51 @@ import {
 } from "./helpers/production-cli.js";
 
 const projectRoot = fileURLToPath(new URL("../../../../", import.meta.url));
+const architectureDiagram = 'svg[data-topo-family="architecture"][data-diagram-type="architecture"][role="group"]';
+const nativeDiagram = 'svg[aria-labelledby="archify-diagram-title archify-diagram-description"][role="img"]';
 const galleryStories = [
   {
     path: "stories/topo-architecture.topo.json",
     id: "topo-architecture",
+    diagram: architectureDiagram,
     title: "How Topocode turns source into an architecture storybook",
   },
   {
     path: "stories/story-authoring-workflow.topo.json",
     id: "story-authoring-workflow",
+    diagram: nativeDiagram,
     title: "How a Topocode story reaches preview",
   },
   {
     path: "stories/story-lifecycle.topo.json",
     id: "story-lifecycle",
+    diagram: nativeDiagram,
     title: "The lifecycle of a Topocode story",
   },
   {
     path: "stories/capabilities/architecture.topo.json",
     id: "architecture-capability",
+    diagram: architectureDiagram,
     title: "Architecture capability",
   },
   {
     path: "stories/capabilities/workflow.topo.json",
     id: "workflow-capability",
+    diagram: nativeDiagram,
     title: "Workflow capability",
   },
   {
     path: "stories/capabilities/lifecycle.topo.json",
     id: "lifecycle-capability",
+    diagram: nativeDiagram,
     title: "Lifecycle capability",
   },
 ] as const;
 
-async function writeActualGalleryFixture(repository: string): Promise<void> {
+async function writeActualGalleryFixture(
+  repository: string,
+  stories: readonly (typeof galleryStories)[number][] = galleryStories,
+): Promise<void> {
   await writeFile(
     join(repository, "package.json"),
     '{"name":"actual-story-gallery-fixture","type":"module"}\n',
@@ -87,13 +98,13 @@ async function writeActualGalleryFixture(repository: string): Promise<void> {
   await commit(repository, "Source", "package.json", "packages", "docs");
   await topo(repository, "scan");
 
-  for (const story of galleryStories) {
+  for (const story of stories) {
     const destination = join(repository, story.path);
     await mkdir(dirname(destination), { recursive: true });
     await writeFile(destination, await readFile(join(projectRoot, story.path)));
   }
   await commit(repository, "Stories", "stories");
-  for (const story of galleryStories) {
+  for (const story of stories) {
     await topo(
       repository,
       "story",
@@ -137,8 +148,19 @@ test("actual gallery story text remains readable at a desktop viewport", async (
       for (const story of galleryStories) {
       await page.goto(`${url}/stories/${story.id}/`);
       const viewer = page.frameLocator("[data-story-viewer]");
-      const diagram = viewer.locator('svg[role="img"]');
+      const diagram = viewer.locator(story.diagram);
       await expect(diagram).toBeVisible();
+      const captionOverlaps = await diagram.locator("g[data-node-id]").evaluateAll(nodes =>
+        nodes.flatMap(node => {
+          const title = node.querySelector('text[data-node-label]')?.getBoundingClientRect();
+          const caption = node.querySelector('text[data-detail="context"]')?.getBoundingClientRect();
+          if (!title || !caption) return [];
+          return Math.min(title.right, caption.right) > Math.max(title.left, caption.left) &&
+            Math.min(title.bottom, caption.bottom) > Math.max(title.top, caption.top)
+            ? [{ id: node.getAttribute("data-node-id"), title: { top: title.top, bottom: title.bottom },
+              caption: { top: caption.top, bottom: caption.bottom } }] : [];
+        }));
+      expect(captionOverlaps, `${story.id} title/caption clearance`).toEqual([]);
       const iframeScale = await page.locator("[data-story-viewer]").evaluate(
         (iframe) => {
           const frame = iframe as HTMLIFrameElement;
@@ -238,7 +260,10 @@ test("actual gallery story text remains readable at a desktop viewport", async (
         Math.min(...measurements.map(({ effectiveFontSize }) =>
           effectiveFontSize * iframeScale
         )),
-        `${story.id} at ${viewport.width}x${viewport.height}`,
+        `${story.id} at ${viewport.width}x${viewport.height}: ${JSON.stringify(
+          measurements.filter(({ effectiveFontSize }) => effectiveFontSize * iframeScale < 12)
+            .map(({ text, effectiveFontSize }) => ({ text, size: effectiveFontSize * iframeScale })),
+        )}`,
       ).toBeGreaterThanOrEqual(12);
       }
     }
@@ -250,6 +275,106 @@ test("actual gallery story text remains readable at a desktop viewport", async (
     await stopTopoServer(server);
   }
 });
+
+for (const height of [720, 760, 768]) {
+  test(`Architecture sidebar breakpoints preserve reading and evidence at ${height}px high`, async ({
+    page, repository, startSite,
+  }, info) => {
+    await writeActualGalleryFixture(repository, [galleryStories[0], galleryStories[3]]);
+    const url = await startSite();
+    const results = [];
+    for (const width of [1099, 1100, 1239, 1240, 1241, 1279, 1280, 1281]) {
+      await page.setViewportSize({ width, height });
+      for (const focused of [false, true]) {
+        await page.goto(`${url}/stories/topo-architecture/${focused ? "?focus=scan&from=architecture-capability&fromFocus=client" : ""}`);
+        for (const collapsed of [false, true]) {
+          const shell = page.locator("[data-topo-shell]");
+          const toggle = page.locator("[data-collapse]");
+          if (await shell.getAttribute("data-navigation-collapsed") !== String(collapsed)) {
+            await toggle.press("Enter");
+          }
+          await expect(shell).toHaveAttribute("data-navigation-collapsed", String(collapsed));
+          const controls = collapsed ? [toggle] : [
+            page.getByLabel("Filter diagrams"),
+            page.getByRole("link", { name: "Third-party notices", exact: true }),
+            toggle,
+          ];
+          for (const control of [...controls, ...(focused ? [page.locator("[data-return]")] : [])]) {
+            await control.focus();
+            await expect(control).toBeFocused();
+            expect(await control.evaluate(element => {
+              const box = element.getBoundingClientRect();
+              const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+              return hit !== null && element.contains(hit);
+            }), `Navigation control remains unobscured at ${width}x${height}`).toBe(true);
+          }
+          const details = page.locator(".story-details");
+          if (focused) await expect(details).toHaveAttribute("open", "");
+          else await expect(details).not.toHaveAttribute("open", "");
+          const frame = page.frameLocator("[data-story-viewer]");
+          const diagram = frame.locator(architectureDiagram);
+          await expect(diagram).toBeVisible();
+          await diagram.evaluate(async () => {
+            await document.fonts.ready;
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+          });
+          const frameBounds = (await page.locator("[data-story-viewer]").boundingBox())!;
+          const panelBounds = (await details.boundingBox())!;
+          const metrics = await diagram.evaluate((svg, bounds) => {
+            const overlap = (a: DOMRect, b: { x: number; y: number; width: number; height: number }) =>
+              Math.min(a.right, b.x + b.width) > Math.max(a.left, b.x) &&
+              Math.min(a.bottom, b.y + b.height) > Math.max(a.top, b.y);
+            const captions = [...svg.querySelectorAll<SVGTextElement>('g[data-node-id] text[data-detail="context"]')];
+            const texts = [...svg.querySelectorAll<SVGTextElement>("text")].filter(text => text.getBoundingClientRect().width > 0);
+            return {
+              captions: captions.map(text => {
+                const box = text.getBoundingClientRect();
+                const node = text.closest("g[data-node-id]")!.querySelector("rect")!.getBoundingClientRect();
+                return {
+                  text: text.textContent, size: parseFloat(getComputedStyle(text).fontSize) * text.getScreenCTM()!.a,
+                  visible: box.width > 0 && box.height > 0,
+                  insideNode: box.left >= node.left && box.right <= node.right && box.top >= node.top && box.bottom <= node.bottom,
+                };
+              }),
+              outside: texts.filter(text => {
+                const box = text.getBoundingClientRect();
+                return box.left < 0 || box.top < 0 || box.right > innerWidth || box.bottom > innerHeight;
+              }).map(text => text.textContent),
+              panelOverlaps: texts.filter(text => overlap(text.getBoundingClientRect(), {
+                x: bounds.panel.x - bounds.frame.x, y: bounds.panel.y - bounds.frame.y,
+                width: bounds.panel.width, height: bounds.panel.height,
+              })).map(text => text.textContent),
+              captionOverlaps: captions.filter(text =>
+                overlap(text.getBoundingClientRect(), text.closest("g[data-node-id]")!.querySelector("[data-node-label]")!.getBoundingClientRect()))
+                .map(text => text.textContent),
+            };
+          }, { frame: frameBounds, panel: panelBounds });
+          const scenario = `${width}x${height} collapsed=${collapsed} focused=${focused}`;
+          expect(metrics.captions, scenario).toHaveLength(7);
+          for (const caption of metrics.captions) {
+            expect(caption.visible, `${scenario}: ${caption.text}`).toBe(true);
+            expect(caption.size, `${scenario}: ${caption.text}`).toBeGreaterThanOrEqual(12);
+            expect(caption.insideNode, `${scenario}: ${caption.text}`).toBe(true);
+          }
+          expect(metrics.outside, scenario).toEqual([]);
+          expect(metrics.panelOverlaps, scenario).toEqual([]);
+          expect(metrics.captionOverlaps, scenario).toEqual([]);
+          if (focused) {
+            const excerpt = details.locator('[data-section-evidence="scan"] pre');
+            await excerpt.scrollIntoViewIfNeeded();
+            await expect(excerpt).toBeInViewport();
+            await page.locator("[data-return]").click();
+            await expect(page.locator("body")).toHaveAttribute("data-story-id", "architecture-capability");
+            await page.goBack();
+            await expect(page.locator("body")).toHaveAttribute("data-story-id", "topo-architecture");
+          }
+          results.push({ width, height, collapsed, focused, frame: frameBounds, panel: panelBounds, ...metrics });
+        }
+      }
+    }
+    await info.attach("breakpoint-metrics", { body: JSON.stringify(results, null, 2), contentType: "application/json" });
+  });
+}
 
 test("actual Topocode architecture catalogue text stays inside its node", async ({
   page,
@@ -510,7 +635,7 @@ test("actual Architecture exports preserve canonical geometry and labels", async
   try {
     await page.goto(`${url}/stories/topo-architecture/`);
     const viewer = page.frameLocator("[data-story-viewer]");
-    const diagram = viewer.locator('svg[role="img"]');
+    const diagram = viewer.locator(architectureDiagram);
     await expect(diagram).toBeVisible();
     const liveText = await diagram.locator("text").allTextContents();
     for (const label of authoredLabels) {
@@ -629,7 +754,7 @@ test("actual gallery relationship labels and backdrops clear nodes", async ({
     for (const story of galleryStories) {
       await page.goto(`${url}/stories/${story.id}/`);
       const diagram = page.frameLocator("[data-story-viewer]")
-        .locator('svg[role="img"]');
+        .locator(story.diagram);
       await expect(diagram).toBeVisible();
       collisions.push(...await diagram.evaluate((svg, storyId) => {
         const nodes = [...svg.querySelectorAll<SVGGraphicsElement>(
@@ -844,15 +969,24 @@ test("actual story details restore unobscured authored content", async ({
     ];
     const overlappingTitles = async () => {
       const controlsBounds = await controls.boundingBox();
+      const viewerBounds = await page.locator("[data-story-viewer]").boundingBox();
       expect(controlsBounds).not.toBeNull();
+      expect(viewerBounds).not.toBeNull();
       const diagram = page.frameLocator("[data-story-viewer]")
-        .locator('svg[role="img"]');
+        .locator(architectureDiagram);
       const overlaps: string[] = [];
       for (const title of authoredTitles) {
-        const titleBounds = await diagram.locator("text", { hasText: title })
-          .first()
-          .boundingBox();
+        const label = diagram.locator("text", { hasText: title }).first();
+        const titleBounds = await label.boundingBox();
         expect(titleBounds, title).not.toBeNull();
+        expect(titleBounds!.x, title).toBeGreaterThanOrEqual(viewerBounds!.x);
+        expect(titleBounds!.y, title).toBeGreaterThanOrEqual(viewerBounds!.y);
+        expect(titleBounds!.x + titleBounds!.width, title).toBeLessThanOrEqual(viewerBounds!.x + viewerBounds!.width);
+        expect(titleBounds!.y + titleBounds!.height, title).toBeLessThanOrEqual(viewerBounds!.y + viewerBounds!.height);
+        expect(await label.evaluate(element => {
+          const text = element as SVGTextElement;
+          return parseFloat(getComputedStyle(text).fontSize) * text.getScreenCTM()!.a;
+        }), title).toBeGreaterThanOrEqual(12);
         if (
           titleBounds &&
           controlsBounds &&
@@ -877,7 +1011,8 @@ test("actual story details restore unobscured authored content", async ({
     await scanLink.focus();
     await page.keyboard.press("Enter");
     await expect(page).toHaveURL(`${url}/stories/topo-architecture/?focus=scan`);
-    await expect(controls).not.toHaveAttribute("open", "");
+    await expect(controls).toHaveAttribute("open", "");
+    await expect(controls.locator('[data-section-evidence="scan"]')).toBeVisible();
     await expect(
       page.frameLocator("[data-story-viewer]").getByText(
         "packages/scanner/src/typescript-scanner.ts",
@@ -885,6 +1020,9 @@ test("actual story details restore unobscured authored content", async ({
       ),
     ).toBeVisible();
     expect(await overlappingTitles()).toEqual([]);
+    const excerpt = controls.locator('[data-section-evidence="scan"] pre');
+    await excerpt.scrollIntoViewIfNeeded();
+    await expect(excerpt).toBeInViewport();
 
     await page.goBack();
     await expect(page).toHaveURL(`${url}/stories/topo-architecture/`);
@@ -897,7 +1035,8 @@ test("actual story details restore unobscured authored content", async ({
         { exact: true },
       ),
     ).toBeVisible();
-    await expect(controls).not.toHaveAttribute("open", "");
+    await expect(controls).toHaveAttribute("open", "");
+    await expect(controls.locator('[data-section-evidence="bundle"]')).toBeVisible();
     expect(await overlappingTitles()).toEqual([]);
   } finally {
     await page.goto("about:blank");

@@ -19,6 +19,7 @@ export interface WorkspaceCatalogueConfig {
   accentColor?: string;
   categoryOrder?: string[];
   storyCategories?: Record<string, string>;
+  storyIds?: string[];
 }
 
 export interface WorkspaceConfig {
@@ -77,6 +78,15 @@ function parseCatalogueConfig(input: unknown): WorkspaceCatalogueConfig {
     categoryOrder = [...value.categoryOrder];
   }
   let storyCategories: Record<string, string> | undefined;
+  let storyIds: string[] | undefined;
+  if (value.storyIds !== undefined) {
+    if (!Array.isArray(value.storyIds) ||
+        !value.storyIds.every((id): id is string => typeof id === "string" && /^[a-z0-9][a-z0-9-]*$/.test(id)) ||
+        new Set(value.storyIds).size !== value.storyIds.length) {
+      throw new Error("Workspace catalogue storyIds must contain distinct valid story ids");
+    }
+    storyIds = [...value.storyIds];
+  }
   if (value.storyCategories !== undefined) {
     if (
       typeof value.storyCategories !== "object" ||
@@ -108,6 +118,7 @@ function parseCatalogueConfig(input: unknown): WorkspaceCatalogueConfig {
         "accentColor",
         "categoryOrder",
         "storyCategories",
+        "storyIds",
       ].includes(key),
   );
   if (unknown.length) {
@@ -119,6 +130,7 @@ function parseCatalogueConfig(input: unknown): WorkspaceCatalogueConfig {
     ...(accentColor === undefined ? {} : { accentColor }),
     ...(categoryOrder === undefined ? {} : { categoryOrder }),
     ...(storyCategories === undefined ? {} : { storyCategories }),
+    ...(storyIds === undefined ? {} : { storyIds }),
   };
 }
 

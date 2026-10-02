@@ -17,7 +17,7 @@ test("actual lint results cover the eligible tracked source inventory", async (c
   // Keep this expectation independent of ESLint's globs so broader ignores fail.
   const expected = [...tracked].filter((file) =>
     /\.(?:[cm]?[jt]s|[jt]sx)$/.test(file)
-    && (!file.includes("/") || /^(packages|scripts|benchmarks|tools|distribution|examples)\//.test(file))
+    && (!file.includes("/") || /^(packages|scripts|benchmarks|tools|distribution|examples|website)\//.test(file))
     && !/(^|\/)(node_modules|\.topo|dist|build|coverage|playwright-report|test-results)\//.test(file)
     && !/^(benchmarks\/(results|\.generated)|packages\/schema\/src\/generated|packages\/[^/]+\/vendor)\//.test(file),
   ).sort();
@@ -46,6 +46,9 @@ test("correctness rules cover maintained source, tests, scripts and tooling", as
     "scripts/test-regression.test.mjs",
     "eslint.config.mjs",
     "tools/eslint-config/eslint.config.mjs",
+    "website/build.mjs",
+    "website/client.mjs",
+    "website/tests/site.spec.mjs",
   ]) {
     const [result] = await eslint.lintText("debugger;\n", { filePath });
     assert.equal(result.errorCount, 1, filePath);

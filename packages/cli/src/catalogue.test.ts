@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { initializeWorkspace, loadConfig } from "@topo/workspace";
 import {
   buildCatalogue,
@@ -94,8 +94,93 @@ afterEach(async () => {
 });
 
 describe("generated catalogue", () => {
+  let repositoryStories: Awaited<ReturnType<typeof buildCatalogueStories>>;
+  // Render the real committed catalogue once; assertions retain their 5s budget.
+  beforeAll(async () => {
+    repositoryStories = await buildCatalogueStories(repositoryRoot);
+  }, 60_000);
+
+  it("renders every committed story through its real renderer", () => {
+    expect(repositoryStories.length).toBeGreaterThan(0);
+    for (const story of repositoryStories) {
+      expect(story.contents, story.document.id).toContain("<svg");
+      expect(story.renderer.name, story.document.id).toMatch(/^(archify|graphviz)$/);
+    }
+  });
+
+  it("binds explicit drilldowns and parents only to real published targets", async () => {
+    const root = await repository();
+    await addStory(root, "stories/overview.topo.json", "overview", "Overview");
+    await addStory(root, "stories/details.topo.json", "details", "Details");
+    const overviewPath = join(root, "stories/overview.topo.json");
+    const detailPath = join(root, "stories/details.topo.json");
+    const overview = JSON.parse(await readFile(overviewPath, "utf8"));
+    const detail = JSON.parse(await readFile(detailPath, "utf8"));
+    overview.sections[0].drilldown = { storyId: "details" };
+    detail.parent = { storyId: "overview", nodeId: "section" };
+    const save = async () => {
+      await writeFile(overviewPath, JSON.stringify(overview));
+      await writeFile(detailPath, JSON.stringify(detail));
+      await commit(root);
+    };
+    const renderer = {
+      async render() {
+        return { kind: "html" as const, mediaType: "text/html" as const, contents: "<html></html>", renderer: { name: "fixture", pin: "1" } };
+      },
+    };
+    await save();
+    const catalogue = await buildCatalogue(root, renderer);
+    await writeBuiltCatalogue(root, catalogue, undefined);
+    const rendered = await readFile(join(root, ".topo/cache/site/stories/overview/index.html"), "utf8");
+    expect(rendered).toContain("data-drilldown");
+    expect(rendered).toContain('../details/?from=overview&amp;fromFocus=section');
+    expect(await readFile(join(root, ".topo/cache/site/stories/details/index.html"), "utf8"))
+      .toContain('data-parent-story="overview" data-parent-node="section"');
+    overview.sections[0].drilldown = { storyId: "missing" };
+    await save();
+    await expect(buildCatalogue(root, renderer)).rejects.toThrow("not in the selected catalogue");
+    overview.sections[0].drilldown = { storyId: "details", nodeId: "missing" };
+    await save();
+    await expect(buildCatalogue(root, renderer)).rejects.toThrow("unknown target node");
+    overview.sections[0].drilldown = { storyId: "details" };
+    overview.parent = { storyId: "details", nodeId: "section" };
+    await save();
+    await expect(buildCatalogue(root, renderer)).rejects.toThrow("cyclic story parents");
+    expect(await readFile(join(root, ".topo/cache/site/stories/overview/index.html"), "utf8")).toBe(rendered);
+  });
+
+  it("curates an explicit story set and rejects unknown selections", async () => {
+    const root = await repository();
+    await addStory(root, "stories/one.topo.json", "one", "One");
+    await addStory(root, "stories/two.topo.json", "two", "Two");
+    await commit(root);
+    const config = await loadConfig(root);
+    const select = async (storyIds: string[]) => writeFile(
+      join(root, ".topo/config.json"),
+      JSON.stringify({ ...config, catalogue: { storyIds } }),
+    );
+    const renderer = {
+      async render() {
+        return { kind: "html" as const, mediaType: "text/html" as const, contents: "<html></html>", renderer: { name: "test", pin: "1" } };
+      },
+    };
+    expect((await buildCatalogueStories(root, renderer)).map(story => story.document.id)).toEqual(["one", "two"]);
+    await select(["two"]);
+    expect((await buildCatalogueStories(root, renderer)).map(story => story.document.id)).toEqual(["two"]);
+    await select([]);
+    expect(await buildCatalogueStories(root, renderer)).toEqual([]);
+    await select(["missing"]);
+    await expect(buildCatalogueStories(root, renderer)).rejects.toThrow("Unknown catalogue storyIds: missing");
+  });
+
+  it("makes the empty Home scroll region keyboard-accessible", () => {
+    expect(renderCataloguePage([], undefined)).toContain(
+      '<main class="home-main" data-home tabindex="0" aria-label="Diagram home">',
+    );
+  });
+
   it("keeps Topocode's factual architecture stories source-grounded and current", async () => {
-    const stories = await buildCatalogueStories(repositoryRoot);
+    const stories = repositoryStories;
     const factual = ["topo-architecture", "topo-packages"].map((id) => {
       const story = stories.find(({ document }) => document.id === id);
       expect(story, id).toBeDefined();
@@ -117,8 +202,9 @@ describe("generated catalogue", () => {
   });
 
   it("includes a source-grounded Workflow story for the authoring loop", async () => {
-    const stories = await buildCatalogueStories(repositoryRoot);
+    const stories = repositoryStories;
     const workflow = stories.find(({ document }) =>
+      document.id === "story-authoring-workflow" &&
       document.diagramFamily === "workflow" &&
       document.classification !== "capability-demo"
     );
@@ -143,7 +229,7 @@ describe("generated catalogue", () => {
   });
 
   it("includes a source-grounded Lifecycle story for story states", async () => {
-    const stories = await buildCatalogueStories(repositoryRoot);
+    const stories = repositoryStories;
     const lifecycle = stories.find(({ document }) =>
       document.diagramFamily === "lifecycle" &&
       document.classification !== "capability-demo"
@@ -168,7 +254,7 @@ describe("generated catalogue", () => {
   });
 
   it("includes non-source-grounded capability demos for the gallery families", async () => {
-    const stories = await buildCatalogueStories(repositoryRoot);
+    const stories = repositoryStories;
     const demos = stories.filter(({ document }) =>
       document.classification === "capability-demo"
     );

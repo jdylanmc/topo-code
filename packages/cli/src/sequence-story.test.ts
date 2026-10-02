@@ -1,12 +1,17 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { buildCatalogueStories } from "./catalogue.js";
 
 const repositoryRoot = fileURLToPath(new URL("../../../", import.meta.url));
 
 describe("source-grounded Sequence story", () => {
+  let stories: Awaited<ReturnType<typeof buildCatalogueStories>>;
+  beforeAll(async () => {
+    stories = await buildCatalogueStories(repositoryRoot);
+  }, 60_000);
+
   it("renders actual preview orchestrator calls instead of phase-to-phase calls", async () => {
     const [mainSource, catalogueSource] = await Promise.all([
       readFile(join(repositoryRoot, "packages/cli/src/main.ts"), "utf8"),
@@ -25,7 +30,6 @@ describe("source-grounded Sequence story", () => {
       expect(catalogueSource, callsite).toContain(callsite);
     }
 
-    const stories = await buildCatalogueStories(repositoryRoot);
     const story = stories.find(({ document }) =>
       document.id === "story-preview-sequence"
     );

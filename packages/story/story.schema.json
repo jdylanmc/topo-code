@@ -1,6 +1,17 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://topo.dev/schemas/story-1.0.json",
+  "$defs": {
+    "storyTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["storyId"],
+      "properties": {
+        "storyId": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+        "nodeId": { "type": "string", "minLength": 1 }
+      }
+    }
+  },
   "title": "Topo authored story",
   "type": "object",
   "additionalProperties": false,
@@ -8,6 +19,14 @@
   "properties": {
     "schemaVersion": { "const": "1.0" },
     "renderer": { "enum": ["archify", "graphviz"] },
+    "sequenceLayout": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minimumParticipantGap"],
+      "properties": {
+        "minimumParticipantGap": { "type": "integer", "minimum": 108, "maximum": 9007199254740991 }
+      }
+    },
     "diagramFamily": {
       "enum": ["architecture", "workflow", "sequence", "dataflow", "lifecycle"]
     },
@@ -18,6 +37,12 @@
     "title": { "type": "string", "minLength": 1 },
     "summary": { "type": "string", "minLength": 1 },
     "category": { "type": "string", "minLength": 1, "pattern": "\\S" },
+    "parent": {
+      "allOf": [
+        { "$ref": "#/$defs/storyTarget" },
+        { "type": "object", "properties": { "nodeId": {} }, "required": ["nodeId"] }
+      ]
+    },
     "anchors": {
       "type": "array",
       "items": {
@@ -45,6 +70,9 @@
           "id": { "type": "string", "minLength": 1 },
           "title": { "type": "string", "minLength": 1 },
           "body": { "type": "string", "minLength": 1 },
+          "drilldown": { "$ref": "#/$defs/storyTarget" },
+          "summary": { "type": "string", "minLength": 1 },
+          "semanticRole": { "type": "string", "pattern": "^(?!constructor$)[a-z][a-z0-9-]{0,63}$" },
           "kind": { "enum": ["step", "decision", "data"] },
           "anchorIds": {
             "type": "array",
@@ -84,6 +112,18 @@
     }
   },
   "allOf": [
+      {
+        "if": { "properties": { "sequenceLayout": {} }, "required": ["sequenceLayout"] },
+        "then": { "required": ["diagramFamily"], "properties": { "diagramFamily": { "const": "sequence" } } }
+      },
+      {
+        "if": { "properties": { "sections": { "type": "array", "contains": { "type": "object", "properties": { "summary": {} }, "required": ["summary"] } } } },
+        "then": { "properties": { "diagramFamily": { "const": "architecture" } } }
+      },
+      {
+        "if": { "properties": { "sections": { "type": "array", "contains": { "type": "object", "properties": { "semanticRole": {} }, "required": ["semanticRole"] } } } },
+        "then": { "properties": { "diagramFamily": { "enum": ["architecture", "sequence"] } } }
+      },
       {
         "if": { "properties": { "renderer": { "const": "graphviz" } }, "required": ["renderer"] },
         "then": {

@@ -14,10 +14,18 @@ export interface SourceAnchor {
   readonly sha256?: string;
 }
 
+export interface StoryTarget {
+  readonly storyId: string;
+  readonly nodeId?: string;
+}
+
 export interface StorySection {
   readonly id: string;
   readonly title: string;
   readonly body: string;
+  readonly summary?: string;
+  readonly semanticRole?: string;
+  readonly drilldown?: StoryTarget;
   readonly anchorIds: readonly string[];
   readonly kind?: "step" | "decision" | "data";
 }
@@ -50,6 +58,8 @@ export interface StoryDocument {
   readonly title: string;
   readonly summary: string;
   readonly category?: string;
+  readonly parent?: StoryTarget & { readonly nodeId: string };
+  readonly sequenceLayout?: { readonly minimumParticipantGap: number };
   readonly anchors: readonly SourceAnchor[];
   readonly sections: readonly StorySection[];
   readonly connections: readonly StoryConnection[];
@@ -204,12 +214,23 @@ function uniqueStrings(value: unknown): value is string[] {
     new Set(value).size === value.length;
 }
 
+function validateStoryTarget(value: unknown, requireNode: boolean): string | undefined {
+  if (!isRecord(value)) return "must be an object";
+  const keys = exactKeys(value, requireNode ? ["storyId", "nodeId"] : ["storyId"], requireNode ? [] : ["nodeId"]);
+  if (keys) return keys;
+  if (typeof value.storyId !== "string" || !/^[a-z0-9][a-z0-9-]*$/.test(value.storyId)) {
+    return "storyId must be a valid story id";
+  }
+  if (value.nodeId !== undefined && !nonemptyString(value.nodeId)) return "nodeId must be nonempty";
+  return undefined;
+}
+
 function validateStoryDocument(value: unknown): string | undefined {
   if (!isRecord(value)) return "root must be an object";
   const rootKeys = exactKeys(
     value,
     ["schemaVersion", "id", "title", "summary", "anchors", "sections", "connections"],
-    ["category", "diagramFamily", "classification", "renderer"],
+    ["category", "diagramFamily", "classification", "renderer", "parent", "sequenceLayout"],
   );
   if (rootKeys) return rootKeys;
   if (value.schemaVersion !== "1.0") return 'schemaVersion must be "1.0"';
@@ -234,6 +255,21 @@ function validateStoryDocument(value: unknown): string | undefined {
   }
   if (!nonemptyString(value.title)) return "title must be nonempty";
   if (!nonemptyString(value.summary)) return "summary must be nonempty";
+  if (value.sequenceLayout !== undefined) {
+    if (value.diagramFamily !== "sequence" || !isRecord(value.sequenceLayout)) {
+      return "sequenceLayout requires a sequence diagram and an object";
+    }
+    const keys = exactKeys(value.sequenceLayout, ["minimumParticipantGap"], []);
+    if (keys) return `sequenceLayout ${keys}`;
+    const gap = value.sequenceLayout.minimumParticipantGap;
+    if (typeof gap !== "number" || !Number.isSafeInteger(gap) || gap < 108) {
+      return "sequenceLayout.minimumParticipantGap must be an integer of at least 108 SVG units";
+    }
+  }
+  if (value.parent !== undefined) {
+    const error = validateStoryTarget(value.parent, true);
+    if (error) return `parent ${error}`;
+  }
   if (
     value.category !== undefined &&
     (!nonemptyString(value.category) || value.category.trim().length === 0)
@@ -276,7 +312,7 @@ function validateStoryDocument(value: unknown): string | undefined {
   const sectionIds = new Set<string>();
   for (const [index, sectionValue] of value.sections.entries()) {
     if (!isRecord(sectionValue)) return `sections[${index}] must be an object`;
-    const keys = exactKeys(sectionValue, ["id", "title", "body", "anchorIds"], ["kind"]);
+    const keys = exactKeys(sectionValue, ["id", "title", "body", "anchorIds"], ["kind", "summary", "semanticRole", "drilldown"]);
     if (keys) return `sections[${index}] ${keys}`;
     if (sectionValue.kind !== undefined && (!["step", "decision", "data"].includes(String(sectionValue.kind)) || value.renderer !== "graphviz")) return `sections[${index}].kind requires the explicit graphviz backend`;
     if (!nonemptyString(sectionValue.id)) return `sections[${index}].id must be nonempty`;
@@ -284,6 +320,20 @@ function validateStoryDocument(value: unknown): string | undefined {
     sectionIds.add(sectionValue.id);
     if (!nonemptyString(sectionValue.title)) return `sections[${index}].title must be nonempty`;
     if (!nonemptyString(sectionValue.body)) return `sections[${index}].body must be nonempty`;
+    if (sectionValue.drilldown !== undefined) {
+      const error = validateStoryTarget(sectionValue.drilldown, false);
+      if (error) return `sections[${index}].drilldown ${error}`;
+    }
+    if (sectionValue.summary !== undefined &&
+        (!nonemptyString(sectionValue.summary) || diagramFamily !== "architecture")) {
+      return `sections[${index}].summary requires a nonempty architecture caption`;
+    }
+    if (sectionValue.semanticRole !== undefined &&
+        (typeof sectionValue.semanticRole !== "string" ||
+          !/^(?!constructor$)[a-z][a-z0-9-]{0,63}$/.test(sectionValue.semanticRole) ||
+          (diagramFamily !== "architecture" && diagramFamily !== "sequence"))) {
+      return `sections[${index}].semanticRole requires an architecture or sequence role slug`;
+    }
     if (!uniqueStrings(sectionValue.anchorIds)) {
       return `sections[${index}].anchorIds must contain unique nonempty strings`;
     }

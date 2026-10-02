@@ -1,0 +1,29 @@
+[
+  {
+    "title": "Now",
+    "description": "Make Topocode easier to discover and use.",
+    "items": [
+      { "issue": 74, "title": "A public home for Topocode", "detail": "Marketing, installation, roadmap, and an empty storybook ready for collaborative curation." },
+      { "issue": 75, "title": "Documentation from the repository", "detail": "A navigable starting point for installing, authoring, validating, and sharing." },
+      { "issue": 46, "title": "Author meaningful stories together", "detail": "Exercise the fresh-agent authoring workflow with human review of the explanation." }
+    ]
+  },
+  {
+    "title": "Next",
+    "description": "Strengthen confidence in the authoring experience.",
+    "items": [
+      { "issue": 42, "title": "Reproducible rendering", "detail": "Verify story output across repeated runs and machines." },
+      { "issue": 43, "title": "Owner-controlled customization", "detail": "Settle composition boundaries and complete the customization walkthrough." },
+      { "issue": 76, "title": "Operator-managed diagram editing", "detail": "Explore a clearer way to create and maintain diagrams; design remains open." }
+    ]
+  },
+  {
+    "title": "Later",
+    "description": "Expand expressiveness once the foundations hold.",
+    "items": [
+      { "issue": 57, "title": "Source-grounded class diagrams", "detail": "Broaden diagram support without weakening evidence requirements." },
+      { "issue": 9, "title": "Richer view composition", "detail": "Consider broader selectors and ways to combine curated views." },
+      { "issue": 1, "title": "Architecture and engineering health", "detail": "The wider backlog of deferred capabilities, not a release promise." }
+    ]
+  }
+]

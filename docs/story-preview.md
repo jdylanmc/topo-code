@@ -8,6 +8,93 @@ is matched within that symbol; without a symbol, it is matched within the
 explicit file. Source line ranges and excerpts are resolved from the current
 working tree at preview time and are never stored in the authored document.
 
+Architecture sections may include a short `summary` caption (for example,
+`"Config and publication"`). It appears beneath the node title instead of the
+primary source filename. The full `body` narrative and source anchors remain
+available in the evidence panel. Other diagram families do not accept this
+caption field.
+Explicit summaries retain their compact caption typography. Without a summary,
+the source-symbol or filename caption keeps the larger source-reference type;
+adding summaries does not reduce the legibility of existing source stories.
+This caption is an unreleased repository-build capability, not part of the
+published npm 0.2.0 story contract.
+
+Architecture and Sequence sections can also author `semanticRole`, a lowercase hyphenated
+slug such as `"source-analysis"`. The native LENS control groups those explicit
+roles and compares only arrows actually drawn in the story. It does not infer
+runtime traffic, transitive impact, or omitted dependencies. Missing roles are
+neutral `"component"` or `"participant"` entries, never a frontend/backend guess based on position.
+This is also an unreleased repository-build capability.
+
+Topocode adapts the emitted viewer's documented `data-node-kind` metadata before
+runtime initialization, preserving geometry and the pinned renderer files.
+Their receipts identify `topocode-story-semantics-v2` and distinguish
+native output hashes from adapted output hashes. Active lens selection remains
+viewer-only; the authored semantic roles are durable diagram metadata.
+
+## Sequence spacing
+
+Agents can request wider participant columns through authored data:
+
+```json
+{
+  "diagramFamily": "sequence",
+  "sequenceLayout": { "minimumParticipantGap": 220 }
+}
+```
+
+The gap is a minimum center-to-center distance in SVG units (integer, at least
+108). Topocode expands the sequence viewBox and spreads its columns; it does not
+stretch text or add zoom. Omission preserves existing automatic spacing.
+Readability checks still reject layouts that cannot meet the supported text
+floor. This is an unreleased repository-build option, not npm 0.2.0 behavior.
+
+## Explicit module drilldowns
+
+An authored section can declare `"drilldown": { "storyId": "cli-surface" }`.
+Clicking that node opens the child story's overview; add `nodeId` only when a
+particular destination node should be focused. This explicit destination wins
+over automatically discovered shared-evidence links. Other related stories and
+source evidence remain available in details.
+The sidebar docks only when enough diagram reading width is available. Opening
+details reserves space below the viewer rather than covering diagram titles.
+The evidence pane scrolls independently, and navigation controls remain
+keyboard-accessible and unobscured; non-Sequence focus still opens evidence automatically.
+
+A child can declare `"parent": { "storyId": "internal-modules", "nodeId": "cli" }`.
+The storybook displays a visible return link even when the child is opened
+directly. Navigation from another story takes precedence over this canonical
+parent, so nested drilldowns return to the actual caller. Returning or reloading
+a focused parent does not automatically drill in again.
+The URL carries a validated stack of caller story IDs and optional authored node
+IDs across nested returns and reloads. Legacy `from` / `fromFocus` links still
+work; unknown story/node targets are ignored with a browser warning rather than
+used as redirect URLs.
+Sequence participant focus keeps the native details presentation; opening the
+storybook source panel remains explicit.
+
+Targets must exist in the selected catalogue, target nodes must exist, and parent
+cycles are rejected before rendering. Direct hosted `viewer.html` pages can enter
+their child storybook routes; a downloaded isolated HTML file does not pretend
+to contain other diagrams. These are unreleased repository-build capabilities,
+not options in the published npm 0.2.0 schema.
+
+Section IDs remain renderer-neutral, including IDs such as `1-start`,
+`src/api.ts`, or Unicode text. Wrapper focus URLs and drilldown `nodeId` values
+use authored IDs. `@topo/diagram-core` exposes `storyNodeIds(document, renderer?)`
+as authored/native ID pairs for integrations: Archify may use a stable component
+hash, while Graphviz retains the authored ID. Native metadata, edge endpoints,
+and exported geometry keep their renderer IDs; activation maps back to the
+authored section. Direct viewers also accept authored `#focus=` fragments.
+
+Native Architecture cards show at most three compact source links, matching the
+pinned renderer's schema. Topocode still validates every section anchor and
+retains all of them in the story evidence panel and `evidence.json`; grouped
+nodes do not discard source evidence to fit the renderer.
+The integrated Architecture and Sequence viewers omit the redundant native node-index rail:
+the surrounding story shell already supplies node navigation and full evidence.
+The diagram, interactive node controls, search, focus, and exports remain intact.
+
 The optional `diagramFamily` selects `architecture`, `workflow`, `sequence`,
 `dataflow`, or `lifecycle`; omission retains the legacy Architecture behavior.
 Sequence and Dataflow connections require a nonempty `label` because their

@@ -88,6 +88,7 @@ describe("workspace lifecycle", () => {
         accentColor: "#7c3aed",
         categoryOrder: ["Journeys", "Reference"],
         storyCategories: { checkout: "Journeys" },
+        storyIds: ["checkout"],
       },
     }).catalogue).toEqual({
       title: "Architecture journeys",
@@ -95,6 +96,7 @@ describe("workspace lifecycle", () => {
       accentColor: "#7c3aed",
       categoryOrder: ["Journeys", "Reference"],
       storyCategories: { checkout: "Journeys" },
+      storyIds: ["checkout"],
     });
   });
 
@@ -105,6 +107,9 @@ describe("workspace lifecycle", () => {
     { catalogue: { storyCategories: { checkout: "" } }, error: "storyCategories" },
     { catalogue: { explorer: { title: "Map" } }, error: "catalogue keys" },
     { catalogue: { extra: true }, error: "catalogue keys" },
+    { catalogue: { storyIds: ["checkout", "checkout"] }, error: "storyIds" },
+    { catalogue: { storyIds: ["../checkout"] }, error: "storyIds" },
+    { catalogue: { storyIds: "checkout" }, error: "storyIds" },
   ])("rejects invalid catalogue config: $error", ({ catalogue, error }) => {
     expect(() => parseConfig({
       schemaVersion: "1.0",

@@ -3,6 +3,8 @@ import { join } from "node:path";
 import { expect } from "@playwright/test";
 import { commit, startStaticServer, stopStaticServer, test, topo } from "./helpers/production-cli.js";
 
+const architectureDiagram = 'svg[data-topo-family="architecture"][data-diagram-type="architecture"][role="group"]';
+
 async function fixture(root: string, wide = false): Promise<void> {
   await mkdir(join(root, "packages/api/src"), { recursive: true });
   await writeFile(join(root, "package.json"), '{"private":true,"workspaces":["packages/*"]}\n');
@@ -44,21 +46,23 @@ test("selected Archify repository view drills through packages and files to comp
     index.nodes.find((item: { path: string; kind: string }) => item.path === path && item.kind === kind);
   const frame = page.locator("[data-repository-viewer]").contentFrame();
 
-  await expect(frame.locator('svg[role="img"]')).toBeVisible();
+  await expect(frame.locator(architectureDiagram)).toBeVisible();
   for (const [path, kind] of [
     ["packages", "directory"],
     ["packages/api", "package"],
     ["packages/api/src", "directory"],
     ["packages/api/src/order.ts", "file"],
   ]) {
-    await frame.locator(`svg[role="img"] [data-node-id="${node(path!, kind!).id}"]`).click();
+    await frame.locator(`${architectureDiagram} [data-node-id="${node(path!, kind!).id}"]`).click();
     await expect(page).toHaveURL(new RegExp(`scope=${node(path!, kind!).id}`));
-    await expect(frame.locator('svg[role="img"]')).toBeVisible();
+    await expect(frame.locator(architectureDiagram)).toBeVisible();
   }
   const order = index.nodes.find((item: { name: string; kind: string }) => item.name === "Order" && item.kind === "class");
-  await frame.locator(`svg[role="img"] [data-node-id="${order.id}"]`).focus();
+  await frame.locator(`${architectureDiagram} [data-node-id="${order.id}"]`).focus();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(new RegExp(`focus=${order.id}`));
+  await expect(frame.locator(`${architectureDiagram} [data-node-id="${order.id}"]`))
+    .toHaveAttribute("data-repository-selected", "");
   await expect(page.locator("[data-repository-evidence]")).toContainText("Declared members");
   await expect(page.locator("[data-repository-evidence]")).toContainText("submit");
   await expect(page.locator("[data-repository-evidence]")).toContainText("save");
@@ -89,11 +93,11 @@ test("bounded repository pages and source evidence survive a plain static base p
     await expect(page.locator("[data-repository-page]")).toHaveText("Page 1 of 2 / 5 entries");
     await page.getByRole("button", { name: "Next", exact: true }).click();
     await expect(page).toHaveURL(`${base}?scope=${src.id}&page=2`);
-    await expect(page.locator("[data-repository-viewer]").contentFrame().locator('svg[role="img"]')).toBeVisible();
+    await expect(page.locator("[data-repository-viewer]").contentFrame().locator(architectureDiagram)).toBeVisible();
     const store = index.nodes.find((item: { path: string; kind: string }) =>
       item.path === "packages/api/src/store.ts" && item.kind === "file");
     await page.locator("[data-repository-viewer]").contentFrame()
-      .locator(`svg[role="img"] [data-node-id="${store.id}"]`).click();
+      .locator(`${architectureDiagram} [data-node-id="${store.id}"]`).click();
     await expect(page).toHaveURL(`${base}?scope=${store.id}`);
     await page.getByRole("button", { name: "Back", exact: true }).click();
     await expect(page).toHaveURL(`${base}?scope=${src.id}&page=2`);
@@ -140,8 +144,8 @@ test("repository diagrams retain effective readable text at supported desktop si
   const frame = page.locator("[data-repository-viewer]").contentFrame();
   for (const [width, height] of [[1024, 768], [1280, 720], [1440, 900], [1600, 1000], [1920, 1080]]) {
     await page.setViewportSize({ width: width!, height: height! });
-    await expect(frame.locator('svg[role="img"]')).toBeVisible();
-    const measurements = await frame.locator('svg[role="img"]').evaluate((svg) => {
+    await expect(frame.locator(architectureDiagram)).toBeVisible();
+    const measurements = await frame.locator(architectureDiagram).evaluate((svg) => {
       const texts = [...svg.querySelectorAll("text")].filter((text) => text.textContent?.trim());
       return texts.map((text) => {
         const transform = text.getScreenCTM();
@@ -178,9 +182,9 @@ test("repository diagrams retain effective readable text at supported desktop si
     const bounds = await page.locator("[data-repository-viewer]").boundingBox();
     expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width! + 1);
     expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(height! + 1);
-    await frame.locator(`svg[role="img"] [data-node-id="${selected.id}"]`).click();
+    await frame.locator(`${architectureDiagram} [data-node-id="${selected.id}"]`).click();
     await expect(page.locator(".repository-evidence")).toHaveAttribute("open", "");
-    const selectedGeometry = await frame.locator('svg[role="img"]').evaluate((svg) =>
+    const selectedGeometry = await frame.locator(architectureDiagram).evaluate((svg) =>
       [...svg.querySelectorAll("text")].filter((text) => text.textContent?.trim()).map((text) => {
         const bounds = text.getBoundingClientRect();
         const transform = text.getScreenCTM()!;

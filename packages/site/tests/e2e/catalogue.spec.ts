@@ -151,7 +151,7 @@ test("preview populates the same home and category tree without scanning, includ
   try {
     await page.goto(`${site.url}/docs/topo/`);
     await page.locator("[data-home-inventory] [data-story-id=alpha]").click();
-    await expect(page.locator("[data-story-viewer]").contentFrame().locator('svg[role="img"]')).toBeVisible();
+    await expect(page.locator("[data-story-viewer]").contentFrame().locator('svg[data-diagram-type="architecture"][role="group"]')).toBeVisible();
     await page.getByRole("link", { name: "Home", exact: true }).click();
     await expect(page).toHaveURL(`${site.url}/docs/topo/`);
     expect((await page.request.get(`${site.url}/docs/topo/THIRD_PARTY_NOTICES.txt`)).status()).toBe(200);
@@ -686,7 +686,7 @@ test("linked story nodes keep durable focus across drill-down, reload, direct op
   await page.getByRole("link", { name: "Open Order detail: Order code evidence" }).click();
 
   await expect(page).toHaveURL(
-    `${url}/stories/detail/?focus=evidence&from=overview&fromFocus=order-detail`,
+    `${url}/stories/detail/?focus=evidence&from=overview&fromFocus=order-detail&callers=${encodeURIComponent(JSON.stringify([{ storyId: "overview", nodeId: "order-detail" }]))}`,
   );
   await expect(page.getByRole("heading", { name: "Order detail" })).toBeVisible();
   await expect(page.locator('[data-node-id="evidence"]')).toHaveAttribute("aria-current", "true");
@@ -706,9 +706,9 @@ test("linked story nodes keep durable focus across drill-down, reload, direct op
   await page.goto(
     `${url}/stories/detail/?focus=evidence&from=overview&fromFocus=order-detail`,
   );
-  await page.getByText("Story navigation and details", { exact: true }).click();
+  await expect(page.locator(".story-details")).toHaveAttribute("open", "");
   await page.getByRole("link", { name: "Return to Order overview" }).click();
-  await expect(page).toHaveURL(`${url}/stories/overview/?focus=order-detail`);
+  await expect(page).toHaveURL(`${url}/stories/overview/?focus=order-detail&callers=%5B%5D`);
   await expect(page.locator('[data-node-id="order-detail"]')).toHaveAttribute("aria-current", "true");
   await expect(page.locator("iframe")).toHaveAttribute(
     "src",

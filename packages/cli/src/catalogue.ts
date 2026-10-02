@@ -3,11 +3,12 @@ import { execFile } from "node:child_process";
 import { readFile, readdir, rm, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
-import { CORE_THEME_SCRIPT, renderStory } from "@topo/diagram-core";
+import { CORE_THEME_SCRIPT, renderStory, storyNodeIds } from "@topo/diagram-core";
 import {
   parseStoryDocument,
   resolveStoryDocument,
   type StoryDocument,
+  type StoryTarget,
   type StoryRenderer,
   type ResolvedSourceAnchor,
   type StoryArtifact,
@@ -259,18 +260,29 @@ export async function buildCatalogue(
     ])
   ).stdout.trim() === "true";
   const paths = await committedStoryPaths(root);
-  const documents = await Promise.all(paths.map(async (documentPath) => {
-    await assertUnchanged(root, documentPath);
+  const selectedIds = (await loadConfig(root)).catalogue?.storyIds;
+  const candidates = await Promise.all(paths.map(async (documentPath) => {
     const document = parseStoryDocument(
       await readCommittedStory(root, documentPath),
       documentPath,
     );
+    return { document, documentPath };
+  }));
+  if (selectedIds !== undefined) {
+    const missing = selectedIds.filter((id) => !candidates.some(({ document }) => document.id === id));
+    if (missing.length) throw new Error(`Unknown catalogue storyIds: ${missing.join(", ")}`);
+  }
+  const documents = await Promise.all(candidates
+    .filter(({ document }) => selectedIds === undefined || selectedIds.includes(document.id))
+    .map(async ({ document, documentPath }) => {
+    await assertUnchanged(root, documentPath);
     return {
       document,
       documentPath,
       history: await storyHistory(root, documentPath, historyIncomplete),
     };
   }));
+  validateStoryTargets(documents.map(({ document }) => document));
   const snapshot = await captureSourceSnapshot(
     root,
     documents.flatMap(({ document }) =>
@@ -353,8 +365,36 @@ interface StoryLink {
   readonly sourceNodeId: string;
   readonly targetStoryId: string;
   readonly targetStoryTitle: string;
-  readonly targetNodeId: string;
-  readonly targetNodeTitle: string;
+  readonly targetNodeId?: string;
+  readonly targetNodeTitle?: string;
+  readonly primary?: boolean;
+}
+
+function validateStoryTargets(documents: readonly StoryDocument[]): void {
+  const byId = new Map<string, StoryDocument>();
+  for (const document of documents) {
+    if (byId.has(document.id)) throw new Error(`Duplicate story id: ${document.id}`);
+    byId.set(document.id, document);
+  }
+  const check = (source: string, target: StoryTarget) => {
+    const destination = byId.get(target.storyId);
+    if (!destination) throw new Error(`${source}: navigation target ${target.storyId} is not in the selected catalogue`);
+    if (target.storyId === source) throw new Error(`${source}: navigation target must be another story`);
+    if (target.nodeId !== undefined && !destination.sections.some(section => section.id === target.nodeId)) {
+      throw new Error(`${source}: unknown target node ${target.storyId}/${target.nodeId}`);
+    }
+  };
+  for (const document of documents) {
+    if (document.parent) check(document.id, document.parent);
+    for (const section of document.sections) if (section.drilldown) check(document.id, section.drilldown);
+    const ancestors = new Set([document.id]);
+    let parent = document.parent;
+    while (parent) {
+      if (ancestors.has(parent.storyId)) throw new Error(`${document.id}: cyclic story parents`);
+      ancestors.add(parent.storyId);
+      parent = byId.get(parent.storyId)?.parent;
+    }
+  }
 }
 
 const CAPABILITY_CATEGORY = "Diagram capabilities";
@@ -368,6 +408,35 @@ const STORY_NAVIGATION_SCRIPT = `(() => {
   const nodeLinks = [...document.querySelectorAll("[data-node-id]")];
   const crossLinks = [...document.querySelectorAll("[data-cross-story]")];
   const params = new URLSearchParams(window.location.search);
+  const navigation = JSON.parse(document.querySelector("[data-story-navigation]").textContent);
+  const nodeIds = new Map(navigation.nodeIds);
+  const authoredIds = new Map([...nodeIds].map(([authored, native]) => [native, authored]));
+  const catalogue = new Map(navigation.catalogue.map(story => [story.id, story]));
+  function validCaller(caller) {
+    if (!caller || typeof caller !== "object" || Array.isArray(caller)) return false;
+    const target = catalogue.get(caller.storyId);
+    return Boolean(target) && Object.keys(caller).every(key => key === "storyId" || key === "nodeId") &&
+      (caller.nodeId === undefined || target.nodeIds.includes(caller.nodeId));
+  }
+  const returnLink = document.querySelector("[data-return]");
+  function readCallers() {
+    if (params.has("callers")) {
+      try {
+        const callers = JSON.parse(params.get("callers"));
+        if (!Array.isArray(callers) || callers.length > 64 || !callers.every(validCaller)) {
+          throw new Error("Unknown story or focus target");
+        }
+        return callers;
+      } catch (error) {
+        console.warn("Ignoring invalid Topocode return context:", error.message);
+      }
+    }
+    const legacy = { storyId: params.get("from"), nodeId: params.get("fromFocus") || undefined };
+    if (validCaller(legacy)) return [legacy];
+    const parent = { storyId: returnLink?.dataset.parentStory, nodeId: returnLink?.dataset.parentNode || undefined };
+    return validCaller(parent) ? [parent] : [];
+  }
+  const callers = readCallers();
 
   function showEvidence(focus, edge) {
     for (const evidence of document.querySelectorAll("[data-section-evidence]")) {
@@ -377,7 +446,7 @@ const STORY_NAVIGATION_SCRIPT = `(() => {
       evidence.hidden = edge !== null ? evidence.dataset.edgeEvidence !== edge :
         Boolean(focus) && evidence.dataset.edgeFrom !== focus && evidence.dataset.edgeTo !== focus;
     }
-    if (edge !== null) document.querySelector(".story-details").open = true;
+    if (edge !== null || (focus && diagramFamily !== "sequence")) document.querySelector(".story-details").open = true;
   }
 
   function setFocus(nodeId) {
@@ -388,7 +457,8 @@ const STORY_NAVIGATION_SCRIPT = `(() => {
         link.removeAttribute("aria-current");
       }
     }
-    frame.src = "viewer.html" + (nodeId ? "#focus=" + encodeURIComponent(nodeId) : "");
+    const nativeId = nodeIds.get(nodeId) ?? nodeId;
+    frame.src = "viewer.html" + (nativeId ? "#focus=" + encodeURIComponent(nativeId) : "");
   }
 
   function rememberFocus(nodeId) {
@@ -400,35 +470,56 @@ const STORY_NAVIGATION_SCRIPT = `(() => {
     setFocus(nodeId);
   }
 
+  let navigating = false;
   function follow(link) {
+    if (navigating) return;
     const sourceNodeId = link.getAttribute("data-source-node");
+    const destination = new URL(link.href);
+    if (sourceNodeId && callers.length >= 64) {
+      console.error("Topocode drilldown limit reached; return to an earlier story before continuing.");
+      return;
+    }
+    navigating = true;
     if (sourceNodeId) {
       const current = new URL(window.location.href);
       current.searchParams.set("focus", sourceNodeId);
-      current.searchParams.delete("from");
-      current.searchParams.delete("fromFocus");
       window.history.replaceState(null, "", current);
+      destination.searchParams.set("callers", JSON.stringify([...callers, { storyId, nodeId: sourceNodeId }]));
     }
-    window.location.assign(link.href);
+    window.location.assign(destination.href);
   }
 
+  for (const link of nodeLinks) {
+    const destination = new URL(window.location.href);
+    destination.searchParams.delete("edge");
+    destination.searchParams.set("focus", link.getAttribute("data-node-id"));
+    link.href = destination.href;
+  }
+  for (const link of document.querySelectorAll('[data-edge-evidence] a[href^="?"]')) {
+    const destination = new URL(window.location.href);
+    destination.searchParams.delete("focus");
+    destination.searchParams.set("edge", new URL(link.href).searchParams.get("edge"));
+    link.href = destination.href;
+  }
   for (const link of crossLinks) {
+    const destination = new URL(link.href);
+    destination.searchParams.set("callers", JSON.stringify([...callers, { storyId, nodeId: link.getAttribute("data-source-node") }]));
+    link.href = destination.href;
     link.addEventListener("click", (event) => {
       event.preventDefault();
       follow(link);
     });
   }
 
-  const returnLink = document.querySelector("[data-return]");
-  const from = params.get("from");
-  const fromFocus = params.get("fromFocus");
-  if (returnLink instanceof HTMLAnchorElement && from && fromFocus) {
-    const source = document.querySelector('[data-story-id="' + CSS.escape(from) + '"]');
-    if (source instanceof HTMLAnchorElement) {
-      returnLink.hidden = false;
-      returnLink.textContent = "Return to " + source.textContent;
-      returnLink.href = "../" + encodeURIComponent(from) + "/?focus=" + encodeURIComponent(fromFocus);
-    }
+  if (returnLink instanceof HTMLAnchorElement && callers.length) {
+    const caller = callers.at(-1);
+    const destination = new URL("../" + encodeURIComponent(caller.storyId) + "/", location.href);
+    if (caller.nodeId !== undefined) destination.searchParams.set("focus", caller.nodeId);
+    destination.searchParams.set("callers", JSON.stringify(callers.slice(0, -1)));
+    returnLink.hidden = false;
+    returnLink.textContent = "Return to " + catalogue.get(caller.storyId).title;
+    returnLink.href = destination.href;
+    document.querySelector("[data-story-breadcrumb]").hidden = false;
   }
 
   frame.addEventListener("load", () => {
@@ -437,7 +528,7 @@ const STORY_NAVIGATION_SCRIPT = `(() => {
     if (!child || !childDocument) return;
     const currentParams = new URLSearchParams(window.location.search);
     showEvidence(currentParams.get("focus") || "", currentParams.get("edge"));
-    const syncSelectedNode = () => {
+    const syncSelectedNode = (activatedNodeId) => {
       const selected = new URLSearchParams(child.location.hash.replace(/^#/, ""));
       const edge = selected.get("edge");
       if (edge !== null && document.querySelector('[data-edge-evidence="' + CSS.escape(edge) + '"]')) {
@@ -448,7 +539,7 @@ const STORY_NAVIGATION_SCRIPT = `(() => {
         showEvidence("", edge);
         return;
       }
-      const focus = selected.get("focus");
+      const focus = authoredIds.get(selected.get("focus"));
       if (!focus) return;
       const candidates = crossLinks.filter((link) => link.getAttribute("data-source-node") === focus);
       const current = new URL(window.location.href);
@@ -456,12 +547,21 @@ const STORY_NAVIGATION_SCRIPT = `(() => {
       current.searchParams.set("focus", focus);
       window.history.replaceState(null, "", current);
       showEvidence(focus, null);
-      if (diagramFamily !== "sequence" && candidates.length === 1) {
-        follow(candidates[0]);
+      if (authoredIds.get(activatedNodeId) === focus) {
+        const primary = candidates.find(link => link.hasAttribute("data-drilldown"));
+        if (primary) follow(primary);
+        else if (diagramFamily !== "sequence" && candidates.length === 1) follow(candidates[0]);
       }
     };
-    childDocument.addEventListener("click", () => setTimeout(syncSelectedNode));
-    childDocument.addEventListener("keyup", () => setTimeout(syncSelectedNode));
+    childDocument.addEventListener("click", event => {
+      const node = event.target.closest?.("[data-node-id]");
+      setTimeout(() => syncSelectedNode(node?.getAttribute("data-node-id")));
+    });
+    childDocument.addEventListener("keyup", event => {
+      const node = event.target.closest?.("[data-node-id]");
+      const activate = event.key === "Enter" || event.key === " ";
+      setTimeout(() => syncSelectedNode(activate ? node?.getAttribute("data-node-id") : undefined));
+    });
   });
 
   setFocus(params.get("focus") || "");
@@ -819,11 +919,21 @@ function storyLinks(stories: readonly CatalogueStory[]): Map<string, StoryLink[]
     const links: StoryLink[] = [];
     const seen = new Set<string>();
     for (const section of document.sections) {
+      if (section.drilldown) {
+        const target = stories.find(story => story.document.id === section.drilldown!.storyId)?.document;
+        if (!target) throw new Error(`${document.id}: missing drilldown story ${section.drilldown.storyId}`);
+        const node = target.sections.find(node => node.id === section.drilldown!.nodeId);
+        if (section.drilldown.nodeId !== undefined && !node) throw new Error(`${document.id}: missing drilldown node ${section.drilldown.nodeId}`);
+        links.push({
+          sourceNodeId: section.id, targetStoryId: target.id, targetStoryTitle: target.title, primary: true,
+          ...(node ? { targetNodeId: node.id, targetNodeTitle: node.title } : {}),
+        });
+      }
       for (const anchorId of section.anchorIds) {
         const anchor = anchors.get(anchorId);
         if (!anchor) continue;
         for (const target of destinations.get(anchorKey(anchor)) ?? []) {
-          if (target.storyId === document.id) continue;
+          if (target.storyId === document.id || target.storyId === section.drilldown?.storyId) continue;
           const key = `${section.id}\0${target.storyId}\0${target.nodeId}`;
           if (seen.has(key)) continue;
           seen.add(key);
@@ -864,7 +974,7 @@ export function renderStoryWrapper(
 
   const nodes = story.document.sections.map((section) => {
     const crossLinks = (linksByNode.get(section.id) ?? []).map((link) =>
-      `<a data-cross-story data-source-node="${escapeHtml(section.id)}" href="../${encodeURIComponent(link.targetStoryId)}/?focus=${encodeURIComponent(link.targetNodeId)}&amp;from=${encodeURIComponent(story.document.id)}&amp;fromFocus=${encodeURIComponent(section.id)}">Open ${escapeHtml(link.targetStoryTitle)}: ${escapeHtml(link.targetNodeTitle)}</a>`,
+      `<a data-cross-story${link.primary ? " data-drilldown" : ""} data-source-node="${escapeHtml(section.id)}" href="../${encodeURIComponent(link.targetStoryId)}/?${link.targetNodeId === undefined ? "" : `focus=${encodeURIComponent(link.targetNodeId)}&amp;`}from=${encodeURIComponent(story.document.id)}&amp;fromFocus=${encodeURIComponent(section.id)}">Open ${escapeHtml(link.targetStoryTitle)}${link.targetNodeTitle === undefined ? "" : `: ${escapeHtml(link.targetNodeTitle)}`}</a>`,
     ).join("");
     const evidence = (story.anchors ?? []).filter((anchor) => section.anchorIds.includes(anchor.id)).map((anchor) =>
       `<figure><figcaption>${escapeHtml(anchor.path)}:${anchor.location.startLine}-${anchor.location.endLine}</figcaption><pre>${escapeHtml(anchor.excerpt)}</pre></figure>`).join("");
@@ -881,13 +991,21 @@ export function renderStoryWrapper(
     return `<div data-edge-evidence="${index}" data-edge-from="${escapeHtml(edge.from)}" data-edge-to="${escapeHtml(edge.to)}"><p><a href="?edge=${index}">${escapeHtml(edge.classification)}: ${escapeHtml(edge.label ?? `${edge.from} to ${edge.to}`)}</a></p><p>${escapeHtml(edge.rationale!)}</p>${excerpts}</div>`;
   }).join("");
   return renderShellPage(stories, config, historyIncomplete, story, `\
+    <script type="application/json" data-story-navigation>${JSON.stringify({
+      nodeIds: storyNodeIds(story.document, story.renderer.name === "graphviz" ? "graphviz" : "archify"),
+      catalogue: stories.map(({ document }) => ({
+        id: document.id, title: document.title, nodeIds: document.sections.map(section => section.id),
+      })),
+    }).replaceAll("<", "\\u003c")}</script>
+    <nav class="story-breadcrumb" data-story-breadcrumb aria-label="Diagram context" hidden>
+      <a data-return data-parent-story="${escapeHtml(story.document.parent?.storyId ?? "")}" data-parent-node="${escapeHtml(story.document.parent?.nodeId ?? "")}" hidden></a>
+    </nav>
     <iframe data-story-viewer title="${escapeHtml(story.document.title)} rendered story" src="viewer.html"></iframe>
     <details class="story-details">
       <summary>Story navigation and details</summary>
       <div class="story-context">
         <p class="classification">${classificationLabel}</p>
         <p>${escapeHtml(story.document.summary)}</p>
-        <a data-return hidden></a>
       </div>
       <ul>${nodes}</ul>${edges}
     </details>`, repository);
@@ -1007,7 +1125,12 @@ function renderShellPage(
       .story-links a[aria-current="page"] { background: #17324d; color: white; box-shadow: inset 3px 0 var(--accent); font-weight: 700; }
       .catalogue-empty { margin: 0; padding: 1rem 0.65rem; color: #a9b7ca; line-height: 1.5; }
       .catalogue-footer { grid-row: 6; padding: 0.7rem 0.85rem; border-top: 1px solid #29364a; color: #7f8da1; font-size: 0.75rem; }
-      .story-main { display: grid; grid-template-rows: minmax(0, 1fr) auto; min-width: 0; min-height: 0; background: #f8fafc; }
+      .story-main { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-width: 0; min-height: 0; background: #f8fafc; }
+      .story-main > iframe { grid-row: 2; }
+      .story-main > .story-details { grid-row: 3; }
+      .story-breadcrumb { grid-row: 1; padding: 0.5rem 0.85rem; border-bottom: 1px solid #29364a; background: #0b1524; font-size: 0.875rem; overflow-wrap: anywhere; }
+      .story-breadcrumb[hidden] { display: none; }
+      :root[data-theme="light"] .story-breadcrumb { background: #e6eef7; border-color: #a0b6cc; }
       .classification { color: #a9b7ca; font-size: 0.9rem; font-weight: 600; }
       a { color: #7dd3fc; }
       [data-node-id][aria-current="true"] { color: white; font-weight: bold; }
@@ -1018,8 +1141,8 @@ function renderShellPage(
       .story-context p { margin: 0; }
       .story-context .classification { flex: 0 0 auto; }
       .story-context [data-return] { margin-left: auto; }
-      .story-details ul { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 0.5rem; margin: 0; padding: 0 0.75rem 0.75rem; list-style: none; }
-      .story-details li { display: grid; gap: 0.35rem; padding: 0.65rem; background: #111c2e; border-radius: 0.5rem; }
+      .story-details ul { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr)); gap: 0.5rem; margin: 0; padding: 0 0.75rem 0.75rem; list-style: none; }
+      .story-details li { display: grid; align-content: start; min-width: 0; gap: 0.35rem; padding: 0.65rem; background: #111c2e; border-radius: 0.5rem; }
       .home-main { min-width: 0; min-height: 0; overflow: auto; padding: clamp(1.5rem, 4vw, 4rem); }
       .home-main > * { max-width: 64rem; }
       .home-main h1 { margin: 0 0 0.75rem; font-size: clamp(1.7rem, 3vw, 2.5rem); }
@@ -1056,11 +1179,13 @@ function renderShellPage(
       [data-repository-evidence] ul, [data-repository-evidence] ol { display: block; padding-left: 1.25rem; }
       [data-repository-evidence] li { display: list-item; background: transparent; padding: 0.15rem; }
       .repository-evidence.story-details { position: static; width: auto; max-height: 35vh; }
-      @media (max-width: 1099px) {
+      /* Dock the wider sidebar only when source text retains enough reading width. */
+      @media (max-width: 1239px) {
         [data-topo-shell],
         [data-navigation-collapsed="true"] { grid-template-columns: 1px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
         .catalogue-panel,
         body[data-story-id] .catalogue-panel { position: relative; z-index: 3; display: grid; grid-template-rows: auto auto auto auto minmax(0, 1fr) auto; width: 1px; min-width: 0; padding: 0 0 2.6rem; overflow: visible; border-right: 0; border-bottom: 0; background: transparent; }
+        body:has(.story-main > .story-details[open]) .catalogue-panel { padding-bottom: calc(20vh + 2.6rem); }
         .catalogue-panel::before { position: absolute; z-index: -1; inset: 0 auto 0 0; width: 14rem; border-right: 1px solid #29364a; background: #0b1524; box-shadow: 0.5rem 0 1.25rem rgb(0 0 0 / 30%); content: ""; }
         [data-navigation-collapsed="true"] .catalogue-panel::before { width: 3.5rem; box-shadow: none; }
         .catalogue-panel > * { width: 14rem; }
@@ -1077,9 +1202,10 @@ function renderShellPage(
         .catalogue-footer { display: block; }
         [data-navigation-collapsed="true"] .brand-row { width: 3.5rem; border-right: 0; background: #0b1524; }
         .story-main, .home-main, .repository-main { grid-column: 2; grid-row: 1; }
+        .story-breadcrumb { padding-left: calc(14rem + 0.85rem); }
+        [data-navigation-collapsed="true"] .story-breadcrumb { padding-left: calc(3.5rem + 0.85rem); }
         .home-main { padding-left: 4.5rem; }
         .repository-toolbar { padding-left: 3.75rem; }
-        .story-main { grid-template-rows: minmax(0, 1fr); }
         .story-details { position: fixed; z-index: 4; top: auto; right: auto; bottom: 0; left: 0; width: 14rem; max-height: min(70vh, 36rem); border: 1px solid #29364a; border-radius: 0 0.5rem 0 0; box-shadow: 0 0.4rem 1.2rem rgb(0 0 0 / 35%); }
         .story-details summary { padding: 0.35rem 0.65rem; }
         .story-details summary { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1089,7 +1215,7 @@ function renderShellPage(
         [data-navigation-collapsed="true"] .story-details:not([open]) summary { overflow: hidden; font-size: 0; text-align: center; }
         [data-navigation-collapsed="true"] .story-details:not([open]) summary::after { content: "…"; font-size: 1rem; }
       }
-      @media (min-width: 1100px) and (max-width: 1280px) and (max-height: 760px) {
+      @media (min-width: 1240px) and (max-width: 1280px) and (max-height: 760px) {
         [data-topo-shell] { grid-template-columns: 14rem minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
         [data-navigation-collapsed="true"] { grid-template-columns: 3.5rem minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
         .catalogue-panel, body[data-story-id] .catalogue-panel { display: grid; grid-template-rows: auto auto auto auto minmax(0, 1fr) auto; padding-right: 0; padding-bottom: 2.6rem; border-right: 1px solid #29364a; border-bottom: 0; }
@@ -1108,7 +1234,6 @@ function renderShellPage(
         .catalogue-footer { display: block; }
         [data-navigation-collapsed="true"] .brand-row { flex-basis: auto; border-right: 0; }
         .story-main, .home-main, .repository-main { grid-column: 2; grid-row: 1; }
-        .story-main { grid-template-rows: minmax(0, 1fr); }
         .story-details { position: fixed; z-index: 4; top: auto; right: auto; bottom: 0; left: 0; width: 14rem; max-height: min(70vh, 36rem); border: 1px solid #29364a; border-radius: 0 0.5rem 0 0; box-shadow: 0 0.4rem 1.2rem rgb(0 0 0 / 35%); }
         .story-details summary { padding: 0.35rem 0.65rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .story-context { display: grid; }
@@ -1117,6 +1242,8 @@ function renderShellPage(
         [data-navigation-collapsed="true"] .story-details:not([open]) summary { overflow: hidden; font-size: 0; text-align: center; }
         [data-navigation-collapsed="true"] .story-details:not([open]) summary::after { content: "…"; font-size: 1rem; }
       }
+      .story-main > .story-details[open] { position: static; width: auto; max-height: 20vh; border-radius: 0; box-shadow: none; }
+      .story-main:has(> .story-breadcrumb:not([hidden])):has(> .story-details[open]) { grid-template-rows: auto minmax(0, 5fr) minmax(0, 1fr); }
       :root[data-theme="light"] body { background: #f4f7fb; color: #183647; }
       :root[data-theme="light"] .catalogue-panel,
       :root[data-theme="light"] .catalogue-panel::before,
@@ -1135,6 +1262,7 @@ function renderShellPage(
       :root[data-theme="light"] [data-repository-page],
       :root[data-theme="light"] [data-repository-status] { color: #37536c; }
       [data-section-evidence] { font-size: 0.875rem; line-height: 1.5; }
+      [data-section-evidence] > p { white-space: pre-line; }
       .story-details figure { margin: 0.5rem 0; overflow-wrap: anywhere; }
       .story-details pre { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 78ch; font-size: 12px; }
     </style>
@@ -1213,7 +1341,7 @@ export function renderCataloguePage(
     config,
     historyIncomplete,
     undefined,
-    `<main class="home-main" data-home>
+    `<main class="home-main" data-home tabindex="0" aria-label="Diagram home">
       <p data-home-error role="alert" hidden></p>
       <h1>${escapeHtml(title)}</h1><p>${escapeHtml(description)}</p>
       <h2>Diagram inventory</h2>
