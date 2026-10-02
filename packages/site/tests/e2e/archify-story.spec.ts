@@ -12,35 +12,43 @@ import {
 } from "./helpers/production-cli.js";
 
 const projectRoot = fileURLToPath(new URL("../../../../", import.meta.url));
+const architectureDiagram = 'svg[data-topo-family="architecture"][data-diagram-type="architecture"][role="group"]';
+const nativeDiagram = 'svg[aria-labelledby="archify-diagram-title archify-diagram-description"][role="img"]';
 const galleryStories = [
   {
     path: "stories/topo-architecture.topo.json",
     id: "topo-architecture",
+    diagram: architectureDiagram,
     title: "How Topocode turns source into an architecture storybook",
   },
   {
     path: "stories/story-authoring-workflow.topo.json",
     id: "story-authoring-workflow",
+    diagram: nativeDiagram,
     title: "How a Topocode story reaches preview",
   },
   {
     path: "stories/story-lifecycle.topo.json",
     id: "story-lifecycle",
+    diagram: nativeDiagram,
     title: "The lifecycle of a Topocode story",
   },
   {
     path: "stories/capabilities/architecture.topo.json",
     id: "architecture-capability",
+    diagram: architectureDiagram,
     title: "Architecture capability",
   },
   {
     path: "stories/capabilities/workflow.topo.json",
     id: "workflow-capability",
+    diagram: nativeDiagram,
     title: "Workflow capability",
   },
   {
     path: "stories/capabilities/lifecycle.topo.json",
     id: "lifecycle-capability",
+    diagram: nativeDiagram,
     title: "Lifecycle capability",
   },
 ] as const;
@@ -137,7 +145,7 @@ test("actual gallery story text remains readable at a desktop viewport", async (
       for (const story of galleryStories) {
       await page.goto(`${url}/stories/${story.id}/`);
       const viewer = page.frameLocator("[data-story-viewer]");
-      const diagram = viewer.locator('svg[role="img"]');
+      const diagram = viewer.locator(story.diagram);
       await expect(diagram).toBeVisible();
       const iframeScale = await page.locator("[data-story-viewer]").evaluate(
         (iframe) => {
@@ -238,7 +246,10 @@ test("actual gallery story text remains readable at a desktop viewport", async (
         Math.min(...measurements.map(({ effectiveFontSize }) =>
           effectiveFontSize * iframeScale
         )),
-        `${story.id} at ${viewport.width}x${viewport.height}`,
+        `${story.id} at ${viewport.width}x${viewport.height}: ${JSON.stringify(
+          measurements.filter(({ effectiveFontSize }) => effectiveFontSize * iframeScale < 12)
+            .map(({ text, effectiveFontSize }) => ({ text, size: effectiveFontSize * iframeScale })),
+        )}`,
       ).toBeGreaterThanOrEqual(12);
       }
     }
@@ -510,7 +521,7 @@ test("actual Architecture exports preserve canonical geometry and labels", async
   try {
     await page.goto(`${url}/stories/topo-architecture/`);
     const viewer = page.frameLocator("[data-story-viewer]");
-    const diagram = viewer.locator('svg[role="img"]');
+    const diagram = viewer.locator(architectureDiagram);
     await expect(diagram).toBeVisible();
     const liveText = await diagram.locator("text").allTextContents();
     for (const label of authoredLabels) {
@@ -629,7 +640,7 @@ test("actual gallery relationship labels and backdrops clear nodes", async ({
     for (const story of galleryStories) {
       await page.goto(`${url}/stories/${story.id}/`);
       const diagram = page.frameLocator("[data-story-viewer]")
-        .locator('svg[role="img"]');
+        .locator(story.diagram);
       await expect(diagram).toBeVisible();
       collisions.push(...await diagram.evaluate((svg, storyId) => {
         const nodes = [...svg.querySelectorAll<SVGGraphicsElement>(
@@ -846,7 +857,7 @@ test("actual story details restore unobscured authored content", async ({
       const controlsBounds = await controls.boundingBox();
       expect(controlsBounds).not.toBeNull();
       const diagram = page.frameLocator("[data-story-viewer]")
-        .locator('svg[role="img"]');
+        .locator(architectureDiagram);
       const overlaps: string[] = [];
       for (const title of authoredTitles) {
         const titleBounds = await diagram.locator("text", { hasText: title })
@@ -877,7 +888,8 @@ test("actual story details restore unobscured authored content", async ({
     await scanLink.focus();
     await page.keyboard.press("Enter");
     await expect(page).toHaveURL(`${url}/stories/topo-architecture/?focus=scan`);
-    await expect(controls).not.toHaveAttribute("open", "");
+    await expect(controls).toHaveAttribute("open", "");
+    await expect(controls.locator('[data-section-evidence="scan"]')).toBeVisible();
     await expect(
       page.frameLocator("[data-story-viewer]").getByText(
         "packages/scanner/src/typescript-scanner.ts",
@@ -897,7 +909,8 @@ test("actual story details restore unobscured authored content", async ({
         { exact: true },
       ),
     ).toBeVisible();
-    await expect(controls).not.toHaveAttribute("open", "");
+    await expect(controls).toHaveAttribute("open", "");
+    await expect(controls.locator('[data-section-evidence="bundle"]')).toBeVisible();
     expect(await overlappingTitles()).toEqual([]);
   } finally {
     await page.goto("about:blank");

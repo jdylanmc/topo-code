@@ -418,7 +418,11 @@ test("actual Dataflow controls restore clear titles and factual source navigatio
     await expect(page).toHaveURL(
       `${url}/stories/repository-dataflow/?focus=repository-source`,
     );
-    await expect(controls).not.toHaveAttribute("open", "");
+    await expect(controls).toHaveAttribute("open", "");
+    const evidence = controls.locator('[data-section-evidence="repository-source"]');
+    await expect(evidence).toBeVisible();
+    await expect(evidence.locator("figcaption")).toContainText("packages/scanner/src/typescript-scanner.ts");
+    await expect(evidence.locator("pre")).toContainText("const files = await walkFiles(options.root);");
     const viewer = page.frameLocator("[data-story-viewer]");
     await expect(
       viewer.locator('svg g[data-node-id="repository-source"]'),

@@ -19,6 +19,9 @@ versions are independent; publication remains a separate release-owner action.
 
 ### Fixed
 
+- Preserve the actual caller through nested story returns and reloads, and keep
+  drilldown/focus navigation working for all legal authored section IDs across
+  native and Graphviz viewers.
 - Keep adjacent diagonal Architecture routes local instead of taking unnecessary
   detours. Preserve readable captions, interactive accessibility, nested theme
   ownership, and source evidence while leaving the pinned renderer unchanged.

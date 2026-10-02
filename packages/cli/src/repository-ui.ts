@@ -53,6 +53,7 @@ export const REPOSITORY_SCRIPT = `(() => {
     return;
   }
   const nodes = new Map(index.nodes.map((node) => [node.id, node]));
+  const diagramSelector = 'svg[data-topo-family="architecture"][data-diagram-type="architecture"][role="group"]';
   let scope;
   let page;
   let selected;
@@ -106,7 +107,7 @@ export const REPOSITORY_SCRIPT = `(() => {
       node.removeAttribute("aria-current");
     }
     if (!selected) return;
-    const node = document.querySelector('svg[role="img"] [data-node-id="' + selected.id + '"]');
+    const node = document.querySelector(diagramSelector + ' [data-node-id="' + selected.id + '"]');
     if (node) {
       node.setAttribute("data-repository-selected", "");
       node.setAttribute("data-focus-selected", "");
@@ -266,7 +267,7 @@ export const REPOSITORY_SCRIPT = `(() => {
     try {
       const document = frame.contentDocument;
       if (!document) throw new Error("The Archify document is unavailable.");
-      if (!document.querySelector('svg[role="img"]')) {
+      if (!document.querySelector(diagramSelector)) {
         throw new Error("The generated Archify artifact is missing; run topo scan again.");
       }
       error.hidden = true;
