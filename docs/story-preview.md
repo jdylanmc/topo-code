@@ -59,6 +59,10 @@ The storybook displays a visible return link even when the child is opened
 directly. Navigation from another story takes precedence over this canonical
 parent, so nested drilldowns return to the actual caller. Returning or reloading
 a focused parent does not automatically drill in again.
+The URL carries a validated stack of caller story IDs and optional authored node
+IDs across nested returns and reloads. Legacy `from` / `fromFocus` links still
+work; unknown story/node targets are ignored with a browser warning rather than
+used as redirect URLs.
 Sequence participant focus keeps the native details presentation; opening the
 storybook source panel remains explicit.
 
@@ -67,6 +71,14 @@ cycles are rejected before rendering. Direct hosted `viewer.html` pages can ente
 their child storybook routes; a downloaded isolated HTML file does not pretend
 to contain other diagrams. These are unreleased repository-build capabilities,
 not options in the published npm 0.2.0 schema.
+
+Section IDs remain renderer-neutral, including IDs such as `1-start`,
+`src/api.ts`, or Unicode text. Wrapper focus URLs and drilldown `nodeId` values
+use authored IDs. `@topo/diagram-core` exposes `storyNodeIds(document, renderer?)`
+as authored/native ID pairs for integrations: Archify may use a stable component
+hash, while Graphviz retains the authored ID. Native metadata, edge endpoints,
+and exported geometry keep their renderer IDs; activation maps back to the
+authored section. Direct viewers also accept authored `#focus=` fragments.
 
 Native Architecture cards show at most three compact source links, matching the
 pinned renderer's schema. Topocode still validates every section anchor and

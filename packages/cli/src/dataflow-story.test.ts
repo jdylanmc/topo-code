@@ -10,7 +10,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { initializeWorkspace, writeGenerated } from "@topo/workspace";
 import { buildCatalogueStories } from "./catalogue.js";
 import { previewStory } from "./story-preview.js";
@@ -141,8 +141,13 @@ async function flowLabelFixture(
 }
 
 describe("Dataflow story catalogue", () => {
+  let stories: Awaited<ReturnType<typeof buildCatalogueStories>>;
+  // One whole-catalogue integration render, outside individual assertion budgets.
+  beforeAll(async () => {
+    stories = await buildCatalogueStories(repositoryRoot);
+  }, 60_000);
+
   it("renders the source-grounded repository pipeline with native Dataflow stages", async () => {
-    const stories = await buildCatalogueStories(repositoryRoot);
     const story = stories.find(({ document }) =>
       document.id === "repository-dataflow"
     );
@@ -201,7 +206,6 @@ describe("Dataflow story catalogue", () => {
   });
 
   it("renders a separate non-source-grounded native Dataflow capability demo", async () => {
-    const stories = await buildCatalogueStories(repositoryRoot);
     const story = stories.find(({ document }) =>
       document.id === "dataflow-capability"
     );

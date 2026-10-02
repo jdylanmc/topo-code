@@ -39,29 +39,36 @@
       "id": "render-story",
       "path": "packages/diagram-core/src/index.ts",
       "language": "text",
-      "sha256": "87bc4ed6e1c380aeca423b911461b05b95329a72f50b3d453a767e6178f267c9",
+      "sha256": "8cf1d45202be62c0d3fdf76f905b2f0577b4d35e9850ca35bb18a42ab35b3cff",
       "pattern": "export function renderStory(story: ResolvedStoryDocument): StoryArtifact | Promise<StoryArtifact> {"
     },
     {
       "id": "render-array",
       "path": "packages/diagram-core/src/index.ts",
       "language": "text",
-      "sha256": "87bc4ed6e1c380aeca423b911461b05b95329a72f50b3d453a767e6178f267c9",
+      "sha256": "8cf1d45202be62c0d3fdf76f905b2f0577b4d35e9850ca35bb18a42ab35b3cff",
       "pattern": "export function renderArchitectureStories(\n  stories: readonly ResolvedStoryDocument[],\n  options: { readonly sourceEvidence?: \"native\" | \"wrapper\" } = {},\n): StoryArtifact[] {"
     },
     {
       "id": "render-stream",
       "path": "packages/diagram-core/src/index.ts",
       "language": "text",
-      "sha256": "87bc4ed6e1c380aeca423b911461b05b95329a72f50b3d453a767e6178f267c9",
+      "sha256": "8cf1d45202be62c0d3fdf76f905b2f0577b4d35e9850ca35bb18a42ab35b3cff",
       "pattern": "export function* renderArchitectureStoryBatch(\n  stories: readonly ResolvedStoryDocument[],\n  options: { readonly sourceEvidence?: \"native\" | \"wrapper\" } = {},\n): Generator<StoryArtifact> {"
     },
     {
       "id": "width-helper",
       "path": "packages/diagram-core/src/index.ts",
       "language": "text",
-      "sha256": "87bc4ed6e1c380aeca423b911461b05b95329a72f50b3d453a767e6178f267c9",
+      "sha256": "8cf1d45202be62c0d3fdf76f905b2f0577b4d35e9850ca35bb18a42ab35b3cff",
       "pattern": "export function architectureComponentWidth(\n  title: string,\n  sublabel = \"\",\n  finalTypography = false,\n): number {"
+    },
+    {
+      "id": "node-identities",
+      "path": "packages/diagram-core/src/node-ids.ts",
+      "language": "text",
+      "sha256": "643285f22e4bf993d69f88c714711c48957b700a637c2ad1b97044d32340003c",
+      "pattern": "export function storyNodeIds(\n  document: StoryDocument,\n  renderer: \"archify\" | \"graphviz\" = document.renderer ?? \"archify\",\n): readonly (readonly [string, string])[] {"
     },
     {
       "id": "verify",
@@ -95,14 +102,14 @@
       "id": "theme-export",
       "path": "packages/diagram-core/src/index.ts",
       "language": "text",
-      "sha256": "87bc4ed6e1c380aeca423b911461b05b95329a72f50b3d453a767e6178f267c9",
+      "sha256": "8cf1d45202be62c0d3fdf76f905b2f0577b4d35e9850ca35bb18a42ab35b3cff",
       "pattern": "export { CORE_THEME_SCRIPT } from \"./theme.js\";"
     },
     {
       "id": "integrity-export",
       "path": "packages/diagram-core/src/index.ts",
       "language": "text",
-      "sha256": "87bc4ed6e1c380aeca423b911461b05b95329a72f50b3d453a767e6178f267c9",
+      "sha256": "8cf1d45202be62c0d3fdf76f905b2f0577b4d35e9850ca35bb18a42ab35b3cff",
       "pattern": "export {\n  verifyArchifyIntegrity,\n  type ArchifyIntegrity,\n} from \"./integrity.js\";"
     }
   ],
@@ -154,7 +161,7 @@
       "id": "diagram-core",
       "title": "@topo/diagram-core",
       "summary": "Exports the API groups",
-      "body": "The root exports renderStory, renderArchitectureStories, renderArchitectureStoryBatch, verifyArchifyIntegrity, the ArchifyIntegrity type, architectureComponentWidth, and CORE_THEME_SCRIPT.\n\nIt references @topo/story for contracts, @jdylanmc/topo-archify as its native peer, and @viz-js/viz as a dependency. No bin entry is declared. Private helpers such as specification builders, renderGraphviz and viewer adaptation routines are intentionally not presented as public APIs.",
+      "body": "The root exports renderStory, renderArchitectureStories, renderArchitectureStoryBatch, verifyArchifyIntegrity, the ArchifyIntegrity type, architectureComponentWidth, storyNodeIds, and CORE_THEME_SCRIPT.\n\nIt references @topo/story for contracts, @jdylanmc/topo-archify as its native peer, and @viz-js/viz as a dependency. No bin entry is declared. Private helpers such as specification builders, renderGraphviz and viewer adaptation routines are intentionally not presented as public APIs.",
       "anchorIds": [
         "renderer-manifest",
         "render-story",
@@ -163,6 +170,7 @@
         "verify",
         "integrity-type",
         "width-helper",
+        "node-identities",
         "theme-export"
       ],
       "semanticRole": "module-boundary"
@@ -195,10 +203,11 @@
     {
       "id": "utilities",
       "title": "Exported utilities",
-      "summary": "Width helper and theme script",
-      "body": "architectureComponentWidth(title, sublabel?, finalTypography?) -> number.\nCORE_THEME_SCRIPT -> string.\n\nThese are current root exports supporting integration and presentation. They are exposed helpers, not separate renderer backends or an invitation to depend on private implementation functions.",
+      "summary": "Identity, width and theme",
+      "body": "architectureComponentWidth(title, sublabel?, finalTypography?) -> number.\nstoryNodeIds(document, renderer?) -> readonly authored/native ID pairs.\nCORE_THEME_SCRIPT -> string.\n\nstoryNodeIds keeps authored section IDs separate from native renderer identities. Archify uses stable component hashes for IDs outside its identifier syntax; Graphviz keeps authored IDs. Activation maps native IDs back to authored sections, and authored focus maps to native targets. Renderer metadata and edge endpoints keep native IDs.\n\nThese are current root exports supporting integration and presentation. They are exposed helpers, not separate renderer backends or an invitation to depend on private implementation functions.",
       "anchorIds": [
         "width-helper",
+        "node-identities",
         "theme-export"
       ],
       "semanticRole": "public-interface"

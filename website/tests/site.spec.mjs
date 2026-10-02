@@ -287,6 +287,28 @@ test("module boxes drill into public surfaces with clear nested and direct retur
   await expect(page.locator("[data-return]")).toBeVisible();
 });
 
+for (const origin of ["story-to-screen", "internal-modules"]) {
+  test(`${origin}: nested returns retain the actual caller across child reloads`, async ({ page }) => {
+    await page.goto(`demo/home/stories/${origin}/`);
+    await page.frameLocator("[data-story-viewer]").locator('svg g[data-node-id="cli"]').click();
+    await expect(page.locator("body")).toHaveAttribute("data-story-id", "cli-surface");
+    await page.reload();
+    await page.frameLocator("[data-story-viewer]").locator('svg g[data-node-id="diagram-core"]').press("Enter");
+    await expect(page.locator("body")).toHaveAttribute("data-story-id", "diagram-core-surface");
+    await page.reload();
+    await page.locator("[data-return]").click();
+    await expect(page.locator("body")).toHaveAttribute("data-story-id", "cli-surface");
+    await expect(page.locator('a[data-node-id="diagram-core"]')).toHaveAttribute("aria-current", "true");
+    await page.reload();
+    await page.locator("[data-return]").click();
+    await expect(page.locator("body")).toHaveAttribute("data-story-id", origin);
+    await expect(page.locator('a[data-node-id="cli"]')).toHaveAttribute("aria-current", "true");
+    await page.reload();
+    await expect(page.frameLocator("[data-story-viewer]").locator('svg g[data-node-id="cli"]')).toBeVisible();
+    await expect(page.locator("body")).toHaveAttribute("data-story-id", origin);
+  });
+}
+
 for (const [id, module, detailNode, boundary] of [
   ["algorithm-evidence-extraction", "scanner", "semantic", "runtime reachability"],
   ["algorithm-anchor-resolution", "story", "resolver", "no fuzzy matching"],

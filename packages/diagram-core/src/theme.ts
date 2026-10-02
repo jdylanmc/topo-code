@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import type { StoryDocument, StoryTarget } from "@topo/story";
+import { storyNodeIds } from "./node-ids.js";
 
 // The native renderer's documented ?theme= and data-theme seams remain intact.
 // One application preference wins over renderer storage and OS media queries.
@@ -75,7 +76,11 @@ export const CORE_THEME_SCRIPT = `(() => {
   });
 })();`;
 
-export function adaptViewerTheme(contents: string, document?: StoryDocument): string {
+export function adaptViewerTheme(
+  contents: string,
+  document?: StoryDocument,
+  renderer?: "archify" | "graphviz",
+): string {
   if (!/<head\b[^>]*>/i.test(contents)) throw new Error("Renderer output has no head for the core theme integration");
   const drilldowns: [string, StoryTarget][] = [];
   for (const section of document?.sections ?? []) {
@@ -83,9 +88,17 @@ export function adaptViewerTheme(contents: string, document?: StoryDocument): st
     if (!/^[a-z0-9][a-z0-9-]*$/.test(section.drilldown.storyId)) throw new Error("Invalid standalone drilldown target");
     drilldowns.push([section.id, section.drilldown]);
   }
-  const navigation = document === undefined || drilldowns.length === 0 ? "" : `
+  const navigation = document === undefined ? "" : `
 <script data-topo-standalone-navigation>
 (() => {
+  const nodeIds = new Map(${JSON.stringify(storyNodeIds(document, renderer)).replaceAll("<", "\\u003c")});
+  const authoredIds = new Map([...nodeIds].map(([authored, native]) => [native, authored]));
+  const selection = new URLSearchParams(location.hash.slice(1));
+  const focus = selection.get("focus");
+  if (nodeIds.has(focus) && nodeIds.get(focus) !== focus) {
+    selection.set("focus", nodeIds.get(focus));
+    history.replaceState(null, "", location.pathname + location.search + "#" + selection);
+  }
   const storyId = ${JSON.stringify(document.id).replaceAll("<", "\\u003c")};
   if (window.parent !== window || !location.pathname.endsWith("/stories/" + storyId + "/viewer.html")) return;
   const targets = new Map(${JSON.stringify(drilldowns).replaceAll("<", "\\u003c")});
@@ -94,7 +107,7 @@ export function adaptViewerTheme(contents: string, document?: StoryDocument): st
     if (navigating) return;
     if (event.type === "keyup" && event.key !== "Enter" && event.key !== " ") return;
     const node = event.target.closest?.("[data-node-id]");
-    const id = node?.getAttribute("data-node-id");
+    const id = authoredIds.get(node?.getAttribute("data-node-id"));
     const target = targets.get(id);
     if (!target) return;
     navigating = true;

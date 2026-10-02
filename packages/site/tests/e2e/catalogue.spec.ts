@@ -686,7 +686,7 @@ test("linked story nodes keep durable focus across drill-down, reload, direct op
   await page.getByRole("link", { name: "Open Order detail: Order code evidence" }).click();
 
   await expect(page).toHaveURL(
-    `${url}/stories/detail/?focus=evidence&from=overview&fromFocus=order-detail`,
+    `${url}/stories/detail/?focus=evidence&from=overview&fromFocus=order-detail&callers=${encodeURIComponent(JSON.stringify([{ storyId: "overview", nodeId: "order-detail" }]))}`,
   );
   await expect(page.getByRole("heading", { name: "Order detail" })).toBeVisible();
   await expect(page.locator('[data-node-id="evidence"]')).toHaveAttribute("aria-current", "true");
@@ -708,7 +708,7 @@ test("linked story nodes keep durable focus across drill-down, reload, direct op
   );
   await expect(page.locator(".story-details")).toHaveAttribute("open", "");
   await page.getByRole("link", { name: "Return to Order overview" }).click();
-  await expect(page).toHaveURL(`${url}/stories/overview/?focus=order-detail`);
+  await expect(page).toHaveURL(`${url}/stories/overview/?focus=order-detail&callers=%5B%5D`);
   await expect(page.locator('[data-node-id="order-detail"]')).toHaveAttribute("aria-current", "true");
   await expect(page.locator("iframe")).toHaveAttribute(
     "src",

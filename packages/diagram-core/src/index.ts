@@ -19,7 +19,9 @@ import { cliPath as archifyCli } from "@jdylanmc/topo-archify";
 import { verifyArchifyIntegrity } from "./integrity.js";
 import { adaptViewerTheme, outputHash } from "./theme.js";
 import { renderGraphviz } from "./graphviz.js";
+import { componentId } from "./node-ids.js";
 export { CORE_THEME_SCRIPT } from "./theme.js";
+export { storyNodeIds } from "./node-ids.js";
 
 export {
   verifyArchifyIntegrity,
@@ -263,12 +265,6 @@ interface SequenceLayout {
 function stableId(prefix: string, value: string): string {
   const hash = createHash("sha256").update(value).digest("hex").slice(0, 16);
   return `${prefix}_${hash}`;
-}
-
-function componentId(sectionId: string): string {
-  return /^[a-zA-Z][a-zA-Z0-9_-]*$/.test(sectionId)
-    ? sectionId
-    : stableId("component", sectionId);
 }
 
 // Match the pinned renderer's text-unit model before deciding whether prose
@@ -1601,7 +1597,7 @@ export function* renderArchitectureStoryBatch(
       const sourceContents = readFileSync(output, "utf8");
       const contents = adaptViewerTheme(adaptStorySemantics(
         improveStoryReadability(sourceContents, "architecture"), stories[index]!.document,
-      ), stories[index]!.document);
+      ), stories[index]!.document, "archify");
       yield {
         kind: "html",
         mediaType: "text/html",

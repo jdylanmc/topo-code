@@ -3,7 +3,7 @@ import { execFile } from "node:child_process";
 import { readFile, readdir, rm, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
-import { CORE_THEME_SCRIPT, renderStory } from "@topo/diagram-core";
+import { CORE_THEME_SCRIPT, renderStory, storyNodeIds } from "@topo/diagram-core";
 import {
   parseStoryDocument,
   resolveStoryDocument,
@@ -408,6 +408,35 @@ const STORY_NAVIGATION_SCRIPT = `(() => {
   const nodeLinks = [...document.querySelectorAll("[data-node-id]")];
   const crossLinks = [...document.querySelectorAll("[data-cross-story]")];
   const params = new URLSearchParams(window.location.search);
+  const navigation = JSON.parse(document.querySelector("[data-story-navigation]").textContent);
+  const nodeIds = new Map(navigation.nodeIds);
+  const authoredIds = new Map([...nodeIds].map(([authored, native]) => [native, authored]));
+  const catalogue = new Map(navigation.catalogue.map(story => [story.id, story]));
+  function validCaller(caller) {
+    if (!caller || typeof caller !== "object" || Array.isArray(caller)) return false;
+    const target = catalogue.get(caller.storyId);
+    return Boolean(target) && Object.keys(caller).every(key => key === "storyId" || key === "nodeId") &&
+      (caller.nodeId === undefined || target.nodeIds.includes(caller.nodeId));
+  }
+  const returnLink = document.querySelector("[data-return]");
+  function readCallers() {
+    if (params.has("callers")) {
+      try {
+        const callers = JSON.parse(params.get("callers"));
+        if (!Array.isArray(callers) || callers.length > 64 || !callers.every(validCaller)) {
+          throw new Error("Unknown story or focus target");
+        }
+        return callers;
+      } catch (error) {
+        console.warn("Ignoring invalid Topocode return context:", error.message);
+      }
+    }
+    const legacy = { storyId: params.get("from"), nodeId: params.get("fromFocus") || undefined };
+    if (validCaller(legacy)) return [legacy];
+    const parent = { storyId: returnLink?.dataset.parentStory, nodeId: returnLink?.dataset.parentNode || undefined };
+    return validCaller(parent) ? [parent] : [];
+  }
+  const callers = readCallers();
 
   function showEvidence(focus, edge) {
     for (const evidence of document.querySelectorAll("[data-section-evidence]")) {
@@ -428,7 +457,8 @@ const STORY_NAVIGATION_SCRIPT = `(() => {
         link.removeAttribute("aria-current");
       }
     }
-    frame.src = "viewer.html" + (nodeId ? "#focus=" + encodeURIComponent(nodeId) : "");
+    const nativeId = nodeIds.get(nodeId);
+    frame.src = "viewer.html" + (nativeId ? "#focus=" + encodeURIComponent(nativeId) : "");
   }
 
   function rememberFocus(nodeId) {
@@ -438,49 +468,59 @@ const STORY_NAVIGATION_SCRIPT = `(() => {
     else url.searchParams.delete("focus");
     window.history.replaceState(null, "", url);
     setFocus(nodeId);
+    showEvidence(nodeId, null);
   }
 
   let navigating = false;
   function follow(link) {
     if (navigating) return;
-    navigating = true;
     const sourceNodeId = link.getAttribute("data-source-node");
+    const destination = new URL(link.href);
+    if (sourceNodeId && callers.length >= 64) {
+      console.error("Topocode drilldown limit reached; return to an earlier story before continuing.");
+      return;
+    }
+    navigating = true;
     if (sourceNodeId) {
       const current = new URL(window.location.href);
       current.searchParams.set("focus", sourceNodeId);
-      current.searchParams.delete("from");
-      current.searchParams.delete("fromFocus");
       window.history.replaceState(null, "", current);
+      destination.searchParams.set("callers", JSON.stringify([...callers, { storyId, nodeId: sourceNodeId }]));
     }
-    window.location.assign(link.href);
+    window.location.assign(destination.href);
   }
 
+  for (const link of nodeLinks) {
+    link.addEventListener("click", event => {
+      event.preventDefault();
+      rememberFocus(link.getAttribute("data-node-id"));
+    });
+  }
+  for (const link of document.querySelectorAll('[data-edge-evidence] a[href^="?"]')) {
+    const destination = new URL(window.location.href);
+    destination.searchParams.delete("focus");
+    destination.searchParams.set("edge", new URL(link.href).searchParams.get("edge"));
+    link.href = destination.href;
+  }
   for (const link of crossLinks) {
+    const destination = new URL(link.href);
+    destination.searchParams.set("callers", JSON.stringify([...callers, { storyId, nodeId: link.getAttribute("data-source-node") }]));
+    link.href = destination.href;
     link.addEventListener("click", (event) => {
       event.preventDefault();
       follow(link);
     });
   }
 
-  const returnLink = document.querySelector("[data-return]");
-  if (returnLink instanceof HTMLAnchorElement) {
-    const targets = [
-      [params.get("from"), params.get("fromFocus")],
-      [returnLink.dataset.parentStory, returnLink.dataset.parentNode],
-    ];
-    for (const [from, fromFocus] of targets) {
-      if (!from || !fromFocus) continue;
-      const inventory = document.querySelector("template[data-catalogue-data]");
-      const source = document.querySelector('[data-story-id="' + CSS.escape(from) + '"]') ||
-        (inventory instanceof HTMLTemplateElement ? inventory.content.querySelector('a[data-id="' + CSS.escape(from) + '"]') : null);
-      if (source instanceof HTMLAnchorElement) {
-        returnLink.hidden = false;
-        returnLink.textContent = "Return to " + (source.dataset.title || source.textContent);
-        returnLink.href = "../" + encodeURIComponent(from) + "/?focus=" + encodeURIComponent(fromFocus);
-        document.querySelector("[data-story-breadcrumb]").hidden = false;
-        break;
-      }
-    }
+  if (returnLink instanceof HTMLAnchorElement && callers.length) {
+    const caller = callers.at(-1);
+    const destination = new URL("../" + encodeURIComponent(caller.storyId) + "/", location.href);
+    if (caller.nodeId !== undefined) destination.searchParams.set("focus", caller.nodeId);
+    destination.searchParams.set("callers", JSON.stringify(callers.slice(0, -1)));
+    returnLink.hidden = false;
+    returnLink.textContent = "Return to " + catalogue.get(caller.storyId).title;
+    returnLink.href = destination.href;
+    document.querySelector("[data-story-breadcrumb]").hidden = false;
   }
 
   frame.addEventListener("load", () => {
@@ -500,7 +540,7 @@ const STORY_NAVIGATION_SCRIPT = `(() => {
         showEvidence("", edge);
         return;
       }
-      const focus = selected.get("focus");
+      const focus = authoredIds.get(selected.get("focus"));
       if (!focus) return;
       const candidates = crossLinks.filter((link) => link.getAttribute("data-source-node") === focus);
       const current = new URL(window.location.href);
@@ -508,7 +548,7 @@ const STORY_NAVIGATION_SCRIPT = `(() => {
       current.searchParams.set("focus", focus);
       window.history.replaceState(null, "", current);
       showEvidence(focus, null);
-      if (activatedNodeId === focus) {
+      if (authoredIds.get(activatedNodeId) === focus) {
         const primary = candidates.find(link => link.hasAttribute("data-drilldown"));
         if (primary) follow(primary);
         else if (diagramFamily !== "sequence" && candidates.length === 1) follow(candidates[0]);
@@ -952,6 +992,12 @@ export function renderStoryWrapper(
     return `<div data-edge-evidence="${index}" data-edge-from="${escapeHtml(edge.from)}" data-edge-to="${escapeHtml(edge.to)}"><p><a href="?edge=${index}">${escapeHtml(edge.classification)}: ${escapeHtml(edge.label ?? `${edge.from} to ${edge.to}`)}</a></p><p>${escapeHtml(edge.rationale!)}</p>${excerpts}</div>`;
   }).join("");
   return renderShellPage(stories, config, historyIncomplete, story, `\
+    <script type="application/json" data-story-navigation>${JSON.stringify({
+      nodeIds: storyNodeIds(story.document, story.renderer.name === "graphviz" ? "graphviz" : "archify"),
+      catalogue: stories.map(({ document }) => ({
+        id: document.id, title: document.title, nodeIds: document.sections.map(section => section.id),
+      })),
+    }).replaceAll("<", "\\u003c")}</script>
     <nav class="story-breadcrumb" data-story-breadcrumb aria-label="Diagram context" hidden>
       <a data-return data-parent-story="${escapeHtml(story.document.parent?.storyId ?? "")}" data-parent-node="${escapeHtml(story.document.parent?.nodeId ?? "")}" hidden></a>
     </nav>

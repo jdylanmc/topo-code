@@ -17,12 +17,45 @@ import { fileURLToPath } from "node:url";
 import {
   renderArchitectureStories,
   renderStory,
+  storyNodeIds,
   verifyArchifyIntegrity,
 } from "@topo/diagram-core";
 import { runtimeDirectory, verifyRuntime } from "@jdylanmc/topo-archify";
+import { parseStoryDocument } from "@topo/story";
 
 const packageRoot = fileURLToPath(new URL("../", import.meta.url));
 const execute = promisify(execFile);
+
+test("authored/native identity mapping preserves renderer nodes and edge endpoints", async () => {
+  const ids = ["1-start", "src/api.ts", "\u5165\u53e3", "normal-slug"];
+  for (const renderer of ["archify", "graphviz"]) {
+    const document = parseStoryDocument(JSON.stringify({
+      schemaVersion: "1.0", id: "identities", title: "Identities", summary: "Identity contract",
+      classification: "capability-demo", diagramFamily: renderer === "archify" ? "architecture" : "workflow",
+      renderer, anchors: [],
+      sections: ids.map((id, index) => ({
+        id, title: `Node ${index + 1}`, body: "Identity mapping.", anchorIds: [],
+        drilldown: { storyId: "child", nodeId: "src/api.ts" },
+      })),
+      connections: [{ from: ids[0], to: ids[1], label: "connects",
+        classification: "inferred", anchorIds: [], rationale: "Conceptual fixture." }],
+    }));
+    const pairs = storyNodeIds(document);
+    assert.deepEqual(pairs.map(([authored]) => authored), ids);
+    assert.equal(pairs[0][1], renderer === "archify" ? "component_a612388255cfd8d7" : "1-start");
+    assert.equal(pairs[3][1], "normal-slug");
+    const story = { document, documentPath: "stories/identities.topo.json", repositoryRoot: "/unused",
+      source: { revision: "fixture", dirty: false }, anchors: [] };
+    const artifacts = [await renderStory(story)];
+    if (renderer === "archify") artifacts.push(...renderArchitectureStories([story]));
+    for (const artifact of artifacts) {
+      for (const [, native] of pairs) assert.ok(artifact.contents.includes(`data-node-id="${native}"`));
+      assert.ok(artifact.contents.includes(`data-edge-from="${pairs[0][1]}"`));
+      assert.ok(artifact.contents.includes(`data-edge-to="${pairs[1][1]}"`));
+      assert.ok(artifact.contents.includes(`new Map(${JSON.stringify(pairs)})`));
+    }
+  }
+});
 
 test("accepts the committed integrity baseline", () => {
   const integrity = verifyArchifyIntegrity();

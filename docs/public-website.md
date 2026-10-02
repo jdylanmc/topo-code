@@ -38,6 +38,10 @@ The website test suite exercises both deployment shapes.
 corepack yarn website:test
 ```
 
+If another preview owns port 4188, leave it running and use
+`WEBSITE_TEST_PORT=4289 corepack yarn website:test` with a free port. The test
+server is always separate; the suite never reuses an existing preview.
+
 ## Content ownership
 
 - Marketing: `website/build.mjs`.

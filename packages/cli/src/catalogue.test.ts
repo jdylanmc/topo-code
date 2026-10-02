@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { initializeWorkspace, loadConfig } from "@topo/workspace";
 import {
   buildCatalogue,
@@ -94,6 +94,20 @@ afterEach(async () => {
 });
 
 describe("generated catalogue", () => {
+  let repositoryStories: Awaited<ReturnType<typeof buildCatalogueStories>>;
+  // Render the real committed catalogue once; assertions retain their 5s budget.
+  beforeAll(async () => {
+    repositoryStories = await buildCatalogueStories(repositoryRoot);
+  }, 60_000);
+
+  it("renders every committed story through its real renderer", () => {
+    expect(repositoryStories.length).toBeGreaterThan(0);
+    for (const story of repositoryStories) {
+      expect(story.contents, story.document.id).toContain("<svg");
+      expect(story.renderer.name, story.document.id).toMatch(/^(archify|graphviz)$/);
+    }
+  });
+
   it("binds explicit drilldowns and parents only to real published targets", async () => {
     const root = await repository();
     await addStory(root, "stories/overview.topo.json", "overview", "Overview");
@@ -166,7 +180,7 @@ describe("generated catalogue", () => {
   });
 
   it("keeps Topocode's factual architecture stories source-grounded and current", async () => {
-    const stories = await buildCatalogueStories(repositoryRoot);
+    const stories = repositoryStories;
     const factual = ["topo-architecture", "topo-packages"].map((id) => {
       const story = stories.find(({ document }) => document.id === id);
       expect(story, id).toBeDefined();
@@ -188,7 +202,7 @@ describe("generated catalogue", () => {
   });
 
   it("includes a source-grounded Workflow story for the authoring loop", async () => {
-    const stories = await buildCatalogueStories(repositoryRoot);
+    const stories = repositoryStories;
     const workflow = stories.find(({ document }) =>
       document.id === "story-authoring-workflow" &&
       document.diagramFamily === "workflow" &&
@@ -215,7 +229,7 @@ describe("generated catalogue", () => {
   });
 
   it("includes a source-grounded Lifecycle story for story states", async () => {
-    const stories = await buildCatalogueStories(repositoryRoot);
+    const stories = repositoryStories;
     const lifecycle = stories.find(({ document }) =>
       document.diagramFamily === "lifecycle" &&
       document.classification !== "capability-demo"
@@ -240,7 +254,7 @@ describe("generated catalogue", () => {
   });
 
   it("includes non-source-grounded capability demos for the gallery families", async () => {
-    const stories = await buildCatalogueStories(repositoryRoot);
+    const stories = repositoryStories;
     const demos = stories.filter(({ document }) =>
       document.classification === "capability-demo"
     );
