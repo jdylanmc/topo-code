@@ -60,7 +60,7 @@
       "id": "agent",
       "title": "Coding agent",
       "semanticRole": "coding-agent",
-      "body": "Read code and scan evidence, identify what matters, and author an anchored story that explains the code visually. Repair diagnostics and preserve story identity as the explanation evolves. Present the diagram so the user can understand responsibilities and relationships without first reading every file. Interpretation here does not require the separate topo enrich command.",
+      "body": "Use the scan result and source code to identify what matters, then build a diagram that explains responsibilities and relationships at a glance. Hand that visual explanation to the human for review and refine it from their feedback. The detailed authoring and rendering commands are intentionally omitted from this product overview.",
       "anchorIds": [
         "authoring-guide",
         "agent-skill",
@@ -71,7 +71,7 @@
       "id": "cli",
       "title": "Topocode CLI",
       "semanticRole": "command-line-tool",
-      "body": "Initialize and optionally scan the repository without calling a model. Validate drafts and render committed stories. serve supplies a local viewer; bundle supplies static files. These are separate invocations across the collaboration cycle, not one long-running call.",
+      "body": "Supply deterministic scan results and source evidence for the agent to interpret. Scanning does not call a model or choose the explanation for the human. This overview focuses on how the scan informs the diagram; detailed validation, rendering, and publishing procedures belong in the usage guides.",
       "anchorIds": [
         "cli-contract",
         "authoring-guide",
@@ -111,35 +111,13 @@
     {
       "from": "cli",
       "to": "agent",
-      "label": "Graph, evidence, diagnostics",
+      "label": "Scan results and source evidence",
       "variant": "return"
     },
     {
       "from": "agent",
       "to": "repository",
-      "label": "Write interpreted story"
-    },
-    {
-      "from": "agent",
-      "to": "cli",
-      "label": "Validate the draft"
-    },
-    {
-      "from": "cli",
-      "to": "agent",
-      "label": "Anchor results; repair feedback",
-      "variant": "return"
-    },
-    {
-      "from": "agent",
-      "to": "cli",
-      "label": "Preview; serve or bundle"
-    },
-    {
-      "from": "cli",
-      "to": "agent",
-      "label": "Diagram and source evidence",
-      "variant": "return"
+      "label": "Build diagram from scan results"
     },
     {
       "from": "agent",

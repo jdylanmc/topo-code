@@ -96,8 +96,9 @@ related-story links remain available; published targets are validated.
 
 `story-to-screen.topo.json` now shows **From idea to architecture** as a native
 sequence: you ask the agent, the CLI supplies deterministic scan evidence, the
-agent interprets and authors, the CLI validates/previews, you review, and the
-cycle repeats. Its outcome is understanding code at a glance rather than reading
+agent uses the scan results to build a diagram, hands it to you for review, and
+the cycle repeats. Validation/rendering round-trips are intentionally omitted
+from this overview. Its outcome is understanding code at a glance rather than reading
 files one by one. The repository lifeline makes source reads and authored stories
 explicit; routine Git procedure is omitted from this product explanation.
 This is the documented collaboration workflow, not a call trace of one process.

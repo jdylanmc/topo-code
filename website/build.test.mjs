@@ -160,7 +160,15 @@ test("build only the curated story set for project Pages and custom-domain roots
       const evidence = JSON.parse(await readFile(path.join(output, "demo/home/stories/dependency-context/evidence.json"), "utf8"));
       assert.equal(evidence.anchors.length, 16);
       const flow = JSON.parse(await readFile(path.join(output, "demo/home/stories/story-to-screen/evidence.json"), "utf8"));
-      assert.equal(flow.connections.length, 11);
+      assert.deepEqual(flow.connections.map(edge => edge.label), [
+        "Question, scope and intent",
+        "Initialize; scan source",
+        "Read code (no model)",
+        "Scan results and source evidence",
+        "Build diagram from scan results",
+        "Diagram explains the code",
+        "Review, refine, repeat",
+      ]);
       assert.ok(flow.connections.some(edge => edge.from === "agent" && edge.to === "user" && edge.label === "Diagram explains the code"));
       assert.ok(flow.connections.every(edge => !/commit|authorization/i.test(edge.label)));
       assert.equal(flow.connections.at(-1).label, "Review, refine, repeat");

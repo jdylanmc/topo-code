@@ -186,7 +186,10 @@ test("idea-to-architecture sequence shows the collaboration and review loop", as
   expect(await flow.locator("svg g[data-node-id]").evaluateAll(nodes => nodes.map(node => node.dataset.nodeKind)))
     .toEqual(["human", "coding-agent", "command-line-tool", "repository"]);
   await expect(flow.locator('svg[data-topo-family="sequence"]')).toContainText("Review, refine, repeat");
-  await expect(flow.locator('svg[data-topo-family="sequence"]')).toContainText("Write interpreted story");
+  await expect(flow.locator('svg[data-topo-family="sequence"]')).toContainText("Build diagram from scan results");
+  for (const removed of ["Validate the draft", "Anchor results; repair feedback", "Preview; serve or bundle", "Diagram and source evidence"]) {
+    await expect(flow.locator('svg[data-topo-family="sequence"]')).not.toContainText(removed);
+  }
   await expect(flow.locator('svg[data-topo-family="sequence"]')).not.toContainText("Commit with authorization");
   await expect(flow.locator('svg[data-topo-family="sequence"]')).toContainText("Diagram explains the code");
   await flow.locator('svg g[data-node-id="cli"]').click();
