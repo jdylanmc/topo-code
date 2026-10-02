@@ -25,6 +25,14 @@ Read relevant existing records before exploration. These files are created
 lazily through separately authorized domain recording, not during setup.
 See `docs/agents/domain.md`.
 
+### Website and diagram maintenance
+
+When changing Topocode, update affected documentation and curated diagrams in
+the same PR. Re-read changed source before updating diagram evidence; never
+refresh hashes blindly. If no updates are needed, briefly explain why in the PR.
+Existing CI checks evidence and site builds; humans review whether diagrams
+explain the code clearly. Keep the curated set small and question-driven.
+
 ### Commit messages
 
 Use the terse Conventional Commits policy in `docs/agents/commit-style.md`,
