@@ -1,0 +1,201 @@
+{
+  "schemaVersion": 1,
+  "status": "historical-measurements-not-human-acceptance",
+  "scope": "Retained local plugin integration experiment; not released Rust/Tauri support.",
+  "source": {
+    "topocode": {
+      "commit": "b64bb2fc9c1ba6319287f7c701588eee3de2d1d5",
+      "url": "https://github.com/jdylanmc/topo-code/tree/b64bb2fc9c1ba6319287f7c701588eee3de2d1d5"
+    },
+    "rendererPackaging": {
+      "commit": "b94790e99e2ca51fcdb74a9bd0f10f637856f92f",
+      "url": "https://github.com/jdylanmc/topo-archify/tree/b94790e99e2ca51fcdb74a9bd0f10f637856f92f"
+    },
+    "consumer": {
+      "commit": "9222f8a8b5abe0e65223703a1bf80e994db7f9cc",
+      "url": "https://github.com/jdylanmc/pr-sniper/tree/9222f8a8b5abe0e65223703a1bf80e994db7f9cc"
+    }
+  },
+  "publishedDependencies": [
+    {
+      "name": "@jdylanmc/topo-code",
+      "version": "0.1.0",
+      "sha256": "f2248386c8aa9cf3c141a32eafffdce3117a2ab56aa91595c36cf164ffc40f64"
+    },
+    {
+      "name": "@jdylanmc/topo-archify",
+      "version": "0.1.0",
+      "sha256": "d32492b080b1fbc8126506d83678d3bdbf321ab935d0b74e89586576b58c4d27"
+    }
+  ],
+  "analysis": {
+    "baselineId": "sha256:f678655f318fd7a79cbce6ac53e2e2cf017457d702951061705cd0acf2466e97",
+    "files": 148,
+    "entities": 3069,
+    "relationships": 5242,
+    "tauriBindings": 63,
+    "unresolved": 17784,
+    "coverage": "partial",
+    "rust": {
+      "entities": 2552,
+      "syntaxRelationships": 1592,
+      "declaredCommandPaths": 53
+    },
+    "caveat": "Counts bind to the historical consumer source/dependency snapshot, not every checkout or compiler semantics."
+  },
+  "rendering": {
+    "native": {
+      "engine": "Archify 3.0.0",
+      "checksPassed": 9,
+      "browserCases": 10,
+      "minimumEffectiveTextPx": 14.106666666666667,
+      "viewports": [
+        "1024x768",
+        "1280x720",
+        "1440x900",
+        "1600x1000",
+        "1920x1080"
+      ],
+      "evidenceScope": "Earlier simple detailed/grouped consumer views; not the later dense technical guide.",
+      "exports": [
+        "SVG",
+        "PNG"
+      ]
+    },
+    "technical": {
+      "engine": "Graphviz 16.0.0",
+      "package": "@viz-js/viz@3.30.0",
+      "chapters": 5,
+      "nodes": 39,
+      "edges": 55,
+      "excerpts": 336,
+      "sourceFiles": 19,
+      "browserCases": 15,
+      "minimumEffectiveTextPx": 12.131868131868131,
+      "viewports": [
+        "1440x900",
+        "1600x1000",
+        "1920x1080"
+      ],
+      "nodesPreserved": true,
+      "noClippingOrTextOverlap": true,
+      "nodeToSource": true,
+      "chapterNavigation": true,
+      "svgExport": true,
+      "archifyChecksClaimed": false,
+      "classification": "Exact source-excerpt traces, not automatically resolved compiler control flow.",
+      "chaptersAndArtifactHashes": [
+        {
+          "id": "pr-sniper-native-lifetime",
+          "sections": 8,
+          "edges": 9,
+          "htmlSha256": "430080f990744f6d66cae60e599022a4b24fdaf281eecbcfb2ef361ae7163ed4"
+        },
+        {
+          "id": "pr-sniper-ui-native",
+          "sections": 7,
+          "edges": 7,
+          "htmlSha256": "ab5c02a30689055ceaa4e017aff515355f2f5b7cd3caaed881da9e687ccb6aa7"
+        },
+        {
+          "id": "pr-sniper-check-admission",
+          "sections": 8,
+          "edges": 11,
+          "htmlSha256": "6205a3fb6507a043731cbe0d63359fdfe8805aa5167a04d69c37306fbcbef96b"
+        },
+        {
+          "id": "pr-sniper-copilot-session",
+          "sections": 8,
+          "edges": 13,
+          "htmlSha256": "f23d0ff136400cabaf33357802b6d9344e645456c3846d8a61a26fd25f49330e"
+        },
+        {
+          "id": "pr-sniper-publication-recovery",
+          "sections": 8,
+          "edges": 15,
+          "htmlSha256": "946e8d2567f2d9d7ead2ad3f484bbf13967473654f0edc7f314d8557fa539ce1"
+        }
+      ]
+    }
+  },
+  "preservation": {
+    "originalContextFileHashes": 144,
+    "originalNonDependencySourceFileHashes": 146,
+    "applicationSourceDiff": "",
+    "sentinelInvokeExercise": {
+      "staleAttemptsRejected": 4,
+      "lastGoodFilesPreserved": 13,
+      "unknownCommandReportedUnresolved": true,
+      "exactSourceBytesRestored": true,
+      "caveat": "Earlier installed-consumer exercise; not rerun during PR curation."
+    }
+  },
+  "testing": {
+    "preCurationTestsPassed": 77,
+    "curationVerification": {
+      "testsPassed": 80,
+      "nodeVersions": ["22.23.2", "24.20.0"],
+      "platform": "macOS arm64",
+      "standaloneSourceCopy": "Installed with explicit local release tarballs; all 80 tests passed and committed lock stayed unchanged.",
+      "packedConsumer": "Actual npm pack/install/bin init/partial scan/validate/render with Archify and Graphviz passed on both Node versions.",
+      "publicRegistryInstall": "Not verified on the local host: public npm transport failed; hosted workflow remains pending.",
+      "browserScope": "Historical matrices above; curation did not repeat browser or human acceptance."
+    },
+    "liveTestCommand": "npm test",
+    "packedConsumerCommand": "npm run test:package",
+    "hostedCuratedCommit": "Pending dedicated Node 22 macOS/Linux workflow; local proof is not hosted proof."
+  },
+  "review": {
+    "scope": "Local experimental TypeScript/Rust/Tauri prototype; not production approval or a general security audit",
+    "originalFindings": 5,
+    "historicalDisposition": "All five original findings resolved within the bounded review; no additional consequential defect reported",
+    "findings": [
+      {
+        "issue": "Rust local handler shadowing could bind a root declaration",
+        "status": "resolved"
+      },
+      {
+        "issue": "Written helper parameters could fabricate obsolete command bindings",
+        "status": "resolved"
+      },
+      {
+        "issue": "Shared constants collapsed invocation identity and discarded evidence",
+        "status": "resolved"
+      },
+      {
+        "issue": "Same-line declarations received incorrect invocation ownership",
+        "status": "resolved"
+      },
+      {
+        "issue": "Late artifact writes left mixed generations",
+        "status": "resolved for reviewed reported-I/O failures"
+      }
+    ],
+    "curatedCommitIndependentReview": "pending"
+  },
+  "failedApproaches": [
+    "First package bin symlink was a no-op; installed npm-bin execution is now tested.",
+    "Initial shallow/manual-routed diagrams lost useful detail and collided; not accepted as technical depth.",
+    "Bounded native Archify dense-branch layouts failed; Graphviz is an explicit alternative, not relabeled Archify output."
+  ],
+  "nextCoreDeliverable": {
+    "implementedHere": false,
+    "title": "Branded core init landing/catalogue",
+    "currentBookIndex": "First diagram plus chapter navigation",
+    "delivery": "Separate core PR"
+  },
+  "limitations": [
+    "Historical full baselines, HTML, screenshots and logs are deliberately not committed; receipt hashes identify locally preserved originals.",
+    "Private published Topocode scanner boundary; no supported public plugin SDK or marketplace.",
+    "Rust calls/macros/cfg remain partial; pinned grammar recovers modern unsafe extern syntax.",
+    "Tauri source bindings are not runtime reachability or authorization.",
+    "Human semantic/visual acceptance remains pending."
+  ],
+  "originalLocalReceiptSha256": {
+    "nativeBrowser": "e92a7f6a32511903467bbd78a98a7988fb1018d7ec075d430632c646ae5c1207",
+    "technicalBrowser": "3261928c0799c324de4bceebd8a00c9a0f7778e44207cc40d5033ece742cca07",
+    "sourcePreservation": "35387dc5d6b71858f1385ba7789290cf2eba6d86cec3022bc5db208dcee9a4a9",
+    "technicalGuide": "60c76082be5863475ac2b12fd90c6d243b4c4cd06a2583b0511828c829e3bfb1",
+    "independentReview": "cdb20f06e0ea3943fe47b98bd27496c3c650d9e3db48ea5ac05ad7d2bd98b4e1"
+  }
+}

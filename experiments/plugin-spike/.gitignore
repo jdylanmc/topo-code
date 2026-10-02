@@ -1,0 +1,14 @@
+/node_modules/
+/artifacts/
+/dist/
+/coverage/
+/.cache/
+/npm-cache/
+*.tgz
+*.log
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.webm
+.DS_Store
