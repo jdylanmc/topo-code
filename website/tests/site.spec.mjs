@@ -334,11 +334,16 @@ test("homepage embeds only the blueprint viewer and leaves full storybook naviga
         return bounds.left >= 0 && bounds.top >= 0 && bounds.right <= innerWidth && bounds.bottom <= innerHeight;
       }),
       fontFloor: Math.min(...text.map(node => parseFloat(getComputedStyle(node).fontSize) * transform.a)),
+      participantSpan: (() => {
+        const boxes = [...svg.querySelectorAll("g[data-node-id] > rect:not(.c-mask)")].map(node => node.getBoundingClientRect());
+        return (Math.max(...boxes.map(box => box.right)) - Math.min(...boxes.map(box => box.left))) / svg.getBoundingClientRect().width;
+      })(),
     };
   });
   expect(containment.uniformScale).toBe(true);
   expect(containment.allTextVisible).toBe(true);
   expect(containment.fontFloor).toBeGreaterThanOrEqual(12);
+  expect(containment.participantSpan).toBeGreaterThanOrEqual(0.8);
   await page.locator("[data-demo]").scrollIntoViewIfNeeded();
   await page.screenshot({ path: info.outputPath("homepage-live-demo.png") });
   await page.getByRole("button", { name: "Expand demo", exact: true }).click();

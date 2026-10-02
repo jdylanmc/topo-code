@@ -19,6 +19,14 @@
   "properties": {
     "schemaVersion": { "const": "1.0" },
     "renderer": { "enum": ["archify", "graphviz"] },
+    "sequenceLayout": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minimumParticipantGap"],
+      "properties": {
+        "minimumParticipantGap": { "type": "integer", "minimum": 108, "maximum": 9007199254740991 }
+      }
+    },
     "diagramFamily": {
       "enum": ["architecture", "workflow", "sequence", "dataflow", "lifecycle"]
     },
@@ -104,6 +112,10 @@
     }
   },
   "allOf": [
+      {
+        "if": { "properties": { "sequenceLayout": {} }, "required": ["sequenceLayout"] },
+        "then": { "required": ["diagramFamily"], "properties": { "diagramFamily": { "const": "sequence" } } }
+      },
       {
         "if": { "properties": { "sections": { "type": "array", "contains": { "type": "object", "properties": { "summary": {} }, "required": ["summary"] } } } },
         "then": { "properties": { "diagramFamily": { "const": "architecture" } } }

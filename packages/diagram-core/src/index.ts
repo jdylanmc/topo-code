@@ -330,7 +330,7 @@ function sequenceLayout(story: ResolvedStoryDocument): SequenceLayout {
       sequenceReadability.sideMargin * 2,
     sequenceReadability.sideMargin +
       requiredParticipantWidth +
-      (participantCount - 1) * sequenceReadability.minimumParticipantGap +
+      (participantCount - 1) * (story.document.sequenceLayout?.minimumParticipantGap ?? sequenceReadability.minimumParticipantGap) +
       sequenceReadability.rightMargin,
   );
   const messageYs = story.document.connections.map((_, index) =>

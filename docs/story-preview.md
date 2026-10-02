@@ -29,6 +29,23 @@ Their receipts identify `topocode-story-semantics-v2` and distinguish
 native output hashes from adapted output hashes. Active lens selection remains
 viewer-only; the authored semantic roles are durable diagram metadata.
 
+## Sequence spacing
+
+Agents can request wider participant columns through authored data:
+
+```json
+{
+  "diagramFamily": "sequence",
+  "sequenceLayout": { "minimumParticipantGap": 220 }
+}
+```
+
+The gap is a minimum center-to-center distance in SVG units (integer, at least
+108). Topocode expands the sequence viewBox and spreads its columns; it does not
+stretch text or add zoom. Omission preserves existing automatic spacing.
+Readability checks still reject layouts that cannot meet the supported text
+floor. This is an unreleased repository-build option, not npm 0.2.0 behavior.
+
 ## Explicit module drilldowns
 
 An authored section can declare `"drilldown": { "storyId": "cli-surface" }`.

@@ -59,6 +59,7 @@ export interface StoryDocument {
   readonly summary: string;
   readonly category?: string;
   readonly parent?: StoryTarget & { readonly nodeId: string };
+  readonly sequenceLayout?: { readonly minimumParticipantGap: number };
   readonly anchors: readonly SourceAnchor[];
   readonly sections: readonly StorySection[];
   readonly connections: readonly StoryConnection[];
@@ -229,7 +230,7 @@ function validateStoryDocument(value: unknown): string | undefined {
   const rootKeys = exactKeys(
     value,
     ["schemaVersion", "id", "title", "summary", "anchors", "sections", "connections"],
-    ["category", "diagramFamily", "classification", "renderer", "parent"],
+    ["category", "diagramFamily", "classification", "renderer", "parent", "sequenceLayout"],
   );
   if (rootKeys) return rootKeys;
   if (value.schemaVersion !== "1.0") return 'schemaVersion must be "1.0"';
@@ -254,6 +255,17 @@ function validateStoryDocument(value: unknown): string | undefined {
   }
   if (!nonemptyString(value.title)) return "title must be nonempty";
   if (!nonemptyString(value.summary)) return "summary must be nonempty";
+  if (value.sequenceLayout !== undefined) {
+    if (value.diagramFamily !== "sequence" || !isRecord(value.sequenceLayout)) {
+      return "sequenceLayout requires a sequence diagram and an object";
+    }
+    const keys = exactKeys(value.sequenceLayout, ["minimumParticipantGap"], []);
+    if (keys) return `sequenceLayout ${keys}`;
+    const gap = value.sequenceLayout.minimumParticipantGap;
+    if (typeof gap !== "number" || !Number.isSafeInteger(gap) || gap < 108) {
+      return "sequenceLayout.minimumParticipantGap must be an integer of at least 108 SVG units";
+    }
+  }
   if (value.parent !== undefined) {
     const error = validateStoryTarget(value.parent, true);
     if (error) return `parent ${error}`;

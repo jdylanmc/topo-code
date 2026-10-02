@@ -43,6 +43,21 @@ function validStory(): StoryDocument {
 }
 
 describe("story document contract", () => {
+  it("accepts explicit sequence spacing only with a bounded sequence contract", async () => {
+    const value = { ...validStory(), diagramFamily: "sequence", sequenceLayout: { minimumParticipantGap: 220 } };
+    const validate = new Ajv2020({ strict: true }).compile(JSON.parse(await readFile(schemaPath, "utf8")));
+    expect(validate(value)).toBe(true);
+    expect(parseStoryDocument(JSON.stringify(value), "wide.topo.json").sequenceLayout).toEqual({ minimumParticipantGap: 220 });
+    for (const invalid of [
+      { ...value, diagramFamily: "architecture" },
+      ...[{}, null, { minimumParticipantGap: 107 }, { minimumParticipantGap: 220.5 }, { minimumParticipantGap: "220" },
+        { minimumParticipantGap: 220, width: 1000 }].map(sequenceLayout => ({ ...value, sequenceLayout })),
+    ]) {
+      expect(validate(invalid)).toBe(false);
+      expect(() => parseStoryDocument(JSON.stringify(invalid), "wide.topo.json")).toThrow();
+    }
+  });
+
   it("accepts explicit drilldown and parent targets and rejects malformed navigation", async () => {
     const story = validStory();
     const value = {
