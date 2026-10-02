@@ -57,19 +57,23 @@ for (const [palette, theme] of Object.entries(themes)) {
     await page.goto("./");
     await expect(page.locator(".terrain")).toHaveAttribute("data-animated", "true");
     const canvas = page.locator(".terrain canvas");
+    // Compare the transparent terrain, not unrelated lazy-loaded viewer pixels.
+    const captureTerrain = () => canvas.screenshot({
+      style: "body > :not(.terrain) { visibility: hidden !important; }",
+    });
     expect(await canvas.evaluate(element => element.width * element.height)).toBeLessThanOrEqual(800000);
-    const moving = await canvas.screenshot();
+    const moving = await captureTerrain();
     await page.waitForTimeout(500);
-    expect(await canvas.screenshot()).not.toEqual(moving);
+    expect(await captureTerrain()).not.toEqual(moving);
     await page.getByRole("button", { name: "Pause background" }).click();
-    const paused = await canvas.screenshot();
+    const paused = await captureTerrain();
     await page.waitForTimeout(300);
-    expect(await canvas.screenshot()).toEqual(paused);
+    expect(await captureTerrain()).toEqual(paused);
     await page.getByRole("button", { name: "Resume background" }).click();
     await page.emulateMedia({ reducedMotion: "reduce" });
-    const reduced = await canvas.screenshot();
+    const reduced = await captureTerrain();
     await page.waitForTimeout(300);
-    expect(await canvas.screenshot()).toEqual(reduced);
+    expect(await captureTerrain()).toEqual(reduced);
     await page.addInitScript(() => {
       const getContext = HTMLCanvasElement.prototype.getContext;
       HTMLCanvasElement.prototype.getContext = function (kind, ...args) {
