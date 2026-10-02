@@ -34,7 +34,18 @@ p { max-width: 68ch; }
 .hero .actions { display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap; margin-top: 2rem; }
 .button { display: inline-block; padding: .6rem 1.1rem; border-radius: .45rem; background: var(--accent); color: var(--bg); text-decoration: none; font-weight: 650; }
 .workbench { position: relative; padding: 2rem; background: var(--panel); border: 1px solid var(--line); border-radius: 1rem; }
-.workbench::before { content: ""; position: absolute; height: 2rem; width: 3rem; top: -1rem; left: -1.5rem; border-left: 2px solid var(--accent); border-bottom: 2px solid var(--accent); border-radius: 0 0 0 .5rem; }
+.workbench::before, .workbench::after {
+  content: "";
+  position: absolute;
+  width: 3.5rem;
+  height: 3.5rem;
+  pointer-events: none;
+  border-top: 2px solid var(--accent);
+  border-left: 2px solid var(--accent);
+  border-top-left-radius: calc(1rem - 8px);
+}
+.workbench::before { top: 7px; left: 7px; }
+.workbench::after { bottom: 7px; right: 7px; transform: rotate(180deg); }
 .workbench h2 { margin-top: 0; font-size: 1.6rem; }
 .workbench pre { margin: 1.2rem 0; white-space: pre-wrap; overflow-wrap: anywhere; border: 0; padding: 0; }
 .workbench p { color: var(--muted); font-size: .95rem; }
