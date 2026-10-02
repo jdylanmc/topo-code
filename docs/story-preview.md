@@ -56,9 +56,10 @@ Clicking that node opens the child story's overview; add `nodeId` only when a
 particular destination node should be focused. This explicit destination wins
 over automatically discovered shared-evidence links. Other related stories and
 source evidence remain available in details.
-On narrow screens, opening details reserves space below the viewer rather than
-covering diagram titles. The evidence pane scrolls independently and remains
-keyboard-accessible; non-Sequence focus still opens its evidence automatically.
+The sidebar docks only when enough diagram reading width is available. Opening
+details reserves space below the viewer rather than covering diagram titles.
+The evidence pane scrolls independently, and navigation controls remain
+keyboard-accessible and unobscured; non-Sequence focus still opens evidence automatically.
 
 A child can declare `"parent": { "storyId": "internal-modules", "nodeId": "cli" }`.
 The storybook displays a visible return link even when the child is opened

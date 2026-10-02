@@ -19,9 +19,9 @@ versions are independent; publication remains a separate release-owner action.
 
 ### Fixed
 
-- Keep default Architecture source captions readable without changing authored
-  summary styling, and keep narrow-screen evidence panels below the diagram
-  rather than covering its titles.
+- Keep default Architecture source captions readable across sidebar breakpoints
+  without changing authored summary styling. Reserve space for open evidence
+  rather than covering diagram titles or navigation controls.
 - Preserve the actual caller through nested story returns and reloads, and keep
   drilldown/focus navigation working for all legal authored section IDs across
   native and Graphviz viewers.

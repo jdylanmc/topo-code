@@ -1179,11 +1179,13 @@ function renderShellPage(
       [data-repository-evidence] ul, [data-repository-evidence] ol { display: block; padding-left: 1.25rem; }
       [data-repository-evidence] li { display: list-item; background: transparent; padding: 0.15rem; }
       .repository-evidence.story-details { position: static; width: auto; max-height: 35vh; }
-      @media (max-width: 1099px) {
+      /* Dock the wider sidebar only when source text retains enough reading width. */
+      @media (max-width: 1239px) {
         [data-topo-shell],
         [data-navigation-collapsed="true"] { grid-template-columns: 1px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
         .catalogue-panel,
         body[data-story-id] .catalogue-panel { position: relative; z-index: 3; display: grid; grid-template-rows: auto auto auto auto minmax(0, 1fr) auto; width: 1px; min-width: 0; padding: 0 0 2.6rem; overflow: visible; border-right: 0; border-bottom: 0; background: transparent; }
+        body:has(.story-main > .story-details[open]) .catalogue-panel { padding-bottom: calc(20vh + 2.6rem); }
         .catalogue-panel::before { position: absolute; z-index: -1; inset: 0 auto 0 0; width: 14rem; border-right: 1px solid #29364a; background: #0b1524; box-shadow: 0.5rem 0 1.25rem rgb(0 0 0 / 30%); content: ""; }
         [data-navigation-collapsed="true"] .catalogue-panel::before { width: 3.5rem; box-shadow: none; }
         .catalogue-panel > * { width: 14rem; }
@@ -1210,9 +1212,8 @@ function renderShellPage(
         [data-navigation-collapsed="true"] .story-details:not([open]) { width: 3.5rem; }
         [data-navigation-collapsed="true"] .story-details:not([open]) summary { overflow: hidden; font-size: 0; text-align: center; }
         [data-navigation-collapsed="true"] .story-details:not([open]) summary::after { content: "…"; font-size: 1rem; }
-        .story-main > .story-details[open] { position: static; width: auto; max-height: 20vh; border-radius: 0; box-shadow: none; }
       }
-      @media (min-width: 1100px) and (max-width: 1280px) and (max-height: 760px) {
+      @media (min-width: 1240px) and (max-width: 1280px) and (max-height: 760px) {
         [data-topo-shell] { grid-template-columns: 14rem minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
         [data-navigation-collapsed="true"] { grid-template-columns: 3.5rem minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
         .catalogue-panel, body[data-story-id] .catalogue-panel { display: grid; grid-template-rows: auto auto auto auto minmax(0, 1fr) auto; padding-right: 0; padding-bottom: 2.6rem; border-right: 1px solid #29364a; border-bottom: 0; }
@@ -1239,6 +1240,7 @@ function renderShellPage(
         [data-navigation-collapsed="true"] .story-details:not([open]) summary { overflow: hidden; font-size: 0; text-align: center; }
         [data-navigation-collapsed="true"] .story-details:not([open]) summary::after { content: "…"; font-size: 1rem; }
       }
+      .story-main > .story-details[open] { position: static; width: auto; max-height: 20vh; border-radius: 0; box-shadow: none; }
       :root[data-theme="light"] body { background: #f4f7fb; color: #183647; }
       :root[data-theme="light"] .catalogue-panel,
       :root[data-theme="light"] .catalogue-panel::before,

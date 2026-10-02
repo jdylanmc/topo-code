@@ -53,7 +53,10 @@ const galleryStories = [
   },
 ] as const;
 
-async function writeActualGalleryFixture(repository: string): Promise<void> {
+async function writeActualGalleryFixture(
+  repository: string,
+  stories: readonly (typeof galleryStories)[number][] = galleryStories,
+): Promise<void> {
   await writeFile(
     join(repository, "package.json"),
     '{"name":"actual-story-gallery-fixture","type":"module"}\n',
@@ -95,13 +98,13 @@ async function writeActualGalleryFixture(repository: string): Promise<void> {
   await commit(repository, "Source", "package.json", "packages", "docs");
   await topo(repository, "scan");
 
-  for (const story of galleryStories) {
+  for (const story of stories) {
     const destination = join(repository, story.path);
     await mkdir(dirname(destination), { recursive: true });
     await writeFile(destination, await readFile(join(projectRoot, story.path)));
   }
   await commit(repository, "Stories", "stories");
-  for (const story of galleryStories) {
+  for (const story of stories) {
     await topo(
       repository,
       "story",
@@ -272,6 +275,102 @@ test("actual gallery story text remains readable at a desktop viewport", async (
     await stopTopoServer(server);
   }
 });
+
+for (const height of [720, 760, 768]) {
+  test(`Architecture sidebar breakpoints preserve reading and evidence at ${height}px high`, async ({
+    page, repository, startSite,
+  }, info) => {
+    await writeActualGalleryFixture(repository, [galleryStories[0]]);
+    const url = await startSite();
+    const results = [];
+    for (const width of [1099, 1100, 1239, 1240, 1241, 1279, 1280, 1281]) {
+      await page.setViewportSize({ width, height });
+      for (const focused of [false, true]) {
+        await page.goto(`${url}/stories/topo-architecture/${focused ? "?focus=scan" : ""}`);
+        for (const collapsed of [false, true]) {
+          const shell = page.locator("[data-topo-shell]");
+          const toggle = page.locator("[data-collapse]");
+          if (await shell.getAttribute("data-navigation-collapsed") !== String(collapsed)) {
+            await toggle.press("Enter");
+          }
+          await expect(shell).toHaveAttribute("data-navigation-collapsed", String(collapsed));
+          const controls = collapsed ? [toggle] : [
+            page.getByLabel("Filter diagrams"),
+            page.getByRole("link", { name: "Third-party notices", exact: true }),
+            toggle,
+          ];
+          for (const control of controls) {
+            await control.focus();
+            await expect(control).toBeFocused();
+            expect(await control.evaluate(element => {
+              const box = element.getBoundingClientRect();
+              const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+              return hit !== null && element.contains(hit);
+            }), `Navigation control remains unobscured at ${width}x${height}`).toBe(true);
+          }
+          const details = page.locator(".story-details");
+          if (focused) await expect(details).toHaveAttribute("open", "");
+          else await expect(details).not.toHaveAttribute("open", "");
+          const frame = page.frameLocator("[data-story-viewer]");
+          const diagram = frame.locator(architectureDiagram);
+          await expect(diagram).toBeVisible();
+          await diagram.evaluate(async () => {
+            await document.fonts.ready;
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+          });
+          const frameBounds = (await page.locator("[data-story-viewer]").boundingBox())!;
+          const panelBounds = (await details.boundingBox())!;
+          const metrics = await diagram.evaluate((svg, bounds) => {
+            const overlap = (a: DOMRect, b: { x: number; y: number; width: number; height: number }) =>
+              Math.min(a.right, b.x + b.width) > Math.max(a.left, b.x) &&
+              Math.min(a.bottom, b.y + b.height) > Math.max(a.top, b.y);
+            const captions = [...svg.querySelectorAll<SVGTextElement>('g[data-node-id] text[data-detail="context"]')];
+            const texts = [...svg.querySelectorAll<SVGTextElement>("text")].filter(text => text.getBoundingClientRect().width > 0);
+            return {
+              captions: captions.map(text => {
+                const box = text.getBoundingClientRect();
+                const node = text.closest("g[data-node-id]")!.querySelector("rect")!.getBoundingClientRect();
+                return {
+                  text: text.textContent, size: parseFloat(getComputedStyle(text).fontSize) * text.getScreenCTM()!.a,
+                  visible: box.width > 0 && box.height > 0,
+                  insideNode: box.left >= node.left && box.right <= node.right && box.top >= node.top && box.bottom <= node.bottom,
+                };
+              }),
+              outside: texts.filter(text => {
+                const box = text.getBoundingClientRect();
+                return box.left < 0 || box.top < 0 || box.right > innerWidth || box.bottom > innerHeight;
+              }).map(text => text.textContent),
+              panelOverlaps: texts.filter(text => overlap(text.getBoundingClientRect(), {
+                x: bounds.panel.x - bounds.frame.x, y: bounds.panel.y - bounds.frame.y,
+                width: bounds.panel.width, height: bounds.panel.height,
+              })).map(text => text.textContent),
+              captionOverlaps: captions.filter(text =>
+                overlap(text.getBoundingClientRect(), text.closest("g[data-node-id]")!.querySelector("[data-node-label]")!.getBoundingClientRect()))
+                .map(text => text.textContent),
+            };
+          }, { frame: frameBounds, panel: panelBounds });
+          const scenario = `${width}x${height} collapsed=${collapsed} focused=${focused}`;
+          expect(metrics.captions, scenario).toHaveLength(7);
+          for (const caption of metrics.captions) {
+            expect(caption.visible, `${scenario}: ${caption.text}`).toBe(true);
+            expect(caption.size, `${scenario}: ${caption.text}`).toBeGreaterThanOrEqual(12);
+            expect(caption.insideNode, `${scenario}: ${caption.text}`).toBe(true);
+          }
+          expect(metrics.outside, scenario).toEqual([]);
+          expect(metrics.panelOverlaps, scenario).toEqual([]);
+          expect(metrics.captionOverlaps, scenario).toEqual([]);
+          if (focused) {
+            const excerpt = details.locator('[data-section-evidence="scan"] pre');
+            await excerpt.scrollIntoViewIfNeeded();
+            await expect(excerpt).toBeInViewport();
+          }
+          results.push({ width, height, collapsed, focused, frame: frameBounds, panel: panelBounds, ...metrics });
+        }
+      }
+    }
+    await info.attach("breakpoint-metrics", { body: JSON.stringify(results, null, 2), contentType: "application/json" });
+  });
+}
 
 test("actual Topocode architecture catalogue text stays inside its node", async ({
   page,
