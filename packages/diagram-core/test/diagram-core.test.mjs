@@ -195,7 +195,8 @@ test("renders a resolved story through the packaged Archify CLI", async (context
   assert.match(nodeTags.find(tag => tag.includes('data-node-id="client-step"')), /data-topo-caption="summary"/);
   assert.doesNotMatch(nodeTags.find(tag => tag.includes('data-node-id="service-step"')), /data-topo-caption/);
   assert.match(captionArtifact.contents, /svg text\[data-detail="context"\],[\s\S]*?font-size: 24px/);
-  assert.match(captionArtifact.contents, /\[data-topo-caption="summary"\] text\[data-detail="context"\] \{ font-size: 17px/);
+  assert.match(captionArtifact.contents, /svg text\[data-detail="context"\] \{ transform: translateY\(20px\); \}/);
+  assert.match(captionArtifact.contents, /\[data-topo-caption="summary"\] text\[data-detail="context"\] \{ font-size: 17px; transform: translateY\(12px\); \}/);
   assert.deepEqual(renderArchitectureStories([mixedCaptions]), [captionArtifact]);
 
   const caller = path.join(repositoryRoot, "caller");

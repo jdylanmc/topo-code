@@ -147,6 +147,17 @@ test("actual gallery story text remains readable at a desktop viewport", async (
       const viewer = page.frameLocator("[data-story-viewer]");
       const diagram = viewer.locator(story.diagram);
       await expect(diagram).toBeVisible();
+      const captionOverlaps = await diagram.locator("g[data-node-id]").evaluateAll(nodes =>
+        nodes.flatMap(node => {
+          const title = node.querySelector('text[data-node-label]')?.getBoundingClientRect();
+          const caption = node.querySelector('text[data-detail="context"]')?.getBoundingClientRect();
+          if (!title || !caption) return [];
+          return Math.min(title.right, caption.right) > Math.max(title.left, caption.left) &&
+            Math.min(title.bottom, caption.bottom) > Math.max(title.top, caption.top)
+            ? [{ id: node.getAttribute("data-node-id"), title: { top: title.top, bottom: title.bottom },
+              caption: { top: caption.top, bottom: caption.bottom } }] : [];
+        }));
+      expect(captionOverlaps, `${story.id} title/caption clearance`).toEqual([]);
       const iframeScale = await page.locator("[data-story-viewer]").evaluate(
         (iframe) => {
           const frame = iframe as HTMLIFrameElement;

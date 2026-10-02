@@ -125,7 +125,7 @@
       "id": "diagram-core-implementation",
       "path": "packages/diagram-core/src/index.ts",
       "language": "text",
-      "sha256": "612857561b379addc0fe720942d6ebef6dbd66025c35751a84d644d455adc942"
+      "sha256": "2591adad4e02d9b6da5288acf9f83371565b1d82447658be11196bfecf301100"
     },
     {
       "id": "languages-implementation",

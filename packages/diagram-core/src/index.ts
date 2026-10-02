@@ -1453,6 +1453,8 @@ svg [data-source-evidence-beacon] { display: none; }
 svg text[data-node-label],
 svg text[data-detail="context"],
 svg g[data-edge-from] > text { font-size: ${architectureFontSize}px; }
+/* Native caption baselines are only 16 units below titles. */
+svg text[data-detail="context"] { transform: translateY(20px); }
 svg [data-topo-caption="summary"] text[data-detail="context"] { font-size: 17px; transform: translateY(12px); }`
     : family === "workflow"
       ? `
