@@ -1210,6 +1210,7 @@ function renderShellPage(
         [data-navigation-collapsed="true"] .story-details:not([open]) { width: 3.5rem; }
         [data-navigation-collapsed="true"] .story-details:not([open]) summary { overflow: hidden; font-size: 0; text-align: center; }
         [data-navigation-collapsed="true"] .story-details:not([open]) summary::after { content: "…"; font-size: 1rem; }
+        .story-main > .story-details[open] { position: static; width: auto; max-height: 20vh; border-radius: 0; box-shadow: none; }
       }
       @media (min-width: 1100px) and (max-width: 1280px) and (max-height: 760px) {
         [data-topo-shell] { grid-template-columns: 14rem minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }

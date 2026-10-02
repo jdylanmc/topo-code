@@ -13,6 +13,9 @@ Architecture sections may include a short `summary` caption (for example,
 primary source filename. The full `body` narrative and source anchors remain
 available in the evidence panel. Other diagram families do not accept this
 caption field.
+Explicit summaries retain their compact caption typography. Without a summary,
+the source-symbol or filename caption keeps the larger source-reference type;
+adding summaries does not reduce the legibility of existing source stories.
 This caption is an unreleased repository-build capability, not part of the
 published npm 0.2.0 story contract.
 
@@ -53,6 +56,9 @@ Clicking that node opens the child story's overview; add `nodeId` only when a
 particular destination node should be focused. This explicit destination wins
 over automatically discovered shared-evidence links. Other related stories and
 source evidence remain available in details.
+On narrow screens, opening details reserves space below the viewer rather than
+covering diagram titles. The evidence pane scrolls independently and remains
+keyboard-accessible; non-Sequence focus still opens its evidence automatically.
 
 A child can declare `"parent": { "storyId": "internal-modules", "nodeId": "cli" }`.
 The storybook displays a visible return link even when the child is opened

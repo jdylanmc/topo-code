@@ -855,15 +855,24 @@ test("actual story details restore unobscured authored content", async ({
     ];
     const overlappingTitles = async () => {
       const controlsBounds = await controls.boundingBox();
+      const viewerBounds = await page.locator("[data-story-viewer]").boundingBox();
       expect(controlsBounds).not.toBeNull();
+      expect(viewerBounds).not.toBeNull();
       const diagram = page.frameLocator("[data-story-viewer]")
         .locator(architectureDiagram);
       const overlaps: string[] = [];
       for (const title of authoredTitles) {
-        const titleBounds = await diagram.locator("text", { hasText: title })
-          .first()
-          .boundingBox();
+        const label = diagram.locator("text", { hasText: title }).first();
+        const titleBounds = await label.boundingBox();
         expect(titleBounds, title).not.toBeNull();
+        expect(titleBounds!.x, title).toBeGreaterThanOrEqual(viewerBounds!.x);
+        expect(titleBounds!.y, title).toBeGreaterThanOrEqual(viewerBounds!.y);
+        expect(titleBounds!.x + titleBounds!.width, title).toBeLessThanOrEqual(viewerBounds!.x + viewerBounds!.width);
+        expect(titleBounds!.y + titleBounds!.height, title).toBeLessThanOrEqual(viewerBounds!.y + viewerBounds!.height);
+        expect(await label.evaluate(element => {
+          const text = element as SVGTextElement;
+          return parseFloat(getComputedStyle(text).fontSize) * text.getScreenCTM()!.a;
+        }), title).toBeGreaterThanOrEqual(12);
         if (
           titleBounds &&
           controlsBounds &&
@@ -897,6 +906,9 @@ test("actual story details restore unobscured authored content", async ({
       ),
     ).toBeVisible();
     expect(await overlappingTitles()).toEqual([]);
+    const excerpt = controls.locator('[data-section-evidence="scan"] pre');
+    await excerpt.scrollIntoViewIfNeeded();
+    await expect(excerpt).toBeInViewport();
 
     await page.goBack();
     await expect(page).toHaveURL(`${url}/stories/topo-architecture/`);

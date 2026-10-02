@@ -182,6 +182,22 @@ test("renders a resolved story through the packaged Archify CLI", async (context
   assert.equal(roleArtifact.renderer.adaptation, "topocode-story-semantics-v2");
   assert.deepEqual(renderArchitectureStories([authoredRoles]), [roleArtifact]);
 
+  const mixedCaptions = {
+    ...story,
+    document: {
+      ...story.document,
+      sections: story.document.sections.map((section, index) =>
+        index === 0 ? { ...section, summary: "Starts checkout" } : section),
+    },
+  };
+  const captionArtifact = renderStory(mixedCaptions);
+  const nodeTags = captionArtifact.contents.match(/<g\b[^>]*data-node-id="[^"]+"[^>]*>/g);
+  assert.match(nodeTags.find(tag => tag.includes('data-node-id="client-step"')), /data-topo-caption="summary"/);
+  assert.doesNotMatch(nodeTags.find(tag => tag.includes('data-node-id="service-step"')), /data-topo-caption/);
+  assert.match(captionArtifact.contents, /svg text\[data-detail="context"\],[\s\S]*?font-size: 24px/);
+  assert.match(captionArtifact.contents, /\[data-topo-caption="summary"\] text\[data-detail="context"\] \{ font-size: 17px/);
+  assert.deepEqual(renderArchitectureStories([mixedCaptions]), [captionArtifact]);
+
   const caller = path.join(repositoryRoot, "caller");
   await mkdir(caller);
   await symlink(path.join(repositoryRoot, "source.ts"), path.join(caller, "story.html"));

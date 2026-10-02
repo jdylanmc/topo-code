@@ -1393,6 +1393,9 @@ function serializeRendererInput(spec: { readonly meta: object }): string {
 function adaptStorySemantics(contents: string, document: StoryDocument): string {
   const fallback = document.diagramFamily === "sequence" ? "participant" : "component";
   const roles = new Map(document.sections.map(section => [componentId(section.id), section.semanticRole ?? fallback]));
+  const summaries = new Set(document.sections
+    .filter(section => section.summary !== undefined)
+    .map(section => componentId(section.id)));
   const seen = new Set<string>();
   const adapted = contents.replace(/<g\b[^>]*\bdata-node-id="([^"]+)"[^>]*>/g, (tag, id: string) => {
     const role = roles.get(id);
@@ -1400,7 +1403,8 @@ function adaptStorySemantics(contents: string, document: StoryDocument): string 
     if (!/^(?!constructor$)[a-z][a-z0-9-]{0,63}$/.test(role)) throw new Error(`Invalid semantic role for ${id}`);
     if (!/\bdata-node-kind="[^"]*"/.test(tag)) throw new Error(`Story node ${id} has no semantic metadata`);
     seen.add(id);
-    return tag.replace(/\bdata-node-kind="[^"]*"/, `data-node-kind="${role}"`);
+    const annotated = tag.replace(/\bdata-node-kind="[^"]*"/, `data-node-kind="${role}"`);
+    return summaries.has(id) ? annotated.replace("<g", '<g data-topo-caption="summary"') : annotated;
   });
   if (seen.size !== roles.size) throw new Error("Story semantic adaptation omitted an authored node");
   const replacements: readonly [RegExp, string][] = [
@@ -1447,8 +1451,9 @@ svg { max-height: 100vh; }
 .reader-rail { display: none !important; }
 svg [data-source-evidence-beacon] { display: none; }
 svg text[data-node-label],
+svg text[data-detail="context"],
 svg g[data-edge-from] > text { font-size: ${architectureFontSize}px; }
-svg text[data-detail="context"] { font-size: 17px; transform: translateY(12px); }`
+svg [data-topo-caption="summary"] text[data-detail="context"] { font-size: 17px; transform: translateY(12px); }`
     : family === "workflow"
       ? `
 svg text[data-node-label],
