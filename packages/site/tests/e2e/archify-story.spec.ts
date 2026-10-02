@@ -280,13 +280,13 @@ for (const height of [720, 760, 768]) {
   test(`Architecture sidebar breakpoints preserve reading and evidence at ${height}px high`, async ({
     page, repository, startSite,
   }, info) => {
-    await writeActualGalleryFixture(repository, [galleryStories[0]]);
+    await writeActualGalleryFixture(repository, [galleryStories[0], galleryStories[3]]);
     const url = await startSite();
     const results = [];
     for (const width of [1099, 1100, 1239, 1240, 1241, 1279, 1280, 1281]) {
       await page.setViewportSize({ width, height });
       for (const focused of [false, true]) {
-        await page.goto(`${url}/stories/topo-architecture/${focused ? "?focus=scan" : ""}`);
+        await page.goto(`${url}/stories/topo-architecture/${focused ? "?focus=scan&from=architecture-capability&fromFocus=client" : ""}`);
         for (const collapsed of [false, true]) {
           const shell = page.locator("[data-topo-shell]");
           const toggle = page.locator("[data-collapse]");
@@ -299,7 +299,7 @@ for (const height of [720, 760, 768]) {
             page.getByRole("link", { name: "Third-party notices", exact: true }),
             toggle,
           ];
-          for (const control of controls) {
+          for (const control of [...controls, ...(focused ? [page.locator("[data-return]")] : [])]) {
             await control.focus();
             await expect(control).toBeFocused();
             expect(await control.evaluate(element => {
@@ -363,6 +363,10 @@ for (const height of [720, 760, 768]) {
             const excerpt = details.locator('[data-section-evidence="scan"] pre');
             await excerpt.scrollIntoViewIfNeeded();
             await expect(excerpt).toBeInViewport();
+            await page.locator("[data-return]").click();
+            await expect(page.locator("body")).toHaveAttribute("data-story-id", "architecture-capability");
+            await page.goBack();
+            await expect(page.locator("body")).toHaveAttribute("data-story-id", "topo-architecture");
           }
           results.push({ width, height, collapsed, focused, frame: frameBounds, panel: panelBounds, ...metrics });
         }

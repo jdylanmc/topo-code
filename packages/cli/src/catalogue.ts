@@ -1202,6 +1202,8 @@ function renderShellPage(
         .catalogue-footer { display: block; }
         [data-navigation-collapsed="true"] .brand-row { width: 3.5rem; border-right: 0; background: #0b1524; }
         .story-main, .home-main, .repository-main { grid-column: 2; grid-row: 1; }
+        .story-breadcrumb { padding-left: calc(14rem + 0.85rem); }
+        [data-navigation-collapsed="true"] .story-breadcrumb { padding-left: calc(3.5rem + 0.85rem); }
         .home-main { padding-left: 4.5rem; }
         .repository-toolbar { padding-left: 3.75rem; }
         .story-details { position: fixed; z-index: 4; top: auto; right: auto; bottom: 0; left: 0; width: 14rem; max-height: min(70vh, 36rem); border: 1px solid #29364a; border-radius: 0 0.5rem 0 0; box-shadow: 0 0.4rem 1.2rem rgb(0 0 0 / 35%); }
@@ -1241,6 +1243,7 @@ function renderShellPage(
         [data-navigation-collapsed="true"] .story-details:not([open]) summary::after { content: "…"; font-size: 1rem; }
       }
       .story-main > .story-details[open] { position: static; width: auto; max-height: 20vh; border-radius: 0; box-shadow: none; }
+      .story-main:has(> .story-breadcrumb:not([hidden])):has(> .story-details[open]) { grid-template-rows: auto minmax(0, 5fr) minmax(0, 1fr); }
       :root[data-theme="light"] body { background: #f4f7fb; color: #183647; }
       :root[data-theme="light"] .catalogue-panel,
       :root[data-theme="light"] .catalogue-panel::before,
