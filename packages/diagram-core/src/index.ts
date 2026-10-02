@@ -1465,6 +1465,7 @@ svg g[data-edge-from] > text {
       : family === "sequence"
         ? `
 svg { max-height: 100vh; }
+.reader-rail { display: none !important; }
 @media (min-width: 1400px) and (min-height: 900px) {
   html[data-topo-app] .container {
     min-width: min(calc(100vw - 64px), ${sequence === undefined ? 0 : sequence.viewBox[0] * sequenceReadability.targetEffectiveFontSize / sequence.fontSize + 50}px);

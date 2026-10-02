@@ -72,7 +72,7 @@ Native Architecture cards show at most three compact source links, matching the
 pinned renderer's schema. Topocode still validates every section anchor and
 retains all of them in the story evidence panel and `evidence.json`; grouped
 nodes do not discard source evidence to fit the renderer.
-The integrated Architecture viewer omits the redundant native node-index rail:
+The integrated Architecture and Sequence viewers omit the redundant native node-index rail:
 the surrounding story shell already supplies node navigation and full evidence.
 The diagram, interactive node controls, search, focus, and exports remain intact.
 
