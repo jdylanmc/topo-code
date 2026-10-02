@@ -1,0 +1,40 @@
+name: Plugin integration experiment
+
+on:
+  pull_request:
+    paths:
+      - "experiments/plugin-spike/**"
+      - ".github/workflows/plugin-spike.yml"
+  push:
+    branches: [main]
+    paths:
+      - "experiments/plugin-spike/**"
+      - ".github/workflows/plugin-spike.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  experiment:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: experiments/plugin-spike
+    env:
+      NPM_CONFIG_REGISTRY: https://registry.npmjs.org
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm test
+      - name: Install an actual packed consumer and exercise both renderers
+        run: npm run test:package -- --report artifacts/package-smoke.json
