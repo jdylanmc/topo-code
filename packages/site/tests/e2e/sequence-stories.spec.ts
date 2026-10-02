@@ -739,7 +739,8 @@ test("public Sequence participants retain native details before explicit navigat
       await explicitCrossStoryLink.click();
       await expect(page).toHaveURL(
         `${baseUrl}stories/topo-architecture/?focus=catalogue` +
-          "&from=story-preview-sequence&fromFocus=preview-orchestrator",
+          "&from=story-preview-sequence&fromFocus=preview-orchestrator" +
+          `&callers=${encodeURIComponent(JSON.stringify([{ storyId: "story-preview-sequence", nodeId: "preview-orchestrator" }]))}`,
       );
       await page.goBack();
       await expect(page).toHaveURL(

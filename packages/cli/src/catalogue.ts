@@ -457,7 +457,7 @@ const STORY_NAVIGATION_SCRIPT = `(() => {
         link.removeAttribute("aria-current");
       }
     }
-    const nativeId = nodeIds.get(nodeId);
+    const nativeId = nodeIds.get(nodeId) ?? nodeId;
     frame.src = "viewer.html" + (nativeId ? "#focus=" + encodeURIComponent(nativeId) : "");
   }
 
@@ -468,7 +468,6 @@ const STORY_NAVIGATION_SCRIPT = `(() => {
     else url.searchParams.delete("focus");
     window.history.replaceState(null, "", url);
     setFocus(nodeId);
-    showEvidence(nodeId, null);
   }
 
   let navigating = false;
@@ -491,10 +490,10 @@ const STORY_NAVIGATION_SCRIPT = `(() => {
   }
 
   for (const link of nodeLinks) {
-    link.addEventListener("click", event => {
-      event.preventDefault();
-      rememberFocus(link.getAttribute("data-node-id"));
-    });
+    const destination = new URL(window.location.href);
+    destination.searchParams.delete("edge");
+    destination.searchParams.set("focus", link.getAttribute("data-node-id"));
+    link.href = destination.href;
   }
   for (const link of document.querySelectorAll('[data-edge-evidence] a[href^="?"]')) {
     const destination = new URL(window.location.href);
