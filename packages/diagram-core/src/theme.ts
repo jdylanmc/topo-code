@@ -88,10 +88,12 @@ export function adaptViewerTheme(
     if (!/^[a-z0-9][a-z0-9-]*$/.test(section.drilldown.storyId)) throw new Error("Invalid standalone drilldown target");
     drilldowns.push([section.id, section.drilldown]);
   }
-  const navigation = document === undefined ? "" : `
+  const identities = document === undefined ? [] : storyNodeIds(document, renderer);
+  const navigation = document === undefined ||
+    (drilldowns.length === 0 && identities.every(([authored, native]) => authored === native)) ? "" : `
 <script data-topo-standalone-navigation>
 (() => {
-  const nodeIds = new Map(${JSON.stringify(storyNodeIds(document, renderer)).replaceAll("<", "\\u003c")});
+  const nodeIds = new Map(${JSON.stringify(identities).replaceAll("<", "\\u003c")});
   const authoredIds = new Map([...nodeIds].map(([authored, native]) => [native, authored]));
   const selection = new URLSearchParams(location.hash.slice(1));
   const focus = selection.get("focus");
