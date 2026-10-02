@@ -9,9 +9,16 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: public-website-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
     defaults:
       run:
         working-directory: topocode
@@ -19,11 +26,13 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           path: topocode
+          fetch-depth: 0
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: jdylanmc/topo-archify
           ref: b94790e99e2ca51fcdb74a9bd0f10f637856f92f
           path: renderer
+          fetch-depth: 0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: topocode/.node-version
