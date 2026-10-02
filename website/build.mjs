@@ -121,7 +121,7 @@ export async function build() {
 npx --no topo serve .</code></pre><p>A working Home, before your first map.</p></div></section>
 <section id="demo" class="home-demo" aria-labelledby="home-demo-title">
 <h2 id="home-demo-title">From idea to architecture</h2>
-<p class="lede">A live Topocode diagram of the process itself: you ask, your agent investigates and authors, you review, and the explanation improves.</p>
+<p class="lede">Understand the code at a glance, faster than reading files. Your agent turns source evidence into a diagram; you review and refine the explanation.</p>
 <section class="demo-stage" aria-label="Interactive Topocode demo"><div class="demo-toolbar"><button data-expand-demo aria-pressed="false">Expand demo</button><a href="${route("demo/home/stories/story-to-screen/")}">Open full storybook</a><a href="${route("demo/")}">Explore all maps</a></div><iframe data-demo title="From idea to architecture - interactive Topocode demo" src="${route("demo/home/stories/story-to-screen/viewer.html")}?present=1" loading="lazy"></iframe></section>
 </section>
 <section class="flow" aria-label="How Topocode works"><div><h3>Read the implementation.</h3><p>Deterministic scanning supplies structural evidence. Your coding agent reads the source and helps explain what matters. Scanning never calls a model.</p></div><div><h3>Author the explanation.</h3><p>Trace a boundary, a request, a decision, or a lifecycle. Curate stories with your agent instead of accepting a wall of generated boxes.</p></div><div><h3>Keep the evidence.</h3><p>Follow claims back to source. Validate anchors, repair stale evidence, and share the storybook as static files.</p></div></section>

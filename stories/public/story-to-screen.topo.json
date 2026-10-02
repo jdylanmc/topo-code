@@ -6,7 +6,7 @@
   "id": "story-to-screen",
   "title": "From idea to architecture",
   "category": "Topocode",
-  "summary": "One human-agent collaboration cycle, grounded in Topocode's documented workflow—not a trace of one CLI process. The CLI supplies deterministic evidence and objective checks; the agent interprets and authors; you judge whether the explanation is meaningful. Feedback loops back to interpretation/authoring, and source changes may require another scan. Scan is useful here but not a prerequisite for authored stories.",
+  "summary": "Turn a question about code into a diagram that explains it at a glance, faster than reading files. Topocode supplies source evidence and checks; the agent turns that evidence into a clear visual explanation; you review and refine it. This is the product's collaboration loop, not a command-by-command setup or Git procedure. Scan is useful here but not required for authored stories.",
   "anchors": [
     {
       "id": "authoring-guide",
@@ -60,7 +60,7 @@
       "id": "agent",
       "title": "Coding agent",
       "semanticRole": "coding-agent",
-      "body": "Read code and scan evidence, enrich the understanding, and author an anchored story. Repair diagnostics, preserve story identity, and commit only with authorization. Present the result for human review. Interpretation here does not require the separate topo enrich command.",
+      "body": "Read code and scan evidence, identify what matters, and author an anchored story that explains the code visually. Repair diagnostics and preserve story identity as the explanation evolves. Present the diagram so the user can understand responsibilities and relationships without first reading every file. Interpretation here does not require the separate topo enrich command.",
       "anchorIds": [
         "authoring-guide",
         "agent-skill",
@@ -85,7 +85,7 @@
       "id": "repository",
       "title": "Repository",
       "semanticRole": "repository",
-      "body": "Holds source code, configuration, and authored stories. The agent writes and commits the story; the CLI reads source and generates disposable cache/output. This is a file and Git boundary, not a separate hosted service.",
+      "body": "Holds source code, configuration, and authored stories. The agent writes the explanation; the CLI reads source and generates the diagram. Source-backed stories are durable, while generated cache/output is disposable. This is a repository boundary, not a separate hosted service.",
       "anchorIds": [
         "repository-workspace",
         "agent-skill"
@@ -132,11 +132,6 @@
     },
     {
       "from": "agent",
-      "to": "repository",
-      "label": "Commit with authorization"
-    },
-    {
-      "from": "agent",
       "to": "cli",
       "label": "Preview; serve or bundle"
     },
@@ -149,7 +144,7 @@
     {
       "from": "agent",
       "to": "user",
-      "label": "Present architecture document",
+      "label": "Diagram explains the code",
       "variant": "return"
     },
     {

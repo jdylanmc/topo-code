@@ -183,7 +183,8 @@ test("idea-to-architecture sequence shows the collaboration and review loop", as
     .toEqual(["human", "coding-agent", "command-line-tool", "repository"]);
   await expect(flow.locator('svg[data-topo-family="sequence"]')).toContainText("Review, refine, repeat");
   await expect(flow.locator('svg[data-topo-family="sequence"]')).toContainText("Write interpreted story");
-  await expect(flow.locator('svg[data-topo-family="sequence"]')).toContainText("Commit with authorization");
+  await expect(flow.locator('svg[data-topo-family="sequence"]')).not.toContainText("Commit with authorization");
+  await expect(flow.locator('svg[data-topo-family="sequence"]')).toContainText("Diagram explains the code");
   await flow.locator('svg g[data-node-id="cli"]').click();
   await expect(wrapper.locator("body")).toHaveAttribute("data-story-id", "cli-surface");
   await expect(wrapper.locator("[data-return]")).toBeVisible();

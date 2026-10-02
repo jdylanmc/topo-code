@@ -97,10 +97,12 @@ related-story links remain available; published targets are validated.
 `story-to-screen.topo.json` now shows **From idea to architecture** as a native
 sequence: you ask the agent, the CLI supplies deterministic scan evidence, the
 agent interprets and authors, the CLI validates/previews, you review, and the
-cycle repeats. The repository lifeline makes source reads and authorized story
-writes explicit. This is the documented collaboration workflow, not a call trace
-of one process. Scan never invokes the model; agent interpretation does not
-require the separate `topo enrich` command. Commits still require authorization.
+cycle repeats. Its outcome is understanding code at a glance rather than reading
+files one by one. The repository lifeline makes source reads and authored stories
+explicit; routine Git procedure is omitted from this product explanation.
+This is the documented collaboration workflow, not a call trace of one process.
+Scan never invokes the model; agent interpretation does not require the separate
+`topo enrich` command. Operational prerequisites remain in the usage guides.
 
 Three algorithm sequences add implementation-level explanations without inventing
 services or runtime telemetry:
